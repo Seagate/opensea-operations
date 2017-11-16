@@ -16,6 +16,7 @@ OS and platform level details.
 
 Source
 ------
+https://github.com/Seagate/opensea-operations.git
 
 Building
 --------
