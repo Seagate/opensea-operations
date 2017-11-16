@@ -1,8 +1,18 @@
 # opensea-operations
+#### Copyright (c) 2014-2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+
+Welcome to the openSeaChest open source project!
+
+BINARIES and SOURCE CODE files of the openSeaChest open source project have
+been made available to you under the Mozilla Public License 2.0 (MPL).  The
+openSeaChest project repository is maintained at
+https://github.com/Seagate/openSeaChest.
+
+### opensea-operation
 Cross platform library containing set of useful operations for storage devices.
 
-Overview 
---------
+#### Overview 
+
 The opensea-operations library has common set of operations defined as functions
 that allow command line and GUI utilities to send a collection of standard 
 ATA, SCSI & NVMe commands to storage devices connected through SATA, SAS, PCIe 
@@ -14,12 +24,12 @@ With the help of opensea-transport and opensea-common libraries this API allows
 users to write only application layer code & the library takes care of the 
 OS and platform level details. 
 
-Source
-------
+#### Source
+
 https://github.com/Seagate/opensea-operations.git
 
-Building
---------
+#### Building
+
 opensea-operations depends on the opensea-common & opernsea-transport library 
 and the three should be cloned to the same folder for Makefiles to build
 the libraries.
@@ -34,12 +44,12 @@ make
 To build under Microsoft Windows, open the correspoinding 
 Visual Studio Solution files for VS 2013 or 2015
 
-Documentation
--------------
+#### Documentation
+
 Header files & functions have doxygen documentation. 
 
-Platforms
----------
+#### Platforms
+
 Under Linux this libraries can be built on the following platforms using 
 a cross platform compiler: 
 
