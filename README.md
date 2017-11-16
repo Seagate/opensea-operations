@@ -1,9 +1,9 @@
 # opensea-operations
 #### Copyright (c) 2014-2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 
-Welcome to the openSeaChest open source project!
+Welcome to opensea-operations, part of the openSeaChest open source project!
 
-BINARIES and SOURCE CODE files of the openSeaChest open source project have
+BINARIES and SOURCE CODE files of the opensea-operations and openSeaChest open source projects have
 been made available to you under the Mozilla Public License 2.0 (MPL).  The
 openSeaChest project repository is maintained at
 https://github.com/Seagate/openSeaChest.
