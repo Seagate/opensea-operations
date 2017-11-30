@@ -1624,9 +1624,9 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 {
                     // SCSI was implemented first, and it returns a value where 0 means 100% spares left, ATA is the opposite,
                     // so we need to subtract our number from 100
-                    // On SATA Gliese drives, we had firmware reporting in the range of 0-255 instead of 0-100. Lets check for them and normalize the value so it can be reported
+                    // On SATA drives below, we had firmware reporting in the range of 0-255 instead of 0-100. Lets check for them and normalize the value so it can be reported
                     // Note that this is only for some firmwares...we should figure out a better way to do this
-                    // Here's the list of Gliese SATA model numbers:
+                    // Here's the list of the affected SATA model numbers:
                     // ST100FM0022 (SED - rare)
                     // ST100FM0012 (SED - rare)
                     // ST200FM0012 (SED - rare)
