@@ -80,7 +80,8 @@ extern "C"
     //  Entry:
     //!   \param[in] device = file descriptor
     //!   \param[in] numberOfRandomLBAs = number of random errors to create
-    //!   \param[in] readUncorrectables = Flag to specify whether or not to issue read commands to the created error. This should always be set to true unless you know what you're doing
+    //!   \param[in] readUncorrectables = set to true to read the lba after marking it bad with a psuedo uncorrectable error (recommended so it can be logged and tracked)
+    //!   \param[in] flaggedErrors = set to true to flag uncorrectable errors instead of creating pseudo uncorrectable errors. (Required on NVMe). Note: These errors cannot be logged. Use with caution!!!
     //!   \param[in] updateFunction = callback function to update UI
     //!   \param[in] updateData = hidden data to pass to the callback function
     //!
@@ -88,7 +89,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, custom_Update updateFunction, void *updateData);
+    OPENSEA_OPERATIONS_API int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData);
 
     //-----------------------------------------------------------------------------
     //
@@ -109,6 +110,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData);
+
+    OPENSEA_OPERATIONS_API int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData);
 
     OPENSEA_OPERATIONS_API int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled);
 
