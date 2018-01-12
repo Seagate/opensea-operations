@@ -1361,17 +1361,22 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     uint64_t totalErrors = 0;
     bool unableToRepair = false;
     bool passthroughWrite = false;
-    if (errorLimit < 1)
-    {
-        return BAD_PARAMETER;
-    }
     if (is_Sector_Size_Emulation_Active(device))
     {
         passthroughWrite = true;//in this case, since sector size emulation is active, we need to issue a passthrough command for the repair instead of a standard interface command. - TJE
     }
     if (!externalErrorList)
     {
-        errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+        size_t errorListAllocation = 0; 
+        if (errorLimit < 1)
+        {
+            errorListAllocation = sizeof(errorLBA);//allocate a list length of 1..that way we have something if the rest of the function does try and access this memory.
+        }
+        else
+        {
+            errorListAllocation = errorLimit * sizeof(errorLBA);
+        }
+        errorList = (errorLBA*)calloc(errorListAllocation, sizeof(errorLBA));
         if (!errorList)
         {
             perror("calloc failure\n");
