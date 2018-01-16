@@ -126,6 +126,19 @@ extern "C"
         };
     }interfaceSpeed;
 
+    //This struct is only for ATA drives...more specifically legacy drives. Can be used if any ATA drive that populates these fields.
+    typedef struct _legacyCHSInfo
+    {
+        bool legacyCHSValid;
+        uint16_t numberOfLogicalCylinders;//Word 1
+        uint8_t numberOfLogicalHeads;//Word 3
+        uint8_t numberOfLogicalSectorsPerTrack;//Word 6
+        uint16_t numberOfCurrentLogicalCylinders;//Word 54
+        uint8_t numberOfCurrentLogicalHeads;//Word 55
+        uint8_t numberOfCurrentLogicalSectorsPerTrack;//Word 56
+        uint32_t currentCapacityInSectors;//Word 57:58
+    }legacyCHSInfo;
+
     #define MAX_FEATURES UINT8_C(50) //change this number if we need to capture more feature support
     #define MAX_FEATURE_LENGTH UINT8_C(50) //maximum number of characters to allow for use when storing feature names.
 
@@ -149,6 +162,7 @@ extern "C"
         uint64_t powerOnMinutes;
         uint64_t maxLBA;
         uint64_t nativeMaxLBA;//ATA Only since SCSI doesn't have a way to get the native max without changing the drive (not ok to do for this function) if set to 0, or UINT64_MAX, then the value is invalid
+        legacyCHSInfo ataLegacyCHSInfo;
         uint32_t logicalSectorSize;//bytes
         uint32_t physicalSectorSize;//bytes
         uint16_t sectorAlignment;//first logical sector offset within the first physical sector
