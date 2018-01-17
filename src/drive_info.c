@@ -74,7 +74,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders = wordPtr[54];
             driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads = (uint8_t)wordPtr[55];
             driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = (uint8_t)wordPtr[56];
-            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_BytesTo4ByteValue(bytePtr[114], bytePtr[115], bytePtr[116], bytePtr[117]);
+            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_BytesTo4ByteValue(bytePtr[117], bytePtr[116], bytePtr[115], bytePtr[114]);
         }
         //get the sector sizes from the identify data
         if (((wordPtr[106] & BIT14) == BIT14) && ((wordPtr[106] & BIT15) == 0)) //making sure this word has valid data
