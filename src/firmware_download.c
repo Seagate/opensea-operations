@@ -416,7 +416,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     supportedModes->recommendedSegmentSize = 64;
                     //set the min/max segment size from the cmd information bitfield
                     uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF))
+                    if (length == UINT32_C(0xFFFFFF) || length == 0)
                     {
                         supportedModes->maxSegmentSize = UINT32_MAX;
                         supportedModes->minSegmentSize = 0;
@@ -426,7 +426,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         supportedModes->maxSegmentSize = length;
                         //the minimum is the lowest non-zero bit
                         uint32_t counter = 0;
-                        while ((length & BIT0) == 0)
+                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
                         {
                             length = length >> 1;
                             ++counter;
@@ -440,7 +440,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     supportedModes->recommendedSegmentSize = 64;
                     //set the min/max segment size from the cmd information bitfield
                     uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF))
+                    if (length == UINT32_C(0xFFFFFF) || length == 0)
                     {
                         supportedModes->maxSegmentSize = UINT32_MAX;
                         supportedModes->minSegmentSize = 0;
@@ -450,7 +450,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         supportedModes->maxSegmentSize = length;
                         //the minimum is the lowest non-zero bit
                         uint32_t counter = 0;
-                        while ((length & BIT0) == 0)
+                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
                         {
                             length = length >> 1;
                             ++counter;
@@ -464,7 +464,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     supportedModes->recommendedSegmentSize = 64;
                     //set the min/max segment size from the cmd information bitfield
                     uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF))
+                    if (length == UINT32_C(0xFFFFFF) || length == 0)
                     {
                         supportedModes->maxSegmentSize = UINT32_MAX;
                         supportedModes->minSegmentSize = 0;
@@ -474,7 +474,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         supportedModes->maxSegmentSize = length;
                         //the minimum is the lowest non-zero bit
                         uint32_t counter = 0;
-                        while ((length & BIT0) == 0)
+                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
                         {
                             length = length >> 1;
                             ++counter;
@@ -523,7 +523,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         supportedModes->fullBuffer = true;
                     }
                     uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF))
+                    if (length == UINT32_C(0xFFFFFF) || length == 0)
                     {
                         supportedModes->maxSegmentSize = UINT32_MAX;
                         supportedModes->minSegmentSize = 0;
@@ -533,7 +533,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         supportedModes->maxSegmentSize = length;
                         //the minimum is the lowest non-zero bit
                         uint32_t counter = 0;
-                        while ((length & BIT0) == 0)
+                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
                         {
                             length = length >> 1;
                             ++counter;
@@ -577,7 +577,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                                 supportedModes->fullBuffer = true;
                             }
                             uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[12], writeBufferSupportData[13], writeBufferSupportData[14]);
-                            if (length == UINT32_C(0xFFFFFF))
+                            if (length == UINT32_C(0xFFFFFF) || length == 0)
                             {
                                 supportedModes->maxSegmentSize = UINT32_MAX;
                                 supportedModes->minSegmentSize = 0;
@@ -587,7 +587,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                                 supportedModes->maxSegmentSize = length;
                                 //the minimum is the lowest non-zero bit
                                 uint32_t counter = 0;
-                                while ((length & BIT0) == 0)
+                                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
                                 {
                                     length = length >> 1;
                                     ++counter;
