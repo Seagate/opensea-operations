@@ -1642,11 +1642,11 @@ int get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
     {
         uint8_t defectData[8] = { 0 };
         //get by reading the grown list since it contains a number of entries at the beggining
-        if (SUCCESS == scsi_Read_Defect_Data_12(device, false, true, 5, 0, 8, defectData))//physical chs
+        if (SUCCESS == scsi_Read_Defect_Data_12(device, false, true, AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR, 0, 8, defectData))//physical chs
         {
             *grownCount = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) / 8;
         }
-        else if (SUCCESS == scsi_Read_Defect_Data_10(device, false, true, 5, 8, defectData))
+        else if (SUCCESS == scsi_Read_Defect_Data_10(device, false, true, AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR, 8, defectData))
         {
             *grownCount = M_BytesTo2ByteValue(defectData[2], defectData[3]) / 8;
         }
