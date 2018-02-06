@@ -5865,7 +5865,7 @@ char * print_drive_type(tDevice *device)
 		{
 			return "FLASH";
 		}
-        else if (device->drive_info.drive_type == TAPE_DRIVE)
+        else if (device->drive_info.drive_type == LEGACY_TAPE_DRIVE)
         {
             return "TAPE";
         }
