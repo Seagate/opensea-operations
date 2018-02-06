@@ -61,20 +61,25 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             byte_Swap_32(&tempMaxLba);
             driveInfo->maxLBA = tempMaxLba;
         }
-        driveInfo->maxLBA -= 1;
+        if (driveInfo->maxLBA > 0)
+        {
+            driveInfo->maxLBA -= 1;
+        }
         //Check if CHS words are non-zero to set if the information is valid.
-        if (!(wordPtr[1] == 0 || wordPtr[3] == 0 || wordPtr[6] == 0 ||
-            wordPtr[54] == 0 || wordPtr[55] == 0 || wordPtr[56] == 0 ||
-            wordPtr[57] == 0 || wordPtr[58] == 0))
+        if (!(wordPtr[1] == 0 || wordPtr[3] == 0 || wordPtr[6] == 0))
         {
             driveInfo->ataLegacyCHSInfo.legacyCHSValid = true;
             driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders = wordPtr[1];
             driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads = (uint8_t)wordPtr[3];
             driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack = (uint8_t)wordPtr[6];
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders = wordPtr[54];
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads = (uint8_t)wordPtr[55];
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = (uint8_t)wordPtr[56];
-            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_BytesTo4ByteValue(bytePtr[117], bytePtr[116], bytePtr[115], bytePtr[114]);
+            if ((wordPtr[53] & BIT0) || (wordPtr[54] != 0 && wordPtr[55] != 0 && wordPtr[56] != 0 && wordPtr[57] != 0 && wordPtr[58] != 0))
+            {
+                driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid = true;
+                driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders = wordPtr[54];
+                driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads = (uint8_t)wordPtr[55];
+                driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = (uint8_t)wordPtr[56];
+                driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_BytesTo4ByteValue(bytePtr[117], bytePtr[116], bytePtr[115], bytePtr[114]);
+            }
         }
         //get the sector sizes from the identify data
         if (((wordPtr[106] & BIT14) == BIT14) && ((wordPtr[106] & BIT15) == 0)) //making sure this word has valid data
@@ -5025,7 +5030,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
     }
     else
     {
-        printf("\tNot Supported");
+        printf("Not Supported");
     }
     printf("\n");
 	if (driveInfo->copyrightValid && strlen(driveInfo->copyrightInfo))
@@ -5036,7 +5041,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
     mCapacity = (double)(driveInfo->maxLBA * driveInfo->logicalSectorSize);
     if (driveInfo->maxLBA == 0 && driveInfo->ataLegacyCHSInfo.legacyCHSValid)
     {
-        mCapacity = (double)(driveInfo->ataLegacyCHSInfo.currentCapacityInSectors * driveInfo->logicalSectorSize);
+        if (driveInfo->ataLegacyCHSInfo.currentCapacityInSectors > 0)
+        {
+            mCapacity = (double)(driveInfo->ataLegacyCHSInfo.currentCapacityInSectors * driveInfo->logicalSectorSize);
+        }
+        else
+        {
+            mCapacity = (double)((driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack) * driveInfo->logicalSectorSize);
+        }
     }
     capacity = mCapacity;
     metric_Unit_Convert(&mCapacity, &mCapUnit);
@@ -5135,7 +5147,15 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
     {
         printf("\tDefault CHS: %" PRIu16 " | %" PRIu8 " | %" PRIu8 "\n", driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders, driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads, driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack);
         printf("\tCurrent CHS: %" PRIu16 " | %" PRIu8 " | %" PRIu8 "\n", driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders, driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads, driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack);
-        uint32_t simMaxLBA = driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack;
+        uint32_t simMaxLBA = 0;
+        if (driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid)
+        {
+            simMaxLBA = driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack;
+        }
+        else
+        {
+            simMaxLBA = driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack;
+        }
         printf("\tSimulated MaxLBA: %" PRIu32 "\n", simMaxLBA);
     }
     else

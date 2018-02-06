@@ -133,6 +133,7 @@ extern "C"
         uint16_t numberOfLogicalCylinders;//Word 1
         uint8_t numberOfLogicalHeads;//Word 3
         uint8_t numberOfLogicalSectorsPerTrack;//Word 6
+        bool currentInfoconfigurationValid;//Must be true for the following parts of this structure
         uint16_t numberOfCurrentLogicalCylinders;//Word 54
         uint8_t numberOfCurrentLogicalHeads;//Word 55
         uint8_t numberOfCurrentLogicalSectorsPerTrack;//Word 56
