@@ -35,7 +35,7 @@ extern "C"
     //
     //  run_DST()
     //
-    //! \brief   Description:  Function to send a ATA Spec DST or SCSI spec DST to a device
+    //! \brief   Description:  Function to send a ATA Spec DST or SCSI spec DST to a device and poll it for updates. Recommended for utility usage since this will also poll or wait
     //
     //  Entry:
     //!   \param[in] device = file descriptor
@@ -48,6 +48,24 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
+    //
+    //! \brief   Description:  Function to send a ATA Spec DST or SCSI spec DST to a device
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] DSTType = see enum above
+    //!   \param[in] pollForProgress = 0 = don't poll, just start the test. 1 = poll for progress and display the progress on the screen.
+    //!   \param[in] captiveForeground = when set to true, the self test is run in captive/foreground mode. This is only for ATA or SCSI. When set, this will wait for the entire test to complete before returning. This is ignored on NVMe
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout);
 
     //-----------------------------------------------------------------------------
     //
