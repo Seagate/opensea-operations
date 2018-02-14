@@ -95,24 +95,12 @@ int create_And_Open_Log_File(tDevice *device,\
         #ifdef _DEBUG
         printf("\tfilename %s\n",filename);
         #endif
-        if(logPath == NULL && *logFileNameUsed)
-        {
-            memcpy(*logFileNameUsed, filename, OPENSEA_PATH_MAX);
-        }
-        else if(*logFileNameUsed)
-        {
-            #if defined (_WIN32)
-            sprintf(*logFileNameUsed, "%s\\%s",logPath,filename);
-            #else
-            sprintf(*logFileNameUsed, "%s/%s",logPath,filename);
-            #endif
-        }
     }
     
-    if(!*logFileNameUsed)
+    if(!*logFileNameUsed || (strcmp((*logFileNameUsed),"") == 0))
     {
         nullLogFileNameUsed = true;
-        if (logPath)
+        if (logPath && (strcmp(logPath,"") != 0))
         {
             //need to append a path to the beginning of the file name!!!
             pathAndFileName = (char*)calloc(strlen(logPath) + strlen(filename) + 2, sizeof(char));
@@ -128,6 +116,19 @@ int create_And_Open_Log_File(tDevice *device,\
             *logFileNameUsed = filename;
         }
     }
+    //check if file already exist
+    if ((*filePtr = fopen(*logFileNameUsed, "r")) != NULL)
+    {
+        fclose(*filePtr);
+        //append timestamp
+        g_currentTime = time(NULL);
+        memset(g_currentTimeString, 0, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString));
+        strftime(g_currentTimeString, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&g_currentTime));
+        //Append timestamp to the log file name
+        strcat(*logFileNameUsed, "_");
+        strcat(*logFileNameUsed, g_currentTimeStringPtr);
+    }
+
     #ifdef _DEBUG
     printf("logfileNameUsed = %s",*logFileNameUsed);
     #endif
