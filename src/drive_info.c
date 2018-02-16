@@ -6224,6 +6224,8 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_Sata externalDri
         //take data from each of the inputs, and plug it into a new one, then call the standard print function
         memcpy(externalDriveInfo, ataDriveInfo, sizeof(driveInformation));
         //we have a copy of the ata info, now just change the stuff we want to show from scsi info
+        memset(externalDriveInfo->vendorID, 0, 8);
+        memcpy(externalDriveInfo->vendorID, scsiDriveInfo->vendorID, 8);
         memset(externalDriveInfo->modelNumber, 0, 40);
         memcpy(externalDriveInfo->modelNumber, scsiDriveInfo->modelNumber, strlen(scsiDriveInfo->modelNumber));
         memset(externalDriveInfo->serialNumber, 0, 20);
