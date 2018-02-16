@@ -1601,12 +1601,21 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 scsi_Test_Unit_Ready(device, NULL);
             }
         }
+        bool readSCTStatusWithSMARTCommand = false;
+        if (device->drive_info.interface_type != IDE_INTERFACE)
+        {
+            if (strcmp("S2 Portable", device->drive_info.product_identification) == 0)
+            {
+                //For whatever reason, reading this log on this device breaks the bridge and it has to be completely removed from the system before the system responds again.
+                readSCTStatusWithSMARTCommand = true;
+            }
+        }
         if (sctSupported && sctStatus > 0)//GPL or SMART
         {
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
             //Read the SCT status log
             bool sctStatusRead = false;
-            if (gplSupported && directoryFromGPL && SUCCESS == ata_Read_Log_Ext(device, ATA_SCT_COMMAND_STATUS, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (gplSupported && !readSCTStatusWithSMARTCommand && directoryFromGPL && SUCCESS == ata_Read_Log_Ext(device, ATA_SCT_COMMAND_STATUS, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
             {
                 sctStatusRead = true;
             }
@@ -1823,7 +1832,17 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
         scsi_Test_Unit_Ready(device, NULL);
     }
-    if (!smartStatusFromSCTStatusLog)
+    bool skipSMARTCheckDueToTranslatorBug = false;
+    if (device->drive_info.interface_type != IDE_INTERFACE)
+    {
+        if (strcmp("S2 Portable", device->drive_info.product_identification) == 0)
+        {
+            //For whatever reason, checking SMART status on device breaks the bridge and it has to be completely removed from the system before the system responds again.
+            skipSMARTCheckDueToTranslatorBug = true;
+            driveInfo->smartStatus = 2;
+        }
+    }
+    if (!smartStatusFromSCTStatusLog && !skipSMARTCheckDueToTranslatorBug)
     {
         //SMART status
         switch (ata_SMART_Check(device, NULL))
