@@ -95,9 +95,38 @@ int create_And_Open_Log_File(tDevice *device,\
         #ifdef _DEBUG
         printf("\tfilename %s\n",filename);
         #endif
+        if (((logPath == NULL) || (strcmp((logPath), "") == 0)) &&
+            ((*logFileNameUsed) && (strcmp((*logFileNameUsed), "") == 0)))
+        {
+            //logPath is null or empty, logFileNameUsed is non-null but it is empty. 
+            //So assigning the generated filename to logFileNameUsed
+            memcpy(*logFileNameUsed, filename, OPENSEA_PATH_MAX);
+        }
+        else if (*logFileNameUsed)
+        {
+            if (strcmp((*logFileNameUsed), "") == 0)
+            {
+                //logPath has valid value and logFileNameUsed is empty. Prepend logpath to the generated filename
+#if defined (_WIN32)
+                sprintf(*logFileNameUsed, "%s\\%s", logPath, filename);
+#else
+                sprintf(*logFileNameUsed, "%s/%s", logPath, filename);
+#endif
+            }
+            else
+            {
+                //Both logPath and logFileNameUsed have non-empty values
+                char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
+#if defined (_WIN32)
+                sprintf(lpathNFilename, "%s\\%s", logPath, *logFileNameUsed);
+#else
+                sprintf(lpathNFilename, "%s/%s", logPath, *logFileNameUsed);
+#endif
+                memcpy(*logFileNameUsed, lpathNFilename, OPENSEA_PATH_MAX);
+            }
+        }
     }
-    
-    if(!*logFileNameUsed || (strcmp((*logFileNameUsed),"") == 0))
+    if(!*logFileNameUsed ) //when logFileNameUsed is NULL, need to allocate
     {
         nullLogFileNameUsed = true;
         if (logPath && (strcmp(logPath,"") != 0))
