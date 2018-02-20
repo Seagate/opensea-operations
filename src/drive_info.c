@@ -393,7 +393,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 }
             }
         }
-        //cache size (legacy method - not documented in any spec. Likely Seagate specific - This is the way ST4W worked)
+        //cache size (legacy method - from ATA 1/2)
         driveInfo->cacheSize = M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A]) * driveInfo->logicalSectorSize;
         if (transportType == 0xE)
         {
@@ -1393,7 +1393,100 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             }
             else if (smartErrorLoggingSupported)
             {
-                //TODO: Need to reallocate memory for the full log size and attempt to read the whole thing (since we can't do offsets on SMART read log)
+                //First try reading only the first sector and check if the page we want is available
+                if (ata_SMART_Read_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    uint64_t header = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (M_Word0(header) == 0x0001 && M_Byte2(header) == 0) //check page and version number
+                    {
+                        bool readFullLog = false;
+                        //check that pages 2 and/or 3 are supported
+                        uint16_t numberOfEntries = logBuffer[8];
+                        for (uint16_t offset = 9; offset < (numberOfEntries + UINT8_C(8)); ++offset)
+                        {
+                            if (logBuffer[offset] == 0x02 || logBuffer[offset] == 0x03)
+                            {
+                                readFullLog = true;
+                                break;
+                            }
+                        }
+                        if (readFullLog)
+                        {
+                            uint8_t *temp = (uint8_t*)realloc(logBuffer, idDataLog * sizeof(uint8_t));
+                            if (temp)
+                            {
+                                logBuffer = temp;
+                                logBufferSize = idDataLog * sizeof(uint8_t);
+                                if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, logBuffer, logBufferSize))
+                                {
+                                    //start att offset 1024 snce page 0 and page 1 are not needed. (0 = list of supported pages, 1 = copy of identify data)
+                                    for (uint32_t offset = UINT32_C(1024); offset < logBufferSize; offset += UINT32_C(512))
+                                    {
+                                        uint64_t pageHeader = M_BytesTo8ByteValue(logBuffer[offset + 7], logBuffer[offset + 6], logBuffer[offset + 5], logBuffer[offset + 4], logBuffer[offset + 3], logBuffer[offset + 2], logBuffer[offset + 1], logBuffer[offset + 0]);
+                                        if (M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == 0x02) //check page and version number
+                                        {
+                                            //read page 2 data
+                                            //get the nominal buffer size
+                                            uint64_t nominalBufferSize = M_BytesTo8ByteValue(logBuffer[offset + 39], logBuffer[offset + 38], logBuffer[offset + 37], logBuffer[offset + 36], logBuffer[offset + 35], logBuffer[offset + 34], logBuffer[offset + 33], logBuffer[offset + 32]);
+                                            if (nominalBufferSize & BIT63)
+                                            {
+                                                //data is valid. Remove bit 63
+                                                nominalBufferSize ^= BIT63;
+                                                //now save this value to cache size (number of bytes)
+                                                driveInfo->cacheSize = nominalBufferSize;
+                                            }
+                                        }
+                                        else if (M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == 0x03) //check page and version number
+                                        {
+                                            //read page 3 data
+                                            //supported capabilities
+                                            //uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+                                            //Download capabilities
+                                            uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
+                                            if (downloadCapabilities & BIT63)
+                                            {
+                                                if (downloadCapabilities & BIT34)
+                                                {
+                                                    driveInfo->fwdlSupport.deferredSupported = true;
+                                                }
+                                            }
+                                            //Utilization (IDK if we need anything from this log for this information)
+
+                                            //zoned capabilities
+                                            uint64_t zonedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 111], logBuffer[offset + 110], logBuffer[offset + 109], logBuffer[offset + 108], logBuffer[offset + 107], logBuffer[offset + 106], logBuffer[offset + 105], logBuffer[offset + 104]);
+                                            if (zonedCapabilities & BIT63)
+                                            {
+                                                //we only need bits 1 & 2
+                                                driveInfo->zonedDevice = zonedCapabilities & 0x3;
+                                            }
+
+                                            //depopulate storage element support
+                                            uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(logBuffer[offset + 159], logBuffer[offset + 158], logBuffer[offset + 157], logBuffer[offset + 156], logBuffer[offset + 155], logBuffer[offset + 154], logBuffer[offset + 153], logBuffer[offset + 152]);
+                                            if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
+                                            {
+                                                if (supportedCapabilitiesQWord18 & BIT1 && supportedCapabilitiesQWord18 & BIT0)//checking for both commands to be supported
+                                                {
+                                                    sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Storage Element Depopulation");
+                                                    driveInfo->numberOfFeaturesSupported++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+                                {
+                                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+                                    scsi_Test_Unit_Ready(device, NULL);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+                {
+                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+                    scsi_Test_Unit_Ready(device, NULL);
+                }
             }
         }
         //read device statistics log (only some pages are needed)
@@ -1480,7 +1573,126 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             }
             else if (smartErrorLoggingSupported)
             {
-                //TODO: Need to reallocate memory for the full log size and attempt to read the whole thing (since we can't do offsets on SMART read log)
+                //read first page for a list if supported pages
+                if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DEVICE_STATISTICS, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    uint64_t header = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (M_Word0(header) == 0x0001 && M_Byte2(header) == 0) //check page and version number
+                    {
+                        bool readFullLog = false;
+                        //check that pages 1, 5, and/or 7 are supported
+                        uint16_t numberOfEntries = logBuffer[8];
+                        for (uint16_t offset = 9; offset < (numberOfEntries + UINT8_C(8)); ++offset)
+                        {
+                            if (logBuffer[offset] == 0x01 || logBuffer[offset] == 0x05 || logBuffer[offset] == 0x07)
+                            {
+                                readFullLog = true;
+                                break;
+                            }
+                        }
+                        if (readFullLog)
+                        {
+                            uint8_t *temp = (uint8_t*)realloc(logBuffer, devStatsSize * sizeof(uint8_t));
+                            if (temp)
+                            {
+                                logBuffer = temp;
+                                logBufferSize = devStatsSize * sizeof(uint8_t);
+                                if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DEVICE_STATISTICS, logBuffer, logBufferSize))
+                                {
+                                    for (uint32_t offset = 0; offset < logBufferSize; offset += UINT32_C(512))
+                                    {
+                                        uint16_t revision = 0;
+                                        uint8_t pageNumber = 0;
+                                        header = M_BytesTo8ByteValue(logBuffer[offset + 7], logBuffer[offset + 6], logBuffer[offset + 5], logBuffer[offset + 4], logBuffer[offset + 3], logBuffer[offset + 2], logBuffer[offset + 1], logBuffer[offset + 0]);
+                                        revision = M_Word0(header);
+                                        pageNumber = M_Byte2(header);
+                                        switch (pageNumber)
+                                        {
+                                        case 1:
+                                            if (revision == 0x0001)
+                                            {
+                                                //power on hours
+                                                uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
+                                                if (pohQword & BIT63 && pohQword & BIT62)
+                                                {
+                                                    driveInfo->powerOnMinutes = M_DoubleWord0(pohQword) * 60;
+                                                }
+                                                //logical sectors written
+                                                uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[offset + 31], logBuffer[offset + 30], logBuffer[offset + 29], logBuffer[offset + 28], logBuffer[offset + 27], logBuffer[offset + 26], logBuffer[offset + 25], logBuffer[offset + 24]);
+                                                if (lsWrittenQword & BIT63 && lsWrittenQword & BIT62)
+                                                {
+                                                    driveInfo->totalLBAsWritten = lsWrittenQword & MAX_48_BIT_LBA;
+                                                }
+                                                //logical sectors read
+                                                uint64_t lsReadQword = M_BytesTo8ByteValue(logBuffer[offset + 47], logBuffer[offset + 46], logBuffer[offset + 45], logBuffer[offset + 44], logBuffer[offset + 43], logBuffer[offset + 42], logBuffer[offset + 41], logBuffer[offset + 40]);
+                                                if (lsReadQword & BIT63 && lsReadQword & BIT62)
+                                                {
+                                                    driveInfo->totalLBAsRead = lsReadQword & MAX_48_BIT_LBA;
+                                                }
+                                                //workload utilization
+                                                uint64_t worloadUtilization = M_BytesTo8ByteValue(logBuffer[offset + 79], logBuffer[offset + 78], logBuffer[offset + 77], logBuffer[offset + 76], logBuffer[offset + 75], logBuffer[offset + 74], logBuffer[offset + 73], logBuffer[offset + 72]);
+                                                if (worloadUtilization & BIT63 && worloadUtilization & BIT62)
+                                                {
+                                                    driveInfo->deviceReportedUtilizationRate = ((double)M_Word0(worloadUtilization)) / 1000.0;
+                                                }
+                                            }
+                                            break;
+                                        case 5:
+                                            if (revision == 0x0001)
+                                            {
+                                                //current temperature
+                                                uint64_t currentTemp = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+                                                if (currentTemp & BIT63 && currentTemp & BIT62)
+                                                {
+                                                    driveInfo->temperatureData.temperatureDataValid = true;
+                                                    driveInfo->temperatureData.currentTemperature = M_Byte0(currentTemp);
+                                                }
+                                                //highest temperature
+                                                uint64_t highestTemp = M_BytesTo8ByteValue(logBuffer[offset + 39], logBuffer[offset + 38], logBuffer[offset + 37], logBuffer[offset + 36], logBuffer[offset + 35], logBuffer[offset + 34], logBuffer[offset + 33], logBuffer[offset + 32]);
+                                                if (highestTemp & BIT63 && highestTemp & BIT62)
+                                                {
+                                                    driveInfo->temperatureData.highestTemperature = M_Byte0(highestTemp);
+                                                    driveInfo->temperatureData.highestValid = true;
+                                                }
+                                                //lowest temperature
+                                                uint64_t lowestTemp = M_BytesTo8ByteValue(logBuffer[offset + 47], logBuffer[offset + 46], logBuffer[offset + 45], logBuffer[offset + 44], logBuffer[offset + 43], logBuffer[offset + 42], logBuffer[offset + 41], logBuffer[offset + 40]);
+                                                if (lowestTemp & BIT63 && lowestTemp & BIT62)
+                                                {
+                                                    driveInfo->temperatureData.lowestTemperature = M_Byte0(lowestTemp);
+                                                    driveInfo->temperatureData.lowestValid = true;
+                                                }
+                                            }
+                                            break;
+                                        case 7:
+                                            if (revision == 0x0001)
+                                            {
+                                                //percent used endurance
+                                                uint64_t percentUsed = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+                                                if (percentUsed & BIT63 && percentUsed & BIT62)
+                                                {
+                                                    driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
+                                                }
+                                            }
+                                            break;
+                                        default://don't care about this page number right now
+                                            break;
+                                        }
+                                    }
+                                }
+                                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+                                {
+                                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+                                    scsi_Test_Unit_Ready(device, NULL);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+                {
+                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+                    scsi_Test_Unit_Ready(device, NULL);
+                }
             }
         }
         if (gplSupported && hybridInfoSize > 0)//GPL only. Page is also only a size of 1 512B block
@@ -1557,10 +1769,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
         }
         else if (smartErrorLoggingSupported && smartSelfTest > 0)//SMART log only (only 1 sector in size)
         {
-            if (logBufferSize < LEGACY_DRIVE_SEC_SIZE)
-            {
-                //reallocate memory
-            }
             //get the most recent result
             if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_SMART_SELF_TEST_LOG, logBuffer, LEGACY_DRIVE_SEC_SIZE))
             {
