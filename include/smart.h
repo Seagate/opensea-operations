@@ -263,6 +263,142 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault);
 
+
+    #define SMART_ERROR_STATE_MASK 0x0F //highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below
+    typedef enum _eSMARTErrorState //Low nibble only!!! high nibble is vendor unique!
+    {
+        SMART_ERROR_STATE_UNKNOWN = 0x0,
+        SMART_ERROR_STATE_SLEEP = 0x1,
+        SMART_ERROR_STATE_STANDBY = 0x2,
+        SMART_ERROR_STATE_ACTIVE_IDLE = 0x3,
+        SMART_ERROR_STATE_EXECUTING_OFFLINE_TEST = 0x4,
+        SMART_ERROR_STATE_RESERVED1 = 0x5,
+        SMART_ERROR_STATE_RESERVED2 = 0x6,
+        SMART_ERROR_STATE_RESERVED3 = 0x7,
+        SMART_ERROR_STATE_RESERVED4 = 0x8,
+        SMART_ERROR_STATE_RESERVED5 = 0x9,
+        SMART_ERROR_STATE_RESERVED6 = 0xA,
+        SMART_ERROR_STATE_VENDOR_SPECIFIC1 = 0xB,
+        SMART_ERROR_STATE_VENDOR_SPECIFIC2 = 0xC,
+        SMART_ERROR_STATE_VENDOR_SPECIFIC3 = 0xD,
+        SMART_ERROR_STATE_VENDOR_SPECIFIC4 = 0xE,
+        SMART_ERROR_STATE_VENDOR_SPECIFIC5 = 0xF
+    }eSMARTErrorState;
+
+    typedef struct _SMARTCommandDataStructure
+    {
+        uint8_t transportSpecific;//when command was initiated. If FFh, then this is a hardware reset
+        uint8_t feature;
+        uint8_t count;
+        uint8_t lbaLow;
+        uint8_t lbaMid;
+        uint8_t lbaHi;
+        uint8_t device;
+        uint8_t contentWritten;//command register?
+        uint32_t timestampMilliseconds;//since power on. can wrap
+    }SMARTCommandDataStructure;
+
+    typedef struct _ExtSMARTCommandDataStructure
+    {
+        uint8_t deviceControl;
+        uint8_t feature;
+        uint8_t featureExt;
+        uint8_t count;
+        uint8_t countExt;
+        uint8_t lbaLow;
+        uint8_t lbaLowExt;
+        uint8_t lbaMid;
+        uint8_t lbaMidExt;
+        uint8_t lbaHi;
+        uint8_t lbaHiExt;
+        uint8_t device;
+        uint8_t contentWritten;//command register?
+        uint8_t reserved;
+        uint32_t timestampMilliseconds;//since power on. can wrap
+    }ExtSMARTCommandDataStructure;
+
+    typedef struct _SMARTCommandErrorDataStructure
+    {
+        uint8_t reserved;
+        uint8_t error;
+        uint8_t count;
+        uint8_t lbaLow;
+        uint8_t lbaMid;
+        uint8_t lbaHi;
+        uint8_t device;
+        uint8_t status;
+        uint8_t extendedErrorInformation[19];//vendor specific
+        uint8_t state;
+        uint16_t lifeTimestamp;
+    }SMARTCommandErrorDataStructure;
+
+    typedef struct _ExtSMARTCommandErrorDataStructure
+    {
+        uint8_t transportSpecific;
+        uint8_t error;
+        uint8_t count;
+        uint8_t countExt;
+        uint8_t lbaLow;
+        uint8_t lbaLowExt;
+        uint8_t lbaMid;
+        uint8_t lbaMidExt;
+        uint8_t lbaHi;
+        uint8_t lbaHiExt;
+        uint8_t device;
+        uint8_t status;
+        uint8_t extendedErrorInformation[19];//vendor specific
+        uint8_t state;
+        uint16_t lifeTimestamp;
+    }ExtSMARTCommandErrorDataStructure;
+
+    typedef struct _SMARTErrorDataStructure
+    {
+        uint8_t version;
+        uint8_t numberOfCommands;//number of commands logged before the error. Between 0 and 5
+        bool extDataStructures;//when true, the data structures are for ext commands (ext comprehensive vs comprehensive/summary logs)
+        union {
+            SMARTCommandDataStructure command[5];
+            ExtSMARTCommandDataStructure extCommand[5];
+        };
+        union {
+            SMARTCommandErrorDataStructure error;
+            ExtSMARTCommandErrorDataStructure extError;
+        };
+    }SMARTErrorDataStructure;
+
+
+    typedef struct _summarySMARTErrorLog
+    {
+        uint8_t version;
+        uint8_t numberOfEntries;//max of 5
+        SMARTErrorDataStructure smartError[5];//sorted in order from most recent to oldest
+        uint16_t deviceErrorCount;
+        bool checksumsValid;
+    }summarySMARTErrorLog, *ptrSummarySMARTErrorLog;
+
+    #define SMART_COMPREHENSIVE_ERRORS_MAX 25 //255 is the maximum allowed by the spec. We are doing less than this since we don't have products supporting more than this.
+    #define SMART_EXT_COMPREHENSIVE_ERRORS_MAX 100 //65532 is the maximum allowed by the spec. We are doing less than this since we don't have products supporting more than this. Other vendors might though...
+
+    typedef struct _comprehensiveSMARTErrorLog
+    {
+        uint8_t version;
+        uint8_t numberOfEntries;//maximum of 255 (5 entries per page, max of 51 pages). Entries in this structure are sorted for you, so index is not needed
+        SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
+        uint16_t deviceErrorCount;
+        bool checksumsValid;
+    }comprehensiveSMARTErrorLog, *ptrComprehensiveSMARTErrorLog;
+
+    typedef struct _extComprehensiveSMARTErrorLog
+    {
+        uint8_t version;
+        uint16_t numberOfEntries;//maximum of 65532 (4 entries per page, max of 16383 pages). Entries in this structure are sorted for you, so index is not needed
+        SMARTErrorDataStructure smartError[SMART_EXT_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
+        uint16_t deviceErrorCount;
+        bool checksumsValid;
+    }extComprehensiveSMARTErrorLog, *ptrExtComprehensiveSMARTErrorLog;
+
+    OPENSEA_OPERATIONS_API int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
+
 #if defined (__cplusplus)
 }
 #endif

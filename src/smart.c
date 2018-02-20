@@ -14,6 +14,7 @@
 
 #include "operations_Common.h"
 #include "smart.h"
+#include "logs.h"
 
 int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
@@ -2419,6 +2420,110 @@ int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
         if (smartInfo->offlineDataCollectionCapability & BIT5)
         {
             printf("Conveyance Self Test Polling Time: %"PRIu8" minutes\n", smartInfo->conveyenceSelfTestPollingTime);
+        }
+    }
+    return ret;
+}
+
+int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (!smartErrorLog)
+        {
+            return BAD_PARAMETER;
+        }
+        if (is_SMART_Enabled(device))//must be enabled to read this page
+        {
+            if (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0)//checking that SMART error logging is supported
+            {
+                //Check to make sure it is in the SMART log directory
+                uint32_t smartErrorLogSize = 0;
+                get_ATA_Log_Size(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, &smartErrorLogSize, false, true);
+                if (smartErrorLogSize > 0)
+                {
+                    uint8_t errorLog[512] = { 0 }; //This log is only 1 page in spec
+                    int getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, 512);
+                    if (SUCCESS == getLog || WARN_INVALID_CHECKSUM == getLog)
+                    {
+                        uint8_t errorLogIndex = errorLog[1];
+                        smartErrorLog->version = errorLog[0];
+                        if (getLog == SUCCESS)
+                        {
+                            smartErrorLog->checksumsValid = true;
+                        }
+                        else
+                        {
+                            smartErrorLog->checksumsValid = false;
+                        }
+                        smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[453], errorLog[452]);
+                        if (errorLogIndex > 0 && errorLogIndex < 5)
+                        {
+                            uint8_t zeros[90] = { 0 };
+                            uint32_t offset = 2 + (errorLogIndex * 90);//first entry is at offset 2, each entry is 90 bytes long
+                            //offset should now be our starting point to populate the list
+                            for (uint8_t entryCount = 0; entryCount < M_Min(5, smartErrorLog->deviceErrorCount); ++entryCount, offset += 90)
+                            {
+                                if (offset > 451)
+                                {
+                                    offset = 2;
+                                    //log has wrapped, restart to the first entry
+                                }
+                                //check if the entry is empty
+                                if (memcmp(&errorLog[offset], zeros, 90) == 0)
+                                {
+                                    //restart the loop to find another entry (if any)
+                                    continue;
+                                }
+                                //each entry has 5 command data structures to fill in followed by error data
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extDataStructures = false;
+                                //NOTE: don't memcpy since we aren't packing the structs
+                                uint32_t commandEntryOffset = offset;
+                                for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += 12)
+                                {
+                                    if (memcmp(&errorLog[commandEntryOffset + 0], zeros, 12) == 0)
+                                    {
+                                        continue;
+                                    }
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].transportSpecific = errorLog[commandEntryOffset + 0];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].feature = errorLog[commandEntryOffset + 1];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].count = errorLog[commandEntryOffset + 2];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaLow = errorLog[commandEntryOffset + 3];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaMid = errorLog[commandEntryOffset + 4];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaHi = errorLog[commandEntryOffset + 5];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].device = errorLog[commandEntryOffset + 6];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].contentWritten = errorLog[commandEntryOffset + 7];
+                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 11], errorLog[commandEntryOffset + 10], errorLog[commandEntryOffset + 9], errorLog[commandEntryOffset + 8]);
+                                    ++(smartErrorLog->smartError[smartErrorLog->numberOfEntries].numberOfCommands);
+                                }
+                                //now set the error data
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.reserved = errorLog[offset + 60];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.error = errorLog[offset + 61];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.count = errorLog[offset + 62];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaLow = errorLog[offset + 63];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaMid = errorLog[offset + 64];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaHi = errorLog[offset + 65];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.device = errorLog[offset + 66];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status = errorLog[offset + 67];
+                                memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, &errorLog[offset + 68], 19);
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state = errorLog[offset + 87];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
+                                ++(smartErrorLog->numberOfEntries);
+                            }
+                        }
+                        else
+                        {
+                            //nothing to do since index zero means no entries in the list;
+                            smartErrorLog->numberOfEntries = 0;
+                        }
+                    }
+                    else
+                    {
+                        ret = FAILURE;
+                    }
+                }
+            }
         }
     }
     return ret;
