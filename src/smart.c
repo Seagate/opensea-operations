@@ -16,6 +16,7 @@
 #include "smart.h"
 #include "logs.h"
 #include "usb_hacks.h"
+#include "logs.h"
 
 int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
