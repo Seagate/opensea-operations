@@ -15,6 +15,7 @@
 #include "operations_Common.h"
 #include "power_control.h"
 #include "logs.h"
+#include "cmds.h"
 
 //There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see with ATA
 int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
@@ -1739,6 +1740,110 @@ int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, 
         else
         {
             //TODO: do we return failure, not supported, or some other exit code? For not, returning NOT_SUPPORTED - TJE
+        }
+    }
+    return ret;
+}
+
+int transition_To_Active(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE)
+    {
+        //no ATA command to do this, so we need to issue something to perform a medium access.
+        uint64_t randomLBA = 0;
+        seed_64(time(NULL));
+        randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
+        ret = ata_Read_Verify(device, randomLBA, 1);
+    }
+    else //treat as SCSI
+    {
+        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_ACTIVE, false, false, false);
+        }
+        else
+        {
+            //before you could specify a power condition, you used the "Start" bit as a way to move from standby to active
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_START_VALID, false, false, true);
+        }
+    }
+    return ret;
+}
+
+int transition_To_Standby(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Standby_Immediate(device);
+    }
+    else //treat as SCSI
+    {
+        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_STANDBY_0, false, false, false);
+        }
+        else
+        {
+            //before you could specify a power condition, you used the "Start" bit as a way to move from standby to active
+            ret = scsi_Start_Stop_Unit(device, false, 0, 0, false, false, false);
+        }
+    }
+    return ret;
+}
+
+int transition_To_Idle(tDevice *device, bool unload)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (unload)
+        {
+            if (device->drive_info.IdentifyData.ata.Word084 & BIT13 || device->drive_info.IdentifyData.ata.Word087 & BIT13)
+            {
+                //send the command since it supports the unload feature...otherwise we return NOT_SUPPORTED
+                ret = ata_Idle_Immediate(device, true);
+            }
+        }
+        else
+        {
+            ret = ata_Idle_Immediate(device, false);
+        }
+    }
+    else
+    {
+        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            if (unload)
+            {
+                //unload can happen if power condition modifier set to 1. Needs SBC3/SPC3.
+                if (device->drive_info.scsiVpdData.inquiryData[2] > 4)
+                {
+                    ret = scsi_Start_Stop_Unit(device, false, 1, PC_FORCE_IDLE_0, false, false, false);
+                }
+            }
+            else
+            {
+                ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_IDLE_0, false, false, false);
+            }
+        }
+    }
+    return ret;
+}
+
+int transition_To_Sleep(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Sleep(device);
+    }
+    else //treat as SCSI
+    {
+        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_SLEEP, false, false, false);//This is obsolete since SBC2...but we'll send it anyways
         }
     }
     return ret;
