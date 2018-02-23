@@ -2116,6 +2116,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
         responseFormat = M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0);
         switch (version)
         {
+        case 0:
+            /*sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "Does not conform to a SCSI standard");
+            driveInfo->numberOfSpecificationsSupported++;
+            break;*/
             //Note: Old SCSI/SPC standards may report multiple specifications supported in this byte
             //Codes 08-0Ch, 40-44h, 48-4Ch, & 88h-8Ch are skipped in there. These were valious ways to report ISO/ECMA/ANSI standard conformance seperately for the same SCSI-x specification.
             //New standards (SPC6 or whatever is next) may use these values and they should be used.
@@ -6450,9 +6454,9 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_Sata externalDri
         //copy specifications supported into the external drive info.
         uint16_t extSpecNumber = externalDriveInfo->numberOfSpecificationsSupported;
         uint16_t scsiSpecNumber = 0;
-        for (; extSpecNumber < 30 && scsiSpecNumber < scsiDriveInfo->numberOfSpecificationsSupported; ++extSpecNumber, ++scsiSpecNumber)
+        for (; extSpecNumber < MAX_SPECS && scsiSpecNumber < scsiDriveInfo->numberOfSpecificationsSupported; ++extSpecNumber, ++scsiSpecNumber)
         {
-            memcpy(&externalDriveInfo->specificationsSupported[extSpecNumber], &scsiDriveInfo->specificationsSupported[scsiSpecNumber], 30);
+            memcpy(&externalDriveInfo->specificationsSupported[extSpecNumber], &scsiDriveInfo->specificationsSupported[scsiSpecNumber], MAX_SPEC_LENGTH);
             ++(externalDriveInfo->numberOfSpecificationsSupported);
         }
 
