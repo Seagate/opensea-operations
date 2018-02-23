@@ -772,3 +772,51 @@ int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorF
     }
     return ret;
 }
+
+int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity)
+{
+    int ret = NOT_SUPPORTED;
+    if (!sensitivity)
+    {
+        return BAD_PARAMETER;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+        {
+            *sensitivity = UINT16_MAX;//this can be used to filter out invalid value, a.k.a. feature is not enabled, but is supported.
+            if (device->drive_info.IdentifyData.ata.Word120 & BIT5)//enabled
+            {
+                //Word 53, bits 15:8
+                *sensitivity = M_Byte1(device->drive_info.IdentifyData.ata.Word053);
+            }
+        }
+    }
+    return ret;
+}
+
+int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+        {
+            ret = ata_Set_Features(device, SF_ENABLE_FREE_FALL_CONTROL_FEATURE, sensitivity, 0, 0, 0);
+        }
+    }
+    return ret;
+}
+
+int disable_Free_Fall_Control_Feature(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported //TODO: Check if it's enabled first as well? Do this if this command is aborting when already disabled, otherwise this should be ok
+        {
+            ret = ata_Set_Features(device, SF_DISABLE_FREE_FALL_CONTROL_FEATURE, 0, 0, 0, 0);
+        }
+    }
+    return ret;
+}
