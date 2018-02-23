@@ -376,26 +376,22 @@ extern "C"
         bool checksumsValid;
     }summarySMARTErrorLog, *ptrSummarySMARTErrorLog;
 
-    #define SMART_COMPREHENSIVE_ERRORS_MAX 25 //255 is the maximum allowed by the spec. We are doing less than this since we don't have products supporting more than this.
-    #define SMART_EXT_COMPREHENSIVE_ERRORS_MAX 100 //65532 is the maximum allowed by the spec. We are doing less than this since we don't have products supporting more than this. Other vendors might though...
+    #define SMART_COMPREHENSIVE_ERRORS_MAX UINT8_C(25) //255 is the maximum allowed by the spec. We are doing less than this since we don't have products supporting more than this.
+    #define SMART_EXT_COMPREHENSIVE_ERRORS_MAX UINT8_C(100) //65532 is the maximum allowed by the spec. We are doing less than this since we don't have products supporting more than this. Other vendors might though...
 
     typedef struct _comprehensiveSMARTErrorLog
     {
         uint8_t version;
-        uint8_t numberOfEntries;//maximum of 255 (5 entries per page, max of 51 pages). Entries in this structure are sorted for you, so index is not needed
-        SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
+        uint8_t numberOfEntries;
+        bool extLog;
+        union
+        {
+            SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
+            SMARTErrorDataStructure extSmartError[SMART_EXT_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
+        };
         uint16_t deviceErrorCount;
         bool checksumsValid;
     }comprehensiveSMARTErrorLog, *ptrComprehensiveSMARTErrorLog;
-
-    typedef struct _extComprehensiveSMARTErrorLog
-    {
-        uint8_t version;
-        uint16_t numberOfEntries;//maximum of 65532 (4 entries per page, max of 16383 pages). Entries in this structure are sorted for you, so index is not needed
-        SMARTErrorDataStructure smartError[SMART_EXT_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
-        uint16_t deviceErrorCount;
-        bool checksumsValid;
-    }extComprehensiveSMARTErrorLog, *ptrExtComprehensiveSMARTErrorLog;
 
     OPENSEA_OPERATIONS_API int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
 
