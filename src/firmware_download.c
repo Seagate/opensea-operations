@@ -117,7 +117,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         //check to make sure we haven't had a failure yet
         if (ret != SUCCESS)
         {
-            if (downloadRemainder == 0 && currentDownloadBlock + 1 == downloadBlocks)
+            if (options->dlMode == DL_FW_SEGMENTED && downloadRemainder == 0 && (currentDownloadBlock + 1) == downloadBlocks)
             {
                 //this means that we had an error on the last sector, which is a drive bug, so pass it anyways
                 ret = SUCCESS;

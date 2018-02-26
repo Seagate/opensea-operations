@@ -241,6 +241,18 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool enable);
 
+
+    //Following functions allow power mode transitions on Non-EPC drives (pre SBC3 for SCSI)
+    //These will work with EPC, but may cause changes to the current timer values. See SCSI/ATA specs for details on interactions with these and EPC timers
+    OPENSEA_OPERATIONS_API int transition_To_Active(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int transition_To_Standby(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int transition_To_Idle(tDevice *device, bool unload); //unload feature must be supported
+
+    //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from
+    OPENSEA_OPERATIONS_API int transition_To_Sleep (tDevice *device);
+
 #if defined (__cplusplus)
 }
 #endif
