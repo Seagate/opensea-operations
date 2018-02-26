@@ -324,6 +324,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters);
 
+    OPENSEA_OPERATIONS_API int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity);//if sensitivity is set to UINT16_MAX, then the feature is supported, but not enabled, so the value wouldn't otherwise make sense
+
+    OPENSEA_OPERATIONS_API int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity);//enables the feature. Value of zero sets a vendor's recommended setting
+
+    OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
+
     #if defined (__cplusplus)
 }
     #endif
