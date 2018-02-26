@@ -20,6 +20,7 @@
 #if !defined(DISABLE_NVME_PASSTHROUGH)
 #include "math.h"
 #endif
+#include "usb_hacks.h"
 
 int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo)
 {
@@ -1809,15 +1810,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 scsi_Test_Unit_Ready(device, NULL);
             }
         }
-        bool readSCTStatusWithSMARTCommand = false;
-        if (device->drive_info.interface_type != IDE_INTERFACE)
-        {
-            if (strcmp("S2 Portable", device->drive_info.product_identification) == 0)
-            {
-                //For whatever reason, reading this log on this device breaks the bridge and it has to be completely removed from the system before the system responds again.
-                readSCTStatusWithSMARTCommand = true;
-            }
-        }
+        bool readSCTStatusWithSMARTCommand = sct_With_SMART_Commands(device);//USB hack
         if (sctSupported && sctStatus > 0)//GPL or SMART
         {
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
@@ -2040,16 +2033,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
         scsi_Test_Unit_Ready(device, NULL);
     }
-    bool skipSMARTCheckDueToTranslatorBug = false;
-    if (device->drive_info.interface_type != IDE_INTERFACE)
-    {
-        if (strcmp("S2 Portable", device->drive_info.product_identification) == 0)
-        {
-            //For whatever reason, checking SMART status on device breaks the bridge and it has to be completely removed from the system before the system responds again.
-            skipSMARTCheckDueToTranslatorBug = true;
-            driveInfo->smartStatus = 2;
-        }
-    }
+    bool skipSMARTCheckDueToTranslatorBug = !supports_ATA_Return_SMART_Status_Command(device);//USB hack
     if (!smartStatusFromSCTStatusLog && !skipSMARTCheckDueToTranslatorBug)
     {
         //SMART status
@@ -2219,7 +2203,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
     }
     bool gotRotationRate = false;
     bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
-    if (version >= 2)//VPD pages indroduced in SCSI 2
+    if (version >= 2 || bridge_Does_Report_Unit_Serial_Number(device))//VPD pages indroduced in SCSI 2...also a USB hack
     {
         bool dummyUpVPDSupport = false;
         if (SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))

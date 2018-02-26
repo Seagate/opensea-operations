@@ -861,7 +861,15 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
         bool readThresholds = false;
         uint8_t smartAttributes[ATA_SMART_READ_DATA_SIZE] = { 0 };
         uint8_t smartThresholds[ATA_SMART_READ_DATA_SIZE] = { 0 };
-        ret = ata_SMART_Return_Status(device);
+        if (supports_ATA_Return_SMART_Status_Command(device))//USB hack. Will return true on IDE/SCSI interface. May return true or false otherwise depending on what device we detect
+        {
+            ret = ata_SMART_Return_Status(device);
+        }
+        else
+        {
+            //try use SAT translation instead
+            ret = scsi_SMART_Check(device, tripInfo);
+        }
         if (ret == SUCCESS)
         {
             //need to check the sense data/return tfrs for the command result.
