@@ -14,6 +14,7 @@
 
 #include "operations_Common.h"
 #include "smart.h"
+#include "usb_hacks.h"
 
 int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
@@ -852,27 +853,94 @@ int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
     return ret;
 }
 
+bool is_SMART_Command_Transport_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word206 & BIT0)
+        {
+            supported = true;
+        }
+    }
+    return supported;
+}
+
+bool is_SMART_Error_Logging_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if ((device->drive_info.IdentifyData.ata.Word084 != 0x0000 && device->drive_info.IdentifyData.ata.Word084 != 0xFFFF && device->drive_info.IdentifyData.ata.Word084 & BIT0)
+            ||
+            (device->drive_info.IdentifyData.ata.Word087 != 0x0000 && device->drive_info.IdentifyData.ata.Word087 != 0xFFFF && device->drive_info.IdentifyData.ata.Word087 & BIT0)
+            )
+        {
+            supported = true;
+        }
+    }
+    return supported;
+}
+
+int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (is_SMART_Command_Transport_Supported(device))
+    {
+        bool checkData = false;
+        //try reading the SCT status log (ACS4 adds SMART status to this log)
+        bool readSCTStatusWithSMARTCommand = sct_With_SMART_Commands(device);//USB hack
+        uint8_t sctStatus[512] = { 0 };
+        if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !readSCTStatusWithSMARTCommand &&
+            SUCCESS == ata_Read_Log_Ext(device, ATA_SCT_COMMAND_STATUS, 0, sctStatus, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0)
+            )
+        {
+            checkData = true;
+        }
+        else
+        {
+            if (is_SMART_Error_Logging_Supported(device))
+            {
+                if (SUCCESS == ata_SMART_Read_Log(device, ATA_SCT_COMMAND_STATUS, sctStatus, 512))
+                {
+                    checkData = true;
+                }
+            }
+        }
+        if (checkData)
+        {
+            uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatus[1], sctStatus[0]);
+            if (sctFormatVersion > 2)
+            {
+                uint16_t smartStatus = M_BytesTo2ByteValue(sctStatus[215], sctStatus[214]);
+                //SMART status
+                switch (smartStatus)
+                {
+                case 0xC24F:
+                    ret = SUCCESS;
+                    break;
+                case 0x2CF4:
+                    ret = FAILURE;
+                    break;
+                default:
+                    ret = UNKNOWN;
+                    break;
+                }
+            }
+        }
+    }
+    return ret;
+}
+
 int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
     int ret = NOT_SUPPORTED; //command return value
     if (is_SMART_Enabled(device))
     {
-        bool readAttributes = false;
-        bool readThresholds = false;
-        uint8_t smartAttributes[ATA_SMART_READ_DATA_SIZE] = { 0 };
-        uint8_t smartThresholds[ATA_SMART_READ_DATA_SIZE] = { 0 };
+        bool attemptCheckWithAttributes = false;
         if (supports_ATA_Return_SMART_Status_Command(device))//USB hack. Will return true on IDE/SCSI interface. May return true or false otherwise depending on what device we detect
         {
             ret = ata_SMART_Return_Status(device);
-        }
-        else
-        {
-            //try use SAT translation instead
-            ret = scsi_SMART_Check(device, tripInfo);
-        }
-        if (ret == SUCCESS)
-        {
-            //need to check the sense data/return tfrs for the command result.
             if (device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
             {
                 ret = SUCCESS;
@@ -884,65 +952,28 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             }
             else
             {
-                bool gotStatus = false;
-                if (device->drive_info.IdentifyData.ata.Word206 & BIT0)
+                //try SCT status log first...
+                ret = get_ATA_SMART_Status_From_SCT_Log(device);
+                if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
                 {
-                    //Read the SCT status log
-                    uint8_t *sctStatusLog = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
-                    if (sctStatusLog)
-                    {
-                        bool sctStatusRead = false;
-                        if (device->drive_info.ata_Options.generalPurposeLoggingSupported && SUCCESS == ata_Read_Log_Ext(device, ATA_SCT_COMMAND_STATUS, 0, sctStatusLog, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
-                        {
-                            sctStatusRead = true;
-                        }
-                        else if (SUCCESS == ata_SMART_Read_Log(device, ATA_SCT_COMMAND_STATUS, sctStatusLog, LEGACY_DRIVE_SEC_SIZE))
-                        {
-                            sctStatusRead = true;
-                        }
-                        if (sctStatusRead)
-                        {
-                            uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatusLog[1], sctStatusLog[0]);
-                            if (sctFormatVersion > 2)
-                            {
-                                //version 3 and higher report current, min, and max temperatures
-                                //reading life min and max temperatures
-                                uint16_t smartStatus = M_BytesTo2ByteValue(sctStatusLog[215], sctStatusLog[214]);
-                                //SMART status
-                                switch (smartStatus)
-                                {
-                                case 0xC24F:
-                                    gotStatus = true;
-                                    ret = SUCCESS;
-                                    break;
-                                case 0x2CF4:
-                                    gotStatus = true;
-                                    ret = FAILURE;
-                                    break;
-                                default:
-                                    ret = NOT_SUPPORTED;
-                                    break;
-                                }
-                            }
-                        }
-                        safe_Free(sctStatusLog);
-                    }
-                }
-                //unknown status - rtfrs don't match passing case or failing case
-                if (device->drive_info.interface_type != IDE_INTERFACE && !gotStatus)
-                {
-                    //If we didn't get it yet, try the SCSI SMART check method since this is most likely a SAT interface.
-                    //This function should detect all the ways that this can be reported if the drive does report a condition at all.
+                    //try use SAT translation instead
                     ret = scsi_SMART_Check(device, tripInfo);
-                }
-                else
-                {
-                    //Last thing to try is to read the thresholds and attributes and compare them! (which we will do below anyways)
-                    ret = UNKNOWN;
                 }
             }
         }
-        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN)
+        else
+        {
+            //this device doesn't support getting SMART status from return status command (translator bug)
+            //try other methods.
+            ret = get_ATA_SMART_Status_From_SCT_Log(device);
+            if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
+            {
+                //try use SAT translation instead
+                ret = scsi_SMART_Check(device, tripInfo);
+            }
+        }
+        
+        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED)
         {
             smartLogData attributes;
             memset(&attributes, 0, sizeof(smartLogData));
@@ -1242,6 +1273,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     memset(&infoExceptionsLog, 0, sizeof(informationalExceptionsLog));
     memset(&infoExceptionsControl, 0, sizeof(informationalExceptionsControl));
     bool sendRequestSense = false;
+    bool readModePage = false;
     bool temporarilyEnableMRIEMode6 = false;//This will hold if we are changing the mode from a value of 1-5 to 6. DO NOT CHANGE IT IF IT IS ZERO! We should return NOT_SUPPORTED in this case. - TJE
     uint32_t delayTimeMilliseconds = 0;//This will be used to make a delay only if the interval is a value less than 1000milliseconds, otherwise we'll change the mode page.
     //get informational exceptions data from the drive first
@@ -1284,6 +1316,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             //got the log and mode page...need to check mode page settings to see if an error get's logged and the MRIE value so we can attempt a request sense.
             if (infoExceptionsControl.isValid)
             {
+                readModePage = true;
                 switch (infoExceptionsControl.mrie)
                 {
                 case 1://asynchronous event reporting (not supported on Seagate drives)
@@ -1379,7 +1412,14 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
         }
         else
         {
-            ret = SUCCESS;
+            if (readModePage)
+            {
+                ret = SUCCESS;
+            }
+            else
+            {
+                ret = UNKNOWN;
+            }
         }
         safe_Free(senseData);
     }
@@ -1500,6 +1540,7 @@ int run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     return result;
 }
 
+
 bool is_SMART_Enabled(tDevice *device)
 {
     bool enabled = false;
@@ -1507,7 +1548,7 @@ bool is_SMART_Enabled(tDevice *device)
     {
     case ATA_DRIVE:
         //check identify data
-        if (device->drive_info.IdentifyData.ata.Word085 & BIT0)
+        if (device->drive_info.IdentifyData.ata.Word085 != 0x0000 && device->drive_info.IdentifyData.ata.Word085 != 0xFFFF && device->drive_info.IdentifyData.ata.Word085 & BIT0)
         {
             enabled = true;
         }
