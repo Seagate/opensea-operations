@@ -1153,7 +1153,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Media Card Pass-through");
             driveInfo->numberOfFeaturesSupported++;
         }
-        if (wordPtr[84] & BIT0 || wordPtr[87] & BIT0)
+        if (wordPtr[84] & BIT1 || wordPtr[87] & BIT1)
         {
             sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "SMART Self-Test");
             driveInfo->numberOfFeaturesSupported++;
