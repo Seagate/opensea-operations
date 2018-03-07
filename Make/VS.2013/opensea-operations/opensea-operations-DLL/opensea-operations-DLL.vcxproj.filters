@@ -87,6 +87,9 @@
     <ClInclude Include="..\..\..\..\include\zoned_operations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\opensea_operation_version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\logs.c">
