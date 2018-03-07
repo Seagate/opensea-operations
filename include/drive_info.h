@@ -143,6 +143,9 @@ extern "C"
     #define MAX_FEATURES UINT8_C(50) //change this number if we need to capture more feature support
     #define MAX_FEATURE_LENGTH UINT8_C(50) //maximum number of characters to allow for use when storing feature names.
 
+    #define MAX_SPECS UINT8_C(30)
+    #define MAX_SPEC_LENGTH UINT8_C(40)
+
     typedef struct _driveInformationSAS_SATA
     {
         char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
@@ -170,7 +173,7 @@ extern "C"
         uint16_t rotationRate;//Value matches the spec. 0 = not reported. 1 = SSD, everything else is an RPM
         uint8_t formFactor;//matches SBC and ACS specs
         uint8_t numberOfSpecificationsSupported;//number of specifications added to the list in the next field
-        char specificationsSupported[30][30];//30 specs supported max, and each one can be 15 characters long in name at max
+        char specificationsSupported[MAX_SPECS][MAX_SPEC_LENGTH];
         eEncryptionSupport encryptionSupport;
         bool trustedCommandsBeingBlocked;//Linux blocks ATA trusted send/receive commands by default. So this bool is a going to be true on most linux systems that haven't had the kernel boot parameter to allow them set. All other systems will likely see this allowed
         uint64_t cacheSize;//Bytes
