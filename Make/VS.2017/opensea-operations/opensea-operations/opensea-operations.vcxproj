@@ -685,6 +685,7 @@
     <ClInclude Include="..\..\..\..\include\generic_tests.h" />
     <ClInclude Include="..\..\..\..\include\host_erase.h" />
     <ClInclude Include="..\..\..\..\include\logs.h" />
+    <ClInclude Include="..\..\..\..\include\opensea_operation_version.h" />
     <ClInclude Include="..\..\..\..\include\operations.h" />
     <ClInclude Include="..\..\..\..\include\operations_Common.h" />
     <ClInclude Include="..\..\..\..\include\power_control.h" />
