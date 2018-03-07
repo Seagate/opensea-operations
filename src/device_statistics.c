@@ -7039,7 +7039,7 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            if (theStatistic.statisticValue >= 0 && theStatistic.statisticValue <= 100)
+            if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
             {
                 printf("%"PRIu8"", (uint8_t)theStatistic.statisticValue);
             }
