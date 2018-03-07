@@ -1758,7 +1758,7 @@ int transition_To_Active(tDevice *device)
     }
     else //treat as SCSI
     {
-        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
         {
             ret = scsi_Start_Stop_Unit(device, false, 0, PC_ACTIVE, false, false, false);
         }
@@ -1780,7 +1780,7 @@ int transition_To_Standby(tDevice *device)
     }
     else //treat as SCSI
     {
-        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
         {
             ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_STANDBY_0, false, false, false);
         }
@@ -1813,12 +1813,12 @@ int transition_To_Idle(tDevice *device, bool unload)
     }
     else
     {
-        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
         {
             if (unload)
             {
                 //unload can happen if power condition modifier set to 1. Needs SBC3/SPC3.
-                if (device->drive_info.scsiVpdData.inquiryData[2] > 4)
+                if (device->drive_info.scsiVersion > 4)
                 {
                     ret = scsi_Start_Stop_Unit(device, false, 1, PC_FORCE_IDLE_0, false, false, false);
                 }
@@ -1841,7 +1841,7 @@ int transition_To_Sleep(tDevice *device)
     }
     else //treat as SCSI
     {
-        if (device->drive_info.scsiVpdData.inquiryData[2] > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
         {
             ret = scsi_Start_Stop_Unit(device, false, 0, PC_SLEEP, false, false, false);//This is obsolete since SBC2...but we'll send it anyways
         }

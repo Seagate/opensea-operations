@@ -162,67 +162,98 @@ int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported 
 
 int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
 {
-    int                         ret = FAILURE;
-    uint32_t                    k = 0;
-    uint8_t                     opt_buf[512] = { 0 };
-    uint16_t                    serviceAction = 0;
-    ret = scsi_Report_Supported_Operation_Codes(device, false, 0, SANITIZE_CMD, 0, sizeof(opt_buf), opt_buf);
-    if (SUCCESS == ret)
+    int                         ret = NOT_SUPPORTED;
+    if (device->drive_info.scsiVersion >= 5)//check for this version of SPC first since the report supported Operation codes and Sanitize command should only be on drives with this version or highter.
     {
-        /*
-        printf("REPORT OPERATION CODE: \n");
-        for (k = 0; k < 512; ++k)
+        uint8_t supportedCommands[14] = { 0 };
+        ret = FAILURE;
+        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
         {
-        printf(" 0x%x ", opt_buf[k]);
-        if ((k+1)%8 == 0)
-        {
-        printf("\n");
-        }
-        }
-        */
-        // First 4 bytes are data, then the descriptors start.
-        // Ref. SPC-4 Table 293, 294
-        uint32_t valid_dataLength = M_BytesTo4ByteValue(opt_buf[0], opt_buf[1], opt_buf[2], opt_buf[3]);
-        k = 4;
-        while (k < valid_dataLength)
-        {
-            if (opt_buf[k] == SANITIZE_CMD)
+            ret = SUCCESS;
+            switch (supportedCommands[1] & 0x07)
             {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
                 sanitizeOpts->sanitizeCmdEnabled = true;
-                serviceAction = M_BytesTo2ByteValue(opt_buf[k + 2], opt_buf[k + 3]);
-                switch (serviceAction)
-                {
-                case SCSI_SANITIZE_OVERWRITE:
-                    sanitizeOpts->overwrite = true;
-                    break;
-                case SCSI_SANITIZE_BLOCK_ERASE:
-                    sanitizeOpts->blockErase = true;
-                    break;
-                case SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE:
-                    sanitizeOpts->crypto = true;
-                    break;
-                case SCSI_SANITIZE_EXIT_FAILURE_MODE:
-                    sanitizeOpts->exitFailMode = true;
-                    break;
-                default:
-                    if (VERBOSITY_COMMAND_NAMES <= g_verbosity)
-                    {
-                        printf("SCSI_REPORT_SUPPORTED_OP_CODES: cmd %Xh invalid SERVICE ACTION %Xh\n", \
-                            opt_buf[k], serviceAction);
-                    }
-                    break;
-                };
+                sanitizeOpts->overwrite = true;
+                break;
+            default:
+                break;
             }
-            // Next supported op_code index
-            if (opt_buf[k + 5] & SCSI_CTDP_BIT_SET)
+        }
+        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+        {
+            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+            scsi_Test_Unit_Ready(device, NULL);
+        }
+        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
+        {
+            ret = SUCCESS;
+            switch (supportedCommands[1] & 0x07)
             {
-                // Timeout descriptor is there.
-                k = k + 20;
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sanitizeOpts->sanitizeCmdEnabled = true;
+                sanitizeOpts->blockErase = true;
+                break;
+            default:
+                break;
             }
-            else
+        }
+        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+        {
+            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+            scsi_Test_Unit_Ready(device, NULL);
+        }
+        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE, 14, supportedCommands))
+        {
+            ret = SUCCESS;
+            switch (supportedCommands[1] & 0x07)
             {
-                k = k + 8;
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sanitizeOpts->sanitizeCmdEnabled = true;
+                sanitizeOpts->crypto = true;
+                break;
+            default:
+                break;
             }
+        }
+        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+        {
+            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+            scsi_Test_Unit_Ready(device, NULL);
+        }
+        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_EXIT_FAILURE_MODE, 14, supportedCommands))
+        {
+            ret = SUCCESS;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sanitizeOpts->sanitizeCmdEnabled = true;
+                sanitizeOpts->exitFailMode = true;
+                break;
+            default:
+                break;
+            }
+        }
+        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+        {
+            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+            scsi_Test_Unit_Ready(device, NULL);
         }
     }
     return ret;
