@@ -847,7 +847,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
             {
                 printf("Minimum Segment Size (512B Blocks): %" PRIu16 "\n", supportedModes->minSegmentSize);
             }
-            printf("Recommended Segment Size (512B Blocks): % "PRIu16 "\n", supportedModes->recommendedSegmentSize);
+            printf("Recommended Segment Size (512B Blocks): %" PRIu16 "\n", supportedModes->recommendedSegmentSize);
             //additional drive requirements
             printf("Buffer Offset required (Bytes): %" PRIu32 "\n", supportedModes->driveOffsetBoundaryInBytes);
             switch (supportedModes->codeActivation)

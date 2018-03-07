@@ -959,6 +959,14 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 {
                     //try use SAT translation instead
                     ret = scsi_SMART_Check(device, tripInfo);
+                    if (ret == UNKNOWN)
+                    {
+                        attemptCheckWithAttributes = true;
+                    }
+                }
+                else
+                {
+                    attemptCheckWithAttributes = true;
                 }
             }
         }
@@ -971,10 +979,18 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             {
                 //try use SAT translation instead
                 ret = scsi_SMART_Check(device, tripInfo);
+                if (ret == UNKNOWN)
+                {
+                    attemptCheckWithAttributes = true;
+                }
+            }
+            else
+            {
+                attemptCheckWithAttributes = true;
             }
         }
         
-        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED)
+        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED || attemptCheckWithAttributes)
         {
             smartLogData attributes;
             memset(&attributes, 0, sizeof(smartLogData));

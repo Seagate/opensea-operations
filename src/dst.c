@@ -521,6 +521,9 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
             break;
         }
         break;
+    default:
+        ret = NOT_SUPPORTED;
+        break;
     }
     return ret;
 }
@@ -2145,7 +2148,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             //Timestamp
             printf("%-9"PRIu16"  ", entries->dstEntry[iter].lifetimeTimestamp);
             //Execution Status
-            char status[27] = { 0 };
+            char status[30] = { 0 };
             uint8_t percentRemaining = 0;
             if (entries->logType == DST_LOG_TYPE_ATA)
             {
