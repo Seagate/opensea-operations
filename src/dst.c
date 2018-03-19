@@ -73,7 +73,7 @@ int ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *st
         *status = temp_buf[363];
         //get the status before we shift it by 4 for the while condition check.
         *percentComplete = (*status & 0x0F) * 0x0A;
-        *status = (*status >> 4);
+        *status = M_Nibble0((*status >> 4));
     }
     return result;
 }
@@ -204,7 +204,7 @@ void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool
             sprintf(translatedString, "Operation in progress.");
             break;
         default:
-            sprintf(translatedString, "Error, unknown status.");
+            sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
             break;
         }
     }
@@ -294,7 +294,7 @@ void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool
             sprintf(translatedString, "Self-test in progress.");
             break;
         default:
-            sprintf(translatedString, "Error, unknown status.");
+			sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
         }
     }
 }
