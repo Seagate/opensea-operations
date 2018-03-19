@@ -913,11 +913,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             }
             safe_Free(powerConsumptionPage);
         }
-        else
-        {
-            ret = NOT_SUPPORTED;
-        }
-        if (ret == SUCCESS)
+        if (ret != FAILURE)
         {
             uint8_t *pcModePage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t));
             if (!pcModePage)
@@ -928,10 +924,12 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             //read the mode page to get the current identifier.
             if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
             {
+				ret = SUCCESS;
                 //check the active level to make sure it is zero
-                uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                if (activeLevel == 0)
+				identifiers->activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+                if (identifiers->activeLevel == 0)
                 {
+					identifiers->currentIdentifierValid = true;
                     identifiers->currentIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
                 }
             }
@@ -952,32 +950,55 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
         if (identifiers->numberOfPCIdentifiers > 0)
         {
             //show the current value
-            printf("Current Power Consumption Value: %"PRIu16" ", identifiers->identifiers[identifiers->currentIdentifier].value);
-            //now print the units
-            switch (identifiers->identifiers[identifiers->currentIdentifier].units)
-            {
-            case 0://gigawatts
-                printf("Gigawatts");
-                break;
-            case 1://megawatts
-                printf("Megawatts");
-                break;
-            case 2://kilowatts
-                printf("Kilowatts");
-                break;
-            case 3://watts
-                printf("Watts");
-                break;
-            case 4://milliwatts
-                printf("Milliwatts");
-                break;
-            case 5://microwatts
-                printf("Microwatts");
-            default:
-                printf("unknown unit of measure");
-                break;
-            }
-            printf("\n");
+			if (identifiers->currentIdentifierValid)
+			{
+				printf("Current Power Consumption Value: %"PRIu16" ", identifiers->identifiers[identifiers->currentIdentifier].value);
+				//now print the units
+				switch (identifiers->identifiers[identifiers->currentIdentifier].units)
+				{
+				case 0://gigawatts
+					printf("Gigawatts");
+					break;
+				case 1://megawatts
+					printf("Megawatts");
+					break;
+				case 2://kilowatts
+					printf("Kilowatts");
+					break;
+				case 3://watts
+					printf("Watts");
+					break;
+				case 4://milliwatts
+					printf("Milliwatts");
+					break;
+				case 5://microwatts
+					printf("Microwatts");
+				default:
+					printf("unknown unit of measure");
+					break;
+				}
+				printf("\n");
+			}
+			else
+			{
+				//high medium low value
+				printf("Drive is currently configured with ");
+				switch (identifiers->activeLevel)
+				{
+				case 1:
+					printf("highest relative active power consumption\n");
+					break;
+				case 2:
+					printf("intermediate relative active power consumption\n");
+					break;
+				case 3:
+					printf("lowest relative active power consumption\n");
+					break;
+				default:
+					printf("unknown active level!\n");
+					break;
+				}
+			}
             //show a list of the values supported (in watts). If the value is less than 1 watt, exclude it
             printf("Supported Max Power Consumption Set Points (Watts): \n\t[");
             uint8_t pcIter = 0;
@@ -1010,7 +1031,24 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
         }
         else
         {
-            printf("\tNot supported by device\n");
+			//high medium low value
+			printf("Drive is currently configured with ");
+			switch (identifiers->activeLevel)
+			{
+			case 1:
+				printf("highest relative active power consumption\n");
+				break;
+			case 2:
+				printf("intermediate relative active power consumption\n");
+				break;
+			case 3:
+				printf("lowest relative active power consumption\n");
+				break;
+			default:
+				printf("unknown active level!\n");
+				break;
+			}
+			printf("Supported Max Power Consumption Set Points : \n\t[ highest | intermediate | lowest | default ]");
         }
     }
 }
