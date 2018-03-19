@@ -920,7 +920,18 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 return MEMORY_FAILURE;
             }
-            identifiers->currentIdentifier = 0xFF;//set to something that is likely not valid
+			//read changable value to see if active field can be modified
+			if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CHANGABLE_VALUES, pcModePage))
+			{
+				if (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) > 0)
+				{
+					identifiers->activeLevelChangable = true;
+				}
+				else
+				{
+					identifiers->activeLevelChangable = false;
+				}
+			}
             //read the mode page to get the current identifier.
             if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
             {
@@ -1026,8 +1037,12 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                 }
                 printf(" %"PRIu64" |", watts);
             }
-            //now print default, highest, lowest, and intermediate
-            printf(" highest | intermediate | lowest | default ]\n");
+			if (identifiers->activeLevelChangable)
+			{
+				//now print default, highest, lowest, and intermediate
+				printf(" highest | intermediate | lowest |");
+			}
+			printf(" default ]\n");//always allow default so that we can restore back to original settings
         }
         else
         {
@@ -1035,6 +1050,9 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
 			printf("Drive is currently configured with ");
 			switch (identifiers->activeLevel)
 			{
+			case 0:
+				printf("Power consumption identifier set to %" PRIu8 "\n", identifiers->currentIdentifier);
+				break;
 			case 1:
 				printf("highest relative active power consumption\n");
 				break;
@@ -1048,7 +1066,13 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
 				printf("unknown active level!\n");
 				break;
 			}
-			printf("Supported Max Power Consumption Set Points : \n\t[ highest | intermediate | lowest | default ]");
+			printf("Supported Max Power Consumption Set Points : \n\t[ ");
+			if (identifiers->activeLevelChangable)
+			{
+				//now print default, highest, lowest, and intermediate
+				printf(" highest | intermediate | lowest |");
+			}
+			printf(" default ]\n");//always allow default so that we can restore back to original settings
         }
     }
 }
@@ -1077,7 +1101,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                 {
                 case PC_ACTIVE_LEVEL_IDENTIFIER:
                     //set active level to 0
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xF8;//clear lower 3 bits to 0
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
                     //set the power consumption identifier we were given
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = powerConsumptionIdentifier;
                     break;
@@ -1085,7 +1109,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                 case PC_ACTIVE_LEVEL_INTERMEDIATE:
                 case PC_ACTIVE_LEVEL_LOWEST:
                     //set the active level to what was requested (power consumption identifier is ignored here)
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xF8;//clear lower 3 bits to 0
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
                     //now set it now that the bits are cleared out
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= activeLevelField;
                     break;

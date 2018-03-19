@@ -614,7 +614,50 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
             }
         }
     }
-    //SAS is NOT in here since it uses the same field as the set power consumption stuff from SPC. That should be used instead to set the drive's power consumption level.
+	else if(device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		//NOTE: this uses the standard spec power consumption mode page.
+		//      This feature conflicts with use other use of this page.
+		if (is_Seagate_Family(device) == SEAGATE)
+		{
+			uint32_t powerConsumptionLength = 0;
+			if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
+			{
+				//If this page is supported, we're calling power balance on SAS not supported.
+				*supported = false;
+				return SUCCESS;
+			}
+			uint8_t *pcModePage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t));
+			if (!pcModePage)
+			{
+				return MEMORY_FAILURE;
+			}
+			//read changeable values to get supported
+			if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CHANGABLE_VALUES, pcModePage))
+			{
+				ret = SUCCESS;
+				//This is as close as I can figure the best way to check for power balance support - TJE
+				//Active mode cannot be changable, then the power consumption VPD page must also not be supported.
+				if ((pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] & BIT0) == 1 && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6],2, 0) == 0))
+				{
+					*supported = true;
+					//read current values to get enabled/disabled
+					memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+					if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
+					{
+						ret = SUCCESS;
+						//check the active level to make sure it is zero
+						uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+						if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1)
+						{
+							*enabled = true;
+						}
+					}
+				}
+			}
+			safe_Free(pcModePage);
+		}
+	}
     return ret;
 }
 
@@ -632,5 +675,29 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             ret = ata_Set_Features(device, 0x5C, 0, 2, 0, 0);
         }
     }
+	else if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		uint8_t *pcModePage = (uint8_t*)calloc(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+		eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
+		if (!pcModePage)
+		{
+			return MEMORY_FAILURE;
+		}
+		if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, 16 + MODE_PARAMETER_HEADER_10_LEN, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
+		{
+			pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
+			if (enable)
+			{
+				pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
+			}
+			else
+			{
+				pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 0;
+			}
+			//now do mode select with the data for the mode to set
+			ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
+		}
+		safe_Free(pcModePage);
+	}
     return ret;
 }
