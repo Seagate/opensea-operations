@@ -24,20 +24,20 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  change_Pin11( tDevice * device )
+    //  change_Ready_LED( tDevice * device )
     //
-    //! \brief   Change Pin 11 behavior on SAS drives. SAS is configurable with a command, SATA is not so SAS is the only thing supported in this call.
+    //! \brief   Change Ready LED behavior on SAS drives. SAS is configurable with a command, SATA is not so SAS is the only thing supported in this call.
     //
     //  Entry:
     //!   \param device - file descriptor
-    //!   \param pin11Default - set to true to restore the drive's default pin11 behavior
-    //!   \param pin11OnOff - when set to true, set the ready LED bit to a 1, other wise set to a 0. See the SAS protocol spec for details on this mode page.
+    //!   \param readyLEDDefault - set to true to restore the drive's default ready LED behavior
+    //!   \param readyLEDOnOff - when set to true, set the ready LED bit to a 1, other wise set to a 0. See the SAS protocol spec for details on this mode page.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int change_Pin11(tDevice *device, bool pin11Default, bool pin11OnOff);
+    OPENSEA_OPERATIONS_API int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
 
     //-----------------------------------------------------------------------------
     //
