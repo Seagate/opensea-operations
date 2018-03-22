@@ -30,32 +30,32 @@
 #include "dst.h"
 
 
-int change_Pin11(tDevice *device, bool pin11Default, bool pin11OnOff)
+int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
 {
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t *modeSelect = (uint8_t*)calloc(24, sizeof(uint8_t));
-        if (modeSelect == NULL)
+        if (!modeSelect)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
         }
-        if (pin11Default == true)
+        if (readyLEDDefault)
         {
             //we need to read the default AND current page this way we only touch 1 bit on the page
             if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_DEFAULT_VALUES, modeSelect))
             {
                 if (modeSelect[2 + MODE_PARAMETER_HEADER_10_LEN] & BIT4)
                 {
-                    pin11OnOff = true;//set to true so that we turn the bit on
+					readyLEDOnOff = true;//set to true so that we turn the bit on
                 }
             }
             memset(modeSelect, 0, 24);
         }
         if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_CURRENT_VALUES, modeSelect))
         {
-            if (pin11OnOff == true)//set the bit to 1
+            if (readyLEDOnOff)//set the bit to 1
             {
                 modeSelect[2 + MODE_PARAMETER_HEADER_10_LEN] |= BIT4;
             }
