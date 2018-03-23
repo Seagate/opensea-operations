@@ -14,7 +14,6 @@
 
 #include "operations_Common.h"
 #include "smart.h"
-#include "logs.h"
 #include "usb_hacks.h"
 #include "logs.h"
 
