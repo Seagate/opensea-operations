@@ -150,6 +150,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(tDevice *device);
+
     //-----------------------------------------------------------------------------
     //
     //  scsi_Is_Read_Look_Ahead_Enabled( tDevice * device )
@@ -164,6 +166,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device);
+
+	OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -180,6 +184,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(tDevice *device);
+
     //-----------------------------------------------------------------------------
     //
     //  is_Write_Cache_Enabled( tDevice * device )
@@ -194,6 +200,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Write_Cache_Enabled(tDevice *device);
+
+	OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -210,6 +218,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(tDevice *device);
+
     //-----------------------------------------------------------------------------
     //
     //  ata_Is_Write_Cache_Enabled( tDevice * device )
@@ -225,6 +235,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(tDevice *device);
+	
     typedef enum _eEraseMethod
     {
         ERASE_NOT_SUPPORTED,
