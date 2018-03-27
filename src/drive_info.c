@@ -1366,10 +1366,30 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
+				bool dlcSupported = false;
                 if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
                 {
                     //supported capabilities
-                    //uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                    uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+					if (supportedCapabilities & BIT63)
+					{
+						if (supportedCapabilities & BIT54)
+						{
+							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Advanced Background Operations");
+							driveInfo->numberOfFeaturesSupported++;
+						}
+						if (supportedCapabilities & BIT49)
+						{
+							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Set Sector Configuration");
+							driveInfo->numberOfFeaturesSupported++;
+						}
+						if (supportedCapabilities & BIT46)
+						{
+							dlcSupported = true;
+							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
+							driveInfo->numberOfFeaturesSupported++;
+						}
+					}
                     //Download capabilities
                     uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
                     if (downloadCapabilities & BIT63)
@@ -1400,11 +1420,41 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                         }
                     }
                 }
+				else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+				{
+					//Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+					scsi_Test_Unit_Ready(device, NULL);
+				}
+				bool dlcEnabled = false;
+				if(SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+				{
+					uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+					if (currentSettings & BIT63)
+					{
+						if (currentSettings & BIT17)
+						{
+							dlcEnabled = true;
+						}
+					}
+				}
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                 {
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
+				if (dlcSupported)
+				{
+					if (dlcEnabled)
+					{
+						sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control [Enabled]");
+						driveInfo->numberOfFeaturesSupported++;
+					}
+					else
+					{
+						sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
+						driveInfo->numberOfFeaturesSupported++;
+					}
+				}
             }
             else if (smartErrorLoggingSupported)
             {
@@ -1434,6 +1484,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                 logBufferSize = idDataLog * sizeof(uint8_t);
                                 if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, logBuffer, logBufferSize))
                                 {
+									bool dlcSupported = false;
+									bool dlcEnabled = false;
                                     //start att offset 1024 snce page 0 and page 1 are not needed. (0 = list of supported pages, 1 = copy of identify data)
                                     for (uint32_t offset = UINT32_C(1024); offset < logBufferSize; offset += UINT32_C(512))
                                     {
@@ -1455,7 +1507,24 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                         {
                                             //read page 3 data
                                             //supported capabilities
-                                            //uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+                                            uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+											if (supportedCapabilities & BIT63)
+											{
+												if (supportedCapabilities & BIT54)
+												{
+													sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Advanced Background Operations");
+													driveInfo->numberOfFeaturesSupported++;
+												}
+												if (supportedCapabilities & BIT49)
+												{
+													sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Set Sector Configuration");
+													driveInfo->numberOfFeaturesSupported++;
+												}
+												if (supportedCapabilities & BIT46)
+												{
+													dlcSupported = true;
+												}
+											}
                                             //Download capabilities
                                             uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
                                             if (downloadCapabilities & BIT63)
@@ -1486,7 +1555,32 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                                 }
                                             }
                                         }
+										else if (M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == 0x04) //check page and version number
+										{
+											//supported capabilities
+											uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+											if (currentSettings & BIT63)
+											{
+												if (currentSettings & BIT17)
+												{
+													dlcEnabled = true;
+												}
+											}
+										}
                                     }
+									if (dlcSupported)
+									{
+										if (dlcEnabled)
+										{
+											sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control [Enabled]");
+											driveInfo->numberOfFeaturesSupported++;
+										}
+										else
+										{
+											sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
+											driveInfo->numberOfFeaturesSupported++;
+										}
+									}
                                 }
                                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                                 {
