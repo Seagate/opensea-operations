@@ -201,6 +201,7 @@ extern "C"
         bool lowCurrentSpinupValid;//will be set to true for ATA, set to false for SAS
         bool lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
 		uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
+		bool isWriteProtected;//Not available on SATA!
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_Sata;
 
     typedef struct _driveInformationNVMe
@@ -244,6 +245,7 @@ extern "C"
         struct {
             bool valid;
             uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work) (this is to be similar to ATA and SCSI-TJE
+			bool mediumIsReadOnly;//same as write protect on SCSI
             uint16_t compositeTemperatureKelvin;
             uint8_t percentageUsed;
             uint8_t availableSpacePercent;

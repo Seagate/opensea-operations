@@ -3571,12 +3571,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (readWriteErrorRecovery[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, readWriteErrorRecovery))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
-
+						if (readWriteErrorRecovery[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     if (pageRead)
                     {
@@ -3640,11 +3647,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                         {
                             pageRead = true;
                             headerLength = MODE_PARAMETER_HEADER_10_LEN;
+							if (rigidGeometry[3] & BIT7)
+							{
+								driveInfo->isWriteProtected = true;
+							}
                         }
                         else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 24 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, rigidGeometry))
                         {
                             pageRead = true;
                             headerLength = MODE_PARAMETER_HEADER_6_LEN;
+							if (rigidGeometry[2] & BIT7)
+							{
+								driveInfo->isWriteProtected = true;
+							}
 
                         }
                         else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
@@ -3674,11 +3689,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (cachingPage[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 20 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, cachingPage))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (cachingPage[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -3745,11 +3768,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
 					{
 						headerLength = MODE_PARAMETER_HEADER_10_LEN;
 						pageRead = true;
+						if (controlPage[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
 					}
 					else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, controlPage))
 					{
 						headerLength = MODE_PARAMETER_HEADER_6_LEN;
 						pageRead = true;
+						if (controlPage[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
 					}
 					else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
 					{
@@ -3830,11 +3861,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (controlExtensionPage[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, controlExtensionPage))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (controlExtensionPage[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -3889,6 +3928,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (ioAdviceHints[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -3993,11 +4036,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4019,11 +4070,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4154,11 +4213,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4258,11 +4325,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4414,11 +4489,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 40 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, powerConditions))
                     {
                         pageRead = true;
+						if (powerConditions[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 40 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, powerConditions))
                     {
                         mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
                         pageRead = true;
+						if (powerConditions[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4533,11 +4616,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (informationalExceptions[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, informationalExceptions))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (informationalExceptions[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4623,11 +4714,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (backgroundControl[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 16 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, backgroundControl))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (backgroundControl[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -5448,6 +5547,10 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             {
                 driveInfo->smartData.smartStatus = 1;
             }
+			if (nvmeSMARTData[0] & BIT3)
+			{
+				driveInfo->smartData.mediumIsReadOnly = true;
+			}
             driveInfo->smartData.compositeTemperatureKelvin = M_BytesTo2ByteValue(nvmeSMARTData[2], nvmeSMARTData[1]);
             driveInfo->smartData.availableSpacePercent = nvmeSMARTData[3];
             driveInfo->smartData.availableSpaceThresholdPercent = nvmeSMARTData[4];
@@ -5587,6 +5690,15 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     //Putting SMART & DST data here so that it isn't confused with the namespace data below - TJE
     if (driveInfo->smartData.valid)
     {
+		printf("\tRead-Only Medium: ");
+		if (driveInfo->smartData.mediumIsReadOnly)
+		{
+			printf("True\n");
+		}
+		else
+		{
+			printf("False\n");
+		}
         printf("\tSMART Status: ");
         switch (driveInfo->smartData.smartStatus)
         {
@@ -5990,6 +6102,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
     {
         printf("%"PRIu16"\n", driveInfo->rotationRate);
     }
+	if (driveInfo->isWriteProtected)
+	{
+		printf("\tMedium is write protected!\n");
+	}
     //Form Factor
     printf("\tForm Factor (inch): ");
     switch (driveInfo->formFactor)
