@@ -99,6 +99,7 @@ extern "C"
         bool defaultFormat;//default device format. FOV = 0. If combined with disableImmediat, then no data sent to the device. AKA fmtdata bit is zero. Only defect list format, cmplst, and format type will be used.
         bool currentBlockSize;
         uint16_t newBlockSize;
+		uint64_t newMaxLBA;//will be ignored if this is set to zero
         uint8_t *gList;
         uint32_t glistSize;
         bool completeList;
