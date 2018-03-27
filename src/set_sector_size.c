@@ -98,9 +98,9 @@ int get_Supported_Sector_Sizes(tDevice *device, sectorSize * ptrSectorSizeList, 
                 for (uint16_t iter = 0, sectorSizeCounter = 0; iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < numberOfSectorSizeStructs; iter += 16, ++sectorSizeCounter)
                 {
                     ptrSectorSizeList[sectorSizeCounter].valid = true;
-                    ptrSectorSizeList[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(sectorConfigurationLog[7 + iter], sectorConfigurationLog[6 + iter], sectorConfigurationLog[5 + iter], sectorConfigurationLog[4 + iter]);
+                    ptrSectorSizeList[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(sectorConfigurationLog[7 + iter], sectorConfigurationLog[6 + iter], sectorConfigurationLog[5 + iter], sectorConfigurationLog[4 + iter]) * 2;
                     ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorCheck = M_BytesTo2ByteValue(sectorConfigurationLog[3 + iter], sectorConfigurationLog[2 + iter]);
-                    ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorIndex = (uint8_t)iter;
+                    ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorIndex = (uint8_t)(iter / 16);
                 }
                 ret = SUCCESS;
             }
