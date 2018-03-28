@@ -678,7 +678,6 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
 	else if (device->drive_info.drive_type == SCSI_DRIVE)
 	{
 		uint8_t *pcModePage = (uint8_t*)calloc(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
-		eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
 		if (!pcModePage)
 		{
 			return MEMORY_FAILURE;
@@ -755,6 +754,8 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
 	return ret;
 }
 
+#define IDD_READY_TIME_SECONDS 120
+
 int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeInSeconds)
 {
 	int ret = NOT_SUPPORTED;
@@ -771,7 +772,7 @@ int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeI
 			switch (iddTest)
 			{
 			case SEAGATE_IDD_SHORT:
-				*timeInSeconds = 120;
+				*timeInSeconds = IDD_READY_TIME_SECONDS;
 				break;
 			case SEAGATE_IDD_LONG:
 				get_SMART_Attributes(device, &smartData);
@@ -789,7 +790,7 @@ int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeI
 						smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[1], \
 						smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[0]);
 				}
-				*timeInSeconds = (numberOfLbasInLists * 3) + 120;
+				*timeInSeconds = (numberOfLbasInLists * 3) + IDD_READY_TIME_SECONDS;
 				break;
 			default:
 				break;
@@ -804,7 +805,7 @@ int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeI
 			switch (iddTest)
 			{
 			case SEAGATE_IDD_SHORT:
-				*timeInSeconds = 120;
+				*timeInSeconds = IDD_READY_TIME_SECONDS;
 				break;
 			case SEAGATE_IDD_LONG:
 				*timeInSeconds = UINT64_MAX;
@@ -831,11 +832,17 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
 		uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
 		if (iddDiagPage)
 		{
-			if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage))
-			{
+            //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
+			scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage);
+            if (iddDiagPage[0] == 0x98 && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
+            {
 				ret = SUCCESS;
 				*status = M_Nibble0(iddDiagPage[4]);
 			}
+            else
+            {
+                ret = FAILURE;
+            }
 		}
 		else
 		{
@@ -958,9 +965,38 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 				}
 				//if we are here, then an operation isn't already in progress so time to start it
 				result = start_IDD_Operation(device, IDDtest, captiveForeground);
+                if (result != SUCCESS)
+                {
+                    if (device->drive_info.drive_type == SCSI_DRIVE)
+                    {
+                        //check the sense data. The problem may be that captive/foreground mode isn't supported for the long test
+                        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                        if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
+                        {
+                            //TODO: Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
+                            return NOT_SUPPORTED;
+                        }
+                        else
+                        {
+                            return FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        return FAILURE;
+                    }
+                }
+                uint32_t commandTimeSeconds = device->drive_info.lastCommandTimeNanoSeconds / 1e9;
+                if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
+                {
+                    //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
+                    //It needs time to spin back up and be ready to accept commands again.
+                    //This is being done in both captive/foreground and offline/background modes due to differences between some drive firmwares.
+                    delay_Seconds(IDD_READY_TIME_SECONDS - commandTimeSeconds);
+                }
 				if (SUCCESS == result && captiveForeground)
 				{
-					//this means we waited for the entire command...no need to poll.
 					int ret = get_IDD_Status(device, &status);
 					if (status == 0 && ret == SUCCESS)
 					{
@@ -968,21 +1004,46 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 					}
 					else
 					{
-						//IDD may still be in progress, so start polling for progress
-						pollForProgress = true;
+                        switch (status)
+                        {
+                        case 1://aborted by host
+                        case 2://interrupted by reset
+                            result = ABORTED;
+                            break;
+                        case 9://ready to start...guessing this means success?
+                            result = SUCCESS;
+                            break;
+                        case 0x0F://still in progress. Go into the polling loop below to finish waiting
+                            result = SUCCESS;
+                            pollForProgress = true;
+                            break;
+                        case 3://fatal error
+                        default:
+                            if (IDDtest == SEAGATE_IDD_SHORT)
+                            {
+                                result = FAILURE;
+                            }
+                            else
+                            {
+                                //IDD may still be in progress, so start polling for progress just to make sure it finished.
+                                //This is a special case for the long test since it can take more than 2 minutes to complete.
+                                pollForProgress = true;
+                            }
+                            break;
+                        }
 					}
 				}
 				else if (SUCCESS == result && pollForProgress)
 				{
 					status = 0xF;//assume that the operation is in progress until it isn't anymore
 					int ret = SUCCESS;//for use in the loop below...assume that we are successful
-					delay_Seconds((uint32_t)(120.0 - (device->drive_info.lastCommandTimeNanoSeconds * 1e-9)));//need to delay a little bit longer (2 minutes total) from when the drive starts IDD, otherwise we'll consider it a failure since the drive will be spinning up and not respond to the SMART Read Data command
 					while (status > 0x08 && ret == SUCCESS)
 					{
 						ret = get_IDD_Status(device, &status);
 						if (VERBOSITY_QUIET <= g_verbosity)
 						{
 							printf("\n    IDD test is still in progress...please wait");
+                            fflush(stdout);
 						}
 						delay_Seconds(5);//5 second delay between progress checks
 					}
@@ -993,8 +1054,20 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 					}
 					else
 					{
-						result = FAILURE; //failed the test
-					}
+                        switch (status)
+                        {
+                        case 0x01://aborted by host
+                        case 0x02://interrupted by reset
+                            result = ABORTED;
+                            break;
+                        case 0x09://ready to start...guessing this means success?
+                            result = SUCCESS;
+                            break;
+                        default:
+                            result = FAILURE;
+                            break;
+                        }
+                    }
 				}
 				else if (!pollForProgress && result != SUCCESS)
 				{
