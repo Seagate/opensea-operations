@@ -910,6 +910,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
 			iddDiagPage[3] = 0x08;//page length
 			iddDiagPage[4] = 1 << 4;//revision number 1, status of zero
 			ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 12, iddDiagPage, 12, commandTimeoutSeconds);
+			safe_Free(iddDiagPage);
 		}
 		else
 		{
@@ -931,7 +932,6 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 		{
 		case SEAGATE_IDD_SHORT:
 		case SEAGATE_IDD_LONG:
-			//case SEAGATE_IDD_LONG_WITH_REPAIR:
 			break;
 		default:
 			return BAD_PARAMETER;
@@ -968,7 +968,8 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 					}
 					else
 					{
-						result = FAILURE; //failed the test
+						//IDD may still be in progress, so start polling for progress
+						pollForProgress = true;
 					}
 				}
 				else if (SUCCESS == result && pollForProgress)
