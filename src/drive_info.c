@@ -2400,9 +2400,9 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
                     if (serialNumberLength > 0)
                     {
-                        memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
+                        memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN + 1, serialNumberLength));
                         remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-                        driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN - 1, serialNumberLength)] = '\0';
+                        driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
                     }
                 }
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
