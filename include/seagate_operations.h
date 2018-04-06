@@ -233,7 +233,7 @@ extern "C"
 	//
 	//  run_IDD()
 	//
-	//! \brief   Description:  Function to send a Seagate ATA IDD test to a device
+	//! \brief   Description:  Function to send a Seagate IDD test to a device
 	//
 	//  Entry:
 	//!   \param[in] device = file descriptor
@@ -247,6 +247,20 @@ extern "C"
 	//-----------------------------------------------------------------------------
 	OPENSEA_OPERATIONS_API int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool captive);
 
+	//-----------------------------------------------------------------------------
+	//
+	//  get_IDD_Status(tDevice *device, uint8_t *status)
+	//
+	//! \brief   Description:  Gets the status of an ongoing IDD operation
+	//
+	//  Entry:
+	//!   \param[in] device = file descriptor
+	//!   \param[out] status = returns a status value for an ongoing IDD operation. This is similar to a DST status code value.
+	//!
+	//  Exit:
+	//!   \return SUCCESS on successful completion, FAILURE = fail
+	//
+	//-----------------------------------------------------------------------------
 	OPENSEA_OPERATIONS_API int get_IDD_Status(tDevice *device, uint8_t *status);
 
 #if defined (__cplusplus)
