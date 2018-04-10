@@ -2790,7 +2790,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
 				//check for format corrupt
 				uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
 				get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-				if (asc == 0x31 && ascq == 0)
+				if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
 				{
 					driveInfo->isFormatCorrupt = true;
 				}
@@ -2801,7 +2801,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
 			//check for format corrupt first
 			uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
 			get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-			if (asc == 0x31 && ascq == 0)
+			if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
 			{
 				driveInfo->isFormatCorrupt = true;
 			}
@@ -2845,7 +2845,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
 			//check for format corrupt first
 			senseKey = 0, asc = 0, ascq = 0, fru = 0;
 			get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-			if (asc == 0x31 && ascq == 0)
+			if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
 			{
 				driveInfo->isFormatCorrupt = true;
 			}
