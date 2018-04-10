@@ -2787,10 +2787,25 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
+				//check for format corrupt
+				uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+				get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+				if (asc == 0x31 && ascq == 0)
+				{
+					driveInfo->isFormatCorrupt = true;
+				}
             }
         }
         else
         {
+			//check for format corrupt first
+			uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+			get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+			if (asc == 0x31 && ascq == 0)
+			{
+				driveInfo->isFormatCorrupt = true;
+			}
+
             //try read capacity 16, if that fails we are done trying
             uint8_t* temp = (uint8_t*)realloc(readCapBuf, READ_CAPACITY_16_LEN * sizeof(uint8_t));
             if (temp == NULL)
@@ -2827,6 +2842,13 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                 //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                 scsi_Test_Unit_Ready(device, NULL);
             }
+			//check for format corrupt first
+			senseKey = 0, asc = 0, ascq = 0, fru = 0;
+			get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+			if (asc == 0x31 && ascq == 0)
+			{
+				driveInfo->isFormatCorrupt = true;
+			}
         }
         break;
     default:
@@ -6176,12 +6198,24 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
             printf("%"PRIu64"\n", driveInfo->nativeMaxLBA);
         }
     }
-    //Logical Sector Size
-    printf("\tLogical Sector Size (B): %"PRIu32"\n", driveInfo->logicalSectorSize);
-    //Physical Sector Size
-    printf("\tPhysical Sector Size (B): %"PRIu32"\n", driveInfo->physicalSectorSize);
-    //Sector Alignment
-    printf("\tSector Alignment: %"PRIu16"\n", driveInfo->sectorAlignment);
+	if (driveInfo->isFormatCorrupt)
+	{
+		//Logical Sector Size
+		printf("\tLogical Sector Size (B): Format Corrupt\n");
+		//Physical Sector Size
+		printf("\tPhysical Sector Size (B): Format Corrupt\n");
+		//Sector Alignment
+		printf("\tSector Alignment: Format Corrupt\n");
+	}
+	else
+	{
+		//Logical Sector Size
+		printf("\tLogical Sector Size (B): %"PRIu32"\n", driveInfo->logicalSectorSize);
+		//Physical Sector Size
+		printf("\tPhysical Sector Size (B): %"PRIu32"\n", driveInfo->physicalSectorSize);
+		//Sector Alignment
+		printf("\tSector Alignment: %"PRIu16"\n", driveInfo->sectorAlignment);
+	}
     //Rotation Rate
     printf("\tRotation Rate (RPM): ");
     if (driveInfo->rotationRate == 0)
