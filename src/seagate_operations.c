@@ -987,7 +987,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                         return FAILURE;
                     }
                 }
-                uint32_t commandTimeSeconds = device->drive_info.lastCommandTimeNanoSeconds / 1e9;
+                uint32_t commandTimeSeconds = (uint32_t)(device->drive_info.lastCommandTimeNanoSeconds / 1e9);
                 if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
                 {
                     //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
