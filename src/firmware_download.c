@@ -46,6 +46,12 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     }
     else
     {
+		eDownloadMode specifiedDLMode = options->dlMode;
+		if (device->drive_info.drive_type == NVME_DRIVE)
+		{
+			//switch to deferred and we'll send the activate at the end
+			options->dlMode = DL_FW_DEFERRED;
+		}
         //multiple commands needed to do the download (segmented)
 		if (options->segmentSize == 0)
         {
@@ -184,6 +190,13 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 			options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
 			options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
         }
+		if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
+		{
+			//send an activate command
+			ret = firmware_Download_Command(device, DL_FW_ACTIVATE, options->useDMA, 0, 0, options->firmwareFileMem, options->firmwareSlot);
+			options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+		}
+
         if (g_verbosity > VERBOSITY_QUIET)
         {
             printf("\n");
