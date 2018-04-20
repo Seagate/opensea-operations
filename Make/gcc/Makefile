@@ -446,6 +446,7 @@ AR=ar
 #override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
 CFLAGS ?= -Wall 
 CFLAGS += -c -fPIC -I. $(VMW_$(VMW_TARGET)_COMPILEFLAGS) -std=gnu99
+CFLAGS += -DVMK_CROSS_COMP
 
 LFLAGS = -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a $(VMW_LINK_FLAGS)
 LIB_SRC_FILES = \
@@ -474,8 +475,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)buffer_test.c
 
 #Only define public stuff 
-#PROJECT_DEFINES += $(VMW_EXTRA_DEFS)#-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
-PROJECT_DEFINES += $(VMW_EXTRA_DEFS) -DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
+PROJECT_DEFINES += $(VMW_EXTRA_DEFS)#-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
+#PROJECT_DEFINES += $(VMW_EXTRA_DEFS) -DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
 
 #All of the source files have associated object files
 LIB_OBJ_FILES = $(LIB_SRC_FILES:.c=.o)
