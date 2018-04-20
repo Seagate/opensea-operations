@@ -90,10 +90,22 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         {
 #if defined (_WIN32) && defined(WINVER)
 #if WINVER >= SEA_WIN32_WINNT_WIN10
-            if (currentDownloadBlock + 1 == downloadBlocks && downloadRemainder == 0)
+            
+			if (currentDownloadBlock == 0)
+			{
+				device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = true;
+				device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
+			}
+			else if (currentDownloadBlock + 1 == downloadBlocks && downloadRemainder == 0)
             {
+				device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
             }
+			else
+			{
+				device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
+				device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
+			}
 #endif
 #endif
 			ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID);
@@ -193,6 +205,11 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 		if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
 		{
 			//send an activate command
+#if defined (_WIN32) && defined(WINVER)
+#if WINVER >= SEA_WIN32_WINNT_WIN10
+			device->os_info.fwdlIOsupport.activateExistingCode = false;
+#endif
+#endif
 			ret = firmware_Download_Command(device, DL_FW_ACTIVATE, options->useDMA, 0, 0, options->firmwareFileMem, options->firmwareSlot);
 			options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
 		}
