@@ -312,6 +312,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             formatUnitParameters.defaultFormat = true;//Don't need any option bits! In fact, this could cause an error if not set!
             formatUnitParameters.protectionType = device->drive_info.currentProtectionType;
             formatUnitParameters.protectionIntervalExponent = device->drive_info.piExponent;
+			formatUnitParameters.disableImmediate = true;
             //make this smarter to know which type of fast format to use! FAST_FORMAT_WRITE_NOT_REQUIRED is a power of 2 change (512 to 4096), FAST_FORMAT_WRITE_REQUIRED is any other size change
             if (!is_Requested_Sector_Size_Multiple(device, sectorSize))
             {
