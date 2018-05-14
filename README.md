@@ -1,5 +1,5 @@
 # opensea-operations
-#### Copyright (c) 2014-2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+#### Copyright (c) 2014-2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 
 Welcome to opensea-operations, part of the openSeaChest open source project!
 
@@ -38,6 +38,42 @@ All Makefile and Visual Studio project & solution files are part of Make folder.
 
 The following will build the debug version of the library by default.
 
+cd Make/gcc
+make 
+
+To build under Microsoft Windows, open the correspoinding 
+Visual Studio Solution files for VS 2013 or 2015
+
+#### Documentation
+
+Header files & functions have doxygen documentation. 
+
+#### Platforms
+
+Under Linux this library can be built on the following platforms using 
+a cross platform compiler: 
+
+        aarch64
+        alpha 
+        arm 
+        armhf 
+        hppa 
+        m68k 
+        mips 
+        mips64 
+        mips64el
+        mipsel 
+        powerpc 
+        powerpc64 
+        powerpc64le
+        s390x 
+        sh4 
+        x86 
+        x86_64 
+        
+This project can be build under Windows Visual Studio 2013 & 2015 solution
+files for x86 and x64 targets.  
+
 ### Names, Logos, and Brands
 
 All product names, logos, and brands are property of their respective owners.
@@ -70,7 +106,7 @@ The newest online version of the openSeaChest Utilities documentation, open
 source usage and acknowledgement licenses, and our Linux USB Boot Maker FAQ can
 be found at: https://github.com/Seagate/openSeaChest.
 
-Copyright (c) 2014-2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+Copyright (c) 2014-2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 
 -----------------------------------------
 

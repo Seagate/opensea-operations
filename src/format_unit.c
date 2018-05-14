@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -312,7 +312,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     }
     dataSize = offset;
     //if they want to change the sector size, we need to do a mode select command
-    if (!formatParameters.currentBlockSize)
+    if (!formatParameters.currentBlockSize || formatParameters.newMaxLBA)
     {
         bool modeSelect10 = true;
         uint8_t modeParameterData[24] = { 0 };
@@ -349,34 +349,64 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         {
             //short block descriptor
             //set the LBA to all Fs to reset to maximum LBA of the drive
-            modeParameterData[blockDescriptorOffset + 0] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 1] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 2] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 3] = 0xFF;
+			if (formatParameters.newMaxLBA)
+			{
+				modeParameterData[blockDescriptorOffset + 0] = M_Byte3(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 1] = M_Byte2(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 2] = M_Byte1(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 3] = M_Byte0(formatParameters.newMaxLBA);
+			}
+			else
+			{
+				modeParameterData[blockDescriptorOffset + 0] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 1] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 2] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 3] = 0xFF;
+			}
             //1 reserved byte (don't touch it)
             //set logical block length in bytes 5 to 7
-            modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newBlockSize);
-            modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newBlockSize);
-            modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newBlockSize);
+			if (!formatParameters.currentBlockSize)
+			{
+				modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newBlockSize);
+				modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newBlockSize);
+				modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newBlockSize);
+			}
         }
         else if (blockDescriptorLength == 16)
         {
             //long block descriptor
             //set the LBA to all Fs to reset to maximum LBA of the drive
-            modeParameterData[blockDescriptorOffset + 0] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 1] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 2] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 3] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 4] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 5] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 6] = 0xFF;
-            modeParameterData[blockDescriptorOffset + 7] = 0xFF;
+			if (formatParameters.newMaxLBA)
+			{
+				modeParameterData[blockDescriptorOffset + 0] = M_Byte7(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 1] = M_Byte6(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 2] = M_Byte5(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 3] = M_Byte4(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 4] = M_Byte3(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newMaxLBA);
+				modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newMaxLBA);
+			}
+			else
+			{
+				modeParameterData[blockDescriptorOffset + 0] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 1] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 2] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 3] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 4] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 5] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 6] = 0xFF;
+				modeParameterData[blockDescriptorOffset + 7] = 0xFF;
+			}
             //8 reserved bytes (don't touch them)
             //set logical block length in bytes 12 to 15
-            modeParameterData[blockDescriptorOffset + 12] = M_Byte3(formatParameters.newBlockSize);
-            modeParameterData[blockDescriptorOffset + 13] = M_Byte2(formatParameters.newBlockSize);
-            modeParameterData[blockDescriptorOffset + 14] = M_Byte1(formatParameters.newBlockSize);
-            modeParameterData[blockDescriptorOffset + 15] = M_Byte0(formatParameters.newBlockSize);
+			if (!formatParameters.currentBlockSize)
+			{
+				modeParameterData[blockDescriptorOffset + 12] = M_Byte3(formatParameters.newBlockSize);
+				modeParameterData[blockDescriptorOffset + 13] = M_Byte2(formatParameters.newBlockSize);
+				modeParameterData[blockDescriptorOffset + 14] = M_Byte1(formatParameters.newBlockSize);
+				modeParameterData[blockDescriptorOffset + 15] = M_Byte0(formatParameters.newBlockSize);
+			}
         }
         else
         {

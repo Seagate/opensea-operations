@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,7 @@
 #include "operations_Common.h"
 #include "power_control.h"
 #include "logs.h"
+#include "cmds.h"
 
 //There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see with ATA
 int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
@@ -912,25 +913,34 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             }
             safe_Free(powerConsumptionPage);
         }
-        else
-        {
-            ret = NOT_SUPPORTED;
-        }
-        if (ret == SUCCESS)
+        if (ret != FAILURE)
         {
             uint8_t *pcModePage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t));
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
             }
-            identifiers->currentIdentifier = 0xFF;//set to something that is likely not valid
+			//read changable value to see if active field can be modified
+			if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CHANGABLE_VALUES, pcModePage))
+			{
+				if (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) > 0)
+				{
+					identifiers->activeLevelChangable = true;
+				}
+				else
+				{
+					identifiers->activeLevelChangable = false;
+				}
+			}
             //read the mode page to get the current identifier.
             if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
             {
+				ret = SUCCESS;
                 //check the active level to make sure it is zero
-                uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                if (activeLevel == 0)
+				identifiers->activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+                if (identifiers->activeLevel == 0)
                 {
+					identifiers->currentIdentifierValid = true;
                     identifiers->currentIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
                 }
             }
@@ -951,32 +961,55 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
         if (identifiers->numberOfPCIdentifiers > 0)
         {
             //show the current value
-            printf("Current Power Consumption Value: %"PRIu16" ", identifiers->identifiers[identifiers->currentIdentifier].value);
-            //now print the units
-            switch (identifiers->identifiers[identifiers->currentIdentifier].units)
-            {
-            case 0://gigawatts
-                printf("Gigawatts");
-                break;
-            case 1://megawatts
-                printf("Megawatts");
-                break;
-            case 2://kilowatts
-                printf("Kilowatts");
-                break;
-            case 3://watts
-                printf("Watts");
-                break;
-            case 4://milliwatts
-                printf("Milliwatts");
-                break;
-            case 5://microwatts
-                printf("Microwatts");
-            default:
-                printf("unknown unit of measure");
-                break;
-            }
-            printf("\n");
+			if (identifiers->currentIdentifierValid)
+			{
+				printf("Current Power Consumption Value: %"PRIu16" ", identifiers->identifiers[identifiers->currentIdentifier].value);
+				//now print the units
+				switch (identifiers->identifiers[identifiers->currentIdentifier].units)
+				{
+				case 0://gigawatts
+					printf("Gigawatts");
+					break;
+				case 1://megawatts
+					printf("Megawatts");
+					break;
+				case 2://kilowatts
+					printf("Kilowatts");
+					break;
+				case 3://watts
+					printf("Watts");
+					break;
+				case 4://milliwatts
+					printf("Milliwatts");
+					break;
+				case 5://microwatts
+					printf("Microwatts");
+				default:
+					printf("unknown unit of measure");
+					break;
+				}
+				printf("\n");
+			}
+			else
+			{
+				//high medium low value
+				printf("Drive is currently configured with ");
+				switch (identifiers->activeLevel)
+				{
+				case 1:
+					printf("highest relative active power consumption\n");
+					break;
+				case 2:
+					printf("intermediate relative active power consumption\n");
+					break;
+				case 3:
+					printf("lowest relative active power consumption\n");
+					break;
+				default:
+					printf("unknown active level!\n");
+					break;
+				}
+			}
             //show a list of the values supported (in watts). If the value is less than 1 watt, exclude it
             printf("Supported Max Power Consumption Set Points (Watts): \n\t[");
             uint8_t pcIter = 0;
@@ -1004,12 +1037,42 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                 }
                 printf(" %"PRIu64" |", watts);
             }
-            //now print default, highest, lowest, and intermediate
-            printf(" highest | intermediate | lowest | default ]\n");
+			if (identifiers->activeLevelChangable)
+			{
+				//now print default, highest, lowest, and intermediate
+				printf(" highest | intermediate | lowest |");
+			}
+			printf(" default ]\n");//always allow default so that we can restore back to original settings
         }
         else
         {
-            printf("\tNot supported by device\n");
+			//high medium low value
+			printf("Drive is currently configured with ");
+			switch (identifiers->activeLevel)
+			{
+			case 0:
+				printf("Power consumption identifier set to %" PRIu8 "\n", identifiers->currentIdentifier);
+				break;
+			case 1:
+				printf("highest relative active power consumption\n");
+				break;
+			case 2:
+				printf("intermediate relative active power consumption\n");
+				break;
+			case 3:
+				printf("lowest relative active power consumption\n");
+				break;
+			default:
+				printf("unknown active level!\n");
+				break;
+			}
+			printf("Supported Max Power Consumption Set Points : \n\t[ ");
+			if (identifiers->activeLevelChangable)
+			{
+				//now print default, highest, lowest, and intermediate
+				printf(" highest | intermediate | lowest |");
+			}
+			printf(" default ]\n");//always allow default so that we can restore back to original settings
         }
     }
 }
@@ -1038,7 +1101,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                 {
                 case PC_ACTIVE_LEVEL_IDENTIFIER:
                     //set active level to 0
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xF8;//clear lower 3 bits to 0
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
                     //set the power consumption identifier we were given
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = powerConsumptionIdentifier;
                     break;
@@ -1046,7 +1109,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                 case PC_ACTIVE_LEVEL_INTERMEDIATE:
                 case PC_ACTIVE_LEVEL_LOWEST:
                     //set the active level to what was requested (power consumption identifier is ignored here)
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xF8;//clear lower 3 bits to 0
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
                     //now set it now that the bits are cleared out
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= activeLevelField;
                     break;
@@ -1739,6 +1802,110 @@ int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, 
         else
         {
             //TODO: do we return failure, not supported, or some other exit code? For not, returning NOT_SUPPORTED - TJE
+        }
+    }
+    return ret;
+}
+
+int transition_To_Active(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE)
+    {
+        //no ATA command to do this, so we need to issue something to perform a medium access.
+        uint64_t randomLBA = 0;
+        seed_64(time(NULL));
+        randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
+        ret = ata_Read_Verify(device, randomLBA, 1);
+    }
+    else //treat as SCSI
+    {
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_ACTIVE, false, false, false);
+        }
+        else
+        {
+            //before you could specify a power condition, you used the "Start" bit as a way to move from standby to active
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_START_VALID, false, false, true);
+        }
+    }
+    return ret;
+}
+
+int transition_To_Standby(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Standby_Immediate(device);
+    }
+    else //treat as SCSI
+    {
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_STANDBY_0, false, false, false);
+        }
+        else
+        {
+            //before you could specify a power condition, you used the "Start" bit as a way to move from standby to active
+            ret = scsi_Start_Stop_Unit(device, false, 0, 0, false, false, false);
+        }
+    }
+    return ret;
+}
+
+int transition_To_Idle(tDevice *device, bool unload)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (unload)
+        {
+            if (device->drive_info.IdentifyData.ata.Word084 & BIT13 || device->drive_info.IdentifyData.ata.Word087 & BIT13)
+            {
+                //send the command since it supports the unload feature...otherwise we return NOT_SUPPORTED
+                ret = ata_Idle_Immediate(device, true);
+            }
+        }
+        else
+        {
+            ret = ata_Idle_Immediate(device, false);
+        }
+    }
+    else
+    {
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            if (unload)
+            {
+                //unload can happen if power condition modifier set to 1. Needs SBC3/SPC3.
+                if (device->drive_info.scsiVersion > 4)
+                {
+                    ret = scsi_Start_Stop_Unit(device, false, 1, PC_FORCE_IDLE_0, false, false, false);
+                }
+            }
+            else
+            {
+                ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_IDLE_0, false, false, false);
+            }
+        }
+    }
+    return ret;
+}
+
+int transition_To_Sleep(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Sleep(device);
+    }
+    else //treat as SCSI
+    {
+        if (device->drive_info.scsiVersion > 2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+        {
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_SLEEP, false, false, false);//This is obsolete since SBC2...but we'll send it anyways
         }
     }
     return ret;

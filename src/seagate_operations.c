@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -614,7 +614,50 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
             }
         }
     }
-    //SAS is NOT in here since it uses the same field as the set power consumption stuff from SPC. That should be used instead to set the drive's power consumption level.
+	else if(device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		//NOTE: this uses the standard spec power consumption mode page.
+		//      This feature conflicts with use other use of this page.
+		if (is_Seagate_Family(device) == SEAGATE)
+		{
+			uint32_t powerConsumptionLength = 0;
+			if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
+			{
+				//If this page is supported, we're calling power balance on SAS not supported.
+				*supported = false;
+				return SUCCESS;
+			}
+			uint8_t *pcModePage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t));
+			if (!pcModePage)
+			{
+				return MEMORY_FAILURE;
+			}
+			//read changeable values to get supported
+			if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CHANGABLE_VALUES, pcModePage))
+			{
+				ret = SUCCESS;
+				//This is as close as I can figure the best way to check for power balance support - TJE
+				//Active mode cannot be changable, then the power consumption VPD page must also not be supported.
+				if ((pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] & BIT0) == 1 && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6],2, 0) == 0))
+				{
+					*supported = true;
+					//read current values to get enabled/disabled
+					memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+					if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
+					{
+						ret = SUCCESS;
+						//check the active level to make sure it is zero
+						uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+						if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1)
+						{
+							*enabled = true;
+						}
+					}
+				}
+			}
+			safe_Free(pcModePage);
+		}
+	}
     return ret;
 }
 
@@ -632,5 +675,423 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             ret = ata_Set_Features(device, 0x5C, 0, 2, 0, 0);
         }
     }
+	else if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		uint8_t *pcModePage = (uint8_t*)calloc(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+		if (!pcModePage)
+		{
+			return MEMORY_FAILURE;
+		}
+		if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, 16 + MODE_PARAMETER_HEADER_10_LEN, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
+		{
+			pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
+			if (enable)
+			{
+				pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
+			}
+			else
+			{
+				pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 0;
+			}
+			//now do mode select with the data for the mode to set
+			ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
+		}
+		safe_Free(pcModePage);
+	}
     return ret;
+}
+
+int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
+{
+	int ret = NOT_SUPPORTED;
+	//IDD is only on ATA drives
+	if (device->drive_info.drive_type == ATA_DRIVE && is_SMART_Enabled(device))
+	{
+		//IDD is seagate specific
+		if (is_Seagate_Family(device) == SEAGATE)
+		{
+			uint8_t *smartData = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+			if (!smartData)
+			{
+				return MEMORY_FAILURE;
+			}
+			if (ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
+			{
+				ret = SUCCESS;
+				if (smartData[0x1EE] & BIT0)
+				{
+					iddSupport->iddShort = true;
+				}
+				if (smartData[0x1EE] & BIT1)
+				{
+					iddSupport->iddLong = true;
+				}
+			}
+			else
+			{
+				ret = FAILURE;
+			}
+			safe_Free(smartData);
+		}
+	}
+	else if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		//IDD is seagate specific
+		if (is_Seagate_Family(device) == SEAGATE)
+		{
+			uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
+			if (iddDiagPage)
+			{
+				if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage))
+				{
+					ret = SUCCESS;
+					iddSupport->iddShort = true;//short
+					iddSupport->iddLong = true;//long
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+#define IDD_READY_TIME_SECONDS 120
+
+int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeInSeconds)
+{
+	int ret = NOT_SUPPORTED;
+	*timeInSeconds = 0;
+	//IDD is only on ATA drives
+	if (device->drive_info.drive_type == ATA_DRIVE && is_SMART_Enabled(device))
+	{
+		//IDD is seagate specific
+		if (is_Seagate_Family(device) == SEAGATE)
+		{
+			uint32_t numberOfLbasInLists = 0;
+			smartLogData smartData;
+			memset(&smartData, 0, sizeof(smartLogData));
+			switch (iddTest)
+			{
+			case SEAGATE_IDD_SHORT:
+				*timeInSeconds = IDD_READY_TIME_SECONDS;
+				break;
+			case SEAGATE_IDD_LONG:
+				get_SMART_Attributes(device, &smartData);
+				if (smartData.attributes.ataSMARTAttr.attributes[197].valid)
+				{
+					numberOfLbasInLists += M_BytesTo4ByteValue(smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[3], \
+						smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[2], \
+						smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[1], \
+						smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[0]);
+				}
+				if (smartData.attributes.ataSMARTAttr.attributes[5].valid)
+				{
+					numberOfLbasInLists += M_BytesTo4ByteValue(smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[3], \
+						smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[2], \
+						smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[1], \
+						smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[0]);
+				}
+				*timeInSeconds = (numberOfLbasInLists * 3) + IDD_READY_TIME_SECONDS;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	else if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		//IDD is seagate specific
+		if (is_Seagate_Family(device) == SEAGATE)
+		{
+			switch (iddTest)
+			{
+			case SEAGATE_IDD_SHORT:
+				*timeInSeconds = IDD_READY_TIME_SECONDS;
+				break;
+			case SEAGATE_IDD_LONG:
+				*timeInSeconds = UINT64_MAX;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	return ret;
+}
+
+int get_IDD_Status(tDevice *device, uint8_t *status)
+{
+	int ret = NOT_SUPPORTED;
+	if (device->drive_info.drive_type == ATA_DRIVE)
+	{
+		uint32_t percentComplete = 0;
+		return ata_Get_DST_Progress(device, &percentComplete, status);
+	}
+	else if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		//read diagnostic page
+		uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
+		if (iddDiagPage)
+		{
+            //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
+			scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage);
+            if (iddDiagPage[0] == 0x98 && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
+            {
+				ret = SUCCESS;
+				*status = M_Nibble0(iddDiagPage[4]);
+			}
+            else
+            {
+                ret = FAILURE;
+            }
+		}
+		else
+		{
+			ret = MEMORY_FAILURE;
+		}
+	}
+	return ret;
+}
+
+int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveForeground)
+{
+	int ret = NOT_SUPPORTED;
+	if (device->drive_info.drive_type == ATA_DRIVE)
+	{
+		uint8_t iddTestNumber = 0;
+		uint32_t timeoutSeconds = 300;//make this super long just in case...
+		if (captiveForeground)
+		{
+			timeoutSeconds = UINT32_MAX;
+		}
+		switch (iddOperation)
+		{
+		case SEAGATE_IDD_SHORT:
+			iddTestNumber = 0x70;
+			if (captiveForeground)
+			{
+				iddTestNumber = 0xD0;
+			}
+			break;
+		case SEAGATE_IDD_LONG:
+			iddTestNumber = 0x71;
+			if (captiveForeground)
+			{
+				iddTestNumber = 0xD1;
+			}
+			break;
+		default:
+			return NOT_SUPPORTED;
+		}
+		return ata_SMART_Offline(device, iddTestNumber, timeoutSeconds);
+	}
+	else if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		//send diagnostic
+		uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
+		if (iddDiagPage)
+		{
+			uint32_t commandTimeoutSeconds = 300;
+			iddDiagPage[0] = 0x98;//page code
+			switch (iddOperation)
+			{
+			case SEAGATE_IDD_SHORT:
+				iddDiagPage[1] |= BIT7;
+				break;
+			case SEAGATE_IDD_LONG:
+				iddDiagPage[1] |= BIT6;
+				break;
+			default:
+				safe_Free(iddDiagPage);
+				return NOT_SUPPORTED;
+			}
+			if (captiveForeground)
+			{
+				commandTimeoutSeconds = UINT32_MAX;
+				iddDiagPage[1] |= BIT4;
+			}
+			else
+			{
+				iddDiagPage[1] |= BIT5;
+			}
+			iddDiagPage[2] = 0;
+			iddDiagPage[3] = 0x08;//page length
+			iddDiagPage[4] = 1 << 4;//revision number 1, status of zero
+			ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 12, iddDiagPage, 12, commandTimeoutSeconds);
+			safe_Free(iddDiagPage);
+		}
+		else
+		{
+			ret = MEMORY_FAILURE;
+		}
+	}
+	return ret;
+}
+
+//this is a seagate drive specific feature. Will now work on other drives
+int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool captive)
+{
+	int result = UNKNOWN;
+	if (is_Seagate_Family(device) != NON_SEAGATE)
+	{
+		iddSupportedFeatures iddSupport;
+		memset(&iddSupport, 0, sizeof(iddSupportedFeatures));
+		switch (IDDtest)
+		{
+		case SEAGATE_IDD_SHORT:
+		case SEAGATE_IDD_LONG:
+			break;
+		default:
+			return BAD_PARAMETER;
+		}
+
+		if (SUCCESS == get_IDD_Support(device, &iddSupport))
+		{
+			//check if the IDD operation requested is supported then run it if it is
+			if ((IDDtest == SEAGATE_IDD_SHORT && iddSupport.iddShort) || (IDDtest == SEAGATE_IDD_LONG && iddSupport.iddLong))
+			{
+				uint8_t status = 0xF;
+				bool captiveForeground = false;
+				if (IDDtest == SEAGATE_IDD_SHORT || captive)
+				{
+					//SCSI says that the short test must be run in foreground...so let's do that for both ATA and SCSI...
+					//Long test may be ran in background or foreground
+					captiveForeground = true;
+				}
+				//check if a test is already in progress first
+				get_IDD_Status(device, &status);
+				if (status == 0xF)
+				{
+					return IN_PROGRESS;
+				}
+				//if we are here, then an operation isn't already in progress so time to start it
+				result = start_IDD_Operation(device, IDDtest, captiveForeground);
+                if (result != SUCCESS)
+                {
+                    if (device->drive_info.drive_type == SCSI_DRIVE)
+                    {
+                        //check the sense data. The problem may be that captive/foreground mode isn't supported for the long test
+                        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                        if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
+                        {
+                            //TODO: Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
+                            return NOT_SUPPORTED;
+                        }
+                        else
+                        {
+                            return FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        return FAILURE;
+                    }
+                }
+                uint32_t commandTimeSeconds = (uint32_t)(device->drive_info.lastCommandTimeNanoSeconds / 1e9);
+                if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
+                {
+                    //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
+                    //It needs time to spin back up and be ready to accept commands again.
+                    //This is being done in both captive/foreground and offline/background modes due to differences between some drive firmwares.
+                    delay_Seconds(IDD_READY_TIME_SECONDS - commandTimeSeconds);
+                }
+				if (SUCCESS == result && captiveForeground)
+				{
+					int ret = get_IDD_Status(device, &status);
+					if (status == 0 && ret == SUCCESS)
+					{
+						result = SUCCESS; //we passed.
+					}
+					else
+					{
+                        switch (status)
+                        {
+                        case 1://aborted by host
+                        case 2://interrupted by reset
+                            result = ABORTED;
+                            break;
+                        case 9://ready to start...guessing this means success?
+                            result = SUCCESS;
+                            break;
+                        case 0x0F://still in progress. Go into the polling loop below to finish waiting
+                            result = SUCCESS;
+                            pollForProgress = true;
+                            break;
+                        case 3://fatal error
+                        default:
+                            if (IDDtest == SEAGATE_IDD_SHORT)
+                            {
+                                result = FAILURE;
+                            }
+                            else
+                            {
+                                //IDD may still be in progress, so start polling for progress just to make sure it finished.
+                                //This is a special case for the long test since it can take more than 2 minutes to complete.
+                                pollForProgress = true;
+                            }
+                            break;
+                        }
+					}
+				}
+				else if (SUCCESS == result && pollForProgress)
+				{
+					status = 0xF;//assume that the operation is in progress until it isn't anymore
+					int ret = SUCCESS;//for use in the loop below...assume that we are successful
+					while (status > 0x08 && ret == SUCCESS)
+					{
+						ret = get_IDD_Status(device, &status);
+						if (VERBOSITY_QUIET <= g_verbosity)
+						{
+							printf("\n    IDD test is still in progress...please wait");
+                            fflush(stdout);
+						}
+						delay_Seconds(5);//5 second delay between progress checks
+					}
+					printf("\n\n");
+					if (status == 0 && ret == SUCCESS)
+					{
+						result = SUCCESS; //we passed.
+					}
+					else
+					{
+                        switch (status)
+                        {
+                        case 0x01://aborted by host
+                        case 0x02://interrupted by reset
+                            result = ABORTED;
+                            break;
+                        case 0x09://ready to start...guessing this means success?
+                            result = SUCCESS;
+                            break;
+                        default:
+                            result = FAILURE;
+                            break;
+                        }
+                    }
+				}
+				else if (!pollForProgress && result != SUCCESS)
+				{
+					if (VERBOSITY_QUIET < g_verbosity)
+					{
+						printf("An error occured while trying to start an IDD test.\n");
+					}
+					result = FAILURE;
+				}
+			}
+			else
+			{
+				//IDD test specified not supported
+				result = NOT_SUPPORTED;
+			}
+		}
+		else
+		{
+			return NOT_SUPPORTED;
+		}
+	}
+	else
+	{
+		return NOT_SUPPORTED;
+	}
+	return result;
 }

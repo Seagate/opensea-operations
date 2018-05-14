@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -228,18 +228,25 @@ void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors)
     }
 }
 
-int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, custom_Update updateFunction, void *updateData)
+int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData)
 {
     int ret = SUCCESS;
     uint16_t iterator = 0;
     seed_64(time(NULL));//start the random number generator
-    for (iterator = 0; iterator < numberOfRandomLBAs; iterator++)
+    for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         //align the random LBA to the physical sector
         randomLBA = align_LBA(device, randomLBA);
         //call the function to create an uncorrectable with the range set to 1 so we only corrupt 1 physical block at a time randomly
-        ret = create_Uncorrectables(device, randomLBA, 1, readUncorrectables, updateFunction, updateData);
+        if (flaggedErrors)
+        {
+            ret = flag_Uncorrectables(device, randomLBA, 1, updateFunction, updateData);
+        }
+        else
+        {
+            ret = create_Uncorrectables(device, randomLBA, 1, readUncorrectables, updateFunction, updateData);
+        }
         if (ret != SUCCESS)
         {
             break;
@@ -286,6 +293,32 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
             safe_Free(dataBuf);
+        }
+    }
+    return ret;
+}
+
+int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData)
+{
+    int ret = SUCCESS;
+    uint64_t iterator = 0;
+    char message[MAX_JSON_MSG];
+
+    //uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+    //This function will only flag individual logical sectors since flagging works differently than pseudo uncorrectables, which we write the full sector with since a psuedo uncorrectable will always affect the full physical sector.
+    startingLBA = align_LBA(device, startingLBA);
+    for (iterator = startingLBA; iterator < (startingLBA + range); iterator += 1)
+    {
+        if (g_verbosity > VERBOSITY_QUIET)
+        {
+            snprintf(message, MAX_JSON_MSG, "Flagging Uncorrectable error at LBA %-20"PRIu64"", iterator);
+            printf("%s\n", message);
+            SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+        }
+        ret = write_Flagged_Uncorrectable_Error(device, iterator);
+        if (ret != SUCCESS)
+        {
+            break;
         }
     }
     return ret;

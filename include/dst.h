@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,7 +35,7 @@ extern "C"
     //
     //  run_DST()
     //
-    //! \brief   Description:  Function to send a ATA Spec DST or SCSI spec DST to a device
+    //! \brief   Description:  Function to send a ATA Spec DST or SCSI spec DST to a device and poll it for updates. Recommended for utility usage since this will also poll or wait
     //
     //  Entry:
     //!   \param[in] device = file descriptor
@@ -51,6 +51,24 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+    //  send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
+    //
+    //! \brief   Description:  Function to send a ATA Spec DST or SCSI spec DST to a device
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] DSTType = see enum above
+    //!   \param[in] pollForProgress = 0 = don't poll, just start the test. 1 = poll for progress and display the progress on the screen.
+    //!   \param[in] captiveForeground = when set to true, the self test is run in captive/foreground mode. This is only for ATA or SCSI. When set, this will wait for the entire test to complete before returning. This is ignored on NVMe
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout);
+
+    //-----------------------------------------------------------------------------
+    //
     //  abort_DST()
     //
     //! \brief   Description:  Function to send a DST abort to a device
@@ -63,72 +81,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int abort_DST(tDevice *device);
-
-    typedef enum _eIDDTests
-    {
-        SEAGATE_IDD_SHORT,
-        SEAGATE_IDD_LONG,
-        SEAGATE_IDD_LONG_WITH_REPAIR 
-    }eIDDTests;
-
-    typedef struct _iddSupportedFeatures
-    {
-        bool iddShort;//reset and recalibrate
-        bool iddLong;//testPendingAndReallocationLists
-        bool iddLongWithRepair;//repairBadLBAs
-    }iddSupportedFeatures, *ptrIDDSupportedFeatures;
-
-    //-----------------------------------------------------------------------------
-    //
-    //  get_IDD_Support()
-    //
-    //! \brief   Description:  Gets which IDD features/operations are supported by the device
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] iddSupport = pointer to a iddSupportedFeatures structure that will hold which features are supported
-    //!
-    //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  get_Approximate_IDD_Time()
-    //
-    //! \brief   Description:  Gets an approximate time for how long a specific IDD operation may take
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] iddTest = enum value describing the IDD test to get the time for
-    //!   \param[in] timeInSeconds = pointer to a uint64_t that will hold the amount of time in seconds that IDD is estimated to take
-    //!
-    //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeInSeconds);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  run_IDD()
-    //
-    //! \brief   Description:  Function to send a Seagate ATA IDD test to a device
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] IDDtest = enum value describing the IDD test to run (CAPTIVE not supported right now)
-    //!   \param[in] pollForProgress = 0 = don't poll, just start the test. 1 = poll for progress and display the progress on the screen.
-    //!
-    //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress);
-
-    OPENSEA_OPERATIONS_API int get_IDD_Status(tDevice *device, uint8_t *status);
 
     //-----------------------------------------------------------------------------
     //

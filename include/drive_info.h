@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -126,8 +126,25 @@ extern "C"
         };
     }interfaceSpeed;
 
+    //This struct is only for ATA drives...more specifically legacy drives. Can be used if any ATA drive that populates these fields.
+    typedef struct _legacyCHSInfo
+    {
+        bool legacyCHSValid;
+        uint16_t numberOfLogicalCylinders;//Word 1
+        uint8_t numberOfLogicalHeads;//Word 3
+        uint8_t numberOfLogicalSectorsPerTrack;//Word 6
+        bool currentInfoconfigurationValid;//Must be true for the following parts of this structure
+        uint16_t numberOfCurrentLogicalCylinders;//Word 54
+        uint8_t numberOfCurrentLogicalHeads;//Word 55
+        uint8_t numberOfCurrentLogicalSectorsPerTrack;//Word 56
+        uint32_t currentCapacityInSectors;//Word 57:58
+    }legacyCHSInfo;
+
     #define MAX_FEATURES UINT8_C(50) //change this number if we need to capture more feature support
     #define MAX_FEATURE_LENGTH UINT8_C(50) //maximum number of characters to allow for use when storing feature names.
+
+    #define MAX_SPECS UINT8_C(30)
+    #define MAX_SPEC_LENGTH UINT8_C(40)
 
     typedef struct _driveInformationSAS_SATA
     {
@@ -149,13 +166,15 @@ extern "C"
         uint64_t powerOnMinutes;
         uint64_t maxLBA;
         uint64_t nativeMaxLBA;//ATA Only since SCSI doesn't have a way to get the native max without changing the drive (not ok to do for this function) if set to 0, or UINT64_MAX, then the value is invalid
+        legacyCHSInfo ataLegacyCHSInfo;
+		bool isFormatCorrupt;//SAS only
         uint32_t logicalSectorSize;//bytes
         uint32_t physicalSectorSize;//bytes
         uint16_t sectorAlignment;//first logical sector offset within the first physical sector
         uint16_t rotationRate;//Value matches the spec. 0 = not reported. 1 = SSD, everything else is an RPM
         uint8_t formFactor;//matches SBC and ACS specs
         uint8_t numberOfSpecificationsSupported;//number of specifications added to the list in the next field
-        char specificationsSupported[30][30];//30 specs supported max, and each one can be 15 characters long in name at max
+        char specificationsSupported[MAX_SPECS][MAX_SPEC_LENGTH];
         eEncryptionSupport encryptionSupport;
         bool trustedCommandsBeingBlocked;//Linux blocks ATA trusted send/receive commands by default. So this bool is a going to be true on most linux systems that haven't had the kernel boot parameter to allow them set. All other systems will likely see this allowed
         uint64_t cacheSize;//Bytes
@@ -173,13 +192,17 @@ extern "C"
         char featuresSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
         firmwareDownloadSupport fwdlSupport;
         ataSecurityStatus ataSecurityInformation;
+		bool readLookAheadSupported;
         bool readLookAheadEnabled;
+		bool writeCacheSupported;
         bool writeCacheEnabled;
         uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work)
         uint8_t zonedDevice;//set to 0 for non-zoned devices (SMR). If non-zero, then this matches the latest ATA/SCSI specs for zoned devices
         lastDSTInformation dstInfo;
         bool lowCurrentSpinupValid;//will be set to true for ATA, set to false for SAS
         bool lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
+		uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
+		bool isWriteProtected;//Not available on SATA!
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_Sata;
 
     typedef struct _driveInformationNVMe
@@ -217,11 +240,13 @@ extern "C"
             eEncryptionSupport encryptionSupport;
             uint16_t numberOfControllerFeatures;
             char controllerFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
+			uint64_t longDSTTimeMinutes;
         }controllerData;
         //smart log data (controller, not per namespace)
         struct {
             bool valid;
             uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work) (this is to be similar to ATA and SCSI-TJE
+			bool mediumIsReadOnly;//same as write protect on SCSI
             uint16_t compositeTemperatureKelvin;
             uint8_t percentageUsed;
             uint8_t availableSpacePercent;

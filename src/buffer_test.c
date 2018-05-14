@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -595,7 +595,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.fTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.fTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.fTest[count].totalTimeNS);
         printf("\n");
     }
     printf("55h Test Pattern:\n");
@@ -608,7 +608,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.fivesTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.fivesTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.fivesTest[count].totalTimeNS);
         printf("\n");
     }
     printf("AAh Test Pattern:\n");
@@ -621,7 +621,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.aTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.aTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.aTest[count].totalTimeNS);
         printf("\n");
     }
     printf("00FF55AAh Test Pattern:\n");
@@ -634,7 +634,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.zeroF5ATest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.zeroF5ATest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.zeroF5ATest[count].totalTimeNS);
         printf("\n");
     }
     printf("Walking 1's Test:\n");
@@ -647,7 +647,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.walking1sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.walking1sTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.walking1sTest[count].totalTimeNS);
         printf("\n");
     }
     printf("Walking 0's Test:\n");
@@ -660,7 +660,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.walking0sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.walking0sTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.walking0sTest[count].totalTimeNS);
         printf("\n");
     }
     printf("Random Pattern Test:\n");
@@ -673,7 +673,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.randomTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.randomTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.randomTest[count].totalTimeNS);
         printf("\n");
     }
     g_verbosity = tempverbosity;

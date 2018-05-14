@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -95,24 +95,41 @@ int create_And_Open_Log_File(tDevice *device,\
         #ifdef _DEBUG
         printf("\tfilename %s\n",filename);
         #endif
-        if(logPath == NULL && *logFileNameUsed)
+        if (((logPath == NULL) || (strcmp((logPath), "") == 0)) &&
+            ((*logFileNameUsed) && (strcmp((*logFileNameUsed), "") == 0)))
         {
+            //logPath is null or empty, logFileNameUsed is non-null but it is empty. 
+            //So assigning the generated filename to logFileNameUsed
             memcpy(*logFileNameUsed, filename, OPENSEA_PATH_MAX);
         }
-        else if(*logFileNameUsed)
+        else if (*logFileNameUsed)
         {
-            #if defined (_WIN32)
-            sprintf(*logFileNameUsed, "%s\\%s",logPath,filename);
-            #else
-            sprintf(*logFileNameUsed, "%s/%s",logPath,filename);
-            #endif
+            if (strcmp((*logFileNameUsed), "") == 0)
+            {
+                //logPath has valid value and logFileNameUsed is empty. Prepend logpath to the generated filename
+#if defined (_WIN32)
+                sprintf(*logFileNameUsed, "%s\\%s", logPath, filename);
+#else
+                sprintf(*logFileNameUsed, "%s/%s", logPath, filename);
+#endif
+            }
+            else
+            {
+                //Both logPath and logFileNameUsed have non-empty values
+                char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
+#if defined (_WIN32)
+                sprintf(lpathNFilename, "%s\\%s", logPath, *logFileNameUsed);
+#else
+                sprintf(lpathNFilename, "%s/%s", logPath, *logFileNameUsed);
+#endif
+                memcpy(*logFileNameUsed, lpathNFilename, OPENSEA_PATH_MAX);
+            }
         }
     }
-    
-    if(!*logFileNameUsed)
+    if(!*logFileNameUsed ) //when logFileNameUsed is NULL, need to allocate
     {
         nullLogFileNameUsed = true;
-        if (logPath)
+        if (logPath && (strcmp(logPath,"") != 0))
         {
             //need to append a path to the beginning of the file name!!!
             pathAndFileName = (char*)calloc(strlen(logPath) + strlen(filename) + 2, sizeof(char));
@@ -128,6 +145,19 @@ int create_And_Open_Log_File(tDevice *device,\
             *logFileNameUsed = filename;
         }
     }
+    //check if file already exist
+    if ((*filePtr = fopen(*logFileNameUsed, "r")) != NULL)
+    {
+        fclose(*filePtr);
+        //append timestamp
+        g_currentTime = time(NULL);
+        memset(g_currentTimeString, 0, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString));
+        strftime(g_currentTimeString, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&g_currentTime));
+        //Append timestamp to the log file name
+        strcat(*logFileNameUsed, "_");
+        strcat(*logFileNameUsed, g_currentTimeStringPtr);
+    }
+
     #ifdef _DEBUG
     printf("logfileNameUsed = %s",*logFileNameUsed);
     #endif

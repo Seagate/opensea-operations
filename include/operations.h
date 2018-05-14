@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,20 +24,20 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  change_Pin11( tDevice * device )
+    //  change_Ready_LED( tDevice * device )
     //
-    //! \brief   Change Pin 11 behavior on SAS drives. SAS is configurable with a command, SATA is not so SAS is the only thing supported in this call.
+    //! \brief   Change Ready LED behavior on SAS drives. SAS is configurable with a command, SATA is not so SAS is the only thing supported in this call.
     //
     //  Entry:
     //!   \param device - file descriptor
-    //!   \param pin11Default - set to true to restore the drive's default pin11 behavior
-    //!   \param pin11OnOff - when set to true, set the ready LED bit to a 1, other wise set to a 0. See the SAS protocol spec for details on this mode page.
+    //!   \param readyLEDDefault - set to true to restore the drive's default ready LED behavior
+    //!   \param readyLEDOnOff - when set to true, set the ready LED bit to a 1, other wise set to a 0. See the SAS protocol spec for details on this mode page.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int change_Pin11(tDevice *device, bool pin11Default, bool pin11OnOff);
+    OPENSEA_OPERATIONS_API int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
 
     //-----------------------------------------------------------------------------
     //
@@ -150,6 +150,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(tDevice *device);
+
     //-----------------------------------------------------------------------------
     //
     //  scsi_Is_Read_Look_Ahead_Enabled( tDevice * device )
@@ -164,6 +166,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device);
+
+	OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -180,6 +184,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(tDevice *device);
+
     //-----------------------------------------------------------------------------
     //
     //  is_Write_Cache_Enabled( tDevice * device )
@@ -194,6 +200,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Write_Cache_Enabled(tDevice *device);
+
+	OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -210,6 +218,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(tDevice *device);
+
     //-----------------------------------------------------------------------------
     //
     //  ata_Is_Write_Cache_Enabled( tDevice * device )
@@ -225,6 +235,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Enabled(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(tDevice *device);
+	
     typedef enum _eEraseMethod
     {
         ERASE_NOT_SUPPORTED,
@@ -323,6 +335,12 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters);
+
+    OPENSEA_OPERATIONS_API int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity);//if sensitivity is set to UINT16_MAX, then the feature is supported, but not enabled, so the value wouldn't otherwise make sense
+
+    OPENSEA_OPERATIONS_API int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity);//enables the feature. Value of zero sets a vendor's recommended setting
+
+    OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
 
     #if defined (__cplusplus)
 }

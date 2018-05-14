@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -120,7 +120,10 @@ extern "C"
     {
         uint8_t numberOfPCIdentifiers;
         powerConsumptionIdentifier identifiers[0xFF];//Maximum number of power consumption identifiers...probably won't get this many, but might as well make this possible to do.
+		bool currentIdentifierValid;
         uint8_t currentIdentifier;
+		bool activeLevelChangable;//this may be changable or not depending on what the drive reports
+		uint8_t activeLevel;//From power consumption mode page. This is a high/medium/low value. Only use this if non-zero
     }powerConsumptionIdentifiers, *ptrPowerConsumptionIdentifiers;
 
     //-----------------------------------------------------------------------------
@@ -240,6 +243,18 @@ extern "C"
     OPENSEA_OPERATIONS_API int sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool *supported, bool *enabled);
 
     OPENSEA_OPERATIONS_API int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool enable);
+
+
+    //Following functions allow power mode transitions on Non-EPC drives (pre SBC3 for SCSI)
+    //These will work with EPC, but may cause changes to the current timer values. See SCSI/ATA specs for details on interactions with these and EPC timers
+    OPENSEA_OPERATIONS_API int transition_To_Active(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int transition_To_Standby(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int transition_To_Idle(tDevice *device, bool unload); //unload feature must be supported
+
+    //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from
+    OPENSEA_OPERATIONS_API int transition_To_Sleep (tDevice *device);
 
 #if defined (__cplusplus)
 }

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,32 +30,32 @@
 #include "dst.h"
 
 
-int change_Pin11(tDevice *device, bool pin11Default, bool pin11OnOff)
+int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
 {
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t *modeSelect = (uint8_t*)calloc(24, sizeof(uint8_t));
-        if (modeSelect == NULL)
+        if (!modeSelect)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
         }
-        if (pin11Default == true)
+        if (readyLEDDefault)
         {
             //we need to read the default AND current page this way we only touch 1 bit on the page
             if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_DEFAULT_VALUES, modeSelect))
             {
                 if (modeSelect[2 + MODE_PARAMETER_HEADER_10_LEN] & BIT4)
                 {
-                    pin11OnOff = true;//set to true so that we turn the bit on
+					readyLEDOnOff = true;//set to true so that we turn the bit on
                 }
             }
             memset(modeSelect, 0, 24);
         }
         if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_CURRENT_VALUES, modeSelect))
         {
-            if (pin11OnOff == true)//set the bit to 1
+            if (readyLEDOnOff)//set the bit to 1
             {
                 modeSelect[2 + MODE_PARAMETER_HEADER_10_LEN] |= BIT4;
             }
@@ -280,6 +280,62 @@ int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     return ret;
 }
 
+bool is_Read_Look_Ahead_Supported(tDevice *device)
+{
+	if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+		return scsi_Is_Read_Look_Ahead_Supported(device);
+	}
+	else if (device->drive_info.drive_type == ATA_DRIVE)
+	{
+		return ata_Is_Read_Look_Ahead_Supported(device);
+	}
+	return false;
+}
+//TODO: this uses the RCD bit. Old drives don't have this. Do something to detect this on legacy products later
+bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
+{
+	bool supported = false;
+	//on SAS we change this through a mode page
+	uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+	if (cachingModePage == NULL)
+	{
+		perror("calloc failure!");
+		return false;
+	}
+	//if changable, then it is supported
+	if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
+	{
+		//check the offset to see if the bit is set.
+		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5)
+		{
+			supported = true;
+		}
+	}
+	memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+	//check default to see if it is enabled and just cannot be disabled (unlikely)
+	if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
+	{
+		//check the offset to see if the bit is set.
+		if (!(cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5))
+		{
+			supported = true;//if it is enabled by default, then it's supported
+		}
+	}
+	safe_Free(cachingModePage);
+	return supported;
+}
+
+bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
+{
+	bool supported = false;
+	if (device->drive_info.IdentifyData.ata.Word082 & BIT6)
+	{
+		supported = true;
+	}
+	return supported;
+}
+
 bool is_Read_Look_Ahead_Enabled(tDevice *device)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -323,11 +379,87 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
 bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device)
 {
     bool enabled = false;
-    if (device->drive_info.IdentifyData.ata.CommandsAndFeaturesEnabled1 & BIT6)
+    if (device->drive_info.IdentifyData.ata.Word085 & BIT6)
     {
         enabled = true;
     }
     return enabled;
+}
+
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+bool nvme_Is_Write_Cache_Supported(tDevice *device)
+{
+	bool supported = false;
+	if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
+	{
+		supported = true;
+	}
+	return supported;
+}
+#endif
+
+bool is_Write_Cache_Supported(tDevice *device)
+{
+	switch (device->drive_info.drive_type)
+	{
+	case NVME_DRIVE:
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+		return nvme_Is_Write_Cache_Supported(device);
+		break;
+#endif
+	case SCSI_DRIVE:
+		return scsi_Is_Write_Cache_Supported(device);
+		break;
+	case ATA_DRIVE:
+		return ata_Is_Write_Cache_Supported(device);
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
+bool scsi_Is_Write_Cache_Supported(tDevice *device)
+{
+	bool supported = false;
+	//on SAS we change this through a mode page
+	uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+	if (cachingModePage == NULL)
+	{
+		perror("calloc failure!");
+		return false;
+	}
+	//if changable, then it is supported
+	if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
+	{
+		//check the offset to see if the bit is set.
+		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
+		{
+			supported = true;
+		}
+	}
+	memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+	//check default to see if it is enabled and just cannot be disabled (unlikely)
+	if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
+	{
+		//check the offset to see if the bit is set.
+		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
+		{
+			supported = true;//if it is enabled by default, then it's supported
+		}
+	}
+	safe_Free(cachingModePage);
+	return supported;
+}
+
+bool ata_Is_Write_Cache_Supported(tDevice *device)
+{
+	bool supported = false;
+	if (device->drive_info.IdentifyData.ata.Word082 & BIT5)
+	{
+		supported = true;
+	}
+	return supported;
 }
 
 #if !defined (DISABLE_NVME_PASSTHROUGH)
@@ -401,7 +533,7 @@ bool scsi_Is_Write_Cache_Enabled(tDevice *device)
 bool ata_Is_Write_Cache_Enabled(tDevice *device)
 {
     bool enabled = false;
-    if (device->drive_info.IdentifyData.ata.CommandsAndFeaturesEnabled1 & BIT5)
+    if (device->drive_info.IdentifyData.ata.Word085 & BIT5)
     {
         enabled = true;
     }
@@ -769,6 +901,54 @@ int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorF
     else
     {
         ret = scsi_Mode_Select_10(device, MODE_PARAMETER_HEADER_10_LEN + 12, true, saveParameters, controlModePage, MODE_PARAMETER_HEADER_10_LEN + 12);
+    }
+    return ret;
+}
+
+int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity)
+{
+    int ret = NOT_SUPPORTED;
+    if (!sensitivity)
+    {
+        return BAD_PARAMETER;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+        {
+            *sensitivity = UINT16_MAX;//this can be used to filter out invalid value, a.k.a. feature is not enabled, but is supported.
+            if (device->drive_info.IdentifyData.ata.Word120 & BIT5)//enabled
+            {
+                //Word 53, bits 15:8
+                *sensitivity = M_Byte1(device->drive_info.IdentifyData.ata.Word053);
+            }
+        }
+    }
+    return ret;
+}
+
+int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+        {
+            ret = ata_Set_Features(device, SF_ENABLE_FREE_FALL_CONTROL_FEATURE, sensitivity, 0, 0, 0);
+        }
+    }
+    return ret;
+}
+
+int disable_Free_Fall_Control_Feature(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported //TODO: Check if it's enabled first as well? Do this if this command is aborting when already disabled, otherwise this should be ok
+        {
+            ret = ata_Set_Features(device, SF_DISABLE_FREE_FALL_CONTROL_FEATURE, 0, 0, 0, 0);
+        }
     }
     return ret;
 }
