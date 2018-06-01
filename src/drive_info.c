@@ -2895,7 +2895,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
             driveInfo->numberOfFeaturesSupported++;
         }
     }
-    if (version >= 6)//security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
+    if (version >= 6 && SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))//security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
     {
         //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
         memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
