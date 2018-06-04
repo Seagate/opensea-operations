@@ -2904,7 +2904,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
             bool tcgFeatureFound = false;
             uint16_t length = M_BytesTo2ByteValue(tempBuf[6], tempBuf[7]);
             uint16_t bufIter = 8;
-            for (; (bufIter - 8) < length; bufIter++)
+            for (; (bufIter - 8) < length && (bufIter - 8) < 512; bufIter++)
             {
                 switch (tempBuf[bufIter])
                 {
