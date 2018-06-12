@@ -342,6 +342,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
 
+	OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
+
     #if defined (__cplusplus)
 }
     #endif
