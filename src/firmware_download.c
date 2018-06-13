@@ -46,6 +46,12 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     }
     else
     {
+		eDownloadMode specifiedDLMode = options->dlMode;
+		if (device->drive_info.drive_type == NVME_DRIVE)
+		{
+			//switch to deferred and we'll send the activate at the end
+			options->dlMode = DL_FW_DEFERRED;
+		}
         //multiple commands needed to do the download (segmented)
 		if (options->segmentSize == 0)
         {
@@ -141,6 +147,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             //So now we are going to check if this meets those requirements...if not, we need to allocate a different buffer that meets the requirements, copy the data to it, then send the command. - TJE
             if (device->os_info.fwdlIOsupport.fwdlIOSupported && options->dlMode == DL_FW_DEFERRED)//checking to see if Windows says the FWDL API is supported
             {
+				//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
                 //ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset]);
                 if (downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize && (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment == 0))
@@ -163,6 +170,8 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
             }
+			//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
+			device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
 #else
             //not windows 10 API, so just issue the command
             ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
@@ -184,6 +193,13 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 			options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
 			options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
         }
+		if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
+		{
+			//send an activate command
+			ret = firmware_Download_Command(device, DL_FW_ACTIVATE, options->useDMA, 0, 0, options->firmwareFileMem, options->firmwareSlot);
+			options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+		}
+
         if (g_verbosity > VERBOSITY_QUIET)
         {
             printf("\n");

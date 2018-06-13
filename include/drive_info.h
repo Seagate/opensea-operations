@@ -167,6 +167,7 @@ extern "C"
         uint64_t maxLBA;
         uint64_t nativeMaxLBA;//ATA Only since SCSI doesn't have a way to get the native max without changing the drive (not ok to do for this function) if set to 0, or UINT64_MAX, then the value is invalid
         legacyCHSInfo ataLegacyCHSInfo;
+		bool isFormatCorrupt;//SAS only
         uint32_t logicalSectorSize;//bytes
         uint32_t physicalSectorSize;//bytes
         uint16_t sectorAlignment;//first logical sector offset within the first physical sector
@@ -191,13 +192,17 @@ extern "C"
         char featuresSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
         firmwareDownloadSupport fwdlSupport;
         ataSecurityStatus ataSecurityInformation;
+		bool readLookAheadSupported;
         bool readLookAheadEnabled;
+		bool writeCacheSupported;
         bool writeCacheEnabled;
         uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work)
         uint8_t zonedDevice;//set to 0 for non-zoned devices (SMR). If non-zero, then this matches the latest ATA/SCSI specs for zoned devices
         lastDSTInformation dstInfo;
         bool lowCurrentSpinupValid;//will be set to true for ATA, set to false for SAS
         bool lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
+		uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
+		bool isWriteProtected;//Not available on SATA!
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_Sata;
 
     typedef struct _driveInformationNVMe
@@ -235,11 +240,13 @@ extern "C"
             eEncryptionSupport encryptionSupport;
             uint16_t numberOfControllerFeatures;
             char controllerFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
+			uint64_t longDSTTimeMinutes;
         }controllerData;
         //smart log data (controller, not per namespace)
         struct {
             bool valid;
             uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work) (this is to be similar to ATA and SCSI-TJE
+			bool mediumIsReadOnly;//same as write protect on SCSI
             uint16_t compositeTemperatureKelvin;
             uint8_t percentageUsed;
             uint8_t availableSpacePercent;

@@ -903,9 +903,23 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
         //ata security status
         get_ATA_Security_Info(device, &driveInfo->ataSecurityInformation, false);
         //read look ahead
-        driveInfo->readLookAheadEnabled = is_Read_Look_Ahead_Enabled(device);
+		if (wordPtr[82] & BIT6)
+		{
+			driveInfo->readLookAheadSupported = true;
+			if (wordPtr[85] & BIT6)
+			{
+				driveInfo->readLookAheadEnabled = true;
+			}
+		}
         //write cache
-        driveInfo->writeCacheEnabled = is_Write_Cache_Enabled(device);
+		if (wordPtr[82] & BIT5)
+		{
+			driveInfo->writeCacheSupported = true;
+			if (wordPtr[85] & BIT5)
+			{
+				driveInfo->writeCacheEnabled = true;
+			}
+		}
         //NV Cache Size logical blocks - needs testing against different drives to make sure the value is correct
         driveInfo->hybridNANDSize = M_WordsTo4ByteValue(wordPtr[215], wordPtr[216]) * driveInfo->logicalSectorSize;
         //create a list of supported features
@@ -1352,10 +1366,30 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
+				bool dlcSupported = false;
                 if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
                 {
                     //supported capabilities
-                    //uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                    uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+					if (supportedCapabilities & BIT63)
+					{
+						if (supportedCapabilities & BIT54)
+						{
+							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Advanced Background Operations");
+							driveInfo->numberOfFeaturesSupported++;
+						}
+						if (supportedCapabilities & BIT49)
+						{
+							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Set Sector Configuration");
+							driveInfo->numberOfFeaturesSupported++;
+						}
+						if (supportedCapabilities & BIT46)
+						{
+							dlcSupported = true;
+							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
+							driveInfo->numberOfFeaturesSupported++;
+						}
+					}
                     //Download capabilities
                     uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
                     if (downloadCapabilities & BIT63)
@@ -1386,11 +1420,41 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                         }
                     }
                 }
+				else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+				{
+					//Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+					scsi_Test_Unit_Ready(device, NULL);
+				}
+				bool dlcEnabled = false;
+				if(SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+				{
+					uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+					if (currentSettings & BIT63)
+					{
+						if (currentSettings & BIT17)
+						{
+							dlcEnabled = true;
+						}
+					}
+				}
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                 {
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
+				if (dlcSupported)
+				{
+					if (dlcEnabled)
+					{
+						sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control [Enabled]");
+						driveInfo->numberOfFeaturesSupported++;
+					}
+					else
+					{
+						sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
+						driveInfo->numberOfFeaturesSupported++;
+					}
+				}
             }
             else if (smartErrorLoggingSupported)
             {
@@ -1420,6 +1484,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                 logBufferSize = idDataLog * sizeof(uint8_t);
                                 if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, logBuffer, logBufferSize))
                                 {
+									bool dlcSupported = false;
+									bool dlcEnabled = false;
                                     //start att offset 1024 snce page 0 and page 1 are not needed. (0 = list of supported pages, 1 = copy of identify data)
                                     for (uint32_t offset = UINT32_C(1024); offset < logBufferSize; offset += UINT32_C(512))
                                     {
@@ -1441,7 +1507,24 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                         {
                                             //read page 3 data
                                             //supported capabilities
-                                            //uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+                                            uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+											if (supportedCapabilities & BIT63)
+											{
+												if (supportedCapabilities & BIT54)
+												{
+													sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Advanced Background Operations");
+													driveInfo->numberOfFeaturesSupported++;
+												}
+												if (supportedCapabilities & BIT49)
+												{
+													sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Set Sector Configuration");
+													driveInfo->numberOfFeaturesSupported++;
+												}
+												if (supportedCapabilities & BIT46)
+												{
+													dlcSupported = true;
+												}
+											}
                                             //Download capabilities
                                             uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
                                             if (downloadCapabilities & BIT63)
@@ -1472,7 +1555,32 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                                 }
                                             }
                                         }
+										else if (M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == 0x04) //check page and version number
+										{
+											//supported capabilities
+											uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
+											if (currentSettings & BIT63)
+											{
+												if (currentSettings & BIT17)
+												{
+													dlcEnabled = true;
+												}
+											}
+										}
                                     }
+									if (dlcSupported)
+									{
+										if (dlcEnabled)
+										{
+											sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control [Enabled]");
+											driveInfo->numberOfFeaturesSupported++;
+										}
+										else
+										{
+											sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
+											driveInfo->numberOfFeaturesSupported++;
+										}
+									}
                                 }
                                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                                 {
@@ -1879,6 +1987,12 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
     uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
     {
+		//get long DST time
+		driveInfo->longDSTTimeMinutes = smartData[373];
+		if (driveInfo->longDSTTimeMinutes == UINT8_MAX)
+		{
+			driveInfo->longDSTTimeMinutes = M_BytesTo2ByteValue(smartData[376], smartData[375]);
+		}
         //read temperature (194), poh (9) for all, then read 241, 242, and 231 for Seagate only
         ataSMARTAttribute *currentAttribute = NULL;
         uint16_t smartIter = 0;
@@ -2286,9 +2400,9 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
                     if (serialNumberLength > 0)
                     {
-                        memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
+                        memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN + 1, serialNumberLength));
                         remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-                        driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN - 1, serialNumberLength)] = '\0';
+                        driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
                     }
                 }
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
@@ -2398,95 +2512,95 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
             }
             case EXTENDED_INQUIRY_DATA:
             {
-                if (protectionSupported)//only read this page if the drive supports protection information since that's all we read from here today
+                uint8_t *extendedInquiryData = (uint8_t*)calloc(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t));
+                if (!extendedInquiryData)
                 {
-                    uint8_t *extendedInquiryData = (uint8_t*)calloc(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t));
-                    if (!extendedInquiryData)
+                    perror("Error allocating memory to read extended inquiry VPD page");
+                    continue;
+                }
+                if (SUCCESS == scsi_Inquiry(device, extendedInquiryData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+                {
+					//get longDST time since we read this page!
+					driveInfo->longDSTTimeMinutes = M_BytesTo2ByteValue(extendedInquiryData[10], extendedInquiryData[11]);
+					//get supported protection types
+                    switch (M_GETBITRANGE(extendedInquiryData[4], 5, 3))
                     {
-                        perror("Error allocating memory to read extended inquiry VPD page");
-                        continue;
-                    }
-                    if (SUCCESS == scsi_Inquiry(device, extendedInquiryData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+                    case 0:
+                        protectionType1Supported = true;
+                        break;
+                    case 1:
+                        protectionType1Supported = true;
+                        protectionType2Supported = true;
+                        break;
+                    case 2:
+                        protectionType2Supported = true;
+                        break;
+                    case 3:
+                        protectionType1Supported = true;
+                        protectionType3Supported = true;
+                        break;
+                    case 4:
+                        protectionType3Supported = true;
+                        break;
+                    case 5:
+                        protectionType2Supported = true;
+                        protectionType3Supported = true;
+                        break;
+                    case 6:
+                        //read supported lengths and protection types VPD page
                     {
-                        switch (M_GETBITRANGE(extendedInquiryData[4], 5, 3))
+                        uint16_t supportedBlockSizesAndProtectionTypesLength = 4;//reallocate in a minute when we know how much to read
+                        uint8_t *supportedBlockSizesAndProtectionTypes = (uint8_t*)calloc(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t));
+                        if (supportedBlockSizesAndProtectionTypes)
                         {
-                        case 0:
-                            protectionType1Supported = true;
-                            break;
-                        case 1:
-                            protectionType1Supported = true;
-                            protectionType2Supported = true;
-                            break;
-                        case 2:
-                            protectionType2Supported = true;
-                            break;
-                        case 3:
-                            protectionType1Supported = true;
-                            protectionType3Supported = true;
-                            break;
-                        case 4:
-                            protectionType3Supported = true;
-                            break;
-                        case 5:
-                            protectionType2Supported = true;
-                            protectionType3Supported = true;
-                            break;
-                        case 6:
-                            //read supported lengths and protection types VPD page
-                        {
-                            uint16_t supportedBlockSizesAndProtectionTypesLength = 4;//reallocate in a minute when we know how much to read
-                            uint8_t *supportedBlockSizesAndProtectionTypes = (uint8_t*)calloc(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t));
-                            if (supportedBlockSizesAndProtectionTypes)
+                            if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                             {
+                                supportedBlockSizesAndProtectionTypesLength = M_BytesTo2ByteValue(supportedBlockSizesAndProtectionTypes[2], supportedBlockSizesAndProtectionTypes[3]);
+                                uint8_t *temp = (uint8_t*)realloc(supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t));
+                                supportedBlockSizesAndProtectionTypes = temp;
                                 if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                                 {
-                                    supportedBlockSizesAndProtectionTypesLength = M_BytesTo2ByteValue(supportedBlockSizesAndProtectionTypes[2], supportedBlockSizesAndProtectionTypes[3]);
-                                    uint8_t *temp = (uint8_t*)realloc(supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t));
-                                    supportedBlockSizesAndProtectionTypes = temp;
-                                    if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
+                                    //loop through and find supported protection types...
+                                    for (uint16_t offset = 4; offset < (supportedBlockSizesAndProtectionTypesLength + 4); offset += 8)
                                     {
-                                        //loop through and find supported protection types...
-                                        for (uint16_t offset = 4; offset < (supportedBlockSizesAndProtectionTypesLength + 4); offset += 8)
+                                        if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
                                         {
-                                            if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
-                                            {
-                                                protectionType1Supported = true;
-                                            }
-                                            if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT2)
-                                            {
-                                                protectionType2Supported = true;
-                                            }
-                                            if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT3)
-                                            {
-                                                protectionType3Supported = true;
-                                            }
-                                            if (protectionType1Supported && protectionType2Supported && protectionType3Supported)
-                                            {
-                                                //all protection types supported so we can leave the loop
-                                                break;
-                                            }
+                                            protectionType1Supported = true;
+                                        }
+                                        if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT2)
+                                        {
+                                            protectionType2Supported = true;
+                                        }
+                                        if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT3)
+                                        {
+                                            protectionType3Supported = true;
+                                        }
+                                        if (protectionType1Supported && protectionType2Supported && protectionType3Supported)
+                                        {
+                                            //all protection types supported so we can leave the loop
+                                            break;
                                         }
                                     }
                                 }
-                                safe_Free(supportedBlockSizesAndProtectionTypes);
                             }
-                            //no else...don't care that much right now...-TJE
+                            safe_Free(supportedBlockSizesAndProtectionTypes);
                         }
+                        //no else...don't care that much right now...-TJE
+                    }
+                    break;
+                    case 7:
+                        protectionType1Supported = true;
+                        protectionType2Supported = true;
+                        protectionType3Supported = true;
                         break;
-                        case 7:
-                            protectionType1Supported = true;
-                            protectionType2Supported = true;
-                            protectionType3Supported = true;
-                            break;
-                        }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(extendedInquiryData);
                 }
+                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+                {
+                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+                    scsi_Test_Unit_Ready(device, NULL);
+                }
+                safe_Free(extendedInquiryData);
                 break;
             }
             case BLOCK_DEVICE_CHARACTERISTICS:
@@ -2673,10 +2787,25 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
+				//check for format corrupt
+				uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+				get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+				if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+				{
+					driveInfo->isFormatCorrupt = true;
+				}
             }
         }
         else
         {
+			//check for format corrupt first
+			uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+			get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+			if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+			{
+				driveInfo->isFormatCorrupt = true;
+			}
+
             //try read capacity 16, if that fails we are done trying
             uint8_t* temp = (uint8_t*)realloc(readCapBuf, READ_CAPACITY_16_LEN * sizeof(uint8_t));
             if (temp == NULL)
@@ -2713,6 +2842,13 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                 //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                 scsi_Test_Unit_Ready(device, NULL);
             }
+			//check for format corrupt first
+			senseKey = 0, asc = 0, ascq = 0, fru = 0;
+			get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+			if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+			{
+				driveInfo->isFormatCorrupt = true;
+			}
         }
         break;
     default:
@@ -2759,7 +2895,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
             driveInfo->numberOfFeaturesSupported++;
         }
     }
-    if (version >= 6)//security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
+    if (version >= 6 && SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))//security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
     {
         //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
         memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
@@ -2768,7 +2904,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
             bool tcgFeatureFound = false;
             uint16_t length = M_BytesTo2ByteValue(tempBuf[6], tempBuf[7]);
             uint16_t bufIter = 8;
-            for (; (bufIter - 8) < length; bufIter++)
+            for (; (bufIter - 8) < length && (bufIter - 8) < 512; bufIter++)
             {
                 switch (tempBuf[bufIter])
                 {
@@ -3425,6 +3561,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
         }
         listOfModePagesAndSubpages[offset] = MP_CACHING;//WCE, DRA, NV_DIS?
         offset += 2;
+		if (version >= 4)//control mode page didn't get long DST info until SPC2
+		{
+			listOfModePagesAndSubpages[offset] = MP_CONTROL;//Long DST Time
+			offset += 2;
+		}
         if (version >= 5)//SPC3 added subpage codes
         {
             listOfModePagesAndSubpages[offset] = MP_CONTROL;//DLC
@@ -3496,12 +3637,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     uint8_t readWriteErrorRecovery[12 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
                     bool pageRead = false, defaultsRead = false;
                     uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 12 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CHANGABLE_VALUES, readWriteErrorRecovery))
+                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 12 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, readWriteErrorRecovery))
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
                     }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CHANGABLE_VALUES, readWriteErrorRecovery))
+                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, readWriteErrorRecovery))
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
@@ -3546,12 +3687,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (readWriteErrorRecovery[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, readWriteErrorRecovery))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
-
+						if (readWriteErrorRecovery[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     if (pageRead)
                     {
@@ -3615,11 +3763,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                         {
                             pageRead = true;
                             headerLength = MODE_PARAMETER_HEADER_10_LEN;
+							if (rigidGeometry[3] & BIT7)
+							{
+								driveInfo->isWriteProtected = true;
+							}
                         }
                         else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 24 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, rigidGeometry))
                         {
                             pageRead = true;
                             headerLength = MODE_PARAMETER_HEADER_6_LEN;
+							if (rigidGeometry[2] & BIT7)
+							{
+								driveInfo->isWriteProtected = true;
+							}
 
                         }
                         else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
@@ -3649,11 +3805,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (cachingPage[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 20 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, cachingPage))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (cachingPage[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -3664,8 +3828,43 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         //WCE
                         driveInfo->writeCacheEnabled = cachingPage[headerLength + 2] & BIT2 ? true : false;
+						if (driveInfo->writeCacheEnabled)
+						{
+							driveInfo->writeCacheSupported = true;
+						}
                         //DRA
                         driveInfo->readLookAheadEnabled = cachingPage[headerLength + 12] & BIT5 ? false : true;
+						if (driveInfo->readLookAheadEnabled)
+						{
+							driveInfo->readLookAheadSupported = true;
+						}
+						//check for supported if it's not already set
+						if (!driveInfo->writeCacheSupported || !driveInfo->readLookAheadSupported)
+						{
+							//we didn't get is supported from above, so check the changable page
+							memset(cachingPage, 0, 20 + MODE_PARAMETER_HEADER_10_LEN);
+							pageRead = false;//reset to false before reading the changable values page
+							if (version >= 2 && headerLength == MODE_PARAMETER_HEADER_10_LEN && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 20 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CHANGABLE_VALUES, cachingPage))
+							{
+								pageRead = true;
+								headerLength = MODE_PARAMETER_HEADER_10_LEN;
+							}
+							else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 20 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CHANGABLE_VALUES, cachingPage))
+							{
+								pageRead = true;
+								headerLength = MODE_PARAMETER_HEADER_6_LEN;
+							}
+							else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+							{
+								//Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+								scsi_Test_Unit_Ready(device, NULL);
+							}
+							if (pageRead)
+							{
+								driveInfo->writeCacheSupported = cachingPage[headerLength + 2] & BIT2 ? true : false;
+								driveInfo->readLookAheadSupported = cachingPage[headerLength + 12] & BIT5 ? false : true;
+							}
+						}
                     }
                 }
                 break;
@@ -3676,19 +3875,64 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
             case MP_CONTROL:
                 switch (subPageCode)
                 {
+				case 0://control mode page. No subpage
+				{
+					uint8_t controlPage[MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
+					bool pageRead = false;
+					uint8_t headerLength = 0;
+					if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, controlPage))
+					{
+						headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						pageRead = true;
+						if (controlPage[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
+					}
+					else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, controlPage))
+					{
+						headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						pageRead = true;
+						if (controlPage[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
+					}
+					else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+					{
+						//Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
+						scsi_Test_Unit_Ready(device, NULL);
+					}
+					if (pageRead)
+					{
+						//check the page code and page length
+						if (M_GETBITRANGE(controlPage[headerLength + 0], 5, 0) == MP_CONTROL)
+						{
+							//check length since the page needs to be long enough for this data. Earlier specs this page was shorter
+							if (controlPage[headerLength + 1] == 0x0A)
+							{
+								if (driveInfo->longDSTTimeMinutes == 0)//checking for zero since we may have already gotten this from the Extended Inquiry VPD page
+								{
+									driveInfo->longDSTTimeMinutes = ((M_BytesTo2ByteValue(controlPage[headerLength + 10], controlPage[headerLength + 11]) + 60) - 1) / 60;//rounding up to nearest minute
+								}
+							}
+						}
+					}
+				}
+				break;
                 case 1://controlExtension
                 {
                     //check if DLC is supported or can be changed before checking if they are enabled or not.
                     char *dlcString = NULL;
-                    uint8_t controlExtensionPage[32 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
+                    uint8_t controlExtensionPage[MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
                     bool pageRead = false, defaultsRead = false;
                     uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 32 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CHANGABLE_VALUES, controlExtensionPage))
+                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, controlExtensionPage))
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
                     }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 32 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CHANGABLE_VALUES, controlExtensionPage))
+                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, controlExtensionPage))
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
@@ -3729,15 +3973,23 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                             strcpy(dlcString, "Device Life Control");
                         }
                     }
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 32 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, controlExtensionPage))
+                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, controlExtensionPage))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (controlExtensionPage[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 32 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, controlExtensionPage))
+                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, controlExtensionPage))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (controlExtensionPage[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -3792,6 +4044,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (ioAdviceHints[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -3896,11 +4152,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -3922,11 +4186,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4057,11 +4329,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4161,11 +4441,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (protocolSpecificPort[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (protocolSpecificPort[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4270,11 +4558,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     uint8_t powerConditions[40 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
                     bool pageRead = false;
                     uint8_t mpHeaderLen = MODE_PARAMETER_HEADER_10_LEN;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 40 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CHANGABLE_VALUES, powerConditions))
+                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 40 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, powerConditions))
                     {
                         readDefaults = true;
                     }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 40 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CHANGABLE_VALUES, powerConditions))
+                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 40 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, powerConditions))
                     {
                         mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
                         readDefaults = true;
@@ -4317,11 +4605,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 40 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, powerConditions))
                     {
                         pageRead = true;
+						if (powerConditions[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 40 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, powerConditions))
                     {
                         mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
                         pageRead = true;
+						if (powerConditions[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4436,11 +4732,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (informationalExceptions[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, informationalExceptions))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (informationalExceptions[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -4462,12 +4766,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     uint8_t backgroundControl[16 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
                     bool pageRead = false, defaultsRead = false;
                     uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 16 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CHANGABLE_VALUES, backgroundControl))
+                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 16 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, backgroundControl))
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
                     }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 16 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CHANGABLE_VALUES, backgroundControl))
+                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 16 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, backgroundControl))
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
@@ -4526,11 +4830,19 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
+						if (backgroundControl[3] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 16 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, backgroundControl))
                     {
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
+						if (backgroundControl[2] & BIT7)
+						{
+							driveInfo->isWriteProtected = true;
+						}
                     }
                     else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                     {
@@ -5027,6 +5339,8 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         //DST info
         if (nvmeIdentifyData[256] & BIT4)//DST command is supported
         {
+			//set Long DST Time before reading the log
+			driveInfo->controllerData.longDSTTimeMinutes = M_BytesTo2ByteValue(nvmeIdentifyData[317], nvmeIdentifyData[316]);
             //Read the NVMe DST log
             uint8_t nvmeDSTLog[564] = { 0 };
             nvmeGetLogPageCmdOpts dstLogOpts;
@@ -5349,6 +5663,10 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             {
                 driveInfo->smartData.smartStatus = 1;
             }
+			if (nvmeSMARTData[0] & BIT3)
+			{
+				driveInfo->smartData.mediumIsReadOnly = true;
+			}
             driveInfo->smartData.compositeTemperatureKelvin = M_BytesTo2ByteValue(nvmeSMARTData[2], nvmeSMARTData[1]);
             driveInfo->smartData.availableSpacePercent = nvmeSMARTData[3];
             driveInfo->smartData.availableSpaceThresholdPercent = nvmeSMARTData[4];
@@ -5488,6 +5806,15 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     //Putting SMART & DST data here so that it isn't confused with the namespace data below - TJE
     if (driveInfo->smartData.valid)
     {
+		printf("\tRead-Only Medium: ");
+		if (driveInfo->smartData.mediumIsReadOnly)
+		{
+			printf("True\n");
+		}
+		else
+		{
+			printf("False\n");
+		}
         printf("\tSMART Status: ");
         switch (driveInfo->smartData.smartStatus)
         {
@@ -5542,6 +5869,20 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         {
             printf("\t\tNot supported\n");
         }
+		//Long DST time
+		printf("\tLong Drive Self Test Time: ");
+		if (driveInfo->controllerData.longDSTTimeMinutes > 0)
+		{
+			//print as hours:minutes
+			uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
+			convert_Seconds_To_Displayable_Time(driveInfo->controllerData.longDSTTimeMinutes * 60, &years, &days, &hours, &minutes, &seconds);
+			print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+		}
+		else
+		{
+			printf("Not Supported");
+		}
+		printf("\n");
         
         //Workload Rate (Annualized)
         printf("\tAnnualized Workload Rate (TB/yr): ");
@@ -5857,12 +6198,24 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
             printf("%"PRIu64"\n", driveInfo->nativeMaxLBA);
         }
     }
-    //Logical Sector Size
-    printf("\tLogical Sector Size (B): %"PRIu32"\n", driveInfo->logicalSectorSize);
-    //Physical Sector Size
-    printf("\tPhysical Sector Size (B): %"PRIu32"\n", driveInfo->physicalSectorSize);
-    //Sector Alignment
-    printf("\tSector Alignment: %"PRIu16"\n", driveInfo->sectorAlignment);
+	if (driveInfo->isFormatCorrupt)
+	{
+		//Logical Sector Size
+		printf("\tLogical Sector Size (B): Format Corrupt\n");
+		//Physical Sector Size
+		printf("\tPhysical Sector Size (B): Format Corrupt\n");
+		//Sector Alignment
+		printf("\tSector Alignment: Format Corrupt\n");
+	}
+	else
+	{
+		//Logical Sector Size
+		printf("\tLogical Sector Size (B): %"PRIu32"\n", driveInfo->logicalSectorSize);
+		//Physical Sector Size
+		printf("\tPhysical Sector Size (B): %"PRIu32"\n", driveInfo->physicalSectorSize);
+		//Sector Alignment
+		printf("\tSector Alignment: %"PRIu16"\n", driveInfo->sectorAlignment);
+	}
     //Rotation Rate
     printf("\tRotation Rate (RPM): ");
     if (driveInfo->rotationRate == 0)
@@ -5877,6 +6230,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
     {
         printf("%"PRIu16"\n", driveInfo->rotationRate);
     }
+	if (driveInfo->isWriteProtected)
+	{
+		printf("\tMedium is write protected!\n");
+	}
     //Form Factor
     printf("\tForm Factor (inch): ");
     switch (driveInfo->formFactor)
@@ -5946,6 +6303,20 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
     {
         printf("\t\tNot supported\n");
     }
+	//Long DST time
+	printf("\tLong Drive Self Test Time: ");
+	if (driveInfo->longDSTTimeMinutes > 0)
+	{
+		//print as hours:minutes
+		uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
+		convert_Seconds_To_Displayable_Time(driveInfo->longDSTTimeMinutes * 60, &years, &days, &hours, &minutes, &seconds);
+		print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+	}
+	else
+	{
+		printf("Not Supported");
+	}
+	printf("\n");
     //Interface Speed
     printf("\tInterface speed:\n");
     if (driveInfo->interfaceSpeedInfo.speedIsValid)
@@ -6237,23 +6608,37 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
         printf("\tWrite Amplification (%%): %0.02f\n", (double)driveInfo->totalWritesToFlash / (double)driveInfo->totalLBAsWritten);
     }
     //Read look ahead
-    if (driveInfo->readLookAheadEnabled)
-    {
-        printf("\tRead Look-Ahead: Enabled\n");
-    }
-    else
-    {
-        printf("\tRead Look-Ahead: Disabled\n");
-    }
+	if (driveInfo->readLookAheadSupported)
+	{
+		if (driveInfo->readLookAheadEnabled)
+		{
+			printf("\tRead Look-Ahead: Enabled\n");
+		}
+		else
+		{
+			printf("\tRead Look-Ahead: Disabled\n");
+		}
+	}
+	else
+	{
+		printf("\tRead Look-Ahead: Not Supported\n");
+	}
     //Write Cache
-    if (driveInfo->writeCacheEnabled)
-    {
-        printf("\tWrite Cache: Enabled\n");
-    }
-    else
-    {
-        printf("\tWrite Cache: Disabled\n");
-    }
+	if (driveInfo->writeCacheSupported)
+	{
+		if (driveInfo->writeCacheEnabled)
+		{
+			printf("\tWrite Cache: Enabled\n");
+		}
+		else
+		{
+			printf("\tWrite Cache: Disabled\n");
+		}
+	}
+	else
+	{
+		printf("\tWrite Cache: Not Supported\n");
+	}
     if (driveInfo->lowCurrentSpinupValid)
     {
         if (driveInfo->lowCurrentSpinupEnabled)

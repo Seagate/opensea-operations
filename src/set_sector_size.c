@@ -97,10 +97,13 @@ int get_Supported_Sector_Sizes(tDevice *device, sectorSize * ptrSectorSizeList, 
             {
                 for (uint16_t iter = 0, sectorSizeCounter = 0; iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < numberOfSectorSizeStructs; iter += 16, ++sectorSizeCounter)
                 {
-                    ptrSectorSizeList[sectorSizeCounter].valid = true;
-                    ptrSectorSizeList[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(sectorConfigurationLog[7 + iter], sectorConfigurationLog[6 + iter], sectorConfigurationLog[5 + iter], sectorConfigurationLog[4 + iter]);
+                    ptrSectorSizeList[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(sectorConfigurationLog[7 + iter], sectorConfigurationLog[6 + iter], sectorConfigurationLog[5 + iter], sectorConfigurationLog[4 + iter]) * 2;
                     ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorCheck = M_BytesTo2ByteValue(sectorConfigurationLog[3 + iter], sectorConfigurationLog[2 + iter]);
-                    ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorIndex = (uint8_t)iter;
+					if (ptrSectorSizeList[sectorSizeCounter].logicalBlockLength > 0 && ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorCheck != 0)
+					{
+						ptrSectorSizeList[sectorSizeCounter].valid = true;
+					}
+                    ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorIndex = (uint8_t)(iter / 16);
                 }
                 ret = SUCCESS;
             }
@@ -309,6 +312,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             formatUnitParameters.defaultFormat = true;//Don't need any option bits! In fact, this could cause an error if not set!
             formatUnitParameters.protectionType = device->drive_info.currentProtectionType;
             formatUnitParameters.protectionIntervalExponent = device->drive_info.piExponent;
+			formatUnitParameters.disableImmediate = true;
             //make this smarter to know which type of fast format to use! FAST_FORMAT_WRITE_NOT_REQUIRED is a power of 2 change (512 to 4096), FAST_FORMAT_WRITE_REQUIRED is any other size change
             if (!is_Requested_Sector_Size_Multiple(device, sectorSize))
             {
