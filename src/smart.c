@@ -2742,7 +2742,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     get_ATA_Log_Size(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, false, true);
                     if (compErrLogSize > 0)
                     {
-                        uint8_t *errorLog = (uint8_t)calloc(512, sizeof(uint8_t));
+                        uint8_t *errorLog = (uint8_t*)calloc(512, sizeof(uint8_t));
                         if (!errorLog)
                         {
                             return MEMORY_FAILURE;
