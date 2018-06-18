@@ -167,6 +167,7 @@ extern "C"
         uint64_t maxLBA;
         uint64_t nativeMaxLBA;//ATA Only since SCSI doesn't have a way to get the native max without changing the drive (not ok to do for this function) if set to 0, or UINT64_MAX, then the value is invalid
         legacyCHSInfo ataLegacyCHSInfo;
+		bool isFormatCorrupt;//SAS only
         uint32_t logicalSectorSize;//bytes
         uint32_t physicalSectorSize;//bytes
         uint16_t sectorAlignment;//first logical sector offset within the first physical sector
