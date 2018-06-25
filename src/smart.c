@@ -637,6 +637,70 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             break;
         }
         break;
+	case SEAGATE_VENDOR_F:
+		switch (attributeNumber)
+		{
+		case 1://UECC error count
+			sprintf(*attributeName, "UECC Error count");
+			break;
+		case 9: //Power on Hours
+			sprintf(*attributeName, "Power On Hours");
+			break;
+		case 12: //Drive Power Cycle Count
+			sprintf(*attributeName, "Drive Power Cycle Count");
+			break;
+		case 16: //Spare Blocks Available
+			sprintf(*attributeName, "Spare Blocks Available");
+			break;
+		case 17: //Remaining Spare Blocks
+			sprintf(*attributeName, "Remaining Spare Blocks");
+			break;
+		case 168: //Sata Phy Error Count
+			sprintf(*attributeName, "Sata Phy Error Count");
+			break;
+		case 170: //Bad Block Count
+			sprintf(*attributeName, "Bad Block Count");
+			break;
+		case 173: //Erase Count
+			sprintf(*attributeName, "Erase Count");
+			break;
+		case 174: //Unexpected Power Loss Count
+			sprintf(*attributeName, "Unexpected Power Loss Count");
+			break;
+		case 177: //Wear Range Delta
+			sprintf(*attributeName, "Wear Range Delta");
+			break;
+		case 192: //Unexpected power loss count
+			sprintf(*attributeName, "Unexpected Power loss Count");
+			break;
+		case 194: //Primary Temperature
+			sprintf(*attributeName, "Primary Temperature");
+			break;
+		case 218: //CRC Error Count
+			sprintf(*attributeName, "CRC Error Count");
+			break;
+		case 231: //SSD Life Left
+			sprintf(*attributeName, "SSD Life Left");
+			break;
+		case 232: //Read failure block count
+			sprintf(*attributeName, "Read Failure Block Count");
+			break;
+		case 233: //NAND GiB written
+			sprintf(*attributeName, "NAND GiB Written");
+			break;
+		case 235: //NAND sectors written
+			sprintf(*attributeName, "NAND sectors Written");
+			break;
+		case 241: //Lifetime Writes from Host
+			sprintf(*attributeName, "Lifetime Writes From Host");
+			break;
+		case 242: //Lifetime Reads from Host
+			sprintf(*attributeName, "Lifetime Reads From Host");
+			break;
+		default:
+			break;
+		}
+		break;
     default:
         break;
     }
