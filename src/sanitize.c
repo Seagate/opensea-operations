@@ -395,15 +395,15 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
     switch (sanitizeOperation)
     {
     case SANITIZE_BLOCK_ERASE:
-        ret = send_Sanitize_Block_Erase(device, false);
+        ret = send_Sanitize_Block_Erase(device, false, false);
         delayTime = 1;
         break;
     case SANITIZE_CRYPTO_ERASE:
-        ret = send_Sanitize_Crypto_Erase(device, false);
+        ret = send_Sanitize_Crypto_Erase(device, false, false);
         delayTime = 1;
         break;
     case SANITIZE_OVERWRITE_ERASE:
-        ret = send_Sanitize_Overwrite_Erase(device, false, false, 1, pattern, patternLength);
+        ret = send_Sanitize_Overwrite_Erase(device, false, false, 1, pattern, patternLength, false);
         delayTime = 600;//this is 10 minute delay between progress updates
         break;
     case SANTIZIE_FREEZE_LOCK:
