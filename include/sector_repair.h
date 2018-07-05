@@ -123,6 +123,10 @@ extern "C"
 
     OPENSEA_OPERATIONS_API uint32_t find_LBA_Entry_In_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba);//returns UINT32_MAX if not found
 
+    OPENSEA_OPERATIONS_API bool is_Read_Long_Write_Long_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt);
+
 #if defined (__cplusplus)
 }
 #endif
