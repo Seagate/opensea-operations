@@ -1652,6 +1652,52 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
 	int retStatus = NOT_SUPPORTED;
+
+    if (!is_Seagate(device, false)) 
+    {
+        return retStatus;
+    }
+
+#if !defined(DISABLE_NVME_PASSTHROUGH)
+    logPageMap suptLogPage;
+    nvmeGetLogPageCmdOpts suptLogOpts;
+
+    memset(&suptLogPage, 0, sizeof(logPageMap));
+    memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+    suptLogOpts.addr = (uint64_t)(&suptLogPage);
+    suptLogOpts.dataLen = sizeof(logPageMap);
+    suptLogOpts.lid = 0xc5;
+    suptLogOpts.nsid = 0;//controller data
+    if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
+    {
+        retStatus = SUCCESS;
+        uint32_t numPage = suptLogPage.numLogPages;
+        uint32_t page = 0; 			
+        printf("\n  Log Pages  :   Signature    :    Version\n");
+        printf("-------------:----------------:--------------\n");
+        for (page = 0; page < numPage; page++)
+        {
+            if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
+            {
+                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
+                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+            }
+        }
+        printf("\t\t------------------\n");
+        printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
+        printf("\t\t------------------\n");
+        for (page = 0; page < numPage; page++)
+        {
+            if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
+            {
+                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
+                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+            }
+        }
+    }
+#endif
 	return retStatus;
 }
 
