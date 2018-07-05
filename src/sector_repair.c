@@ -433,9 +433,18 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
     uint64_t iterator = 0;
     char message[MAX_JSON_MSG];
 
+    bool wue = is_Write_Psuedo_Uncorrectable_Supported(device);
+    bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
+
     uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+    uint16_t increment = logicalPerPhysicalSectors;
+    if (!wue && readWriteLong && logicalPerPhysicalSectors != 1 && device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //changing the increment amount to 1 because the ATA read/write long commands can only do a single LBA at a time.
+        increment = 1;
+    }
     startingLBA = align_LBA(device,startingLBA);
-    for (iterator = startingLBA; iterator < (startingLBA + range); iterator += logicalPerPhysicalSectors)
+    for (iterator = startingLBA; iterator < (startingLBA + range); iterator += increment)
     {
         if (g_verbosity > VERBOSITY_QUIET)
         {
@@ -443,7 +452,18 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
             printf("%s\n",message);
             SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
         }
-        ret = write_Psuedo_Uncorrectable_Error(device, iterator);
+        if (wue)
+        {
+            ret = write_Psuedo_Uncorrectable_Error(device, iterator);
+        }
+        else if (readWriteLong)
+        {
+            ret = corrupt_LBA_Read_Write_Long(device, iterator, UINT16_MAX);//saying to corrupt all the data bytes to make sure we do get an error.
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
         if (ret != SUCCESS)
         {
             break;
@@ -476,22 +496,29 @@ int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, c
     uint64_t iterator = 0;
     char message[MAX_JSON_MSG];
 
-    //uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
-    //This function will only flag individual logical sectors since flagging works differently than pseudo uncorrectables, which we write the full sector with since a psuedo uncorrectable will always affect the full physical sector.
-    startingLBA = align_LBA(device, startingLBA);
-    for (iterator = startingLBA; iterator < (startingLBA + range); iterator += 1)
+    if (is_Write_Flagged_Uncorrectable_Supported(device))
     {
-        if (g_verbosity > VERBOSITY_QUIET)
+        //uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        //This function will only flag individual logical sectors since flagging works differently than pseudo uncorrectables, which we write the full sector with since a psuedo uncorrectable will always affect the full physical sector.
+        startingLBA = align_LBA(device, startingLBA);
+        for (iterator = startingLBA; iterator < (startingLBA + range); iterator += 1)
         {
-            snprintf(message, MAX_JSON_MSG, "Flagging Uncorrectable error at LBA %-20"PRIu64"", iterator);
-            printf("%s\n", message);
-            SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+            if (g_verbosity > VERBOSITY_QUIET)
+            {
+                snprintf(message, MAX_JSON_MSG, "Flagging Uncorrectable error at LBA %-20"PRIu64"", iterator);
+                printf("%s\n", message);
+                SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+            }
+            ret = write_Flagged_Uncorrectable_Error(device, iterator);
+            if (ret != SUCCESS)
+            {
+                break;
+            }
         }
-        ret = write_Flagged_Uncorrectable_Error(device, iterator);
-        if (ret != SUCCESS)
-        {
-            break;
-        }
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
     }
     return ret;
 }
