@@ -443,10 +443,122 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
         {
             printf("\tList includes grown defects\n");
         }
+        if (defects->generation > 0)
+        {
+            printf("\tGeneration Code: %" PRIu16 "\n", defects->generation);
+        }
         //TODO: Add a way to handle getting per-head counts to output first
-
+        bool multiBit = false;
         switch (defects->format)
         {
+        case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            printf("---Short Block Format---\n");
+            for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
+            {
+                printf("%" PRIu32 "\n", defects->block[iter].shortBlockAddress);
+            }
+            break;
+        case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            printf("---Long Block Format---\n");
+            for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
+            {
+                printf("%" PRIu64 "\n", defects->block[iter].longBlockAddress);
+            }
+            break;
+        case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            printf("---Extended Physical Sector Format---\n");
+            printf("  %-8s  %-3s  %+10s \n", "Cylinder", "Head", "Sector");
+            for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
+            {
+                char multi = ' ';
+                bool switchMultiOff = false;
+                if (defects->physical[iter].multiAddressDescriptorStart)
+                {
+                    multiBit = true;
+                    multi = '+';
+                }
+                else if (multiBit)
+                {
+                    //multi was on, but now off...this is the last descriptor for the same error
+                    multi = '+';
+                    switchMultiOff = true;
+                }
+                if (defects->physical[iter].sectorNumber == MAX_28BIT)
+                {
+                    printf("%c %8" PRIu32 "  %3" PRIu8 "  %+10s\n", multi, defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, "Full Track");
+                }
+                else
+                {
+                    printf("%c %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 " \n", multi, defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, defects->physical[iter].sectorNumber);
+                }
+                if (switchMultiOff)
+                {
+                    multiBit = false;
+                }
+            }
+            break;
+        case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            printf("---Physical Sector Format---\n");
+            printf("  %-8s  %-3s  %+10s \n", "Cylinder", "Head", "Sector");
+            for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
+            {
+                if (defects->physical[iter].sectorNumber == UINT32_MAX)
+                {
+                    printf("  %8" PRIu32 "  %3" PRIu8 "  %+10s\n", defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, "Full Track");
+                }
+                else
+                {
+                    printf("  %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 "\n", defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, defects->physical[iter].sectorNumber);
+                }
+            }
+            break;
+        case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
+            printf("---Extended Bytes From Index Format---\n");
+            printf("  %-8s  %-3s  %+16s \n", "Cylinder", "Head", "Bytes From Index");
+            for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
+            {
+                char multi = ' ';
+                bool switchMultiOff = false;
+                if (defects->bfi[iter].multiAddressDescriptorStart)
+                {
+                    multiBit = true;
+                    multi = '+';
+                }
+                else if (multiBit)
+                {
+                    //multi was on, but now off...this is the last descriptor for the same error
+                    multi = '+';
+                    switchMultiOff = true;
+                }
+                if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
+                {
+                    printf("%c %8" PRIu32 "  %3" PRIu8 "  %+10s\n", multi, defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, "Full Track");
+                }
+                else
+                {
+                    printf("%c %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 " \n", multi, defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, defects->bfi[iter].bytesFromIndex);
+                }
+                if (switchMultiOff)
+                {
+                    multiBit = false;
+                }
+            }
+            break;
+        case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
+            printf("---Bytes From Index Format---\n");
+            printf("  %-8s  %-3s  %+16s \n", "Cylinder", "Head", "Bytes From Index");
+            for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
+            {
+                if (defects->bfi[iter].bytesFromIndex == UINT32_MAX)
+                {
+                    printf("  %8" PRIu32 "  %3" PRIu8 "  %+16s\n", defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, "Full Track");
+                }
+                else
+                {
+                    printf("  %8" PRIu32 "  %3" PRIu8 "  %16" PRIu32 "\n", defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, defects->bfi[iter].bytesFromIndex);
+                }
+            }
+            break;
         default:
             printf("Error: Unknown defect list format. Cannot be displayed!\n");
             break;
