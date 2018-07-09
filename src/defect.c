@@ -243,7 +243,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                             }
                                             if (increment > 0)
                                             {
-                                                for (; elementNumber < numberOfElements && offset < defectListLength; ++elementNumber, offset += increment)
+                                                for (; elementNumber < numberOfElements && offset < defectListLength && offset < dataLength; ++elementNumber, offset += increment)
                                                 {
                                                     switch (returnedDefectListFormat)
                                                     {
