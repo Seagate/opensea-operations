@@ -67,6 +67,7 @@ extern "C" {
 
     void free_Defect_List(scsiDefectList **defects);
 
+    void print_SCSI_Defect_List(ptrSCSIDefectList defects);
 
 #if defined(__cplusplus)
 }
