@@ -186,6 +186,20 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                             if (addressIndexSupport > 0)
                             {
                                 multipleCommandsSupported = true;
+                                //before we say this works, we need to do one more test due to some drive firmware bugs
+                                //try setting the offset to the end of the element list and see what the reported defect length is. If it is zero, then this is supported, otherwise it's a firmware bug reporting incorrectly
+                                if (SUCCESS == scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, numberOfElements + 1, dataLength, defectData))
+                                {
+                                    //If this reported length is less than the saved list length we already have, then this is responding to the index properly, and is therefore supported.
+                                    if (M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) < defectListLength)
+                                    {
+                                        multipleCommandsSupported = true;
+                                    }
+                                    else
+                                    {
+                                        multipleCommandsSupported = false;
+                                    }
+                                }
                             }
                         }
                         if (multipleCommandsSupported)
@@ -211,7 +225,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
                                         memset(defectData, 0, dataLength);
-                                        if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, elementNumber, dataLength, defectData)))
+                                        if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, elementNumber * increment, dataLength, defectData)))
                                         {
                                             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
                                             listHasPrimaryDescriptors = defectData[1] & BIT4;
