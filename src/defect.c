@@ -83,6 +83,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     ret = BAD_PARAMETER;
                     break;
                 }
+                --numberOfElements;//subtracting one since we are not keeping in mind that the defect list length calculation above is zero based.
                 if (ret == SUCCESS)
                 {
                     if (tenByte)
