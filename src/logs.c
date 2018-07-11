@@ -320,7 +320,7 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
         //now search the returned buffer for the requested page code
         uint16_t vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH;
         uint16_t pageLength = M_BytesTo2ByteValue(vpdBuffer[2], vpdBuffer[3]);
-        for (vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH; vpdIter <= pageLength && vpdIter < vpdBufferLength; vpdIter++)
+        for (vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH; vpdIter <= (pageLength + SCSI_VPD_PAGE_HEADER_LENGTH) && vpdIter < vpdBufferLength; vpdIter++)
         {
             if (vpdBuffer[vpdIter] == vpdPage)
             {
