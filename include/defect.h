@@ -62,12 +62,145 @@ extern "C" {
         };
     }scsiDefectList, *ptrSCSIDefectList;
 
-    //This function will allocate the defect list!
-    int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects);
+    //-----------------------------------------------------------------------------
+    //
+    //  get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects)
+    //
+    //! \brief   Description:  Use this function to read SCSI Primary and Grown defects. This function will allocate teh defect list for you!
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] defectListFormat = format to pull the defect list in
+    //!   \param[in] grownList = requests the grown (reallocated) defects list
+    //!   \param[in] primaryList = requests the primary (factory) defects list
+    //!   \param[in] defects = This will hold a list of the defects reported by the device. This will be allocated for you in this function.
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects);
 
-    void free_Defect_List(scsiDefectList **defects);
+    //-----------------------------------------------------------------------------
+    //
+    //  free_Defect_List(scsiDefectList **defects)
+    //
+    //! \brief   Description:  Frees the defect list allocated for you in get_SCSI_Defect_List()
+    //
+    //  Entry:
+    //!   \param[in] defects = The defect list to free
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void free_Defect_List(scsiDefectList **defects);
 
-    void print_SCSI_Defect_List(ptrSCSIDefectList defects);
+    //-----------------------------------------------------------------------------
+    //
+    //  print_SCSI_Defect_List(scsiDefectList **defects)
+    //
+    //! \brief   Description: Prints the defect list given to the screen
+    //
+    //  Entry:
+    //!   \param[in] defects = The defect list to print
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void print_SCSI_Defect_List(ptrSCSIDefectList defects);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  create_Random_Uncorrectables()
+    //
+    //! \brief   Description:  This function creates random uncorrectable errors on the drive. All errors created are written to the entire physical sector of the drive. If the read flag is not set to true, these errors may not end up being logged in the Pending Defect list
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] numberOfRandomLBAs = number of random errors to create
+    //!   \param[in] readUncorrectables = set to true to read the lba after marking it bad with a psuedo uncorrectable error (recommended so it can be logged and tracked)
+    //!   \param[in] flaggedErrors = set to true to flag uncorrectable errors instead of creating pseudo uncorrectable errors. (Required on NVMe). Note: These errors cannot be logged. Use with caution!!!
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  create_Uncorrectables()
+    //
+    //! \brief   Description:  This function creates a range of uncorrectable errors on the drive. All errors created are written to the entire physical sector of the drive, so if it's a 512/4k drive and the range specified is 16, this will create an error for 8 LBAs at LBA 1000 and 1008. If the read flag is not set to true, these errors may not end up being logged in the Pending Defect list
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startingLBA = LBA to start writing errors at
+    //!   \param[in] range = number of LBAs after the starting LBA to write errors to
+    //!   \param[in] readUncorrectables = Flag to specify whether or not to issue read commands to the created error. This should always be set to true unless you know what you're doing
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  flag_Uncorrectables()
+    //
+    //! \brief   Description:  This function creates a range of flagged uncorrectable errors on the drive. All errors created are written to the entire physical sector of the drive, so if it's a 512/4k drive and the range specified is 16, this will create an error for 8 LBAs at LBA 1000 and 1008.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startingLBA = LBA to start writing errors at
+    //!   \param[in] range = number of LBAs after the starting LBA to write errors to
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_Read_Long_Write_Long_Supported(tDevice *device)
+    //
+    //! \brief   Description:  Checks if a drive supports using read long and write long commands to create errors on a drive. (This is obsolete on new drives)
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_Read_Long_Write_Long_Supported(tDevice *device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  corrupt_LBA_Read_Write_Long(tDevice *device)
+    //
+    //! \brief   Description:  Performs a read long, modify, write long on a drive to a single (physical) sector to create an error condition
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] corruptLBA = LBA to corrupt with an error
+    //!   \param[in] numberOfBytesToCorrupt = This is the number of bytes to corrupt in the user-data to test the ECC algorithm. If set to zero, no changes are made. A value greater than the sector size will corrupt all data bytes. Otherwise, only the number of specified bytes will be changed to create the error (correctable or uncorrectable)
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt);
 
 #if defined(__cplusplus)
 }

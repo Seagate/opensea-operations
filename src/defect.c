@@ -626,3 +626,410 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
         }
     }
 }
+
+int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData)
+{
+    int ret = SUCCESS;
+    uint16_t iterator = 0;
+    seed_64(time(NULL));//start the random number generator
+    for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
+    {
+        uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
+        //align the random LBA to the physical sector
+        randomLBA = align_LBA(device, randomLBA);
+        //call the function to create an uncorrectable with the range set to 1 so we only corrupt 1 physical block at a time randomly
+        if (flaggedErrors)
+        {
+            ret = flag_Uncorrectables(device, randomLBA, 1, updateFunction, updateData);
+        }
+        else
+        {
+            ret = create_Uncorrectables(device, randomLBA, 1, readUncorrectables, updateFunction, updateData);
+        }
+        if (ret != SUCCESS)
+        {
+            break;
+        }
+    }
+    return ret;
+}
+
+int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData)
+{
+    int ret = SUCCESS;
+    uint64_t iterator = 0;
+    char message[MAX_JSON_MSG];
+
+    bool wue = is_Write_Psuedo_Uncorrectable_Supported(device);
+    bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
+
+    uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+    uint16_t increment = logicalPerPhysicalSectors;
+    if (!wue && readWriteLong && logicalPerPhysicalSectors != 1 && device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //changing the increment amount to 1 because the ATA read/write long commands can only do a single LBA at a time.
+        increment = 1;
+    }
+    startingLBA = align_LBA(device, startingLBA);
+    for (iterator = startingLBA; iterator < (startingLBA + range); iterator += increment)
+    {
+        if (g_verbosity > VERBOSITY_QUIET)
+        {
+            snprintf(message, MAX_JSON_MSG, "Creating Uncorrectable error at LBA %-20"PRIu64"", iterator);
+            printf("%s\n", message);
+            SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+        }
+        if (wue)
+        {
+            ret = write_Psuedo_Uncorrectable_Error(device, iterator);
+        }
+        else if (readWriteLong)
+        {
+            ret = corrupt_LBA_Read_Write_Long(device, iterator, UINT16_MAX);//saying to corrupt all the data bytes to make sure we do get an error.
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+        if (ret != SUCCESS)
+        {
+            break;
+        }
+        if (readUncorrectables)
+        {
+            uint8_t *dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t));
+            if (!dataBuf)
+            {
+                return MEMORY_FAILURE;
+            }
+            //don't check return status since we expect this to fail after creating the error
+            if (g_verbosity > VERBOSITY_QUIET)
+            {
+                snprintf(message, MAX_JSON_MSG, "Reading Uncorrectable error at LBA %-20"PRIu64"", iterator);
+                printf("%s\n", message);
+                SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+            }
+            read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
+            //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
+            safe_Free(dataBuf);
+        }
+    }
+    return ret;
+}
+
+int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData)
+{
+    int ret = SUCCESS;
+    uint64_t iterator = 0;
+    char message[MAX_JSON_MSG];
+
+    if (is_Write_Flagged_Uncorrectable_Supported(device))
+    {
+        //uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        //This function will only flag individual logical sectors since flagging works differently than pseudo uncorrectables, which we write the full sector with since a psuedo uncorrectable will always affect the full physical sector.
+        startingLBA = align_LBA(device, startingLBA);
+        for (iterator = startingLBA; iterator < (startingLBA + range); iterator += 1)
+        {
+            if (g_verbosity > VERBOSITY_QUIET)
+            {
+                snprintf(message, MAX_JSON_MSG, "Flagging Uncorrectable error at LBA %-20"PRIu64"", iterator);
+                printf("%s\n", message);
+                SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+            }
+            ret = write_Flagged_Uncorrectable_Error(device, iterator);
+            if (ret != SUCCESS)
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+bool is_Read_Long_Write_Long_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word206 & BIT1)
+        {
+            supported = true;
+        }
+        /*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
+        else if (device->drive_info.IdentifyData.ata.Word022 > 0 && device->drive_info.IdentifyData.ata.Word022 < UINT16_MAX)//legacy support check only!
+        {
+            supported = true;
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        bool reportSuccess = false;
+        //Trying to use report supported operation codes/inquiry cmdDT first on the read long command. 
+        //Using read long since it was removed in latest specs, so if it is not supported, then we know write long won't work unless using the write uncorrectable bit.
+        uint8_t commandSupportInformation[30] = { 0 };//should be more than big enough
+        uint8_t operationCode = READ_LONG_10;
+        uint32_t dataLength = 10;
+        if (device->drive_info.deviceMaxLba > UINT32_MAX)
+        {
+            operationCode = READ_LONG_16;
+            dataLength = 16;
+        }
+        if (device->drive_info.scsiVersion >= 5)
+        {
+            dataLength += 4;
+        }
+        else if (device->drive_info.scsiVersion >= 3 && device->drive_info.scsiVersion < 5)
+        {
+            dataLength += 6;
+        }
+        if (device->drive_info.scsiVersion >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, operationCode, 0, dataLength, commandSupportInformation))
+        {
+            reportSuccess = true;
+            switch (commandSupportInformation[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                supported = true;
+                break;
+            default:
+                break;
+            }
+        }
+        else if (device->drive_info.scsiVersion >= 3 && device->drive_info.scsiVersion < 5 && SUCCESS == scsi_Inquiry(device, commandSupportInformation, dataLength, operationCode, false, true))
+        {
+            reportSuccess = true;
+            switch (commandSupportInformation[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                supported = true;
+                break;
+            default:
+                break;
+            }
+        }
+        if (!reportSuccess && !supported)
+        {
+            //try issuing a read long command with no data transfer and see if it's treated as an error or not.
+            if (device->drive_info.deviceMaxLba > UINT32_MAX)
+            {
+                if (SUCCESS == scsi_Read_Long_16(device, false, false, 0, 0, NULL))
+                {
+                    supported = true;
+                }
+            }
+            else
+            {
+                if (SUCCESS == scsi_Read_Long_10(device, false, false, 0, 0, NULL))
+                {
+                    supported = true;
+                }
+            }
+        }
+    }
+    return supported;
+}
+
+int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
+{
+    int ret = NOT_SUPPORTED;
+    bool multipleLogicalPerPhysical = false;//used to set the physical block bit when applicable
+    uint16_t logicalPerPhysicalBlocks = (uint16_t)(device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
+    if (logicalPerPhysicalBlocks > 1)
+    {
+        //since this device has multiple logical blocks per physical block, we also need to adjust the LBA to be at the start of the physical block
+        //do this by dividing by the number of logical sectors per physical sector. This integer division will get us aligned
+        uint64_t tempLBA = corruptLBA / logicalPerPhysicalBlocks;
+        tempLBA *= logicalPerPhysicalBlocks;
+        //do we need to adjust for alignment? We'll add it in later if I ever get a drive that has an alignment other than 0 - TJE
+        corruptLBA = tempLBA;
+        //set this flag for SCSI
+        multipleLogicalPerPhysical = true;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word206 & BIT1)
+        {
+            //use SCT read & write long commands
+            uint16_t numberOfECCCRCBytes = 0;
+            uint16_t numberOfBlocksRequested = 0;
+            uint32_t dataSize = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
+            uint8_t *data = (uint8_t*)calloc(dataSize, sizeof(uint8_t));
+            if (!data)
+            {
+                return MEMORY_FAILURE;
+            }
+            ret = ata_SCT_Read_Write_Long(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, SCT_RWL_READ_LONG, corruptLBA, data, dataSize, &numberOfECCCRCBytes, &numberOfBlocksRequested);
+            if (ret == SUCCESS)
+            {
+                seed_64(time(NULL));
+                //modify the user data to cause a uncorrectable error
+                for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
+                {
+                    data[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                }
+                if (numberOfBlocksRequested)
+                {
+                    //The drive responded through SAT enough to tell us exactly how many blocks are expected...so we can set the data transfer length as is expected...since this wasn't clear on non 512B logical sector drives.
+                    dataSize = LEGACY_DRIVE_SEC_SIZE * numberOfBlocksRequested;
+                }
+                //now write back the data with a write long command
+                ret = ata_SCT_Read_Write_Long(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, NULL, NULL);
+            }
+            safe_Free(data);
+        }
+        else if (device->drive_info.IdentifyData.ata.Word022 > 0 && device->drive_info.IdentifyData.ata.Word022 < UINT16_MAX && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
+        {
+            bool setFeaturesToChangeECCBytes = false;
+            if (device->drive_info.IdentifyData.ata.Word022 != 4)
+            {
+                //need to issue a set features command to specify the number of ECC bytes before doing a read or write long (according to old Seagate ATA reference manual from the web)
+                if (SUCCESS == ata_Set_Features(device, SF_LEGACY_SET_VENDOR_SPECIFIC_ECC_BYTES_FOR_READ_WRITE_LONG, M_Byte0(device->drive_info.IdentifyData.ata.Word022), 0, 0, 0))
+                {
+                    setFeaturesToChangeECCBytes = true;
+                }
+            }
+            uint32_t dataSize = device->drive_info.deviceBlockSize + device->drive_info.IdentifyData.ata.Word022;
+            uint8_t *data = (uint8_t*)calloc(dataSize, sizeof(uint8_t));
+            if (!data)
+            {
+                return MEMORY_FAILURE;
+            }
+            //This drive supports the legacy 28bit read/write long commands from ATA...
+            //These commands are really old and transfer weird byte based values.
+            //While these transfer lengths shouldbe supported by SAT, there are some SATLs that won't handle this odd case. It may or may not go through...-TJE
+            if (device->drive_info.ata_Options.chsModeOnly)
+            {
+                uint16_t cylinder = 0;
+                uint8_t head = 0;
+                uint8_t sector = 0;
+                if (SUCCESS == convert_LBA_To_CHS(device, (uint32_t)corruptLBA, &cylinder, &head, &sector))
+                {
+                    ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
+                    if (ret == SUCCESS)
+                    {
+                        seed_64(time(NULL));
+                        //modify the user data to cause a uncorrectable error
+                        for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
+                        {
+                            data[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                        }
+                        ret = ata_Legacy_Write_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
+                    }
+                }
+                else //Couldn't convert or the LBA is greater than the current CHS mode
+                {
+                    ret = NOT_SUPPORTED;
+                }
+            }
+            else
+            {
+                ret = ata_Legacy_Read_Long(device, true, (uint32_t)corruptLBA, data, dataSize);
+                if (ret == SUCCESS)
+                {
+                    seed_64(time(NULL));
+                    //modify the user data to cause a uncorrectable error
+                    for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
+                    {
+                        data[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                    }
+                    ret = ata_Legacy_Write_Long(device, true, (uint32_t)corruptLBA, data, dataSize);
+                }
+            }
+            if (setFeaturesToChangeECCBytes)
+            {
+                //reverting back to drive defaults again so that we don't mess anyone else up.
+                if (SUCCESS == ata_Set_Features(device, SF_LEGACY_SET_4_BYTES_ECC_FOR_READ_WRITE_LONG, 0, 0, 0, 0))
+                {
+                    setFeaturesToChangeECCBytes = false;
+                }
+            }
+            safe_Free(data);
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        senseDataFields senseFields;
+        memset(&senseFields, 0, sizeof(senseDataFields));
+        uint16_t dataLength = device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks;//start with this size for now...
+        uint8_t *dataBuffer = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
+        if (device->drive_info.deviceMaxLba > UINT32_MAX)
+        {
+            ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
+        }
+        else
+        {
+            ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, (uint32_t)corruptLBA, dataLength, dataBuffer);
+        }
+        //ret should not be success and we should have an illegal length indicator set so we can reallocate and read the ecc bytes
+        memset(&senseFields, 0, sizeof(senseDataFields));
+        get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
+        if (senseFields.illegalLengthIndication && senseFields.valid)//spec says these bit should both be zero since we didn't do this request with enough bytes to read the ECC bytes
+        {
+            if (senseFields.fixedFormat)
+            {
+                dataLength += M_2sCOMPLEMENT(senseFields.fixedInformation);//length different is a twos compliment value since we requested less than is available.
+            }
+            else
+            {
+                dataLength += M_2sCOMPLEMENT(senseFields.descriptorInformation);//length different is a twos compliment value since we requested less than is available.
+            }
+            uint8_t *temp = (uint8_t*)realloc(dataBuffer, dataLength);
+            if (temp)
+            {
+                dataBuffer = temp;
+                memset(dataBuffer, 0, dataLength);
+                if (device->drive_info.deviceMaxLba > UINT32_MAX)
+                {
+                    ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
+                }
+                else
+                {
+                    ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, (uint32_t)corruptLBA, dataLength, dataBuffer);
+                }
+                if (ret != SUCCESS)
+                {
+                    ret = FAILURE;
+                }
+                else
+                {
+                    seed_64(time(NULL));
+                    //modify the user data to cause a uncorrectable error
+                    for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1); ++iter)
+                    {
+                        dataBuffer[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                    }
+                    //write it back to the drive
+                    if (device->drive_info.deviceMaxLba > UINT32_MAX)
+                    {
+                        ret = scsi_Write_Long_16(device, false, false, multipleLogicalPerPhysical, corruptLBA, dataLength, dataBuffer);
+                    }
+                    else
+                    {
+                        ret = scsi_Write_Long_10(device, false, false, multipleLogicalPerPhysical, (uint32_t)corruptLBA, dataLength, dataBuffer);
+                    }
+                }
+            }
+            else
+            {
+                ret = MEMORY_FAILURE;
+            }
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+        safe_Free(dataBuffer);
+    }
+    return ret;
+}

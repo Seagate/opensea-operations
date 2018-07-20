@@ -71,48 +71,6 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors);
 
-    //-----------------------------------------------------------------------------
-    //
-    //  create_Random_Uncorrectables()
-    //
-    //! \brief   Description:  This function creates random uncorrectable errors on the drive. All errors created are written to the entire physical sector of the drive. If the read flag is not set to true, these errors may not end up being logged in the Pending Defect list
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] numberOfRandomLBAs = number of random errors to create
-    //!   \param[in] readUncorrectables = set to true to read the lba after marking it bad with a psuedo uncorrectable error (recommended so it can be logged and tracked)
-    //!   \param[in] flaggedErrors = set to true to flag uncorrectable errors instead of creating pseudo uncorrectable errors. (Required on NVMe). Note: These errors cannot be logged. Use with caution!!!
-    //!   \param[in] updateFunction = callback function to update UI
-    //!   \param[in] updateData = hidden data to pass to the callback function
-    //!
-    //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  create_Uncorrectables()
-    //
-    //! \brief   Description:  This function creates a range of uncorrectable errors on the drive. All errors created are written to the entire physical sector of the drive, so if it's a 512/4k drive and the range specified is 16, this will create an error for 8 LBAs at LBA 1000 and 1008. If the read flag is not set to true, these errors may not end up being logged in the Pending Defect list
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] startingLBA = LBA to start writing errors at
-    //!   \param[in] range = number of LBAs after the starting LBA to write errors to
-    //!   \param[in] readUncorrectables = Flag to specify whether or not to issue read commands to the created error. This should always be set to true unless you know what you're doing
-    //!   \param[in] updateFunction = callback function to update UI
-    //!   \param[in] updateData = hidden data to pass to the callback function
-    //!
-    //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData);
-
-    OPENSEA_OPERATIONS_API int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData);
-
     OPENSEA_OPERATIONS_API int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled);
 
     //Use this call to determine if you've already logged an error in the list so that you don't log it again
@@ -122,10 +80,6 @@ extern "C"
     OPENSEA_OPERATIONS_API void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t *numberOfLBAsInTheList);
 
     OPENSEA_OPERATIONS_API uint32_t find_LBA_Entry_In_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba);//returns UINT32_MAX if not found
-
-    OPENSEA_OPERATIONS_API bool is_Read_Long_Write_Long_Supported(tDevice *device);
-
-    OPENSEA_OPERATIONS_API int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt);
 
 #if defined (__cplusplus)
 }
