@@ -541,6 +541,29 @@ extern "C" {
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
 
+#if !defined(DISABLE_NVME_PASSTHROUGH)
+    /**
+     * Seagate NVMe specific structures to identify all supported 
+     * log pages. 
+     */
+    typedef struct _logPageMapEntry
+    {
+        uint32_t logPageID;
+        uint32_t logPageSignature;
+        uint32_t logPageVersion;
+    } logPageMapEntry;
+    
+    #define MAX_LOG_PAGE_LEN    4096
+    #define MAX_SUPPORTED_LOG_PAGE_ENTRIES ((MAX_LOG_PAGE_LEN - sizeof(uint32_t)) / sizeof(logPageMapEntry))
+    
+    typedef struct _logPageMap
+    {
+       uint32_t numLogPages;
+       logPageMapEntry logPageEntry[MAX_SUPPORTED_LOG_PAGE_ENTRIES];
+    } logPageMap;
+    /* EOF Supported Log-Pages from FW */
+#endif
+
 #if defined(__cplusplus)
 }
 #endif
