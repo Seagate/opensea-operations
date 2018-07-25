@@ -3063,7 +3063,17 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
 {
     uint16_t pageNumber = M_BytesTo2ByteValue(M_Byte5(lba), M_Byte1(lba));
     uint8_t logAddress = M_Byte0(lba);
-    char logAddressName[31] = { 0 };
+    char logAddressName[32] = { 0 };
+    uint32_t logPageCount = count;
+    bool invalidLog = false;
+    if (commandOpCode == ATA_SEND_FPDMA || commandOpCode == ATA_RECEIVE_FPDMA)//these commands can encapsulate read/write log ext commands
+    {
+        logPageCount = features;
+    }
+    if (logPageCount == 0)
+    {
+        logPageCount = 65536;
+    }
     switch (logAddress)
     {
     case ATA_LOG_DIRECTORY:
@@ -3071,9 +3081,11 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
         break;
     case ATA_LOG_SUMMARY_SMART_ERROR_LOG://smart log...should be an error using this command!
         snprintf(logAddressName, 31, "Summary SMART Error");
+        invalidLog = true;
         break;
     case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG://smart log...should be an error using this command!
         snprintf(logAddressName, 31, "Comprehensive SMART Error");
+        invalidLog = true;
         break;
     case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG:
         snprintf(logAddressName, 31, "Ext Comprehensive SMART Error");
@@ -3083,6 +3095,7 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
         break;
     case ATA_LOG_SMART_SELF_TEST_LOG://smart log...should be an error using this command!
         snprintf(logAddressName, 31, "SMART Self-Test");
+        invalidLog = true;
         break;
     case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG:
         snprintf(logAddressName, 31, "Ext SMART Self-Test");
@@ -3090,8 +3103,9 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     case ATA_LOG_POWER_CONDITIONS:
         snprintf(logAddressName, 31, "Power Conditions");
         break;
-    case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+    case ATA_LOG_SELECTIVE_SELF_TEST_LOG://smart log...should be an error using this command!
         snprintf(logAddressName, 31, "Selective Self-Test");
+        invalidLog = true;
         break;
     case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION:
         snprintf(logAddressName, 31, "Device Statistics Notification");
@@ -3171,7 +3185,437 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
         }
         break;
     }
-    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s Page Number: %" PRIu16 " PageCount: %" PRIu16 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, count, features);
+    if (invalidLog)
+    {
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s (Invalid Address) Page Number: %" PRIu16 " PageCount: %" PRIu16 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, logPageCount, features);
+    }
+    else
+    {
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s Page Number: %" PRIu16 " PageCount: %" PRIu16 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, logPageCount, features);
+    }
+}
+
+void get_Download_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t subcommand = M_Byte0(features);
+    uint16_t blockCount = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
+    uint16_t bufferOffset = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
+    char subCommandName[21] = { 0 };
+    switch (subcommand)
+    {
+    case 0x01://immediate temporary use (obsolete)
+        snprintf(subCommandName, 20, "Temporary");
+        break;
+    case 0x03://offsets and save immediate
+        snprintf(subCommandName, 20, "Offsets - Immediate");
+        break;
+    case 0x07://save for immediate use (full buffer)
+        snprintf(subCommandName, 20, "Full - Immediate");
+        break;
+    case 0x0E://offsets and defer for future activation
+        snprintf(subCommandName, 20, "Offsets - Deferred");
+        break;
+    case 0x0F://Activate deferred code
+        snprintf(subCommandName, 20, "Activate");
+        break;
+    default://unknown because not yet defined when this was written
+        snprintf(subCommandName, 20, "Unknown Mode (%02" PRIX8 "h)", subcommand);
+        break;
+    }
+    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Mode: %s Block Count: %" PRIu16 " Buffer Offset: %" PRIu16 "", commandName, subCommandName, blockCount, bufferOffset);
+}
+
+void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t securityProtocol = M_Byte0(features);
+    uint16_t securityProtocolSpecific = M_BytesTo2ByteValue(M_Byte3(lba), M_Byte2(lba));
+    uint16_t transferLength = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
+    char securityProtocolName[21] = { 0 };
+    switch (securityProtocol)
+    {
+    case SECURITY_PROTOCOL_RETURN_SUPPORTED:
+        snprintf(securityProtocolName, 20, "Supported");
+        break;
+    case SECURITY_PROTOCOL_TCG_1:
+    case SECURITY_PROTOCOL_TCG_2:
+    case SECURITY_PROTOCOL_TCG_3:
+    case SECURITY_PROTOCOL_TCG_4:
+    case SECURITY_PROTOCOL_TCG_5:
+    case SECURITY_PROTOCOL_TCG_6:
+        snprintf(securityProtocolName, 20, "TCG %" PRIu8 "", securityProtocol);
+        break;
+    case SECURITY_PROTOCOL_CbCS:
+        snprintf(securityProtocolName, 20, "CbCS");
+        break;
+    case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
+        snprintf(securityProtocolName, 20, "Tape Encryption");
+        break;
+    case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
+        snprintf(securityProtocolName, 20, "Encryption Configuration");
+        break;
+    case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
+        snprintf(securityProtocolName, 20, "SA Creation Cap");
+        break;
+    case SECURITY_PROTOCOL_IKE_V2_SCSI:
+        snprintf(securityProtocolName, 20, "IKE V2 SCSI");
+        break;
+    case SECURITY_PROTOCOL_NVM_EXPRESS:
+        snprintf(securityProtocolName, 20, "NVM Express");
+        break;
+    case SECURITY_PROTOCOL_SCSA:
+        snprintf(securityProtocolName, 20, "SCSA");
+        break;
+    case SECURITY_PROTOCOL_JEDEC_UFS:
+        snprintf(securityProtocolName, 20, "JEDEC UFS");
+        break;
+    case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
+        snprintf(securityProtocolName, 20, "SD Trusted Flash");
+        break;
+    case SECURITY_PROTOCOL_IEEE_1667:
+        snprintf(securityProtocolName, 20, "IEEE 1667");
+        break;
+    case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
+        snprintf(securityProtocolName, 20, "ATA Security");
+        break;
+    default:
+        if (securityProtocol >= 0xF0 && securityProtocol <= 0xFF)
+        {
+            snprintf(securityProtocolName, 20, "Vendor Specific (%02" PRIX8"h)", securityProtocol);
+            break;
+        }
+        else
+        {
+            snprintf(securityProtocolName, 20, "Unknown (%02" PRIX8"h)", securityProtocol);
+            break;
+        }
+    }
+    if (commandOpCode == ATA_TRUSTED_NON_DATA)
+    {
+        transferLength = 0;
+        if (device & BIT0)//spec is a little misleading, but the bits 24:27 are in the device/head register on 28 bit commands
+        {
+            //receive
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s (Receive) - Protocol: %s Protocol Specific: %" PRIu16 "", commandName, securityProtocolName, securityProtocolSpecific);
+        }
+        else
+        {
+            //send
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s (Send) - Protocol: %s Protocol Specific: %" PRIu16 "", commandName, securityProtocolName, securityProtocolSpecific);
+        }
+    }
+    else
+    {
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Protocol: %s Protocol Specific: %" PRIu16 " Transfer Length: %" PRIu16 "", commandName, securityProtocolName, securityProtocolSpecific, transferLength);
+    }
+}
+
+void get_SMART_Offline_Immediate_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
+{
+    uint8_t offlineImmdTest = M_Byte0(lba);
+    char offlineTestName[31] = { 0 };
+    switch (offlineImmdTest)
+    {
+    case 0://SMART off-line routine (offline mode)
+        snprintf(offlineTestName, 30, "SMART Off-line routine");
+        break;
+    case 0x01://short self test (offline)
+        snprintf(offlineTestName, 30, "Short Self-Test (offline)");
+        break;
+    case 0x02://extended self test (offline)
+        snprintf(offlineTestName, 30, "Extended Self-Test (offline)");
+        break;
+    case 0x03://conveyance self test (offline)
+        snprintf(offlineTestName, 30, "Conveyance Self-Test (offline)");
+        break;
+    case 0x04://selective self test (offline)
+        snprintf(offlineTestName, 30, "Selective Self-Test (offline)");
+        break;
+    case 0x7F://abort offline test
+        snprintf(offlineTestName, 30, "Abort Self-Test");
+        break;
+    case 0x81://short self test (captive)
+        snprintf(offlineTestName, 30, "Short Self-Test (captive)");
+        break;
+    case 0x82://extended self test (captive)
+        snprintf(offlineTestName, 30, "Extended Self-Test (captive)");
+        break;
+    case 0x83://conveyance self test (captive)
+        snprintf(offlineTestName, 30, "Conveyance Self-Test (captive)");
+        break;
+    case 0x84://selective self test (captive)
+        snprintf(offlineTestName, 30, "Selective Self-Test (captive)");
+        break;
+    default:
+        if (offlineImmdTest >= 0x05 && offlineImmdTest <= 0x3F)
+        {
+            //reserved (offline)
+            snprintf(offlineTestName, 30, "Unknown %" PRIX8 "h (offline)", offlineImmdTest);
+        }
+        else if (offlineImmdTest == 0x80 || (offlineImmdTest >= 0x85 && offlineImmdTest <= 0x8F))
+        {
+            //reserved (captive)
+            snprintf(offlineTestName, 30, "Unknown %" PRIX8 "h (captive)", offlineImmdTest);
+        }
+        else if (offlineImmdTest >= 0x40 && offlineImmdTest <= 0x7E)
+        {
+            //vendor unique (offline)
+            snprintf(offlineTestName, 30, "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
+        }
+        else if (offlineImmdTest >= 0x90 && offlineImmdTest <= 0xFF)
+        {
+            //vendor unique (captive)
+            snprintf(offlineTestName, 30, "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
+        }
+        else
+        {
+            //shouldn't get here, but call it a generic unknown self test
+            snprintf(offlineTestName, 30, "Unknown %" PRIX8 "h", offlineImmdTest);
+        }
+        break;
+    }
+    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Offline Immediate: %s, SMART Signature %s", commandName, offlineTestName, smartSigValid);
+}
+
+void get_SMART_Log_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
+{
+    uint8_t logAddress = M_Byte0(lba);
+    char logAddressName[31] = { 0 };
+    uint8_t logPageCount = M_Byte0(count);
+    bool invalidLog = false;
+    switch (logAddress)
+    {
+    case ATA_LOG_DIRECTORY:
+        snprintf(logAddressName, 30, "Directory");
+        break;
+    case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
+        snprintf(logAddressName, 30, "Summary SMART Error");
+        break;
+    case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
+        snprintf(logAddressName, 30, "Comprehensive SMART Error");
+        break;
+    case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Ext Comprehensive SMART Error");
+        invalidLog = true;
+        break;
+    case ATA_LOG_DEVICE_STATISTICS:
+        snprintf(logAddressName, 30, "Device Statistics");
+        break;
+    case ATA_LOG_SMART_SELF_TEST_LOG:
+        snprintf(logAddressName, 30, "SMART Self-Test");
+        break;
+    case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Ext SMART Self-Test");
+        invalidLog = true;
+        break;
+    case ATA_LOG_POWER_CONDITIONS://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Power Conditions");
+        invalidLog = true;
+        break;
+    case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+        snprintf(logAddressName, 30, "Selective Self-Test");
+        break;
+    case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Device Statistics Notification");
+        invalidLog = true;
+        break;
+    case ATA_LOG_PENDING_DEFECTS_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Pending Defects");
+        invalidLog = true;
+        break;
+    case ATA_LOG_LPS_MISALIGNMENT_LOG:
+        snprintf(logAddressName, 30, "LPS Misalignment");
+        break;
+    case ATA_LOG_SENSE_DATA_FOR_SUCCESSFUL_NCQ_COMMANDS://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Sense Data for Successful NCQ");
+        invalidLog = true;
+        break;
+    case ATA_LOG_NCQ_COMMAND_ERROR_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "NCQ Command Errors");
+        invalidLog = true;
+        break;
+    case ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "SATA Phy Event Counters");
+        invalidLog = true;
+        break;
+    case ATA_LOG_SATA_NCQ_QUEUE_MANAGEMENT_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "NCQ Queue Management");
+        invalidLog = true;
+        break;
+    case ATA_LOG_SATA_NCQ_SEND_AND_RECEIVE_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "NCQ Send and Receive");
+        invalidLog = true;
+        break;
+    case ATA_LOG_HYBRID_INFORMATION://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Hybrid Information");
+        invalidLog = true;
+        break;
+    case ATA_LOG_REBUILD_ASSIST://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Rebuild Assist");
+        invalidLog = true;
+        break;
+    case ATA_LOG_LBA_STATUS://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "LBA Status");
+        invalidLog = true;
+        break;
+    case ATA_LOG_STREAMING_PERFORMANCE://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Streaming Performance");
+        invalidLog = true;
+        break;
+    case ATA_LOG_WRITE_STREAM_ERROR_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Write Stream Errors");
+        invalidLog = true;
+        break;
+    case ATA_LOG_READ_STREAM_ERROR_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Read Stream Errors");
+        invalidLog = true;
+        break;
+    case ATA_LOG_DELAYED_LBA_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Delayed LBA");
+        invalidLog = true;
+        break;
+    case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Current Device Internal Status");
+        invalidLog = true;
+        break;
+    case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Saved Device Internal Status");
+        invalidLog = true;
+        break;
+    case ATA_LOG_SECTOR_CONFIGURATION_LOG://GPL log...should be an error using this command!
+        snprintf(logAddressName, 30, "Sector Configuration");
+        invalidLog = true;
+        break;
+    case ATA_LOG_IDENTIFY_DEVICE_DATA:
+        snprintf(logAddressName, 30, "Identify Device Data");
+        break;
+    case ATA_SCT_COMMAND_STATUS:
+        snprintf(logAddressName, 30, "SCT Command/Status");
+        break;
+    case ATA_SCT_DATA_TRANSFER:
+        snprintf(logAddressName, 30, "SCT Data Transfer");
+        break;
+    default:
+        if (logAddress >= 0x80 && logAddress <= 0x9F)
+        {
+            snprintf(logAddressName, 30, "Host Specific");
+        }
+        else if (logAddress >= 0xA0 && logAddress <= 0xDF)
+        {
+            snprintf(logAddressName, 30, "Vendor Specific");
+        }
+        else
+        {
+            snprintf(logAddressName, 30, "Unknown");
+        }
+        break;
+    }
+    if (invalidLog)
+    {
+        if (M_Byte0(features) == 0xD5)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Read Log - Log: %s (Invalid Address) PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Write Log - Log: %s (Invalid Address) PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+        }
+    }
+    else
+    {
+        if (M_Byte0(features) == 0xD5)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Read Log- Log: %s PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Write Log- Log: %s PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+        }
+    }
+}
+
+void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t subcommand = M_Byte0(features);
+    uint16_t smartSignature = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
+    char smartSigValid[11] = { 0 };
+    if (smartSignature == 0xC24F)
+    {
+        snprintf(smartSigValid, 10, "Valid");
+    }
+    else
+    {
+        snprintf(smartSigValid, 10, "Invalid");
+    }
+    switch (subcommand)
+    {
+    case ATA_SMART_READ_DATA:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Read SMART Data, SMART Signature %s", commandName, smartSigValid);
+        break;
+    case ATA_SMART_RDATTR_THRESH:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Read SMART Threshold Data, SMART Signature %s", commandName, smartSigValid);
+        break;
+    case ATA_SMART_SW_AUTOSAVE:
+        if (M_Byte0(count) == 0xF1)//enable
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
+        }
+        else if (M_Byte0(count) == 0)//disable
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
+        }
+        else //invalid field for this command
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Attribute Autosave request %" PRIX8 "h, SMART Signature %s", commandName, M_Byte0(count), smartSigValid);
+        }
+        break;
+    case ATA_SMART_SAVE_ATTRVALUE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Save Attributes, SMART Signature %s", commandName, smartSigValid);
+        break;
+    case ATA_SMART_EXEC_OFFLINE_IMM:
+        get_SMART_Offline_Immediate_Info(commandName, commandOpCode, features, count, lba, device, commandInfo, (const char*)smartSigValid);
+        break;
+    case ATA_SMART_READ_LOG:
+    case ATA_SMART_WRITE_LOG:
+        get_SMART_Log_Info(commandName, commandOpCode, features, count, lba, device, commandInfo, (const char*)smartSigValid);
+        break;
+    //case ATA_SMART_WRATTR_THRESH:some things say vendor specific, others say obsolete
+    case ATA_SMART_ENABLE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Operations, SMART Signature %s", commandName, smartSigValid);
+        break;
+    case ATA_SMART_DISABLE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Operations, SMART Signature %s", commandName, smartSigValid);
+        break;
+    case ATA_SMART_RTSMART:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Return Status, SMART Signature %s", commandName, smartSigValid);
+        break;
+    case ATA_SMART_AUTO_OFFLINE:
+        if (M_Byte0(count) == 0xF8)//enable
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Auto Offline, SMART Signature %s", commandName, smartSigValid);
+        }
+        else if (M_Byte0(count) == 0)//disable
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Auto Offline, SMART Signature %s", commandName, smartSigValid);
+        }
+        else //invalid field for this command
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Auto Offline request %" PRIX8 "h, SMART Signature %s", commandName, M_Byte0(count), smartSigValid);
+        }
+        break;
+    default:
+        if ((subcommand >= 0x00 && subcommand <= 0xCF)
+            || (subcommand >= 0xDC && subcommand <= 0xDF))
+        {
+            //reserved
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Command %" PRIX8 "h, LBA Low: %" PRIX8 "h, Device: %" PRIX8 "h SMART Signature %s", commandName, subcommand, M_Byte0(lba), device, smartSigValid);
+        }
+        else
+        {
+            //vendor unique
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Unique %" PRIX8 "h, LBA Low: %" PRIX8 "h, Device: %" PRIX8 "h SMART Signature %s", commandName, subcommand, M_Byte0(lba), device, smartSigValid);
+        }
+        break;
+    }
 }
 
 void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
@@ -3266,6 +3710,11 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
             uint8_t reportType = M_GETBITRANGE(features, 11, 8);
 			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8" Report Type: %" PRIu8 "", lba, filter, reportType);
 		}
+        else if (count != 0)
+        {
+            //TODO: features, lba, etc
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command (%02" PRIX8 "h)", commandOpCode);
+        }
 		else
 		{
 			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Recalibrate (%02" PRIX8 "h)", commandOpCode);
@@ -3384,19 +3833,19 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_GPL_Log_Command_Info("Write Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_TRUSTED_NON_DATA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Non-Data");
+        get_Trusted_Command_Info("Trusted Non-Data", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_TRUSTED_RECEIVE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Receive");
+        get_Trusted_Command_Info("Trusted Receive", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_TRUSTED_RECEIVE_DMA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Receive DMA");
+        get_Trusted_Command_Info("Trusted Receive DMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_TRUSTED_SEND:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Send");
+        get_Trusted_Command_Info("Trusted Send", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_TRUSTED_SEND_DMA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Send DMA");
+        get_Trusted_Command_Info("Trusted Send DMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_READ_FPDMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Read FPDMA Queued", commandOpCode, features, count, lba, device, commandInfo);
@@ -3405,7 +3854,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Read_Write_Command_Info("Write FPDMA Queued", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_FPDMA_NON_DATA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "FPDMA Non-Data");
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NCQ Non-Data");
 		break;
 	case ATA_SEND_FPDMA:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Send FPDMA");
@@ -3414,6 +3863,21 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Receive FPDMA");
 		break;
 	case ATA_SEEK_CMD://TODO: seek can be 7xh....but that also conflicts with new command definitions
+    case 0x71:
+    case 0x72:
+    case 0x73:
+    case 0x74:
+    case 0x75:
+    case 0x76:
+    //case 0x77:
+    //case 0x78:
+    case 0x79:
+    case 0x7B:
+    case 0x7A:
+    //case 0x7C:
+    case 0x7D:
+    case 0x7E:
+    case 0x7F:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek");
 		break;
 	case ATA_SET_DATE_AND_TIME_EXT://77h
@@ -3432,10 +3896,10 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters");
 		break;
 	case ATA_DOWNLOAD_MICROCODE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Download Microcode");
+        get_Download_Command_Info("Download Microcode", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_DOWNLOAD_MICROCODE_DMA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Download Microcode DMA");
+        get_Download_Command_Info("Download Microcode DMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_LEGACY_ALT_STANDBY_IMMEDIATE:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (%02" PRIX8 "h)", commandOpCode);
@@ -3466,8 +3930,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
 		break;
 	case ATA_SMART:
-		//todo: parse the feature
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "SMART");
+        get_SMART_Command_Info("SMART", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_DCO:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "DCO");
