@@ -2872,3 +2872,858 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
     }
     return ret;
 }
+
+#define ATA_COMMAND_INFO_MAX_LENGTH UINT8_C(4096) //making this bigger than we need for the moment
+//only to be used for the commands defined in the switch! Other commands are not supported by this function!
+void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    bool isLBAMode = (device & LBA_MODE_BIT);//almost everything should be LBA mode. Only a few CHS things should be here, but we need to handle them
+    bool ext = false;//48bit command
+    bool async = false;//dma queued and fpdma
+    bool stream = false;//read/write stream
+    bool streamDir = false;//true = write
+    bool longCmd = false;//read/write long
+    bool fpdma = false;
+    //bool noRetries = false;
+    uint64_t commandLBA = lba;
+    uint32_t sectorsToTransfer = count;//true for synchronous commands...
+    switch (commandOpCode)
+    {
+    case ATA_WRITE_LONG_NORETRY:
+    case ATA_READ_LONG_NORETRY:
+        //noRetries = true;
+    case ATA_READ_LONG_RETRY:
+    case ATA_WRITE_LONG_RETRY:
+        longCmd = true;
+        break;
+    case ATA_READ_SECT_NORETRY:
+    case ATA_WRITE_SECT_NORETRY:
+    case ATA_READ_DMA_NORETRY:
+    case ATA_WRITE_DMA_NORETRY:
+        //noRetries = true;
+    case ATA_READ_SECT:
+    case ATA_WRITE_SECT:
+    case ATA_WRITE_SECTV_RETRY:
+    case ATA_READ_MULTIPLE:
+    case ATA_WRITE_MULTIPLE:
+    case ATA_READ_DMA_RETRY:
+    case ATA_WRITE_DMA_RETRY:
+        break;
+    case ATA_READ_SECT_EXT:
+    case ATA_READ_DMA_EXT:
+    case ATA_READ_READ_MULTIPLE_EXT:
+    case ATA_WRITE_MULTIPLE_FUA_EXT:
+    case ATA_WRITE_SECT_EXT:
+    case ATA_WRITE_DMA_EXT:
+    case ATA_WRITE_MULTIPLE_EXT:
+    case ATA_WRITE_DMA_FUA_EXT:
+        ext = true;
+        break;
+    case ATA_WRITE_STREAM_DMA_EXT:
+    case ATA_WRITE_STREAM_EXT:
+        streamDir = true;
+    case ATA_READ_STREAM_DMA_EXT:
+    case ATA_READ_STREAM_EXT:
+        ext = true;
+        stream = true;
+        break;
+    case ATA_READ_VERIFY_NORETRY:
+        //noRetries = true;
+    case ATA_READ_VERIFY_RETRY:
+        break;
+    case ATA_READ_VERIFY_EXT:
+        ext = true;
+        break;
+    case ATA_READ_FPDMA_QUEUED_CMD:
+    case ATA_WRITE_FPDMA_QUEUED_CMD:
+        fpdma = true;
+    case ATA_READ_DMA_QUE_EXT:
+    case ATA_WRITE_DMA_QUE_FUA_EXT:
+    case ATA_WRITE_DMA_QUE_EXT:
+        ext = true;
+    case ATA_WRITE_DMA_QUEUED_CMD:
+    case ATA_READ_DMA_QUEUED_CMD:
+        async = true;
+        sectorsToTransfer = features;//number of sectors to tansfer
+        break;
+    default://unknown command...
+        return;
+        break;
+    }
+    if (async)
+    {
+        //parse out fields we need for command info for asynchronous commands
+        if (ext)
+        {
+            //interpretting all of this as LBA mode since spec requires it
+            bool forceUnitAccess = device & BIT7;//fpdma only
+            uint8_t prio = M_GETBITRANGE(count, 15, 14);//fpdma only
+            uint8_t tag = M_GETBITRANGE(count, 7, 3);
+            bool rarc = count & BIT0;//read fpdma only
+            if (sectorsToTransfer == 0)
+            {
+                sectorsToTransfer = 65536;
+            }
+            if (fpdma)
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu64 " Count: %" PRIu32 " NCQ Tag: %" PRIu8 " FUA: %d PRIO: %" PRIu8 "", commandName, lba, sectorsToTransfer, tag, forceUnitAccess, prio);
+            }
+            else
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu64 " Count: %" PRIu32 " Tag: %" PRIu8 "", commandName, lba, sectorsToTransfer, tag);
+            }
+        }
+        else //old dma queued commands
+        {
+            uint8_t tag = M_GETBITRANGE(count, 7, 3);
+            if (sectorsToTransfer == 0)
+            {
+                sectorsToTransfer = 256;
+            }
+            if (isLBAMode)//probably not necessary since these commands only ever reference LBA mode...
+            {
+                uint32_t readSecLBA = M_Nibble0(device) << 24;
+                readSecLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu16 " Tag: %" PRIu8 "", commandName, readSecLBA, sectorsToTransfer, tag);
+            }
+            else
+            {
+                uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
+                uint8_t head = M_Nibble0(device);
+                uint8_t sector = M_Byte0(lba);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu16 " Tag: %" PRIu8 "", commandName, cylinder, head, sector, sectorsToTransfer, tag);
+            }
+        }
+    }
+    else
+    {
+        if (ext)
+        {
+            if (sectorsToTransfer == 0)
+            {
+                sectorsToTransfer = 65536;
+            }
+            if (isLBAMode)
+            {
+                if (stream)
+                {
+                    uint8_t cctl = M_Byte1(features);
+                    bool urgentTransferRequest = features & BIT7;
+                    bool readWriteContinuous = features & BIT6;
+                    bool notSequentialORFlush = features & BIT5;//not sequential = read; flush = write
+                    bool handleStreamingError = features & BIT4;
+                    //bool reserved = features & BIT2;
+                    uint8_t streamID = M_GETBITRANGE(features, 2, 0);
+                    if (streamDir)//true = write
+                    {
+                        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu64 " Count: %" PRIu32 " StreamID: %" PRIu8 " CCTL: %" PRIu8 " Urgent: %d WC: %d Flush %d HSE: %d", commandName, lba, sectorsToTransfer, streamID, cctl, urgentTransferRequest, readWriteContinuous, notSequentialORFlush, handleStreamingError);
+                    }
+                    else
+                    {
+                        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu64 " Count: %" PRIu32 " StreamID: %" PRIu8 " CCTL: %" PRIu8 " Urgent: %d RC: %d NC %d HSE: %d", commandName, lba, sectorsToTransfer, streamID, cctl, urgentTransferRequest, readWriteContinuous, notSequentialORFlush, handleStreamingError);
+                    }
+                }
+                else
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, lba, sectorsToTransfer);
+                }
+            }
+            else //unlikely...most or all transfers should be LBA mode for this command...ATA6 does not require LBA mode bit set like later specifications do
+            {
+                uint32_t cylinder = M_BytesTo4ByteValue(M_Byte5(lba), M_Byte4(lba), M_Byte2(lba), M_Byte1(lba));
+                uint8_t head = M_Nibble0(device);
+                uint16_t sector = M_BytesTo2ByteValue(M_Byte3(lba), M_Byte0(lba));
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Cylinder: %" PRIu32 " Head: %" PRIu8 " Sector: %" PRIu16 " Count: %" PRIu32 "", commandName, cylinder, head, sector, sectorsToTransfer);
+            }
+        }
+        else
+        {
+            if (sectorsToTransfer == 0)
+            {
+                sectorsToTransfer = 256;
+            }
+            if (isLBAMode)
+            {
+                uint32_t readSecLBA = M_Nibble0(device) << 24;
+                readSecLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu16 "", commandName, readSecLBA, sectorsToTransfer);
+            }
+            else
+            {
+                uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
+                uint8_t head = M_Nibble0(device);
+                uint8_t sector = M_Byte0(lba);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu16 "", commandName, cylinder, head, sector, sectorsToTransfer);
+            }
+        }
+    }
+}
+
+void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint16_t pageNumber = M_BytesTo2ByteValue(M_Byte5(lba), M_Byte1(lba));
+    uint8_t logAddress = M_Byte0(lba);
+    char logAddressName[31] = { 0 };
+    switch (logAddress)
+    {
+    case ATA_LOG_DIRECTORY:
+        snprintf(logAddressName, 31, "Directory");
+        break;
+    case ATA_LOG_SUMMARY_SMART_ERROR_LOG://smart log...should be an error using this command!
+        snprintf(logAddressName, 31, "Summary SMART Error");
+        break;
+    case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG://smart log...should be an error using this command!
+        snprintf(logAddressName, 31, "Comprehensive SMART Error");
+        break;
+    case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG:
+        snprintf(logAddressName, 31, "Ext Comprehensive SMART Error");
+        break;
+    case ATA_LOG_DEVICE_STATISTICS:
+        snprintf(logAddressName, 31, "Device Statistics");
+        break;
+    case ATA_LOG_SMART_SELF_TEST_LOG://smart log...should be an error using this command!
+        snprintf(logAddressName, 31, "SMART Self-Test");
+        break;
+    case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG:
+        snprintf(logAddressName, 31, "Ext SMART Self-Test");
+        break;
+    case ATA_LOG_POWER_CONDITIONS:
+        snprintf(logAddressName, 31, "Power Conditions");
+        break;
+    case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+        snprintf(logAddressName, 31, "Selective Self-Test");
+        break;
+    case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION:
+        snprintf(logAddressName, 31, "Device Statistics Notification");
+        break;
+    case ATA_LOG_PENDING_DEFECTS_LOG:
+        snprintf(logAddressName, 31, "Pending Defects");
+        break;
+    case ATA_LOG_LPS_MISALIGNMENT_LOG:
+        snprintf(logAddressName, 31, "LPS Misalignment");
+        break;
+    case ATA_LOG_SENSE_DATA_FOR_SUCCESSFUL_NCQ_COMMANDS:
+        snprintf(logAddressName, 31, "Sense Data for Successful NCQ");
+        break;
+    case ATA_LOG_NCQ_COMMAND_ERROR_LOG:
+        snprintf(logAddressName, 31, "NCQ Command Errors");
+        break;
+    case ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG:
+        snprintf(logAddressName, 31, "SATA Phy Event Counters");
+        break;
+    case ATA_LOG_SATA_NCQ_QUEUE_MANAGEMENT_LOG:
+        snprintf(logAddressName, 31, "NCQ Queue Management");
+        break;
+    case ATA_LOG_SATA_NCQ_SEND_AND_RECEIVE_LOG:
+        snprintf(logAddressName, 31, "NCQ Send and Receive");
+        break;
+    case ATA_LOG_HYBRID_INFORMATION:
+        snprintf(logAddressName, 31, "Hybrid Information");
+        break;
+    case ATA_LOG_REBUILD_ASSIST:
+        snprintf(logAddressName, 31, "Rebuild Assist");
+        break;
+    case ATA_LOG_LBA_STATUS:
+        snprintf(logAddressName, 31, "LBA Status");
+        break;
+    case ATA_LOG_STREAMING_PERFORMANCE:
+        snprintf(logAddressName, 31, "Streaming Performance");
+        break;
+    case ATA_LOG_WRITE_STREAM_ERROR_LOG:
+        snprintf(logAddressName, 31, "Write Stream Errors");
+        break;
+    case ATA_LOG_READ_STREAM_ERROR_LOG:
+        snprintf(logAddressName, 31, "Read Stream Errors");
+        break;
+    case ATA_LOG_DELAYED_LBA_LOG:
+        snprintf(logAddressName, 31, "Delayed LBA");
+        break;
+    case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG:
+        snprintf(logAddressName, 31, "Current Device Internal Status");
+        break;
+    case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG:
+        snprintf(logAddressName, 31, "Saved Device Internal Status");
+        break;
+    case ATA_LOG_SECTOR_CONFIGURATION_LOG:
+        snprintf(logAddressName, 31, "Sector Configuration");
+        break;
+    case ATA_LOG_IDENTIFY_DEVICE_DATA:
+        snprintf(logAddressName, 31, "Identify Device Data");
+        break;
+    case ATA_SCT_COMMAND_STATUS:
+        snprintf(logAddressName, 31, "SCT Command/Status");
+        break;
+    case ATA_SCT_DATA_TRANSFER:
+        snprintf(logAddressName, 31, "SCT Data Transfer");
+        break;
+    default:
+        if (logAddress >= 0x80 && logAddress <= 0x9F)
+        {
+            snprintf(logAddressName, 31, "Host Specific");
+        }
+        else if (logAddress >= 0xA0 && logAddress <= 0xDF)
+        {
+            snprintf(logAddressName, 31, "Vendor Specific");
+        }
+        else
+        {
+            snprintf(logAddressName, 31, "Unknown");
+        }
+        break;
+    }
+    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s Page Number: %" PRIu16 " PageCount: %" PRIu16 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, count, features);
+}
+
+void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    //TODO: some commands leave some registers reserved. Add handling when some of these reserved registers are set to non-zero values
+	switch (commandOpCode)
+	{
+	case ATA_NOP_CMD:
+		switch (features)
+		{
+		case 0:
+			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP");
+			break;
+		case 1:
+			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (Auto Poll)");
+			break;
+		default:
+			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (subcommand %02" PRIx8 "h", (uint8_t)features);
+			break;
+		}
+		break;
+	case ATA_DATA_SET_MANAGEMENT_CMD:
+		if (features & BIT0)
+		{
+			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - TRIM");
+		}
+		else
+		{
+            uint8_t dsmFunction = M_Byte1(features);
+            switch (dsmFunction)
+            {
+            case 0x00://reserved
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - Reserved DSM function");
+                break;
+            case 0x01://markup LBA ranges
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - Markup LBA ranges");
+                break;
+            default://unknown or not defined as of ACS4
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - Unknown DSM function - %" PRIu8 "", dsmFunction);
+                break;
+            }
+		}
+		break;
+	case ATA_DATA_SET_MANAGEMENT_XL_CMD:
+        if (features & BIT0)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management XL - TRIM");
+        }
+        else
+        {
+            uint8_t dsmFunction = M_Byte1(features);
+            switch (dsmFunction)
+            {
+            case 0x00://reserved
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management XL - Reserved DSM function");
+                break;
+            case 0x01://markup LBA ranges
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management XL - Markup LBA ranges");
+                break;
+            default://unknown or not defined as of ACS4
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management XL - Unknown DSM function - %" PRIu8 "", dsmFunction);
+                break;
+            }
+        }
+		break;
+	case ATA_DEV_RESET:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Device Reset");
+		break;
+	case ATA_REQUEST_SENSE_DATA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Request Sense Data");
+		break;
+	case ATA_RECALIBRATE://this can have various values for the lower nibble which conflict with new command standards
+	case 0x11:
+	//case ATA_GET_PHYSICAL_ELEMENT_STATUS://or recalibrate? check the count register...it should be non-zero
+	case 0x12:
+	case 0x13:
+	case 0x14:
+	case 0x15:
+	case 0x16:
+	case 0x17:
+	case 0x18:
+	case 0x19:
+	case 0x1A:
+	case 0x1B:
+	case 0x1C:
+	case 0x1D:
+	case 0x1E:
+	case 0x1F:
+		if (commandOpCode == ATA_GET_PHYSICAL_ELEMENT_STATUS && count != 0)
+		{
+            uint8_t filter = M_GETBITRANGE(features, 15, 14);
+            uint8_t reportType = M_GETBITRANGE(features, 11, 8);
+			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8" Report Type: %" PRIu8 "", lba, filter, reportType);
+		}
+		else
+		{
+			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Recalibrate (%02" PRIX8 "h)", commandOpCode);
+		}
+		break;
+	case ATA_READ_SECT:
+        get_Read_Write_Command_Info("Read Sectors", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_SECT_NORETRY:
+        get_Read_Write_Command_Info("Read Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_LONG_RETRY:
+        get_Read_Write_Command_Info("Read Long", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_LONG_NORETRY:
+        get_Read_Write_Command_Info("Read Long (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_SECT_EXT:
+        get_Read_Write_Command_Info("Read Sectors Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_DMA_EXT:
+        get_Read_Write_Command_Info("Read DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_DMA_QUE_EXT:
+        get_Read_Write_Command_Info("Read DMA Queued Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_MAX_ADDRESS_EXT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address Ext");
+		break;
+	case ATA_READ_READ_MULTIPLE_EXT:
+        get_Read_Write_Command_Info("Read Multiple Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_STREAM_DMA_EXT:
+        get_Read_Write_Command_Info("Read Stream DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_STREAM_EXT:
+        get_Read_Write_Command_Info("Read Stream Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_LOG_EXT:
+        get_GPL_Log_Command_Info("Read Log Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_SECT:
+        get_Read_Write_Command_Info("Write Sectors", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_SECT_NORETRY:
+        get_Read_Write_Command_Info("Write Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_LONG_RETRY:
+        get_Read_Write_Command_Info("Write Long", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_LONG_NORETRY:
+        get_Read_Write_Command_Info("Write Long (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_SECT_EXT:
+        get_Read_Write_Command_Info("Write Sectors Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_DMA_EXT:
+        get_Read_Write_Command_Info("Write DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_DMA_QUE_EXT:
+        get_Read_Write_Command_Info("Write DMA Queued Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_SET_MAX_EXT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Max Address Ext");
+		break;
+	case ATA_WRITE_MULTIPLE_EXT:
+        get_Read_Write_Command_Info("Write Multiple Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_STREAM_DMA_EXT:
+        get_Read_Write_Command_Info("Write Stream DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_STREAM_EXT:
+        get_Read_Write_Command_Info("Write Stream Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_SECTV_RETRY:
+        get_Read_Write_Command_Info("Write Verify", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_DMA_FUA_EXT:
+        get_Read_Write_Command_Info("Write DMA FUA Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_DMA_QUE_FUA_EXT:
+        get_Read_Write_Command_Info("Write DMA Queued FUA Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_LOG_EXT_CMD:
+        get_GPL_Log_Command_Info("Write Log Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_VERIFY_RETRY:
+        get_Read_Write_Command_Info("Read Verify", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_VERIFY_NORETRY:
+        get_Read_Write_Command_Info("Read Verify (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_VERIFY_EXT:
+        get_Read_Write_Command_Info("Read Verify Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_ZEROS_EXT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Zeros Ext");
+		break;
+	case ATA_WRITE_UNCORRECTABLE_EXT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Uncorrectable Ext");
+		break;
+	case ATA_READ_LOG_EXT_DMA:
+        get_GPL_Log_Command_Info("Read Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_ZONE_MANAGEMENT_IN:
+		//todo: parse feature for what the command is asking to do
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Zone Management In");
+		break;
+	case ATA_FORMAT_TRACK:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
+		break;
+	case ATA_CONFIGURE_STREAM:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Configure Stream");
+		break;
+	case ATA_WRITE_LOG_EXT_DMA:
+        get_GPL_Log_Command_Info("Write Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_TRUSTED_NON_DATA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Non-Data");
+		break;
+	case ATA_TRUSTED_RECEIVE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Receive");
+		break;
+	case ATA_TRUSTED_RECEIVE_DMA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Receive DMA");
+		break;
+	case ATA_TRUSTED_SEND:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Send");
+		break;
+	case ATA_TRUSTED_SEND_DMA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Trusted Send DMA");
+		break;
+	case ATA_READ_FPDMA_QUEUED_CMD:
+        get_Read_Write_Command_Info("Read FPDMA Queued", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_FPDMA_QUEUED_CMD:
+        get_Read_Write_Command_Info("Write FPDMA Queued", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_FPDMA_NON_DATA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "FPDMA Non-Data");
+		break;
+	case ATA_SEND_FPDMA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Send FPDMA");
+		break;
+	case ATA_RECEIVE_FPDMA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Receive FPDMA");
+		break;
+	case ATA_SEEK_CMD://TODO: seek can be 7xh....but that also conflicts with new command definitions
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek");
+		break;
+	case ATA_SET_DATE_AND_TIME_EXT://77h
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Date And Time Ext");
+		break;
+	case ATA_ACCESSABLE_MAX_ADDR://TODO: subcommands //78h
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Accessable Max Address");
+		break;
+	case ATA_REMOVE_AND_TRUNCATE://7Ch
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Remove And Truncate");
+		break;
+	case ATA_EXEC_DRV_DIAG:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
+		break;
+	case ATA_INIT_DRV_PARAM:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters");
+		break;
+	case ATA_DOWNLOAD_MICROCODE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Download Microcode");
+		break;
+	case ATA_DOWNLOAD_MICROCODE_DMA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Download Microcode DMA");
+		break;
+	case ATA_LEGACY_ALT_STANDBY_IMMEDIATE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (%02" PRIX8 "h)", commandOpCode);
+		break;
+	case ATA_LEGACY_ALT_IDLE_IMMEDIATE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle Immediate (%02" PRIX8 "h)", commandOpCode);
+		break;
+	case ATA_LEGACY_ALT_STANDBY:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby (%02" PRIX8 "h)", commandOpCode);
+		break;
+	case ATA_LEGACY_ALT_IDLE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle (%02" PRIX8 "h)", commandOpCode);
+		break;
+	case ATA_LEGACY_ALT_CHECK_POWER_MODE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Check Power Mode (%02" PRIX8 "h)", commandOpCode);
+		break;
+	case ATA_LEGACY_ALT_SLEEP:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (%02" PRIX8 "h)", commandOpCode);
+		break;
+	case ATA_ZONE_MANAGEMENT_OUT:
+		//todo: parse the feature
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Zone Management Out");
+		break;
+	case ATAPI_COMMAND:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "ATA Packet Command");
+		break;
+	case ATAPI_IDENTIFY:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
+		break;
+	case ATA_SMART:
+		//todo: parse the feature
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "SMART");
+		break;
+	case ATA_DCO:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "DCO");
+		break;
+	case ATA_SET_SECTOR_CONFIG_EXT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Sector Configuration Ext");
+		break;
+	case ATA_SANITIZE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sanitize");
+		break;
+	case ATA_NV_CACHE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NVCache");
+		break;
+	case ATA_READ_MULTIPLE:
+        get_Read_Write_Command_Info("Read Multiple", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_MULTIPLE:
+        get_Read_Write_Command_Info("Write Multiple", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_SET_MULTIPLE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Multiple");
+		break;
+	case ATA_READ_DMA_QUEUED_CMD:
+        get_Read_Write_Command_Info("Read DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_DMA_RETRY:
+        get_Read_Write_Command_Info("Read DMA", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_READ_DMA_NORETRY:
+        get_Read_Write_Command_Info("Read DMA (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_DMA_RETRY:
+        get_Read_Write_Command_Info("Write DMA", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_DMA_NORETRY:
+        get_Read_Write_Command_Info("Write DMA (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_DMA_QUEUED_CMD:
+        get_Read_Write_Command_Info("Write DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_WRITE_MULTIPLE_FUA_EXT:
+        get_Read_Write_Command_Info("Write Multiple FUA Ext", commandOpCode, features, count, lba, device, commandInfo);
+		break;
+	case ATA_GET_MEDIA_STATUS:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Media Status");
+		break;
+	case ATA_ACK_MEDIA_CHANGE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Acknowledge Media Change");
+		break;
+	case ATA_POST_BOOT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Post Boot");
+		break;
+	case ATA_PRE_BOOT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Pre Boot");
+		break;
+	case ATA_DOOR_LOCK:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Lock");
+		break;
+	case ATA_DOOR_UNLOCK:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Unlock");
+		break;
+	case ATA_STANDBY_IMMD:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby Immediate");
+		break;
+	case ATA_IDLE_IMMEDIATE_CMD:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
+		break;
+	case ATA_STANDBY:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby");
+		break;
+	case ATA_IDLE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle");
+		break;
+	case ATA_READ_BUF:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
+		break;
+	case ATA_CHECK_POWER_MODE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Check Power Mode");
+		break;
+	case ATA_SLEEP_CMD:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sleep");
+		break;
+	case ATA_FLUSH_CACHE:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache");
+		break;
+	case ATA_WRITE_BUF:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer");
+		break;
+	case ATA_READ_BUF_DMA:
+		//TODO: Check feature register to see if this is the legacy write same command
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer DMA");
+		break;
+		//case ATA_LEGACY_WRITE_SAME:
+	case ATA_FLUSH_CACHE_EXT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache Ext");
+		break;
+	case ATA_WRITE_BUF_DMA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer DMA");
+		break;
+	case ATA_IDENTIFY:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify");
+		break;
+	case ATA_MEDIA_EJECT:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Media Eject");
+		break;
+	case ATA_IDENTIFY_DMA:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify DMA");
+		break;
+	case ATA_SET_FEATURE: //todo: parse feature
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Features");
+		break;
+	case ATA_SECURITY_SET_PASS:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Set Password");
+		break;
+	case ATA_SECURITY_UNLOCK_CMD:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Unlock");
+		break;
+	case ATA_SECURITY_ERASE_PREP:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Prepare");
+		break;
+	case ATA_SECURITY_ERASE_UNIT_CMD:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Unit");
+		break;
+	case ATA_SECURITY_FREEZE_LOCK_CMD:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Freeze Lock");
+		break;
+	case ATA_SECURITY_DISABLE_PASS:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Disable Password");
+		break;
+	case ATA_READ_MAX_ADDRESS:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address");
+		break;
+	case ATA_SET_MAX:
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Max Address");
+		break;
+	default:
+        if ((commandOpCode >= 0x80 && commandOpCode <= 0x8F)
+            || commandOpCode == 0x9A
+            || (commandOpCode >= 0xC0 && commandOpCode <= 0xC3)
+            || commandOpCode == 0xF0
+            || commandOpCode == 0xF7
+            || (commandOpCode >= 0xFA && commandOpCode <= 0xFF)
+            )
+        {
+            //NOTE: The above if is far from perfect...there are some commands that were once VU in old standards that have been defined in newer ones...this is as close as I care to get this.
+            //NOTE2: A couple of the op codes above may be for CFA, or reserved for CFA. Don't care right now since we are unlikely to see a CFA device with this code.
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Vendor Unique Command %02" PRIx8 "h", commandOpCode);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command %02" PRIx8 "h", commandOpCode);
+        }
+		break;
+	}
+}
+
+void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool errorCommandsOnly /*if this is set, don't show the commands leading up to the error (if available)*/)
+{
+	if (errorLogData)
+	{
+		printf("SMART Comprehensive Error Log");
+		if (errorLogData->extLog)
+		{
+			printf(" (EXT)");
+		}
+		printf("- Version %" PRIu8 ":\n", errorLogData->version);
+		if (errorLogData->numberOfEntries == 0)
+		{
+			printf("\tNo errors found!\n");
+		}
+		else
+		{
+			printf("\tFound %" PRIu8" errors! Total Error Count: %" PRIu16 "\n", errorLogData->numberOfEntries, errorLogData->deviceErrorCount);
+			if (!errorLogData->checksumsValid)
+			{
+				printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
+			}
+			uint16_t totalErrorCountLimit = SMART_COMPREHENSIVE_ERRORS_MAX;
+			if (errorLogData->extLog)
+			{
+				totalErrorCountLimit = SMART_EXT_COMPREHENSIVE_ERRORS_MAX;
+			}
+			for (uint8_t iter = 0; iter < errorLogData->numberOfEntries && iter < totalErrorCountLimit; ++iter)
+			{
+				printf("\n===============================================\n");
+				printf("Error %" PRIu16 " - Drive State: ", iter + 1);
+				if (errorLogData->extLog)
+				{
+					uint8_t errorState = M_Nibble0(errorLogData->smartError->error.state);
+					if (errorLogData->extLog)
+					{
+						errorState = M_Nibble0(errorLogData->extSmartError->error.state);
+					}
+					switch (errorState)
+					{
+					case 0:
+						printf("Unknown");
+						break;
+					case 1:
+						printf("Sleep");
+						break;
+					case 2:
+						printf("Standby");
+						break;
+					case 3:
+						printf("Active/Idle");
+						break;
+					case 4:
+						printf("Executing Off-line or self test");
+						break;
+					default:
+						if (errorState >= 5 && errorState <= 0x0A)
+						{
+							printf("Reserved");
+						}
+						else
+						{
+							printf("Vendor Specific");
+						}
+						break;
+					}
+					printf(" Life Timestamp: ");
+					uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+					convert_Seconds_To_Displayable_Time(errorLogData->extSmartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
+					print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+					printf("\n");
+					uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
+					if (errorLogData->extLog)
+					{
+						numberOfCommandsBeforeError = errorLogData->extSmartError->numberOfCommands;
+					}
+					if (numberOfCommandsBeforeError > 0 && !errorCommandsOnly)
+					{
+						//TODO: Loop through and print out commands leading up to the error
+                        //call get command info function above
+					}
+					else if (!errorCommandsOnly)
+					{
+						printf("Commands leading up to the error are not avaiable!\n");
+					}
+					//TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
+					printf("Error command:\n");
+					if (errorLogData->extLog)
+					{
+						//ext
+                        //call get command info function above
+                        //call function to interpret meaning of the error that occured
+					}
+					else
+					{
+						//non-ext
+                        //call get command info function above
+                        //call function to interpret meaning of the error that occured
+					}
+				}
+			}
+		}
+	}
+}

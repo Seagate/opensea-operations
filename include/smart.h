@@ -384,6 +384,7 @@ extern "C"
         uint8_t version;
         uint8_t numberOfEntries;
         bool extLog;
+		//TODO: This union isn't really needed...Can remove this sometime
         union
         {
             SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
