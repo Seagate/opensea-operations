@@ -2569,3 +2569,74 @@ int nvme_Print_Temp_Statistics(tDevice *device)
 
     return ret;
 }
+
+int nvme_Print_PCI_Statistics(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    uint64_t size = 0; 
+    uint32_t correctPcieEc = 0, uncorrectPcieEc = 0;
+    nvmeGetLogPageCmdOpts   cmdOpts;
+    nvmePcieErrorLogPage    pcieErrorLog;
+
+    if (is_Seagate(device, false))
+    {
+
+        memset(&pcieErrorLog, 0, sizeof(nvmePcieErrorLogPage));
+
+        cmdOpts.nsid = NVME_ALL_NAMESPACES;
+        cmdOpts.addr = (uint64_t)(&pcieErrorLog);
+        cmdOpts.dataLen = sizeof(nvmePcieErrorLogPage);
+        cmdOpts.lid = 0xCB;
+
+        ret = nvme_Get_Log_Page(device, &cmdOpts);
+
+        if(ret == SUCCESS)
+        {
+        	correctPcieEc = pcieErrorLog.badDllpErrCnt + pcieErrorLog.badTlpErrCnt 
+        			+ pcieErrorLog.rcvrErrCnt + pcieErrorLog.replayTOErrCnt 
+        			+ pcieErrorLog.replayNumRolloverErrCnt;
+        
+        	uncorrectPcieEc = pcieErrorLog.fcProtocolErrCnt + pcieErrorLog.dllpProtocolErrCnt 
+        			+ pcieErrorLog.cmpltnTOErrCnt + pcieErrorLog.rcvrQOverflowErrCnt 
+        			+ pcieErrorLog.unexpectedCplTlpErrCnt + pcieErrorLog.cplTlpURErrCnt 
+        			+ pcieErrorLog.cplTlpCAErrCnt + pcieErrorLog.reqCAErrCnt  
+        			+ pcieErrorLog.reqURErrCnt + pcieErrorLog.ecrcErrCnt 
+        			+ pcieErrorLog.malformedTlpErrCnt + pcieErrorLog.cplTlpPoisonedErrCnt 
+        			+ pcieErrorLog.memRdTlpPoisonedErrCnt;
+        
+        	printf("%-45s : %u\n", "PCIe Correctable Error Count", correctPcieEc);
+        	printf("%-45s : %u\n", "PCIe Un-Correctable Error Count", uncorrectPcieEc); 
+        	printf("%-45s : %u\n", "Unsupported Request Error Status (URES)", pcieErrorLog.reqURErrCnt);
+        	printf("%-45s : %u\n", "ECRC Error Status (ECRCES)", pcieErrorLog.ecrcErrCnt);
+        	printf("%-45s : %u\n", "Malformed TLP Status (MTS)", pcieErrorLog.malformedTlpErrCnt);
+        	printf("%-45s : %u\n", "Receiver Overflow Status (ROS)", pcieErrorLog.rcvrQOverflowErrCnt);
+        	printf("%-45s : %u\n", "Unexpected Completion Status(UCS)", pcieErrorLog.unexpectedCplTlpErrCnt);
+        	printf("%-45s : %u\n", "Completion Timeout Status (CTS)", pcieErrorLog.cmpltnTOErrCnt);
+        	printf("%-45s : %u\n", "Flow Control Protocol Error Status (FCPES)", pcieErrorLog.fcProtocolErrCnt);
+        	printf("%-45s : %u\n", "Poisoned TLP Status (PTS)", pcieErrorLog.memRdTlpPoisonedErrCnt);
+        	printf("%-45s : %u\n", "Data Link Protocol Error Status(DLPES)", pcieErrorLog.dllpProtocolErrCnt);
+        	printf("%-45s : %u\n", "Replay Timer Timeout Status(RTS)", pcieErrorLog.replayTOErrCnt);
+        	printf("%-45s : %u\n", "Replay_NUM Rollover Status(RRS)", pcieErrorLog.replayNumRolloverErrCnt);
+        	printf("%-45s : %u\n", "Bad DLLP Status (BDS)", pcieErrorLog.badDllpErrCnt);
+        	printf("%-45s : %u\n", "Bad TLP Status (BTS)", pcieErrorLog.badTlpErrCnt);
+        	printf("%-45s : %u\n", "Receiver Error Status (RES)", pcieErrorLog.rcvrErrCnt);
+        	printf("%-45s : %u\n", "Cpl TLP Unsupported Request Error Count", pcieErrorLog.cplTlpURErrCnt);
+        	printf("%-45s : %u\n", "Cpl TLP Completion Abort Error Count", pcieErrorLog.cplTlpCAErrCnt);
+        	printf("%-45s : %u\n", "Cpl TLP Poisoned Error Count", pcieErrorLog.cplTlpPoisonedErrCnt);
+        	printf("%-45s : %u\n", "Request Completion Abort Error Count", pcieErrorLog.reqCAErrCnt);
+        	printf("%-45s : %s\n", "Advisory Non-Fatal Error Status(ANFES)", "Not Supported");
+        	printf("%-45s : %s\n", "Completer Abort Status (CAS)", "Not Supported");
+
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < g_verbosity)
+            {
+                printf("Error: Could not retrieve Log Page 0x02\n");
+            }            
+        }
+    }
+
+    return ret;
+}
+
