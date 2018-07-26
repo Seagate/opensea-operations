@@ -229,6 +229,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo);
 
+    OPENSEA_OPERATIONS_API int nvme_Print_Temp_Statistics(tDevice *device);
+
     typedef struct _informationalExceptionsControl
     {
         bool isValid;//the page was able to be read
