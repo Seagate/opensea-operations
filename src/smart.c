@@ -4044,7 +4044,32 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Zeros Ext");
 		break;
 	case ATA_WRITE_UNCORRECTABLE_EXT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Uncorrectable Ext");
+    {
+        uint8_t uncorrectableOption = M_Byte0(features);
+        uint32_t numberOfSectors = count;
+        char uncorrectableOptionString[31] = { 0 };
+        if (numberOfSectors == 0)
+        {
+            numberOfSectors = 65536;
+        }
+        switch (uncorrectableOption)
+        {
+        case WRITE_UNCORRECTABLE_PSEUDO_UNCORRECTABLE_WITH_LOGGING://psuedo
+            snprntf(uncorrectableOptionString, 30, "Psuedo with logging");
+            break;
+        case WRITE_UNCORRECTABLE_FLAGGED_WITHOUT_LOGGING://flagged
+            snprntf(uncorrectableOptionString, 30, "Flagged without logging");
+            break;
+        case WRITE_UNCORRECTABLE_VENDOR_SPECIFIC_5AH://vendor specific
+        case WRITE_UNCORRECTABLE_VENDOR_SPECIFIC_A5H://vendor specific
+            snprntf(uncorrectableOptionString, 30, "Vendor Specific (%02" PRIX8 "h)", uncorrectableOption);
+            break;
+        default://reserved/unknown
+            snprntf(uncorrectableOptionString, 30, "Unknown Mode (%02" PRIX8 "h)", uncorrectableOption);
+            break;
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Uncorrectable Ext - %s  LBA: %" PRIu64 "  Count: %" PRIu32 "", uncorrectableOptionString, lba, numberOfSectors);
+    }
 		break;
 	case ATA_READ_LOG_EXT_DMA:
         get_GPL_Log_Command_Info("Read Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
@@ -4057,7 +4082,13 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
 		break;
 	case ATA_CONFIGURE_STREAM:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Configure Stream");
+    {
+        uint8_t defaultCCTL = M_Byte1(features);
+        bool addRemoveStream = features & BIT7;
+        bool readWriteStream = features & BIT6;
+        uint8_t streamID = M_GETBITRANGE(features, 2, 0);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Configure Stream, Default CCTL: %" PRIu8 ", Add/Remove Stream: %d, readWriteStream: %d, Stream ID: %" PRIu8 "", defaultCCTL, addRemoveStream, readWriteStream, streamID);
+    }
 		break;
 	case ATA_WRITE_LOG_EXT_DMA:
         get_GPL_Log_Command_Info("Write Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
@@ -4102,8 +4133,8 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
     //case 0x77:
     //case 0x78:
     case 0x79:
-    case 0x7B:
     case 0x7A:
+    case 0x7B:
     //case 0x7C:
     case 0x7D:
     case 0x7E:
@@ -4123,7 +4154,11 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
 		break;
 	case ATA_INIT_DRV_PARAM:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters");
+    {
+        uint8_t sectorsPerTrack = M_Byte0(count);
+        uint8_t maxHead = M_Nibble0(device);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters. Logical Sectors Per Track: %" PRIu8 "  Max Head: %" PRIu8 "", sectorsPerTrack, maxHead);
+    }
 		break;
 	case ATA_DOWNLOAD_MICROCODE:
         get_Download_Command_Info("Download Microcode", commandOpCode, features, count, lba, device, commandInfo);
