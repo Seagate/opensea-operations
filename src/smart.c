@@ -3618,6 +3618,236 @@ void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint
     }
 }
 
+void get_Sanitize_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint16_t subcommand = features;
+    uint32_t signature = M_DoubleWord0(lba);//TODO: may need to byte swap this //NOTE: for overwrite, this is the pattern. 47:32 contain a signature
+    bool zoneNoReset = count & BIT15;
+    bool invertBetweenPasses = count & BIT7;//overwrite only
+    bool definitiveEndingPattern = count & BIT6;//overwrite only
+    bool failure = count & BIT4;
+    bool clearSanitizeOperationFailed = count & BIT0;//status only
+    uint8_t overwritePasses = M_Nibble0(count);//overwrite only
+    uint32_t overwritePattern = M_DoubleWord0(lba);//overwrite only
+    uint16_t overwriteSignature = M_Word2(lba);
+    char sanitizeSignatureValid[11] = { 0 };
+    switch (subcommand)
+    {
+    case ATA_SANITIZE_STATUS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Status, Clear Failure: %d", commandName, clearSanitizeOperationFailed);
+        break;
+    case ATA_SANITIZE_CRYPTO_SCRAMBLE:
+        if (signature == ATA_SANITIZE_CRYPTO_LBA)
+        {
+            snprintf(sanitizeSignatureValid, 10, "Valid");
+        }
+        else
+        {
+            snprintf(sanitizeSignatureValid, 10, "Invalid");
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Crypto Scramble, ZNR: %d, Failure Mode: %d, Signature %s", commandName, zoneNoReset, failure, sanitizeSignatureValid);
+        break;
+    case ATA_SANITIZE_BLOCK_ERASE:
+        if (signature == ATA_SANITIZE_BLOCK_ERASE_LBA)
+        {
+            snprintf(sanitizeSignatureValid, 10, "Valid");
+        }
+        else
+        {
+            snprintf(sanitizeSignatureValid, 10, "Invalid");
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Block Erase, ZNR: %d, Failure Mode: %d, Signature %s", commandName, zoneNoReset, failure, sanitizeSignatureValid);
+        break;
+    case ATA_SANITIZE_OVERWRITE_ERASE:
+        if (overwriteSignature == ATA_SANITIZE_OVERWRITE_LBA)
+        {
+            snprintf(sanitizeSignatureValid, 10, "Valid");
+        }
+        else
+        {
+            snprintf(sanitizeSignatureValid, 10, "Invalid");
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Overwrite Erase, ZNR: %d, Invert: %d, Definitive Pattern: %d, Failure Mode: %d, Passes: %" PRIu8 ", Pattern: %08" PRIX8 "h, Signature %s", commandName, zoneNoReset, invertBetweenPasses, definitiveEndingPattern, failure, overwritePasses, overwritePattern, sanitizeSignatureValid);
+        break;
+    case ATA_SANITIZE_FREEZE_LOCK:
+        if (signature == ATA_SANITIZE_FREEZE_LOCK_LBA)
+        {
+            snprintf(sanitizeSignatureValid, 10, "Valid");
+        }
+        else
+        {
+            snprintf(sanitizeSignatureValid, 10, "Invalid");
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock, Signature %s", commandName, sanitizeSignatureValid);
+        break;
+    case ATA_SANITIZE_ANTI_FREEZE_LOCK:
+        if (signature == ATA_SANITIZE_ANTI_FREEZE_LOCK_LBA)
+        {
+            snprintf(sanitizeSignatureValid, 10, "Valid");
+        }
+        else
+        {
+            snprintf(sanitizeSignatureValid, 10, "Invalid");
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Anti-Freeze Lock, Signature %s", commandName, sanitizeSignatureValid);
+        break;
+    default://unknown sanitize operation
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h", commandName, subcommand, lba, count);
+        break;
+    }
+}
+
+void get_DCO_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t subcommand = M_Byte0(features);
+    switch (subcommand)
+    {
+    case DCO_RESTORE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Restore", commandName);
+        break;
+    case DCO_FREEZE_LOCK:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock", commandName);
+        break;
+    case DCO_IDENTIFY:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Identify", commandName);
+        break;
+    case DCO_SET:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set", commandName);
+        break;
+    case DCO_IDENTIFY_DMA:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Identify DMA", commandName);
+        break;
+    case DCO_SET_DMA:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set DMA", commandName);
+        break;
+    default://reserved
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h", commandName, subcommand, (uint32_t)lba, (uint8_t)count);
+        break;
+    }
+}
+
+void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    bool volatileValue = count & BIT0;
+    if (commandOpCode == ATA_SET_MAX_EXT)
+    {
+        //48bit command to set max 48bit LBA
+        if (volatileValue)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu64 " (Volatile)", commandName, lba);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu64 "", commandName, lba);
+        }
+    }
+    else
+    {
+        //28bit command to set max or other things like passwords
+        uint8_t subcommand = M_Byte0(features);
+        switch (subcommand)
+        {
+        case HPA_SET_MAX_ADDRESS:
+            if (volatileValue)
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu32 " (Volatile)", commandName, lba);
+            }
+            else
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu32 "", commandName, lba);
+            }
+            break;
+        case HPA_SET_MAX_PASSWORD:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Password", commandName, lba);
+            break;
+        case HPA_SET_MAX_LOCK:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Lock", commandName, lba);
+            break;
+        case HPA_SET_MAX_UNLOCK:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unlock", commandName, lba);
+            break;
+        case HPA_SET_MAX_FREEZE_LOCK:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock", commandName, lba);
+            break;
+        case HPA_SET_MAX_PASSWORD_DMA:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Password DMA", commandName, lba);
+            break;
+        case HPA_SET_MAX_UNLOCK_DMA:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unlock DMA", commandName, lba);
+            break;
+        default:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h", commandName, subcommand, (uint32_t)lba, (uint8_t)count);
+            break;
+        }
+    }
+}
+
+//Only idle and standby...not the immediate commands!
+void get_Idle_Or_Standby_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t standbyTimerPeriod = M_Byte0(count);
+    char standbyTimerPeriodString[31] = { 0 };
+    switch (standbyTimerPeriod)
+    {
+    case 0x00://disabled
+        snprintf(standbyTimerPeriodString, 30, "Standby Timer Disabled");
+        break;
+    case 0xFC://21min
+        snprintf(standbyTimerPeriodString, 30, "21 Minutes");
+        break;
+    case 0xFD://between 8h and 12h
+        snprintf(standbyTimerPeriodString, 30, "8 to 12 Hours");
+        break;
+    case 0xFF://21min 15s
+        snprintf(standbyTimerPeriodString, 30, "21 Minutes 15 Seconds");
+        break;
+    case 0xFE://reserved (fall through)
+    default:
+        if (standbyTimerPeriod >= 0x01 && standbyTimerPeriod <= 0xF0)
+        {
+            uint64_t timerInSeconds = standbyTimerPeriod * 5;
+            uint8_t minutes = 0, seconds = 0;
+            convert_Seconds_To_Displayable_Time(timerInSeconds, NULL, NULL, NULL, &minutes, &seconds);
+            if (minutes > 0 && seconds == 0)
+            {
+                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Minutes", minutes);
+            }
+            else if (minutes > 0)
+            {
+                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Minutes %" PRIu8 " Seconds", minutes, seconds);
+            }
+            else
+            {
+                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Seconds", seconds);
+            }
+        }
+        else if (standbyTimerPeriod >= 0xF1 && standbyTimerPeriod <= 0xFB)
+        {
+            uint64_t timerInSeconds = ((standbyTimerPeriod - 240) * 30) * 60;//timer is a minutes value that I'm converting to seconds
+            uint8_t minutes = 0, hours = 0;//no seconds since it would always be zero
+            convert_Seconds_To_Displayable_Time(timerInSeconds, NULL, NULL, &hours, &minutes, NULL);
+            if (hours > 0 && minutes == 0)
+            {
+                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Hours", hours);
+            }
+            else if (hours > 0)
+            {
+                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Hours %" PRIu8 " Minutes", hours, minutes);
+            }
+            else
+            {
+                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Minutes", minutes);
+            }
+        }
+        else
+        {
+            snprintf(standbyTimerPeriodString, 30, "Unknown Timer Value (%02" PRIX8 "h)");
+        }
+        break;
+    }
+    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Standby Timer Period: %s", commandName, standbyTimerPeriodString);
+}
+
 void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     //TODO: some commands leave some registers reserved. Add handling when some of these reserved registers are set to non-zero values
@@ -3742,7 +3972,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Read_Write_Command_Info("Read DMA Queued Ext", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_READ_MAX_ADDRESS_EXT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address Ext");
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address Ext");//no other worthwhile inputs to this command to report...every other register is N/A
 		break;
 	case ATA_READ_READ_MULTIPLE_EXT:
         get_Read_Write_Command_Info("Read Multiple Ext", commandOpCode, features, count, lba, device, commandInfo);
@@ -3778,7 +4008,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Read_Write_Command_Info("Write DMA Queued Ext", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_SET_MAX_EXT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Max Address Ext");
+        get_Set_Max_Address_Command_Info("Set Max Address Ext", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_WRITE_MULTIPLE_EXT:
         get_Read_Write_Command_Info("Write Multiple Ext", commandOpCode, features, count, lba, device, commandInfo);
@@ -3902,22 +4132,22 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Download_Command_Info("Download Microcode DMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_LEGACY_ALT_STANDBY_IMMEDIATE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (%02" PRIX8 "h)", commandOpCode);
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (94h)");
 		break;
 	case ATA_LEGACY_ALT_IDLE_IMMEDIATE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle Immediate (%02" PRIX8 "h)", commandOpCode);
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle Immediate (95h)");
 		break;
 	case ATA_LEGACY_ALT_STANDBY:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby (%02" PRIX8 "h)", commandOpCode);
+        get_Idle_Or_Standby_Command_Info("Alternate Standby (96h)", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_LEGACY_ALT_IDLE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle (%02" PRIX8 "h)", commandOpCode);
+        get_Idle_Or_Standby_Command_Info("Alternate Standby (97h)", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_LEGACY_ALT_CHECK_POWER_MODE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Check Power Mode (%02" PRIX8 "h)", commandOpCode);
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Check Power Mode (98h)");
 		break;
 	case ATA_LEGACY_ALT_SLEEP:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (%02" PRIX8 "h)", commandOpCode);
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (99h)");
 		break;
 	case ATA_ZONE_MANAGEMENT_OUT:
 		//todo: parse the feature
@@ -3933,13 +4163,13 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_SMART_Command_Info("SMART", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_DCO:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "DCO");
+        get_DCO_Command_Info("DCO", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_SET_SECTOR_CONFIG_EXT:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Sector Configuration Ext");
 		break;
 	case ATA_SANITIZE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sanitize");
+        get_Sanitize_Command_Info("Sanitize", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_NV_CACHE:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NVCache");
@@ -3999,10 +4229,10 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
 		break;
 	case ATA_STANDBY:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby");
+        get_Idle_Or_Standby_Command_Info("Standby", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_IDLE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle");
+        get_Idle_Or_Standby_Command_Info("Idle", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_READ_BUF:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
@@ -4020,10 +4250,35 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer");
 		break;
 	case ATA_READ_BUF_DMA:
-		//TODO: Check feature register to see if this is the legacy write same command
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer DMA");
+        //case ATA_LEGACY_WRITE_SAME:
+        if (M_Byte0(features) == LEGACY_WRITE_SAME_INITIALIZE_SPECIFIED_SECTORS || M_Byte0(features) == LEGACY_WRITE_SAME_INITIALIZE_ALL_SECTORS)
+        {
+            if (M_Byte0(features) == LEGACY_WRITE_SAME_INITIALIZE_SPECIFIED_SECTORS)
+            {
+                if (device & LBA_MODE_BIT)
+                {
+                    uint32_t writeSameLBA = M_Nibble0(device) << 24;
+                    writeSameLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - LBA: %" PRIu32 " Count: %" PRIu16 "", writeSameLBA, M_Byte0(count));
+                }
+                else
+                {
+                    uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
+                    uint8_t head = M_Nibble0(device);
+                    uint8_t sector = M_Byte0(lba);
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu16 "", cylinder, head, sector, M_Byte0(count));
+                }
+            }
+            else
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - All Sectors");
+            }
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer DMA");
+        }
 		break;
-		//case ATA_LEGACY_WRITE_SAME:
 	case ATA_FLUSH_CACHE_EXT:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache Ext");
 		break;
@@ -4039,7 +4294,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 	case ATA_IDENTIFY_DMA:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify DMA");
 		break;
-	case ATA_SET_FEATURE: //todo: parse feature
+	case ATA_SET_FEATURE: //todo: parse feature                               ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Features");
 		break;
 	case ATA_SECURITY_SET_PASS:
@@ -4064,7 +4319,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address");
 		break;
 	case ATA_SET_MAX:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Max Address");
+        get_Set_Max_Address_Command_Info("Set Max Address", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	default:
         if ((commandOpCode >= 0x80 && commandOpCode <= 0x8F)
