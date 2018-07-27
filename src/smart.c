@@ -3920,8 +3920,27 @@ void get_NV_Cache_Command_Info(const char* commandName, uint8_t commandOpCode, u
         else
         {
             //reserved for NV cache feature
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX32 "h, Count = %04" PRIX8 "h", commandName, subcommand, lba, count);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h", commandName, subcommand, lba, count);
         }
+        break;
+    }
+}
+
+void get_AMAC_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    switch (features)
+    {
+    case AMAC_GET_NATIVE_MAX_ADDRESS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Get Native Max Address", commandName);
+        break;
+    case AMAC_SET_ACCESSIBLE_MAX_ADDRESS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Accessible Max Address - LBA: %" PRIu64 "", commandName, lba);
+        break;
+    case AMAC_FREEZE_ACCESSIBLE_MAX_ADDRESS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Accessible Max Address", commandName);
+        break;
+    default://reserved - unknown
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h", commandName, features, lba, count);
         break;
     }
 }
@@ -4208,25 +4227,108 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
     case 0x74:
     case 0x75:
     case 0x76:
-    //case 0x77:
-    //case 0x78:
+    case 0x77://ATA_SET_DATE_AND_TIME_EXT
+    case 0x78://ATA_ACCESSABLE_MAX_ADDR
     case 0x79:
     case 0x7A:
     case 0x7B:
-    //case 0x7C:
+    case 0x7C://ATA_REMOVE_AND_TRUNCATE
     case 0x7D:
     case 0x7E:
     case 0x7F:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek");
-		break;
-	case ATA_SET_DATE_AND_TIME_EXT://77h
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Date And Time Ext");
-		break;
-	case ATA_ACCESSABLE_MAX_ADDR://TODO: subcommands //78h
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Accessable Max Address");
-		break;
-	case ATA_REMOVE_AND_TRUNCATE://7Ch
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Remove And Truncate");
+    {
+        uint32_t seekLBA = (lba & 0xFFFFFF) | (M_Nibble0(device) << 24);
+        uint16_t seekCylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
+        uint8_t seekHead = M_Nibble0(device);
+        uint8_t seekSector = M_Byte0(lba);
+        bool isLBAMode = device & LBA_MODE_BIT;
+        if (commandOpCode == ATA_ACCESSABLE_MAX_ADDR)
+        {
+            //if feature is nonzero, definitely a AMAC command
+            if ((features == 0 && lba == 0 && device & LBA_MODE_BIT /*check if seeking to LBA 0 since this could be missed in second check*/) || (features == 0 && lba > 0 /*this check is for legacy CHS seek AND Any other LBA to seek to*/))
+            {
+                //legacy seek command
+                if (isLBAMode)
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+
+                }
+                else
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 "", commandOpCode, seekCylinder, seekHead, seekSector);
+                }
+            }
+            else
+            {
+                //AMAC command
+                get_AMAC_Command_Info("Accessible Max Address", commandOpCode, features, count, lba, device, commandInfo);
+            }
+        }
+        else if (commandOpCode == ATA_SET_DATE_AND_TIME_EXT)
+        {
+            //this one will be difficult to tell the difference between...LBA should be less that 24bits, LBAmode should not be on, and head field should be zero
+            if (M_Nibble0(device) > 0 || (device & LBA_MODE_BIT) && lba < 0xFFFFFF)
+            {
+                //most likely a seek
+                if (isLBAMode)
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+
+                }
+                else
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 "", commandOpCode, seekCylinder, seekHead, seekSector);
+                }
+            }
+            else //timestamp is # milliseconds since Jan 1 1970...so we should reliably get here since we shouldn't ever have an LBA value less than 24bits...
+            {
+                //set data and time (TODO: convert this to a current date and time)
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Date And Tme Ext - Timestamp - %" PRIu64 " milliseconds", lba);
+            }
+        }
+        else if (commandOpCode == ATA_REMOVE_AND_TRUNCATE)
+        {
+            //features and count will be used for remove and truncate, but not the legacy seek command :)
+            if (features || count || lba > 0xFFFFFF || !(device & LBA_MODE_BIT))//LBA may be zero. device register should NOT have the lba bit set for this command
+            {
+                //remove and truncate command
+                uint32_t elementIdentifier = M_WordsTo4ByteValue(features, count);
+                if (lba > 0)
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Remove And Truncate - Element ID: %" PRIX32 "h - Requested Max LBA: %" PRIu64 "", elementIdentifier, lba);
+                }
+                else
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Remove And Truncate - Element ID: %" PRIX32 "h", elementIdentifier);
+                }
+            }
+            else
+            {
+                //legacy seek
+                if (isLBAMode)
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+
+                }
+                else
+                {
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 "", commandOpCode, seekCylinder, seekHead, seekSector);
+                }
+            }
+        }
+        else
+        {
+            if (isLBAMode)
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+
+            }
+            else
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 "", commandOpCode, seekCylinder, seekHead, seekSector);
+            }
+        }
+    }
 		break;
 	case ATA_EXEC_DRV_DIAG:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
@@ -4279,7 +4381,10 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_DCO_Command_Info("DCO", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_SET_SECTOR_CONFIG_EXT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Sector Configuration Ext");
+    {
+        uint8_t descriptorIndex = M_GETBITRANGE(count, 2, 0);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Sector Configuration Ext - Descriptor: %" PRIu8 ", Command Check: %" PRIX16 "h", descriptorIndex, features);
+    }
 		break;
 	case ATA_SANITIZE:
         get_Sanitize_Command_Info("Sanitize", commandOpCode, features, count, lba, device, commandInfo);
