@@ -3848,6 +3848,84 @@ void get_Idle_Or_Standby_Command_Info(const char* commandName, uint8_t commandOp
     snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Standby Timer Period: %s", commandName, standbyTimerPeriodString);
 }
 
+void get_NV_Cache_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint16_t subcommand = features;
+    char subCommandName[31] = { 0 };
+    switch (subcommand)
+    {
+    case NV_SET_NV_CACHE_POWER_MODE:
+    {
+        uint8_t hours = 0, minutes = 0, seconds = 0;
+        convert_Seconds_To_Displayable_Time(count, NULL, NULL, &hours, &minutes, &seconds);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set NV Cache Power Mode. Minimum High-Power Time: %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8 " seconds", commandName, hours, minutes, seconds);
+    }
+        break;
+    case NV_RETURN_FROM_NV_CACHE_POWER_MODE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Return From NV Cache Power Mode", commandName);
+        break;
+    case NV_ADD_LBAS_TO_NV_CACHE_PINNED_SET:
+    {
+        uint32_t blockCount = count;
+        if (blockCount == 0)
+        {
+            blockCount = 65536;
+        }
+        bool populateImmediately = lba & BIT0;
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Add LBAs to NV Cache Pinned Set, Populate Immediately: %d, Count = %" PRIu32 "", commandName, populateImmediately, blockCount);
+    }
+        break;
+    case NV_REMOVE_LBAS_FROM_NV_CACHE_PINNED_SET:
+    {
+        uint32_t blockCount = count;
+        if (blockCount == 0)
+        {
+            blockCount = 65536;
+        }
+        bool unpinAll = lba & BIT0;
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Remove LBAs to NV Cache Pinned Set, Unpin All: %d, Count = %" PRIu32 "", commandName, unpinAll, blockCount);
+    }
+        break;
+    case NV_QUERY_NV_CACHE_PINNED_SET:
+    {
+        uint32_t blockCount = count;
+        if (blockCount == 0)
+        {
+            blockCount = 65536;
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Query NV Cache Pinned Set, Starting 512B block: %" PRIu64 ", Count = %" PRIu32 "", commandName, lba, blockCount);
+    }
+        break;
+    case NV_QUERY_NV_CACHE_MISSES:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Query NV Cache Misses", commandName);
+        break;
+    case NV_FLUSH_NV_CACHE:
+    {
+        uint32_t minimumBlocksToFlush = M_DoubleWord0(lba);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Flush NV Cache Pinned Set, Min Blocks To Flush = %" PRIu32 "", commandName, minimumBlocksToFlush);
+    }
+        break;
+    case NV_CACHE_ENABLE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable NV Cache", commandName);
+        break;
+    case NV_CACHE_DISABLE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable NV Cache", commandName);
+        break;
+    default://unknown or vendor specific
+        if (subcommand >= 0x00D0 && subcommand <= 0x00EF)
+        {
+            //vendor specific
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%04" PRIX16 "h), LBA = %012" PRIX32 "h, Count = %04" PRIX8 "h", commandName, subcommand, lba, count);
+        }
+        else
+        {
+            //reserved for NV cache feature
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX32 "h, Count = %04" PRIX8 "h", commandName, subcommand, lba, count);
+        }
+        break;
+    }
+}
+
 void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     //TODO: some commands leave some registers reserved. Add handling when some of these reserved registers are set to non-zero values
@@ -4207,7 +4285,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Sanitize_Command_Info("Sanitize", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_NV_CACHE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NVCache");
+        get_NV_Cache_Command_Info("NV Cache", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_READ_MULTIPLE:
         get_Read_Write_Command_Info("Read Multiple", commandOpCode, features, count, lba, device, commandInfo);
@@ -4216,7 +4294,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Read_Write_Command_Info("Write Multiple", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_SET_MULTIPLE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Multiple");
+		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Multiple - DRQ Data Block Count: %" PRIu8 "", M_Byte0(count));
 		break;
 	case ATA_READ_DMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Read DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
@@ -4261,7 +4339,22 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby Immediate");
 		break;
 	case ATA_IDLE_IMMEDIATE_CMD:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
+        if (M_Byte0(features) == IDLE_IMMEDIATE_UNLOAD_FEATURE)
+        {
+            uint32_t idleImmdLBA = (lba & 0x00FFFFFFFF) | (M_Nibble0(device) << 24);
+            if (IDLE_IMMEDIATE_UNLOAD_LBA == idleImmdLBA)
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate - Unload");
+            }
+            else
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate - Unload. Invalid LBA Signature: %07" PRIu32 "", idleImmdLBA);
+            }
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
+        }
 		break;
 	case ATA_STANDBY:
         get_Idle_Or_Standby_Command_Info("Standby", commandOpCode, features, count, lba, device, commandInfo);
