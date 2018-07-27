@@ -67,13 +67,13 @@
             Filters=""/>
     </CustomFolders>
     <Files AutoFolders="DirectoryView">
+        <Folder Name="../..">
+            <F N="../../README.md"/>
+        </Folder>
         <Folder Name="../gcc">
             <F
                 N="../gcc/Makefile"
                 Type="Makefile"/>
-        </Folder>
-        <Folder Name="../../">
-            <F N="../../README.md"/>
         </Folder>
         <Folder Name="../../include">
             <F N="../../include/ata_Security.h"/>
@@ -87,6 +87,7 @@
             <F N="../../include/generic_tests.h"/>
             <F N="../../include/host_erase.h"/>
             <F N="../../include/logs.h"/>
+            <F N="../../include/opensea_operation_version.h"/>
             <F N="../../include/operations.h"/>
             <F N="../../include/operations_Common.h"/>
             <F N="../../include/power_control.h"/>

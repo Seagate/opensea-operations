@@ -952,3 +952,54 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
     }
     return ret;
 }
+
+void show_Test_Unit_Ready_Status(tDevice *device)
+{
+	scsiStatus returnedStatus = { 0 };
+	int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
+	if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
+	{
+		printf("READY\n");
+	}
+	else
+	{
+		eVerbosityLevels tempVerbosity = g_verbosity;
+		printf("NOT READY\n");
+		g_verbosity = VERBOSITY_COMMAND_NAMES;//the function below will print out a sense data translation, but only it we are at this verbosity or higher which is why it's set before this call.
+		check_Sense_Key_ASC_ASCQ_And_FRU(device, returnedStatus.senseKey, returnedStatus.asc, returnedStatus.ascq, returnedStatus.fru);
+		g_verbosity = tempVerbosity;//restore it back to what it was now that this is done.
+	}
+}
+
+int clr_Pcie_Correctable_Errs(tDevice *device)
+{
+    const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
+    const char *save = "specifies that the controller shall save the attribute";
+    int err, fd;
+    void *buf = NULL;
+
+    struct config {
+        int   save;
+    };
+
+    struct config cfg = {
+        .save         = 0,
+    };
+    err = nvme_set_feature( device, 0, 0xE1, 0xCB, cfg.save, 0, buf);
+	if (err < 0) {
+        perror("set-feature");
+        return errno;
+    }
+
+    return err;
+
+}
+
+int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsigned int value, bool save, unsigned int  data_len, void *data)
+{
+	unsigned int cdw10 = fid | (save ? 1 << 31 : 0);
+
+	return pci_Correctble_Err( device, 0x09, nsid, cdw10, value, data_len, data);
+}
+
+

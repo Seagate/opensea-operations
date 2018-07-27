@@ -87,7 +87,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         perror("Calloc Failure!\n");
         return MEMORY_FAILURE;
     }
-    result = scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, 0x10, 0, 0, temp_buf, LEGACY_DRIVE_SEC_SIZE);
+    result = scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SELF_TEST_RESULTS, 0, 0, temp_buf, LP_SELF_TEST_RESULTS_LEN);
     if (result == SUCCESS)
     {
         *status = temp_buf[8];
@@ -95,7 +95,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         //check the progress since the test is still running
         memset(temp_buf, 0, LEGACY_DRIVE_SEC_SIZE);
         scsi_Request_Sense_Cmd(device, false, temp_buf, LEGACY_DRIVE_SEC_SIZE);
-        *percentComplete = ((uint16_t)temp_buf[16] << 8) | temp_buf[17];
+        *percentComplete = M_BytesTo2ByteValue(temp_buf[16], temp_buf[17]);
         *percentComplete *= 100;
         *percentComplete /= 65536;
     }

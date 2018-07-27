@@ -125,8 +125,18 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         {
             if (options->dlMode == DL_FW_SEGMENTED && downloadRemainder == 0 && (currentDownloadBlock + 1) == downloadBlocks)
             {
-                //this means that we had an error on the last sector, which is a drive bug, so pass it anyways
-                ret = SUCCESS;
+                //this means that we had an error on the last sector, which is a drive bug in old products.
+				//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
+				//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
+				if (device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+				{
+					uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+					get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+					if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
+					{
+						ret = SUCCESS;
+					}
+				}
             }
         }
 
@@ -187,8 +197,21 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
             if (ret != SUCCESS)
             {
-                //likely a drive bug since it made it to the last transfer of the download, so pass it anyways
-                ret = SUCCESS;
+				if (options->dlMode == DL_FW_SEGMENTED)
+				{
+					//this means that we had an error on the last sector, which is a drive bug in old products.
+					//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
+					//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
+					if (device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+					{
+						uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+						get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+						if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
+						{
+							ret = SUCCESS;
+						}
+					}
+				}
             }
 			options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
 			options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;

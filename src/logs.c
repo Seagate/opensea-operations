@@ -320,7 +320,7 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
         //now search the returned buffer for the requested page code
         uint16_t vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH;
         uint16_t pageLength = M_BytesTo2ByteValue(vpdBuffer[2], vpdBuffer[3]);
-        for (vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH; vpdIter <= pageLength && vpdIter < vpdBufferLength; vpdIter++)
+        for (vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH; vpdIter <= (pageLength + SCSI_VPD_PAGE_HEADER_LENGTH) && vpdIter < vpdBufferLength; vpdIter++)
         {
             if (vpdBuffer[vpdIter] == vpdPage)
             {
@@ -1652,6 +1652,52 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
 	int retStatus = NOT_SUPPORTED;
+
+    if (!is_Seagate(device, false)) 
+    {
+        return retStatus;
+    }
+
+#if !defined(DISABLE_NVME_PASSTHROUGH)
+    logPageMap suptLogPage;
+    nvmeGetLogPageCmdOpts suptLogOpts;
+
+    memset(&suptLogPage, 0, sizeof(logPageMap));
+    memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+    suptLogOpts.addr = (uint64_t)(&suptLogPage);
+    suptLogOpts.dataLen = sizeof(logPageMap);
+    suptLogOpts.lid = 0xc5;
+    suptLogOpts.nsid = 0;//controller data
+    if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
+    {
+        retStatus = SUCCESS;
+        uint32_t numPage = suptLogPage.numLogPages;
+        uint32_t page = 0; 			
+        printf("\n  Log Pages  :   Signature    :    Version\n");
+        printf("-------------:----------------:--------------\n");
+        for (page = 0; page < numPage; page++)
+        {
+            if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
+            {
+                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
+                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+            }
+        }
+        printf("\t\t------------------\n");
+        printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
+        printf("\t\t------------------\n");
+        for (page = 0; page < numPage; page++)
+        {
+            if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
+            {
+                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
+                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+            }
+        }
+    }
+#endif
 	return retStatus;
 }
 
@@ -1853,3 +1899,145 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     safe_Free(genericLogBuf);
 	return retStatus;
 }
+
+
+
+//Linga starts here
+
+/*
+
+int get_ctrl_tele(tDevice *device)
+{
+    const char *desc = "Capture the Telemetry Controller-Initiated Data in either "\
+        "hex-dump (default) or binary format";
+    const char *namespace_id = "desired namespace";
+    const char *raw_binary = "output in raw format";
+    int err, fd, dump_fd;
+    struct nvme_temetry_log_hdr tele_log;
+    __le64  offset = 0;
+    U16 log_id;
+    int blkCnt, maxBlk = 0, blksToGet;
+    unsigned char  *log;
+
+    struct config {
+        uint32_t  namespace_id;
+        int   raw_binary;
+    };
+
+    struct config cfg = {
+        .namespace_id = 0xffffffff,
+    };
+
+    const struct argconfig_commandline_options command_line_options[] = {
+        {"namespace-id", 'n', "NUM", CFG_POSITIVE, &cfg.namespace_id, required_argument, namespace_id},
+        {"raw-binary",   'b', "",    CFG_NONE,     &cfg.raw_binary,   no_argument,       raw_binary},
+        {NULL}
+    };
+
+    fd = parse_and_open(argc, argv, desc, command_line_options, &cfg, sizeof(cfg));
+    if (fd < 0)
+        return fd;
+
+    dump_fd = STDOUT_FILENO;
+
+    log_id = 0x08;
+    err = nvme_get_log_with_offset(fd, cfg.namespace_id, log_id, sizeof(tele_log), offset, (void *)(&tele_log));
+    if (!err) {
+
+        maxBlk = tele_log.tele_data_area3;
+        offset += 512;
+
+        if (!cfg.raw_binary) {
+            printf("Device:%s namespace-id:%#x\n",
+                   devicename, cfg.namespace_id);
+            printf("Data Block 1 Last Block:%d Data Block 2 Last Block:%d Data Block 3 Last Block:%d\n",
+                   tele_log.tele_data_area1, tele_log.tele_data_area2, tele_log.tele_data_area3);
+
+            d((unsigned char *)(&tele_log), sizeof(tele_log), 16, 1);
+        } else
+            seaget_d_raw((unsigned char *)(&tele_log), sizeof(tele_log), dump_fd);
+    } else if (err > 0)
+        fprintf(stderr, "NVMe Status:%s(%x)\n",
+                    nvme_status_to_string(err), err);
+    else
+        perror("log page");
+
+    blkCnt = 0;
+
+    while(blkCnt < maxBlk) 
+    {
+        blksToGet = ((maxBlk - blkCnt) >= TELEMETRY_BLOCKS_TO_READ) ? TELEMETRY_BLOCKS_TO_READ : (maxBlk - blkCnt);
+
+        if(blksToGet == 0) {
+            return err;
+        }
+
+        log = malloc(blksToGet * 512);
+
+        if (!log) {
+            fprintf(stderr, "could not alloc buffer for log\n");
+            return EINVAL;
+        }
+
+        memset(log, 0, blksToGet * 512);
+
+        err = nvme_get_log_with_offset(fd, cfg.namespace_id, log_id, blksToGet * 512, offset, (void *)log);
+        if (!err) {
+            offset += blksToGet * 512;
+
+            if (!cfg.raw_binary) {
+                printf("\nBlock # :%d to %d\n", blkCnt + 1, blkCnt + blksToGet);
+
+                d((unsigned char *)log, blksToGet * 512, 16, 1);
+            } else
+                seaget_d_raw((unsigned char *)log, blksToGet * 512, dump_fd);
+        } else if (err > 0)
+            fprintf(stderr, "NVMe Status:%s(%x)\n",
+                        nvme_status_to_string(err), err);
+        else
+            perror("log page");
+
+        blkCnt += blksToGet;
+
+        free(log);
+    }
+
+#if 0
+    log = malloc(512);
+    
+    if (!log) {
+        fprintf(stderr, "could not alloc buffer for log\n");
+        return EINVAL;
+    }
+
+    for(blkCnt = 0; blkCnt < maxBlk; blkCnt++) 
+    {
+        memset(log, 0, 512);
+        err = nvme_get_log_with_offset(fd, cfg.namespace_id, log_id, 512, offset, (void *)log);
+        if (!err) {
+            offset += 512;
+
+            if (!cfg.raw_binary) {
+                printf("\nBlock # :%d\n", blkCnt + 1);
+
+                d((unsigned char *)log, 512, 16, 1);
+            } else
+                d_raw((unsigned char *)log, 512);
+        } else if (err > 0)
+            fprintf(stderr, "NVMe Status:%s(%x)\n",
+                        nvme_status_to_string(err), err);
+        else
+            perror("log page");
+    }
+
+    free(log);
+#endif
+    return err;
+
+}
+
+void seaget_d_raw(unsigned char *buf, int len, int fd)
+{
+
+    write(fd, (void *)buf, len);
+} */
