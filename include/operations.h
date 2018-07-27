@@ -235,7 +235,11 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int clr_Pcie_Correctable_Errs(tDevice *device);
+    
+    int nvme_set_feature(tDevice *device, uint32_t  nsid, uint8_t  fid, uint32_t  value, bool save, uint32_t  data_len, void *data);
 	
     typedef enum _eEraseMethod
     {
