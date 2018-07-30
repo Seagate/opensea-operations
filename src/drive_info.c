@@ -5651,7 +5651,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         smartLogOpts.addr = (uint64_t)nvmeSMARTData;
         smartLogOpts.dataLen = 512;
         smartLogOpts.lid = 2;
-        smartLogOpts.nsid = 0;//controller data
+        smartLogOpts.nsid = NVME_ALL_NAMESPACES;//controller data
         if (SUCCESS == nvme_Get_Log_Page(device, &smartLogOpts))
         {
             driveInfo->smartData.valid = true;
