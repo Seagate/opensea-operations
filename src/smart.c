@@ -3945,6 +3945,575 @@ void get_AMAC_Command_Info(const char* commandName, uint8_t commandOpCode, uint1
     }
 }
 
+void get_Zeros_Ext_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    bool trimBit = features & BIT0;
+    uint32_t numberOfSectorsToWriteZeros = count;
+    if (commandOpCode == ATA_FPDMA_NON_DATA)
+    {
+        //trim bit is in AUX register, so we cannot see it.
+        numberOfSectorsToWriteZeros - M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TRIM: (Unknown), LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, lba, numberOfSectorsToWriteZeros);
+    }
+    else
+    {
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TRIM: %d, LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, trimBit, lba, numberOfSectorsToWriteZeros);
+    }
+}
+
+void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t setFeaturesSubcommand = M_Byte0(features);
+    uint8_t subcommandCount = M_Byte0(count);
+    if (commandOpCode == ATA_FPDMA_NON_DATA)
+    {
+        setFeaturesSubcommand = M_Byte1(features);
+        subcommandCount = M_Byte1(count);
+    }
+    switch (setFeaturesSubcommand)
+    {
+    case SF_ENABLE_8_BIT_DATA_TRANSFERS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable 8-bit Data Transfers", commandName);
+        break;
+    case SF_ENABLE_VOLITILE_WRITE_CACHE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Volatile Write Cache", commandName);
+        break;
+    case SF_SET_TRANSFER_MODE:
+    {
+        uint8_t transferType = M_GETBITRANGE(subcommandCount, 7, 3);
+        uint8_t mode = M_GETBITRANGE(subcommandCount, 2, 0);
+        char transferMode[31] = { 0 };
+        switch (transferType)
+        {
+        case SF_TRANSFER_MODE_PIO_DEFAULT:
+            if (mode == 1)
+            {
+                snprintf(transferMode, 30, "PIO default - Disable IORDY");
+            }
+            else
+            {
+                snprintf(transferMode, 30, "PIO default");
+            }
+            break;
+        case SF_TRANSFER_MODE_FLOW_CONTROL:
+            snprintf(transferMode, 30, "PIO Flow Control Mode %" PRIu8 "", mode);
+            break;
+        case SF_TRANSFER_MODE_SINGLE_WORD_DMA:
+            snprintf(transferMode, 30, "SWDMA Mode %" PRIu8 "", mode);
+            break;
+        case SF_TRANSFER_MODE_MULTI_WORD_DMA:
+            snprintf(transferMode, 30, "MWDMA Mode %" PRIu8 "", mode);
+            break;
+        case SF_TRANSFER_MODE_ULTRA_DMA:
+            snprintf(transferMode, 30, "Ultra DMA Mode %" PRIu8 "", mode);
+            break;
+        case SF_TRANSFER_MODE_RESERVED:
+        default:
+            snprintf(transferMode, 30, "Unknown Mode %" PRIu8 "", mode);
+            break;
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Transfer Mode: %s", commandName, transferMode);
+    }
+        break;
+    case SF_ENABLE_ALL_AUTOMATIC_DEFECT_REASSIGNMENT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable All Automatic Defect Reassignment", commandName);
+        break;
+    case SF_ENABLE_APM_FEATURE:
+    {
+        uint8_t apmLevel = subcommandCount;
+        char apmLevelString[51] = { 0 };
+        if (apmLevel == 1)
+        {
+            snprintf(apmLevelString, 50, "Minimum Power Consumption w/ Standby (%02" PRIX8 "h)", apmLevel);
+        }
+        else if (apmLevel >= 0x02 && apmLevel <= 0x7F)
+        {
+            snprintf(apmLevelString, 50, "Intermediate Power Management w/ Standby (%02" PRIX8 "h)", apmLevel);
+        }
+        else if (apmLevel == 0x80)
+        {
+            snprintf(apmLevelString, 50, "Minimum Power Consumption w/o Standby (%02" PRIX8 "h)", apmLevel);
+        }
+        else if (apmLevel >= 0x81 && apmLevel <= 0xFD)
+        {
+            snprintf(apmLevelString, 50, "Intermediate Power Management w/o Standby (%02" PRIX8 "h)", apmLevel);
+        }
+        else if (apmLevel == 0xFE)
+        {
+            snprintf(apmLevelString, 50, "Maximum Performance (%02" PRIX8 "h)", apmLevel);
+        }
+        else
+        {
+            snprintf(apmLevelString, 50, "Unknown APM Level (%02" PRIX8 "h)", apmLevel);
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Advanced Power Management - %s", commandName, apmLevelString);
+    }
+        break;
+    case SF_ENABLE_PUIS_FEATURE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Power Up In Standby (PUIS)", commandName);
+        break;
+    case SF_PUIS_DEVICE_SPIN_UP:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - PUIS Spin-Up", commandName);
+        break;
+    case SF_ADDRESS_OFFSET_RESERVED_BOOT_AREA_METHOD_TECH_REPORT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Address Offser Reserved Boot Area Method %02" PRIX8 "h", commandName, setFeaturesSubcommand);
+        break;
+    case SF_ENABLE_CFA_POWER_MODE1:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable CFA Power Mode 1", commandName);
+        break;
+    case SF_ENABLE_WRITE_READ_VERIFY_FEATURE:
+    {
+        uint8_t wrvMode = M_Byte0(lba);
+        char wrvModeString[41] = { 0 };
+        switch (wrvMode)
+        {
+        case 0x00:
+            snprintf(wrvModeString, 40, "Mode 0 (All Sectors)", wrvMode);
+            break;
+        case 0x01:
+            snprintf(wrvModeString, 40, "Mode 1 (1st 65536 Sectors)", wrvMode);
+            break;
+        case 0x02:
+            snprintf(wrvModeString, 40, "Mode 2 (Vendor Specific # of Sectors)", wrvMode);
+            break;
+        case 0x03:
+            snprintf(wrvModeString, 40, "Mode 3 (1st %" PRIu32 " Sectors))", wrvMode, (uint32_t)subcommandCount * 1024);
+            break;
+        default:
+            snprintf(wrvModeString, 40, "Unknown WRV Mode (%02" PRIX8 "h)", wrvMode);
+            break;
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Write-Read-Verify: %s", commandName, wrvModeString);
+    }
+        break;
+    case SF_ENABLE_DEVICE_LIFE_CONTROL:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Device Life Control", commandName);
+        break;
+    case SF_ENABLE_SATA_FEATURE:
+    {
+        char sataFeatureString[81] = { 0 };
+        switch (subcommandCount)
+        {
+        case SATA_FEATURE_NONZERO_BUFFER_OFFSETS:
+            snprintf(sataFeatureString, 80, "Nonzero Buffer Offsets", subcommandCount);
+            break;
+        case SATA_FEATURE_DMA_SETUP_FIS_AUTO_ACTIVATE:
+            snprintf(sataFeatureString, 80, "DMA Setup FIS Auto Activation Optimization", subcommandCount);
+            break;
+        case SATA_FEATURE_DEVICE_INITIATED_INTERFACE_POWER_STATE_TRANSITIONS:
+            snprintf(sataFeatureString, 80, "Device Initiated Interface Power State Transitions", subcommandCount);
+            break;
+        case SATA_FEATURE_GUARANTEED_IN_ORDER_DATA_DELIVERY:
+            snprintf(sataFeatureString, 80, "Guaranteed In Order Data Delivery", subcommandCount);
+            break;
+        case SATA_FEATURE_ASYNCHRONOUS_NOTIFICATION:
+            snprintf(sataFeatureString, 80, "Asynchronous Notification", subcommandCount);
+            break;
+        case SATA_FEATURE_SOFTWARE_SETTINGS_PRESERVATION:
+            snprintf(sataFeatureString, 80, "Software Settings Preservation", subcommandCount);
+            break;
+        case SATA_FEATURE_DEVICE_AUTOMATIC_PARTIAL_TO_SLUMBER_TRANSITIONS:
+            snprintf(sataFeatureString, 80, "Device Automatic Partial To Slumber Transitions", subcommandCount);
+            break;
+        case SATA_FEATURE_ENABLE_HARDWARE_FEATURE_CONTROL:
+        {
+            char hardwareFeatureName[31] = { 0 };
+            uint16_t functionID = M_GETBITRANGE(lba, 15, 0);
+            switch (functionID)
+            {
+            case 0x0001:
+                snprintf(hardwareFeatureName, 30, "Direct Head Unload");
+                break;
+            default:
+                if (functionID >= 0xF000 && functionID <= 0xFFFF)
+                {
+                    snprintf(hardwareFeatureName, 30, "Vendor Specific (%04" PRIX16 "h)", functionID);
+                }
+                else
+                {
+                    snprintf(hardwareFeatureName, 30, "Unknown Function (%04" PRIX16 "h)", functionID);
+                }
+                break;
+            }
+            snprintf(sataFeatureString, 80, "Enable Hardware Feature Control - %s", subcommandCount);
+        }
+            break;
+        case SATA_FEATURE_ENABLE_DISABLE_DEVICE_SLEEP:
+            snprintf(sataFeatureString, 80, "Device Sleep", subcommandCount);
+            break;
+        case SATA_FEATURE_ENABLE_DISABLE_HYBRID_INFORMATION:
+            snprintf(sataFeatureString, 80, "Hybrid Information", subcommandCount);
+            break;
+        case SATA_FEATURE_ENABLE_DISABLE_POWER_DISABLE:
+            snprintf(sataFeatureString, 80, "Power Disable", subcommandCount);
+            break;
+        default:
+            snprintf(sataFeatureString, 80, "Unknown SATA Feature (%02" PRIX8 "h)", subcommandCount);
+            break;
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable SATA Feature - %s", commandName, sataFeatureString);
+    }
+        break;
+    case SF_TLC_SET_CCTL:
+    case SF_TCL_SET_ERROR_HANDLING:
+    case SF_DISABLE_MEDIA_STATUS_NOTIFICATION:
+    case SF_DISABLE_RETRY:
+    case SF_ENABLE_FREE_FALL_CONTROL_FEATURE:
+    case SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE:
+    case SF_MAXIMUM_HOST_INTERFACE_SECTOR_TIMES:
+    case SF_LEGACY_SET_VENDOR_SPECIFIC_ECC_BYTES_FOR_READ_WRITE_LONG:
+    case SF_EXTENDED_POWER_CONDITIONS:
+    case SF_SET_CACHE_SEGMENTS:
+    case SF_DISABLE_READ_LOOK_AHEAD_FEATURE:
+    case SF_ENABLE_RELEASE_INTERRUPT:
+    case SF_ENABLE_SERVICE_INTERRUPT:
+    case SF_LONG_PHYSICAL_SECTOR_ALIGNMENT_ERROR_REPORTING:
+    case SF_ENABLE_DISABLE_DSN_FEATURE:
+    case SF_DISABLE_REVERTING_TO_POWERON_DEFAULTS:
+    case SF_RESERVED_FOR_CFA:
+    case SF_DISABLE_ECC:
+    case SF_DISABLE_8_BIT_DATA_TRANSFERS:
+    case SF_DISABLE_VOLITILE_WRITE_CACHE:
+    case SF_DISABLE_ALL_AUTOMATIC_DEFECT_REASSIGNMENT:
+    case SF_DISABLE_APM_FEATURE:
+    case SF_DISABLE_PUIS_FEATURE:
+    case SF_ENABLE_ECC:
+    case SF_ADDRESS_OFFSET_RESERVED_BOOT_AREA_METHOD_TECH_REPORT_2:
+    case SF_DISABLE_CFA_POWER_MODE_1:
+    case SF_DISABLE_WRITE_READ_VERIFY_FEATURE:
+    case SF_DISABLE_DEVICE_LIFE_CONTROL:
+    case SF_DISABLE_SATA_FEATURE:
+    case SF_ENABLE_MEDIA_STATUS_NOTIFICATION:
+    case SF_ENABLE_RETIRES:
+    case SF_SET_DEVICE_MAXIMUM_AVERAGE_CURRENT:
+    case SF_ENABLE_READ_LOOK_AHEAD_FEATURE:
+    case SF_SET_MAXIMUM_PREFETCH:
+    case SF_LEGACY_SET_4_BYTES_ECC_FOR_READ_WRITE_LONG:
+    case SF_DISABLE_FREE_FALL_CONTROL_FEATURE:
+    case SF_DISABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT:
+    case SF_ENABLE_DISABLE_SENSE_DATA_REPORTING_FEATURE:
+    case SF_ENABLE_DISABLE_SENSE_DATA_RETURN_FOR_SUCCESSFUL_NCQ_COMMANDS:
+    case SF_ENABLE_REVERTING_TO_POWER_ON_DEFAULTS:
+    case SF_DISABLE_RELEASE_INTERRUPT:
+    case SF_DISABLE_SERVICE_INTERRUPT:
+    default:
+        if ((setFeaturesSubcommand >= 0x56 && setFeaturesSubcommand <= 0x5C)
+            || (setFeaturesSubcommand >= 0xD6 && setFeaturesSubcommand <= 0xDC)
+            || setFeaturesSubcommand == 0xE0)
+        {
+            //vendor specific
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
+        }
+        else if ((setFeaturesSubcommand >= 0xF0 && setFeaturesSubcommand <= 0xFF))
+        {
+            //reserved for CFA
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reserved for CFA (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
+        }
+        else
+        {
+            //unknown/reserved
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Feature (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
+        }
+        break;
+    }
+}
+
+void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t zmAction = M_Nibble0(features);
+    uint8_t featuresActionSpecific = M_Byte1(features);
+    uint16_t countActionSpecific = count;
+    bool featureActionSpecificAvailable = true;
+    if (commandOpCode == ATA_RECEIVE_FPDMA)
+    {
+        countActionSpecific = M_BytesTo2ByteValue(M_Byte1(count), M_Byte1(features));
+        featuresActionSpecific = 0;//this is in the AUX register and we cannot read this in this log page.
+        featureActionSpecificAvailable = false;
+    }
+    switch (zmAction)
+    {
+    case ZM_ACTION_REPORT_ZONES:
+    {
+        bool partial = featuresActionSpecific & BIT15;
+        uint8_t reportingOptions = M_GETBITRANGE(featuresActionSpecific, 13, 8);
+        if (featureActionSpecificAvailable)
+        {
+            char reportOptionString[61] = { 0 };
+            switch (reportingOptions)
+            {
+            case ZONE_REPORT_LIST_ALL_ZONES:
+                snprintf(reportOptionString, 30, "List All Zones");
+                break;
+            case ZONE_REPORT_LIST_EMPTY_ZONES:
+                snprintf(reportOptionString, 30, "List Empty Zones");
+                break;
+            case ZONE_REPORT_LIST_IMPLICIT_OPEN_ZONES:
+                snprintf(reportOptionString, 30, "List Implicitly Opened Zones");
+                break;
+            case ZONE_REPORT_LIST_EXPLICIT_OPEN_ZONES:
+                snprintf(reportOptionString, 30, "List Explicitly Opened Zones");
+                break;
+            case ZONE_REPORT_LIST_CLOSED_ZONES:
+                snprintf(reportOptionString, 30, "List Closed Zones");
+                break;
+            case ZONE_REPORT_LIST_FULL_ZONES:
+                snprintf(reportOptionString, 30, "List Full Zones");
+                break;
+            case ZONE_REPORT_LIST_READ_ONLY_ZONES:
+                snprintf(reportOptionString, 30, "List Read Only Zones");
+                break;
+            case ZONE_REPORT_LIST_OFFLINE_ZONES:
+                snprintf(reportOptionString, 30, "List Offline Zones");
+                break;
+            case ZONE_REPORT_LIST_ZONES_WITH_RESET_SET_TO_ONE:
+                snprintf(reportOptionString, 30, "List Zones with RWP=True");
+                break;
+            case ZONE_REPORT_LIST_ZONES_WITH_NON_SEQ_SET_TO_ONE:
+                snprintf(reportOptionString, 60, "List Zones W/ Non-Sequential Write Resources Active");
+                break;
+            case ZONE_REPORT_LIST_ALL_ZONES_THAT_ARE_NOT_WRITE_POINTERS:
+                snprintf(reportOptionString, 30, "List Zones W/ Not Write Pointer Condition");
+                break;
+            default:
+            }
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Report Zones, Zone Locator: %" PRIu64 "  Partial %d  Page Count: %" PRIu16 " Report: %s", commandName, lba, partial, countActionSpecific, reportOptionString);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Report Zones, Zone Locator: %" PRIu64 "  Partial (Unknown)  Page Count: %" PRIu16 " Report: (Unknown)", commandName, lba, countActionSpecific);
+        }
+    }
+    break;
+    default:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown ZAC In Command, LBA: %012" PRIX64 " Features: %04" PRIX16 "h Count: %04" PRIX16 "h", commandName, lba, features, count);
+        break;
+    }
+}
+
+void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t zmAction = M_Nibble0(features);
+    uint8_t featuresActionSpecific = M_Byte1(features);
+    uint16_t countActionSpecific = count;
+    bool featureActionSpecificAvailable = true;
+    if (commandOpCode == ATA_FPDMA_NON_DATA || commandOpCode == ATA_SEND_FPDMA)
+    {
+        countActionSpecific = M_BytesTo2ByteValue(M_Byte1(count), M_Byte1(features));
+        featuresActionSpecific = 0;//this is in the AUX register and we cannot read this in this log page.
+        featureActionSpecificAvailable = false;
+    }
+    switch (zmAction)
+    {
+    case ZM_ACTION_CLOSE_ZONE:
+    {
+        bool closeAll = featuresActionSpecific & BIT8;
+        if (featureActionSpecificAvailable)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Close Zone, Zone ID: %" PRIu64 "  Close All: %d", commandName, lba, closeAll);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Close Zone, Zone ID: %" PRIu64 "  Close All: (Unknown)", commandName, lba);
+        }
+    }
+        break;
+    case ZM_ACTION_FINISH_ZONE:
+    {
+        bool finishAll = featuresActionSpecific & BIT8;
+        if (featureActionSpecificAvailable)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Finish Zone, Zone ID: %" PRIu64 "  Finish All: %d", commandName, lba, finishAll);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Finish Zone, Zone ID: %" PRIu64 "  Finish All: (Unknown)", commandName, lba);
+        }
+    }
+        break;
+    case ZM_ACTION_OPEN_ZONE:
+    {
+        bool openAll = featuresActionSpecific & BIT8;
+        if (featureActionSpecificAvailable)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Open Zone, Zone ID: %" PRIu64 "  Open All: %d", commandName, lba, openAll);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Open Zone, Zone ID: %" PRIu64 "  Open All: (Unknown)", commandName, lba);
+        }
+    }
+        break;
+    case ZM_ACTION_RESET_WRITE_POINTERS:
+    {
+        bool resetAll = featuresActionSpecific & BIT8;
+        if (featureActionSpecificAvailable)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reset Write Pointers, Zone ID: %" PRIu64 "  Reset All: %d", commandName, lba, resetAll);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reset Write Pointers, Zone ID: %" PRIu64 "  Reset All: (Unknown)", commandName, lba);
+        }
+    }
+        break;
+    default:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown ZAC Out Command, LBA: %012" PRIX64 " Features: %04" PRIX16 "h Count: %04" PRIX16 "h", commandName, lba, features, count);
+        break;
+    }
+}
+
+void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t subcommand = M_Nibble0(features);
+    uint8_t tag = M_GETBITRANGE(count, 7, 3);
+    uint8_t prio = M_GETBITRANGE(count, 15, 14);//technically subcommand specific...
+    switch (subcommand)
+    {
+    case NCQ_NON_DATA_ABORT_NCQ_QUEUE:
+    {
+        uint8_t abortType = M_GETBITRANGE(features, 7, 4);
+        uint8_t ttag = M_GETBITRANGE(lba, 7, 3);
+        char abortTypeString[21] = { 0 };
+        switch (abortType)
+        {
+        case 0:
+            snprintf(abortTypeString, 20, "Abort All");
+            break;
+        case 1:
+            snprintf(abortTypeString, 20, "Abort Streaming");
+            break;
+        case 2:
+            snprintf(abortTypeString, 20, "Abort Non-Streaming");
+            break;
+        case 3:
+            snprintf(abortTypeString, 20, "Abort Selected. TTAG = %" PRIu8 "", ttag);
+            break;
+        default:
+            snprintf(abortTypeString, 20, "Unknown Abort Type (%" PRIX8 "h)", abortType);
+            break;
+        }
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Abort NCQ Queue: %s. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, abortTypeString, tag, prio);
+    }
+        break;
+    case NCQ_NON_DATA_DEADLINE_HANDLING:
+    {
+        bool rdnc = features & BIT5;
+        bool wdnc = features & BIT4;
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Deadline Handling. Tag: %" PRIu8 " WDNC: %d RDNC: %d", commandName, tag, wdnc, rdnc);
+    }
+        break;
+    case NCQ_NON_DATA_HYBRID_DEMOTE_BY_SIZE:
+    {
+        uint16_t sectorCount = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
+        uint8_t fromPriority = M_GETBITRANGE(features, 7, 4);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Demote By Size. Tag: %" PRIu8 " LBA: %" PRIu64 " Count: %" PRIu16 " From Priority: %" PRIu8 "", commandName, tag, lba, sectorCount, fromPriority);
+    }
+        break;
+    case NCQ_NON_DATA_HYBRID_CHANGE_BY_LBA_RANGE:
+    {
+        uint16_t sectorCount = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
+        bool avoidSpinup = features & BIT4;
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Change By LBA Range. Tag: %" PRIu8 " LBA: %" PRIu64 " Count: %" PRIu16 " Avoid Spinup: %d", commandName, tag, lba, sectorCount, avoidSpinup);
+    }
+        break;
+    case NCQ_NON_DATA_HYBRID_CONTROL:
+    {
+        bool disableCachingMedia = features & BIT7;
+        uint8_t dirtyHighThreshold = M_Byte1(lba);
+        uint8_t dirtyLowThreshold = M_Byte0(lba);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Control. Tag: %" PRIu8 " Disable Caching Media: %D Dirty High Thresh: %" PRIu8 " Dirty Low Thresh: %" PRIu8 "", commandName, tag, disableCachingMedia, dirtyHighThreshold, dirtyLowThreshold);
+    }
+        break;
+    case NCQ_NON_DATA_ZERO_EXT:
+    {
+        char ncqZerosExtString[41] = { 0 };
+        snprintf(ncqZerosExtString, 40, "%s - Zero Ext. Tag: %" PRIu8 "", commandName, tag);
+        get_Zeros_Ext_Command_Info(ncqZerosExtString, commandOpCode, features, count, lba, device, commandInfo);
+    }
+        break;
+    case NCQ_NON_DATA_ZAC_MANAGEMENT_OUT:
+    {
+        char ncqZacMgmtOutString[41] = { 0 };
+        snprintf(ncqZacMgmtOutString, 40, "%s - ZAC Management Out. Tag: %" PRIu8 "", commandName, tag);
+        get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device, commandInfo);
+    }
+        break;
+    case NCQ_NON_DATA_SET_FEATURES:
+        //TODO: call set features translation
+    default:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16 "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h", commandName, subcommand, tag, features, count, lba);
+        break;
+    }
+}
+
+void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t subcommand = M_GETBITRANGE(count, 12, 8);
+    uint8_t tag = M_GETBITRANGE(count, 7, 3);
+    uint8_t prio = M_GETBITRANGE(count, 15, 14);
+    switch (subcommand)
+    {
+    case RECEIVE_FPDMA_READ_LOG_DMA_EXT:
+    {
+        char recieveFPDMAReadLogString[41] = { 0 };
+        snprintf(recieveFPDMAReadLogString, 40, "%s - Read Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        get_GPL_Log_Command_Info(recieveFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
+    }
+        break;
+    case RECEIVE_FPDMA_ZAC_MANAGEMENT_IN:
+    {
+        char ncqZacMgmtInString[41] = { 0 };
+        snprintf(ncqZacMgmtInString, 40, "%s - ZAC Management In. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        get_ZAC_Management_In_Command_Info(ncqZacMgmtInString, commandOpCode, features, count, lba, device, commandInfo);
+    }
+        break;
+    default:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16 "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h", commandName, subcommand, tag, features, count, lba);
+        break;
+    }
+}
+
+void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    uint8_t subcommand = M_GETBITRANGE(count, 12, 8);
+    uint8_t tag = M_GETBITRANGE(count, 7, 3);
+    uint8_t prio = M_GETBITRANGE(count, 15, 14);
+    uint32_t blocksToTransfer = features;
+    if (blocksToTransfer == 0)
+    {
+        blocksToTransfer = 65536;
+    }
+    switch (subcommand)
+    {
+    case SEND_FPDMA_DATA_SET_MANAGEMENT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Data Set Management. Tag: %" PRIu8 " PRIO: %" PRIu8 " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu16 " LBA: %" PRIu64 "", commandName, tag, prio, blocksToTransfer, lba);
+        break;
+    case SEND_FPDMA_HYBRID_EVICT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Evicy. Tag: %" PRIu8 " PRIO: %" PRIu8 " Evict All: (Unknown) Blocks To Transfer: %" PRIu16 "", commandName, tag, prio, blocksToTransfer);
+        break;
+    case SEND_FPDMA_WRITE_LOG_DMA_EXT:
+    {
+        char sendFPDMAReadLogString[41] = { 0 };
+        snprintf(sendFPDMAReadLogString, 40, "%s - Write Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        get_GPL_Log_Command_Info(sendFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
+    }
+        break;
+    case SEND_FPDMA_ZAC_MANAGEMENT_OUT:
+    {
+        char ncqZacMgmtOutString[41] = { 0 };
+        snprintf(ncqZacMgmtOutString, 40, "%s - ZAC Management Out. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device, commandInfo);
+    }
+        break;
+    case SEND_FPDMA_DATA_SET_MANAGEMENT_XL:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Data Set Management XL. Tag: %" PRIu8 " PRIO: %" PRIu8 " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu16 " LBA: %" PRIu64 "", commandName, tag, prio, blocksToTransfer, lba);
+        break;
+    default:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16 "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h", commandName, subcommand, tag, features, count, lba);
+        break;
+    }
+}
+
 void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     //TODO: some commands leave some registers reserved. Add handling when some of these reserved registers are set to non-zero values
@@ -4138,7 +4707,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Read_Write_Command_Info("Read Verify Ext", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_ZEROS_EXT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Zeros Ext");
+        get_Zeros_Ext_Command_Info("Zeros Ext", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_WRITE_UNCORRECTABLE_EXT:
     {
@@ -4172,8 +4741,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_GPL_Log_Command_Info("Read Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_ZONE_MANAGEMENT_IN:
-		//todo: parse feature for what the command is asking to do
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Zone Management In");
+        get_ZAC_Management_In_Command_Info("ZAC Management In", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_FORMAT_TRACK:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
@@ -4212,13 +4780,13 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Read_Write_Command_Info("Write FPDMA Queued", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_FPDMA_NON_DATA:
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NCQ Non-Data");
+        get_NCQ_Non_Data_Command_Info("NCQ Non-Data", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_SEND_FPDMA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Send FPDMA");
+        get_Send_FPDMA_Command_Info("Send FPDMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_RECEIVE_FPDMA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Receive FPDMA");
+        get_Receive_FPDMA_Command_Info("Receive FPDMA", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_SEEK_CMD://TODO: seek can be 7xh....but that also conflicts with new command definitions
     case 0x71:
@@ -4365,8 +4933,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (99h)");
 		break;
 	case ATA_ZONE_MANAGEMENT_OUT:
-		//todo: parse the feature
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Zone Management Out");
+        get_ZAC_Management_Out_Command_Info("ZAC Management Out", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATAPI_COMMAND:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "ATA Packet Command");
