@@ -4155,14 +4155,194 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
     }
         break;
     case SF_TLC_SET_CCTL:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Set CCTL - %" PRIu32 " milliseconds", commandName, (uint32_t)(subcommandCount * 10));
+        break;
     case SF_TCL_SET_ERROR_HANDLING:
+        if (subcommandCount == 1)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Error Handling - Read/Write Continuous", commandName);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Error Handling - Abort", commandName);
+        }
+        break;
     case SF_DISABLE_MEDIA_STATUS_NOTIFICATION:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Media Status Notification", commandName);
+        break;
     case SF_DISABLE_RETRY:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Retries", commandName);
+        break;
     case SF_ENABLE_FREE_FALL_CONTROL_FEATURE:
+        if (subcommandCount == 0)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Free-Fall Control: Vendor Recommended Sensitivity", commandName);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Free-Fall Control - Sensitivity: %02 " PRIu8 "h", commandName, subcommandCount);
+        }
+        break;
     case SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE:
+        if (subcommandCount == 0)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Vendor Specific", commandName);
+        }
+        else if (subcommandCount >= 0x01 && subcommandCount <= 0x7F)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Retired (%02" PRIX8 "h)", commandName, subcommandCount);
+        }
+        else if (subcommandCount == 0x80)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Minimum Acoustic Emanation", commandName);
+        }
+        else if (subcommandCount >= 0x81 && subcommandCount <= 0xFD)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Intermediate Acoustic Mangement Levels (%02" PRIX8 "h)", commandName, subcommandCount);
+        }
+        else if (subcommandCount == 0xFE)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Maximum Performance", commandName);
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Reserved (%02" PRIX8 "h)", commandName, subcommandCount);
+        }
+        break;
     case SF_MAXIMUM_HOST_INTERFACE_SECTOR_TIMES:
+    {
+        uint16_t typicalPIOTime = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
+        uint8_t typicalDMATime = M_Byte1(lba);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Maximum Host Interface Sector Times - PIO: %" PRIu16 " DMA: %" PRIu8 "", commandName, subcommandCount, typicalPIOTime, typicalDMATime);
+    }
+        break;
     case SF_LEGACY_SET_VENDOR_SPECIFIC_ECC_BYTES_FOR_READ_WRITE_LONG:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Vendor Specific ECC Data For Read/Write Long: %" PRIu8 " Bytes", commandName, subcommandCount);
+        break;
+    case SF_SET_RATE_BASIS:
+        switch (subcommandCount)
+        {
+        case 0x00:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Rate Basis - Time Of Manufacture Until Time Indicated by Date and Time Timestamp", commandName, subcommandCount);
+            break;
+        case 0x04:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Rate Basis - Time Elapsed Since Most Recent Power On Reset", commandName, subcommandCount);
+            break;
+        case 0x08:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Rate Basis - Time Indicated By Power On Hours Device Statistic", commandName, subcommandCount);
+            break;
+        case 0x0F:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Rate Basis - Undetermined", commandName, subcommandCount);
+            break;
+        default:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Rate Basis - Unknown(%02" PRIX8 "h)", commandName, subcommandCount);
+            break;
+        }
+        break;
     case SF_EXTENDED_POWER_CONDITIONS:
+    {
+        uint8_t subcommand = M_GETBITRANGE(lba, 3, 0);
+        uint8_t powerConditionCode = subcommandCount;
+        uint32_t epcLBA = lba;
+        if (commandOpCode == ATA_SET_FEATURE)
+        {
+            epcLBA = (lba & 0xFFFFFF) | (M_Nibble0(device) << 24);
+        }
+        char powerConditionString[31] = { 0 };
+        switch (powerConditionCode)
+        {
+        case PWR_CND_STANDBY_Z:
+            snprintf(powerConditionString, 30, "Standby_Z");
+            break;
+        case PWR_CND_STANDBY_Y:
+            snprintf(powerConditionString, 30, "Standby_Y");
+            break;
+        case PWR_CND_IDLE_A:
+            snprintf(powerConditionString, 30, "Idle_A");
+            break;
+        case PWR_CND_IDLE_B:
+            snprintf(powerConditionString, 30, "Idle_B");
+            break;
+        case PWR_CND_IDLE_C:
+            snprintf(powerConditionString, 30, "Idle_C");
+            break;
+        case PWR_CND_ALL:
+            snprintf(powerConditionString, 30, "All Supported");
+            break;
+        default:
+            snprintf(powerConditionString, 30, "Unknown Pwr Cond (%02" PRIX8 "h)", powerConditionCode);
+            break;
+        }
+        switch (subcommand)
+        {
+        case EPC_RESTORE_POWER_CONDITION_SETTINGS:
+        {
+            bool defaultBit = epcLBA & BIT6;
+            bool saveBit = epcLBA & BIT4;
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Restore Power Condition Settings - %s Default: %d Save: %d", commandName, powerConditionString, defaultBit, saveBit);
+        }
+            break;
+        case EPC_GO_TO_POWER_CONDITION:
+        {
+            bool delayedEntry = epcLBA & BIT25;
+            bool holdPowerCondition = epcLBA & BIT24;
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Go To Power Condition - %s Delay: %d Hold: %d", commandName, powerConditionString, delayedEntry, holdPowerCondition);
+        }
+            break;
+        case EPC_SET_POWER_CONDITION_TIMER:
+        {
+            uint32_t timer = M_GETBITRANGE(epcLBA, 23, 8);
+            bool units = epcLBA & BIT7;
+            bool enable = epcLBA & BIT5;
+            bool save = epcLBA & BIT4;
+            if (units)
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Power Condition Timer - %s Timer: %" PRIu32 " minutes, Enable: %d, Save: %d", commandName, powerConditionString, timer, enable, save);
+            }
+            else
+            {
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Power Condition Timer - %s Timer: %" PRIu32 " ms, Enable: %d, Save: %d", commandName, powerConditionString, timer * 100, enable, save);
+            }
+        }
+            break;
+        case EPC_SET_POWER_CONDITION_STATE:
+        {
+            bool enable = epcLBA & BIT5;
+            bool save = epcLBA & BIT4;
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Power Condition State - %s Enable: %d, Save: %d", commandName, powerConditionString, enable, save);
+        }
+            break;
+        case EPC_ENABLE_EPC_FEATURE_SET:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable EPC Feature", commandName);
+            break;
+        case EPC_DISABLE_EPC_FEATURE_SET:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable EPC Feature", commandName);
+            break;
+        case EPC_SET_EPC_POWER_SOURCE:
+        {
+            uint8_t powerSource = M_GETBITRANGE(subcommandCount, 1, 0);
+            char powerSourceString[21] = { 0 };
+            switch (powerSource)
+            {
+            case 1:
+                snprintf(powerSourceString, 20, "Battery");
+                break;
+            case 2:
+                snprintf(powerSourceString, 20, "Not Battery");
+                break;
+            default:
+                snprintf(powerSourceString, 20, "Unknown (%01" PRIX8 "h)", powerSource);
+                break;
+            }
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set EPC Power Source - %s", commandName, powerSourceString);
+        }
+            break;
+        default:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown EPC Subcommand (%02" PRIX8 "h) - %s LBA: %07" PRIu32 "h", commandName, subcommand, powerConditionString, epcLBA);
+            break;
+        }
+    }
+        break;
     case SF_SET_CACHE_SEGMENTS:
     case SF_DISABLE_READ_LOOK_AHEAD_FEATURE:
     case SF_ENABLE_RELEASE_INTERRUPT:
