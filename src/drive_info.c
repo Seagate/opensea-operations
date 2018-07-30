@@ -3620,7 +3620,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
         numberOfPages = offset / 2;
         uint16_t modeIter = 0;
         uint8_t protocolIdentifier = 0;
-        for (; modeIter < numberOfPages; modeIter += 2)
+        for (uint16_t pageCounter = 0; modeIter < offset && pageCounter < numberOfPages; modeIter += 2, ++pageCounter)
         {
             uint8_t pageCode = listOfModePagesAndSubpages[modeIter];
             uint8_t subPageCode = listOfModePagesAndSubpages[modeIter + 1];
