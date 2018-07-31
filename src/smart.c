@@ -2494,11 +2494,13 @@ int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
 int nvme_Print_Temp_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
+    int index;
     uint64_t size = 0; 
     uint32_t temperature = 0, pcbTemp = 0, socTemp = 0, scCurrentTemp = 0, scMaxTemp = 0;
     uint64_t maxTemperature = 0, maxSocTemp = 0;
     nvmeGetLogPageCmdOpts   cmdOpts;
     nvmeSmartLog            smartLog;
+    EXTENDED_SMART_INFO_T   extSmartLog;
     nvmeSuperCapDramSmart   scDramSmart;
 
     if (is_Seagate(device, false))
@@ -2536,8 +2538,36 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         }
 
         // STEP-2 : Get Max temperature form Ext SMART-id 194
-        // This I will add after pulling Linga's changes
+        memset(&smartLog, 0, sizeof(nvmeSmartLog));
 
+        cmdOpts.nsid = NVME_ALL_NAMESPACES;
+        cmdOpts.addr = (uint64_t)(&extSmartLog);
+        cmdOpts.dataLen = sizeof(EXTENDED_SMART_INFO_T);
+        cmdOpts.lid = 0xC4;
+
+        ret = nvme_Get_Log_Page(device, &cmdOpts);
+
+        if(ret == SUCCESS)
+        {
+            for(index = 0; index < NUMBER_EXTENDED_SMART_ATTRIBUTES; index++) 
+            {
+                if(extSmartLog.vendorData[index].AttributeNumber == VS_ATTR_ID_MAX_LIFE_TEMPERATURE) 
+                {
+                    maxTemperature = smart_attribute_vs(extSmartLog.Version, extSmartLog.vendorData[index]);
+                    maxTemperature = maxTemperature ? maxTemperature - 273 : 0;
+
+                    printf("%-20s : %" PRIu32 " C\n", "Highest Temperature", (unsigned int)maxTemperature);
+                }
+    
+                if(extSmartLog.vendorData[index].AttributeNumber == VS_ATTR_ID_MAX_SOC_LIFE_TEMPERATURE) 
+                {
+                    maxSocTemp = smart_attribute_vs(extSmartLog.Version, extSmartLog.vendorData[index]);
+                    maxSocTemp = maxSocTemp ? maxSocTemp - 273 : 0;
+
+                    printf("%-20s : %" PRIu32 " C\n", "Max SOC Temperature", (unsigned int)maxSocTemp);
+                }
+    		}
+        }
 
         // STEP-3 : Get Max temperature form SuperCap DRAM temperature
         memset(&scDramSmart, 0, sizeof(nvmeSuperCapDramSmart));
