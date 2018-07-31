@@ -3961,6 +3961,78 @@ void get_Zeros_Ext_Command_Info(const char* commandName, uint8_t commandOpCode, 
     }
 }
 
+void get_SATA_Feature_Control_Command_Info(const char* commandName, bool enable, uint8_t subcommandCount, uint64_t lba, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+{
+    char sataFeatureString[81] = { 0 };
+    switch (subcommandCount)
+    {
+    case SATA_FEATURE_NONZERO_BUFFER_OFFSETS:
+        snprintf(sataFeatureString, 80, "Nonzero Buffer Offsets", subcommandCount);
+        break;
+    case SATA_FEATURE_DMA_SETUP_FIS_AUTO_ACTIVATE:
+        snprintf(sataFeatureString, 80, "DMA Setup FIS Auto Activation Optimization", subcommandCount);
+        break;
+    case SATA_FEATURE_DEVICE_INITIATED_INTERFACE_POWER_STATE_TRANSITIONS:
+        snprintf(sataFeatureString, 80, "Device Initiated Interface Power State Transitions", subcommandCount);
+        break;
+    case SATA_FEATURE_GUARANTEED_IN_ORDER_DATA_DELIVERY:
+        snprintf(sataFeatureString, 80, "Guaranteed In Order Data Delivery", subcommandCount);
+        break;
+    case SATA_FEATURE_ASYNCHRONOUS_NOTIFICATION:
+        snprintf(sataFeatureString, 80, "Asynchronous Notification", subcommandCount);
+        break;
+    case SATA_FEATURE_SOFTWARE_SETTINGS_PRESERVATION:
+        snprintf(sataFeatureString, 80, "Software Settings Preservation", subcommandCount);
+        break;
+    case SATA_FEATURE_DEVICE_AUTOMATIC_PARTIAL_TO_SLUMBER_TRANSITIONS:
+        snprintf(sataFeatureString, 80, "Device Automatic Partial To Slumber Transitions", subcommandCount);
+        break;
+    case SATA_FEATURE_ENABLE_HARDWARE_FEATURE_CONTROL:
+    {
+        char hardwareFeatureName[31] = { 0 };
+        uint16_t functionID = M_GETBITRANGE(lba, 15, 0);
+        switch (functionID)
+        {
+        case 0x0001:
+            snprintf(hardwareFeatureName, 30, "Direct Head Unload");
+            break;
+        default:
+            if (functionID >= 0xF000 && functionID <= 0xFFFF)
+            {
+                snprintf(hardwareFeatureName, 30, "Vendor Specific (%04" PRIX16 "h)", functionID);
+            }
+            else
+            {
+                snprintf(hardwareFeatureName, 30, "Unknown Function (%04" PRIX16 "h)", functionID);
+            }
+            break;
+        }
+        snprintf(sataFeatureString, 80, "Enable Hardware Feature Control - %s", subcommandCount);
+    }
+    break;
+    case SATA_FEATURE_ENABLE_DISABLE_DEVICE_SLEEP:
+        snprintf(sataFeatureString, 80, "Device Sleep", subcommandCount);
+        break;
+    case SATA_FEATURE_ENABLE_DISABLE_HYBRID_INFORMATION:
+        snprintf(sataFeatureString, 80, "Hybrid Information", subcommandCount);
+        break;
+    case SATA_FEATURE_ENABLE_DISABLE_POWER_DISABLE:
+        snprintf(sataFeatureString, 80, "Power Disable", subcommandCount);
+        break;
+    default:
+        snprintf(sataFeatureString, 80, "Unknown SATA Feature (%02" PRIX8 "h)", subcommandCount);
+        break;
+    }
+    if (enable)
+    {
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable SATA Feature - %s", commandName, sataFeatureString);
+    }
+    else
+    {
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable SATA Feature - %s", commandName, sataFeatureString);
+    }
+}
+
 void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t setFeaturesSubcommand = M_Byte0(features);
@@ -4090,69 +4162,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Device Life Control", commandName);
         break;
     case SF_ENABLE_SATA_FEATURE:
-    {
-        char sataFeatureString[81] = { 0 };
-        switch (subcommandCount)
-        {
-        case SATA_FEATURE_NONZERO_BUFFER_OFFSETS:
-            snprintf(sataFeatureString, 80, "Nonzero Buffer Offsets", subcommandCount);
-            break;
-        case SATA_FEATURE_DMA_SETUP_FIS_AUTO_ACTIVATE:
-            snprintf(sataFeatureString, 80, "DMA Setup FIS Auto Activation Optimization", subcommandCount);
-            break;
-        case SATA_FEATURE_DEVICE_INITIATED_INTERFACE_POWER_STATE_TRANSITIONS:
-            snprintf(sataFeatureString, 80, "Device Initiated Interface Power State Transitions", subcommandCount);
-            break;
-        case SATA_FEATURE_GUARANTEED_IN_ORDER_DATA_DELIVERY:
-            snprintf(sataFeatureString, 80, "Guaranteed In Order Data Delivery", subcommandCount);
-            break;
-        case SATA_FEATURE_ASYNCHRONOUS_NOTIFICATION:
-            snprintf(sataFeatureString, 80, "Asynchronous Notification", subcommandCount);
-            break;
-        case SATA_FEATURE_SOFTWARE_SETTINGS_PRESERVATION:
-            snprintf(sataFeatureString, 80, "Software Settings Preservation", subcommandCount);
-            break;
-        case SATA_FEATURE_DEVICE_AUTOMATIC_PARTIAL_TO_SLUMBER_TRANSITIONS:
-            snprintf(sataFeatureString, 80, "Device Automatic Partial To Slumber Transitions", subcommandCount);
-            break;
-        case SATA_FEATURE_ENABLE_HARDWARE_FEATURE_CONTROL:
-        {
-            char hardwareFeatureName[31] = { 0 };
-            uint16_t functionID = M_GETBITRANGE(lba, 15, 0);
-            switch (functionID)
-            {
-            case 0x0001:
-                snprintf(hardwareFeatureName, 30, "Direct Head Unload");
-                break;
-            default:
-                if (functionID >= 0xF000 && functionID <= 0xFFFF)
-                {
-                    snprintf(hardwareFeatureName, 30, "Vendor Specific (%04" PRIX16 "h)", functionID);
-                }
-                else
-                {
-                    snprintf(hardwareFeatureName, 30, "Unknown Function (%04" PRIX16 "h)", functionID);
-                }
-                break;
-            }
-            snprintf(sataFeatureString, 80, "Enable Hardware Feature Control - %s", subcommandCount);
-        }
-            break;
-        case SATA_FEATURE_ENABLE_DISABLE_DEVICE_SLEEP:
-            snprintf(sataFeatureString, 80, "Device Sleep", subcommandCount);
-            break;
-        case SATA_FEATURE_ENABLE_DISABLE_HYBRID_INFORMATION:
-            snprintf(sataFeatureString, 80, "Hybrid Information", subcommandCount);
-            break;
-        case SATA_FEATURE_ENABLE_DISABLE_POWER_DISABLE:
-            snprintf(sataFeatureString, 80, "Power Disable", subcommandCount);
-            break;
-        default:
-            snprintf(sataFeatureString, 80, "Unknown SATA Feature (%02" PRIX8 "h)", subcommandCount);
-            break;
-        }
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable SATA Feature - %s", commandName, sataFeatureString);
-    }
+        get_SATA_Feature_Control_Command_Info(commandName, true, subcommandCount, lba, commandInfo);
         break;
     case SF_TLC_SET_CCTL:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Set CCTL - %" PRIu32 " milliseconds", commandName, (uint32_t)(subcommandCount * 10));
@@ -4344,38 +4354,159 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
     }
         break;
     case SF_SET_CACHE_SEGMENTS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Cache Segments - %" PRIu8 " Segments", commandName, subcommandCount);
+        break;
     case SF_DISABLE_READ_LOOK_AHEAD_FEATURE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Read Look-Ahead", commandName);
+        break;
     case SF_ENABLE_RELEASE_INTERRUPT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Release Interrupt", commandName);
+        break;
     case SF_ENABLE_SERVICE_INTERRUPT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Service Interrupt", commandName);
+        break;
+    case SF_ENABLE_DISABLE_DATA_TRANSFER_AFTER_ERROR_DETECTION:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Method To Disable Data Transfer After Error Detection", commandName);
+        break;
     case SF_LONG_PHYSICAL_SECTOR_ALIGNMENT_ERROR_REPORTING:
+        switch (subcommandCount)
+        {
+        case SF_LPS_DISABLED:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Long Physical Sector Alignment Error Reporting - Disabled", commandName);
+            break;
+        case SF_LPS_REPORT_ALIGNMENT_ERROR:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Long Physical Sector Alignment Error Reporting - Report Error", commandName);
+            break;
+        case SF_LPS_REPORT_ALIGNMENT_ERROR_DATA_CONDITION_UNKNOWN:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Long Physical Sector Alignment Error Reporting - Report Error, Data Condition Unknown", commandName);
+            break;
+        default:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Long Physical Sector Alignment Error Reporting - Unknown Mode (%02" PRIX8 "h)", commandName, subcommandCount);
+            break;
+        }
+        break;
     case SF_ENABLE_DISABLE_DSN_FEATURE:
+        switch (subcommandCount)
+        {
+        case SF_DSN_ENABLE:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Device Statistics Notification - Enable", commandName);
+            break;
+        case SF_DSN_DISABLE:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Device Statistics Notification - Disable", commandName);
+            break;
+        default:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Device Statistics Notification - Unknown Subcommand (%02" PRIX8 "h)", commandName, subcommandCount);
+            break;
+        }
+        break;
     case SF_DISABLE_REVERTING_TO_POWERON_DEFAULTS:
-    case SF_RESERVED_FOR_CFA:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Reverting to Poweron Defaults", commandName);
+        break;
+    case SF_CFA_NOP_ACCEPTED_FOR_BACKWARDS_COMPATIBILITY:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - CFA (%02" PRIX8 "h) - NOP, Accepted for Compatibility", commandName, setFeaturesSubcommand);
+        break;
     case SF_DISABLE_ECC:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable ECC", commandName);
+        break;
     case SF_DISABLE_8_BIT_DATA_TRANSFERS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable 8-bit Data Transfers", commandName);
+        break;
     case SF_DISABLE_VOLITILE_WRITE_CACHE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Volatile Write Cache", commandName);
+        break;
     case SF_DISABLE_ALL_AUTOMATIC_DEFECT_REASSIGNMENT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable All Automatic Defect Reassignment", commandName);
+        break;
     case SF_DISABLE_APM_FEATURE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Advanced Power Management", commandName);
+        break;
     case SF_DISABLE_PUIS_FEATURE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Power Up In Standby", commandName);
+        break;
     case SF_ENABLE_ECC:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable ECC", commandName);
+        break;
     case SF_ADDRESS_OFFSET_RESERVED_BOOT_AREA_METHOD_TECH_REPORT_2:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Address Offser Reserved Boot Area Method %02" PRIX8 "h", commandName, setFeaturesSubcommand);
+        break;
     case SF_DISABLE_CFA_POWER_MODE_1:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable CFA Power Mode 1", commandName);
+        break;
     case SF_DISABLE_WRITE_READ_VERIFY_FEATURE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Write-Read-Verify", commandName);
+        break;
     case SF_DISABLE_DEVICE_LIFE_CONTROL:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Device Life Control", commandName);
+        break;
     case SF_DISABLE_SATA_FEATURE:
+        get_SATA_Feature_Control_Command_Info(commandName, false, subcommandCount, lba, commandInfo);
+        break;
     case SF_ENABLE_MEDIA_STATUS_NOTIFICATION:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Media Status Notification", commandName);
+        break;
+    case SF_CFA_NOP_ACCEPTED_FOR_BACKWARDS_COMPATIBILITY_1:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - CFA (%02" PRIX8 "h) - NOP, Accepted for Compatibility", commandName, setFeaturesSubcommand);
+        break;
+    case SF_CFA_ACCEPTED_FOR_BACKWARDS_COMPATIBILITY:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - CFA (%02" PRIX8 "h) - Accepted for Compatibility", commandName, setFeaturesSubcommand);
+        break;
     case SF_ENABLE_RETIRES:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Retries", commandName);
+        break;
     case SF_SET_DEVICE_MAXIMUM_AVERAGE_CURRENT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Device Maximum Average Current: %" PRIu16 " mA", commandName, (uint16_t)(subcommandCount * 4));
+        break;
     case SF_ENABLE_READ_LOOK_AHEAD_FEATURE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Read Look-Ahead", commandName);
+        break;
     case SF_SET_MAXIMUM_PREFETCH:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Maximum Prefetch: %" PRIu8 " sectors", commandName, subcommandCount);
+        break;
     case SF_LEGACY_SET_4_BYTES_ECC_FOR_READ_WRITE_LONG:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set 4 Bytes ECC Data For Read/Write Long", commandName);
+        break;
     case SF_DISABLE_FREE_FALL_CONTROL_FEATURE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Free-Fall Control", commandName);
+        break;
     case SF_DISABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Automatic Acoustic Management", commandName);
+        break;
     case SF_ENABLE_DISABLE_SENSE_DATA_REPORTING_FEATURE:
+        if (subcommandCount == 0)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Sense Data Reporting", commandName);
+            break;
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Sense Data Reporting", commandName);
+            break;
+        }
+        break;
     case SF_ENABLE_DISABLE_SENSE_DATA_RETURN_FOR_SUCCESSFUL_NCQ_COMMANDS:
+        if (subcommandCount == 0)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Sense Data Reporting For Successful NCQ Commands", commandName);
+            break;
+        }
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Sense Data Reporting For Successful NCQ Commands", commandName);
+            break;
+        }
+        break;
     case SF_ENABLE_REVERTING_TO_POWER_ON_DEFAULTS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Reverting to Poweron Defaults", commandName);
+        break;
     case SF_DISABLE_RELEASE_INTERRUPT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Release Interrupt", commandName);
+        break;
     case SF_DISABLE_SERVICE_INTERRUPT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Service Interrupt", commandName);
+        break;
+    case SF_DISABLE_DISABLE_DATA_TRANSFER_AFTER_ERROR_DETECTION:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Method To Disable Data Transfer After Error Detection", commandName);
+        break;
     default:
         if ((setFeaturesSubcommand >= 0x56 && setFeaturesSubcommand <= 0x5C)
             || (setFeaturesSubcommand >= 0xD6 && setFeaturesSubcommand <= 0xDC)
@@ -4604,6 +4735,13 @@ void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCod
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Control. Tag: %" PRIu8 " Disable Caching Media: %D Dirty High Thresh: %" PRIu8 " Dirty Low Thresh: %" PRIu8 "", commandName, tag, disableCachingMedia, dirtyHighThreshold, dirtyLowThreshold);
     }
         break;
+    case NCQ_NON_DATA_SET_FEATURES:
+    {
+        char ncqSetFeaturesString[41] = { 0 };
+        snprintf(ncqSetFeaturesString, 40, "%s - Set Features. Tag: %" PRIu8 "", commandName, tag);
+        get_Set_Features_Command_Info(ncqSetFeaturesString, commandOpCode, features, count, lba, device, commandInfo);
+    }
+        break;
     case NCQ_NON_DATA_ZERO_EXT:
     {
         char ncqZerosExtString[41] = { 0 };
@@ -4618,8 +4756,6 @@ void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCod
         get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device, commandInfo);
     }
         break;
-    case NCQ_NON_DATA_SET_FEATURES:
-        //TODO: call set features translation
     default:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16 "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h", commandName, subcommand, tag, features, count, lba);
         break;
@@ -5274,8 +5410,8 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 	case ATA_IDENTIFY_DMA:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify DMA");
 		break;
-	case ATA_SET_FEATURE: //todo: parse feature                               ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Features");
+	case ATA_SET_FEATURE:
+        get_Set_Features_Command_Info("Set Features", commandOpCode, features, count, lba, device, commandInfo);
 		break;
 	case ATA_SECURITY_SET_PASS:
 		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Set Password");
