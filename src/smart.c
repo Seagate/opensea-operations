@@ -5647,74 +5647,100 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
 			{
 				printf("\n===============================================\n");
 				printf("Error %" PRIu16 " - Drive State: ", iter + 1);
+				uint8_t errorState = M_Nibble0(errorLogData->smartError->error.state);
 				if (errorLogData->extLog)
 				{
-					uint8_t errorState = M_Nibble0(errorLogData->smartError->error.state);
-					if (errorLogData->extLog)
+					errorState = M_Nibble0(errorLogData->extSmartError->error.state);
+				}
+				switch (errorState)
+				{
+				case 0:
+					printf("Unknown");
+					break;
+				case 1:
+					printf("Sleep");
+					break;
+				case 2:
+					printf("Standby");
+					break;
+				case 3:
+					printf("Active/Idle");
+					break;
+				case 4:
+					printf("Executing Off-line or self test");
+					break;
+				default:
+					if (errorState >= 5 && errorState <= 0x0A)
 					{
-						errorState = M_Nibble0(errorLogData->extSmartError->error.state);
-					}
-					switch (errorState)
-					{
-					case 0:
-						printf("Unknown");
-						break;
-					case 1:
-						printf("Sleep");
-						break;
-					case 2:
-						printf("Standby");
-						break;
-					case 3:
-						printf("Active/Idle");
-						break;
-					case 4:
-						printf("Executing Off-line or self test");
-						break;
-					default:
-						if (errorState >= 5 && errorState <= 0x0A)
-						{
-							printf("Reserved");
-						}
-						else
-						{
-							printf("Vendor Specific");
-						}
-						break;
-					}
-					printf(" Life Timestamp: ");
-					uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
-					convert_Seconds_To_Displayable_Time(errorLogData->extSmartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
-					print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
-					printf("\n");
-					uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
-					if (errorLogData->extLog)
-					{
-						numberOfCommandsBeforeError = errorLogData->extSmartError->numberOfCommands;
-					}
-					if (numberOfCommandsBeforeError > 0 && !errorCommandsOnly)
-					{
-						//TODO: Loop through and print out commands leading up to the error
-                        //call get command info function above
-					}
-					else if (!errorCommandsOnly)
-					{
-						printf("Commands leading up to the error are not avaiable!\n");
-					}
-					//TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
-					printf("Error command:\n");
-					if (errorLogData->extLog)
-					{
-						//ext
-                        //call get command info function above
-                        //call function to interpret meaning of the error that occured
+						printf("Reserved");
 					}
 					else
 					{
-						//non-ext
-                        //call get command info function above
-                        //call function to interpret meaning of the error that occured
+						printf("Vendor Specific");
 					}
+					break;
+				}
+				printf(" Life Timestamp: ");
+				uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                if (errorLogData->extLog)
+                {
+                    convert_Seconds_To_Displayable_Time(errorLogData->extSmartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
+                }
+                else
+                {
+                    convert_Seconds_To_Displayable_Time(errorLogData->smartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
+                }
+				print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+				printf("\n");
+				uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
+				if (errorLogData->extLog)
+				{
+					numberOfCommandsBeforeError = errorLogData->extSmartError->numberOfCommands;
+				}
+				if (numberOfCommandsBeforeError > 0 && !errorCommandsOnly)
+				{
+					//Loop through and print out commands leading up to the error
+                    //call get command info function above
+                    for (uint8_t commandIter = 0; commandIter < numberOfCommandsBeforeError; ++commandIter)
+                    {
+                        uint16_t features = 0, count = 0;
+                        uint8_t commandOpCode = 0, device = 0;
+                        uint64_t lba = 0;
+                        if (errorLogData->extLog)
+                        {
+                            features = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extCommand[commandIter].featureExt, errorLogData->extSmartError[iter].extCommand[commandIter].feature);
+                            count = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extCommand[commandIter].countExt, errorLogData->extSmartError[iter].extCommand[commandIter].count);
+                            commandOpCode = errorLogData->extSmartError[iter].extCommand[commandIter].contentWritten;
+                            device = errorLogData->extSmartError[iter].extCommand[commandIter].device;
+                            lba = M_BytesTo8ByteValue(0, 0, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
+                            //errorLogData->extSmartError[iter].extCommand[commandIter].timestampMilliseconds
+                            //errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl
+                        }
+                        else
+                        {
+                            features = errorLogData->smartError[iter].command[commandIter].feature;
+                            count = errorLogData->smartError[iter].command[commandIter].count;
+                            commandOpCode = errorLogData->smartError[iter].command[commandIter].contentWritten;
+                            device = errorLogData->smartError[iter].command[commandIter].device;
+                            lba = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi, errorLogData->smartError[iter].command[commandIter].lbaMid, errorLogData->smartError[iter].command[commandIter].lbaLow);
+                            //errorLogData->smartError[iter].command[commandIter].transportSpecific
+                            //errorLogData->smartError[iter].command[commandIter].timestampMilliseconds
+                        }
+                    }
+				}
+				else if (!errorCommandsOnly)
+				{
+					printf("Commands leading up to the error are not avaiable!\n");
+				}
+				//TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
+				printf("Error command:\n");
+				if (errorLogData->extLog)
+				{
+					//ext
+				}
+				else
+				{
+					//non-ext
 				}
 			}
 		}
