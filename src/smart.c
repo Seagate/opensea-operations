@@ -2489,6 +2489,8 @@ int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
     return ret;
 }
 
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+
 int nvme_Print_Temp_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
@@ -2570,6 +2572,10 @@ int nvme_Print_Temp_Statistics(tDevice *device)
     return ret;
 }
 
+#endif
+
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+
 int nvme_Print_PCI_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
@@ -2639,4 +2645,6 @@ int nvme_Print_PCI_Statistics(tDevice *device)
 
     return ret;
 }
+
+#endif
 
