@@ -5617,71 +5617,85 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 	}
 }
 
-void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool errorCommandsOnly /*if this is set, don't show the commands leading up to the error (if available)*/)
+#define TIMESTRING_MAX_LEN 30
+void convert_Milliseconds_To_Time_String(uint64_t milliseconds, char timeString[TIMESTRING_MAX_LEN + 1])
 {
-	if (errorLogData)
-	{
-		printf("SMART Comprehensive Error Log");
-		if (errorLogData->extLog)
-		{
-			printf(" (EXT)");
-		}
-		printf("- Version %" PRIu8 ":\n", errorLogData->version);
-		if (errorLogData->numberOfEntries == 0)
-		{
-			printf("\tNo errors found!\n");
-		}
-		else
-		{
-			printf("\tFound %" PRIu8" errors! Total Error Count: %" PRIu16 "\n", errorLogData->numberOfEntries, errorLogData->deviceErrorCount);
-			if (!errorLogData->checksumsValid)
-			{
-				printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
-			}
-			uint16_t totalErrorCountLimit = SMART_COMPREHENSIVE_ERRORS_MAX;
-			if (errorLogData->extLog)
-			{
-				totalErrorCountLimit = SMART_EXT_COMPREHENSIVE_ERRORS_MAX;
-			}
-			for (uint8_t iter = 0; iter < errorLogData->numberOfEntries && iter < totalErrorCountLimit; ++iter)
-			{
-				printf("\n===============================================\n");
-				printf("Error %" PRIu16 " - Drive State: ", iter + 1);
-				uint8_t errorState = M_Nibble0(errorLogData->smartError->error.state);
-				if (errorLogData->extLog)
-				{
-					errorState = M_Nibble0(errorLogData->extSmartError->error.state);
-				}
-				switch (errorState)
-				{
-				case 0:
-					printf("Unknown");
-					break;
-				case 1:
-					printf("Sleep");
-					break;
-				case 2:
-					printf("Standby");
-					break;
-				case 3:
-					printf("Active/Idle");
-					break;
-				case 4:
-					printf("Executing Off-line or self test");
-					break;
-				default:
-					if (errorState >= 5 && errorState <= 0x0A)
-					{
-						printf("Reserved");
-					}
-					else
-					{
-						printf("Vendor Specific");
-					}
-					break;
-				}
-				printf(" Life Timestamp: ");
-				uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+    uint8_t days = milliseconds / (24 * 60 * 60 * 1000);
+    milliseconds %= (24 * 60 * 60 * 1000);
+    uint8_t hours = milliseconds / (60 * 60 * 1000);
+    milliseconds %= (60 * 60 * 1000);
+    uint8_t minutes = milliseconds / (60 * 1000);
+    milliseconds %= (60 * 1000);
+    uint8_t seconds = milliseconds / 1000;
+    milliseconds %= 1000;
+    snprintf(timeString, TIMESTRING_MAX_LEN, "%" PRIu8 "D:%" PRIu8 "H:%" PRIu8 "M:%" PRIu8 "S:%" PRIu64 "MS");
+}
+
+void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData)
+{
+    if (errorLogData)
+    {
+        printf("SMART Comprehensive Error Log");
+        if (errorLogData->extLog)
+        {
+            printf(" (EXT)");
+        }
+        printf("- Version %" PRIu8 ":\n", errorLogData->version);
+        if (errorLogData->numberOfEntries == 0)
+        {
+            printf("\tNo errors found!\n");
+        }
+        else
+        {
+            printf("\tFound %" PRIu8" errors! Total Error Count: %" PRIu16 "\n", errorLogData->numberOfEntries, errorLogData->deviceErrorCount);
+            if (!errorLogData->checksumsValid)
+            {
+                printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
+            }
+            uint16_t totalErrorCountLimit = SMART_COMPREHENSIVE_ERRORS_MAX;
+            if (errorLogData->extLog)
+            {
+                totalErrorCountLimit = SMART_EXT_COMPREHENSIVE_ERRORS_MAX;
+            }
+            for (uint8_t iter = 0; iter < errorLogData->numberOfEntries && iter < totalErrorCountLimit; ++iter)
+            {
+                printf("\n===============================================\n");
+                printf("Error %" PRIu16 " - Drive State: ", iter + 1);
+                uint8_t errorState = M_Nibble0(errorLogData->smartError->error.state);
+                if (errorLogData->extLog)
+                {
+                    errorState = M_Nibble0(errorLogData->extSmartError->error.state);
+                }
+                switch (errorState)
+                {
+                case 0:
+                    printf("Unknown");
+                    break;
+                case 1:
+                    printf("Sleep");
+                    break;
+                case 2:
+                    printf("Standby");
+                    break;
+                case 3:
+                    printf("Active/Idle");
+                    break;
+                case 4:
+                    printf("Executing Off-line or self test");
+                    break;
+                default:
+                    if (errorState >= 5 && errorState <= 0x0A)
+                    {
+                        printf("Reserved");
+                    }
+                    else
+                    {
+                        printf("Vendor Specific");
+                    }
+                    break;
+                }
+                printf(" Life Timestamp: ");
+                uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
                 if (errorLogData->extLog)
                 {
                     convert_Seconds_To_Displayable_Time(errorLogData->extSmartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
@@ -5690,22 +5704,26 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 {
                     convert_Seconds_To_Displayable_Time(errorLogData->smartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
                 }
-				print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
-				printf("\n");
-				uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
-				if (errorLogData->extLog)
-				{
-					numberOfCommandsBeforeError = errorLogData->extSmartError->numberOfCommands;
-				}
-				if (numberOfCommandsBeforeError > 0 && !errorCommandsOnly)
-				{
-					//Loop through and print out commands leading up to the error
+                print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+                printf("\n");
+                uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
+                if (errorLogData->extLog)
+                {
+                    numberOfCommandsBeforeError = errorLogData->extSmartError->numberOfCommands;
+                }
+                if (numberOfCommandsBeforeError > 0)
+                {
+                    //Loop through and print out commands leading up to the error
                     //call get command info function above
                     for (uint8_t commandIter = 0; commandIter < numberOfCommandsBeforeError; ++commandIter)
                     {
                         uint16_t features = 0, count = 0;
                         uint8_t commandOpCode = 0, device = 0;
                         uint64_t lba = 0;
+                        uint32_t timestampMilliseconds = 0;
+                        char timestampString[TIMESTRING_MAX_LEN + 1] = { 0 };
+                        bool isHardReset = false;
+                        bool isSoftReset = false;
                         if (errorLogData->extLog)
                         {
                             features = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extCommand[commandIter].featureExt, errorLogData->extSmartError[iter].extCommand[commandIter].feature);
@@ -5713,8 +5731,12 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                             commandOpCode = errorLogData->extSmartError[iter].extCommand[commandIter].contentWritten;
                             device = errorLogData->extSmartError[iter].extCommand[commandIter].device;
                             lba = M_BytesTo8ByteValue(0, 0, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
-                            //errorLogData->extSmartError[iter].extCommand[commandIter].timestampMilliseconds
-                            //errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl
+                            timestampMilliseconds = errorLogData->extSmartError[iter].extCommand[commandIter].timestampMilliseconds;
+                            isSoftReset = errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl & DEVICE_CONTROL_SOFT_RESET;
+                            if (errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl == UINT8_MAX)
+                            {
+                                isHardReset = true;
+                            }
                         }
                         else
                         {
@@ -5723,25 +5745,47 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                             commandOpCode = errorLogData->smartError[iter].command[commandIter].contentWritten;
                             device = errorLogData->smartError[iter].command[commandIter].device;
                             lba = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi, errorLogData->smartError[iter].command[commandIter].lbaMid, errorLogData->smartError[iter].command[commandIter].lbaLow);
-                            //errorLogData->smartError[iter].command[commandIter].transportSpecific
-                            //errorLogData->smartError[iter].command[commandIter].timestampMilliseconds
+                            isSoftReset = errorLogData->smartError[iter].command[commandIter].transportSpecific & DEVICE_CONTROL_SOFT_RESET;
+                            timestampMilliseconds = errorLogData->smartError[iter].command[commandIter].timestampMilliseconds;
+                            if (errorLogData->smartError[iter].command[commandIter].transportSpecific == UINT8_MAX)
+                            {
+                                isHardReset = true;
+                            }
+                        }
+                        //convert the timestamp to something simple.
+                        convert_Milliseconds_To_Time_String(timestampMilliseconds, timestampString);
+                        if (isHardReset)
+                        {
+                            printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter, timestampString);
+                        }
+                        else if (isSoftReset)
+                        {
+                            printf("%" PRIu8 " - %s - Software Reset\n", commandIter, timestampString);
+                        }
+                        else
+                        {
+                            //translate into a command
+                            char commandDescription[ATA_COMMAND_INFO_MAX_LENGTH] = { 0 };
+                            get_Command_Info(commandOpCode, features, count, lba, device, commandDescription);
+                            printf("%" PRIu8 " - %s - %s\n", timestampString, commandDescription);
                         }
                     }
-				}
-				else if (!errorCommandsOnly)
-				{
-					printf("Commands leading up to the error are not avaiable!\n");
-				}
-				//TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
-				printf("Error command:\n");
-				if (errorLogData->extLog)
-				{
-					//ext
-				}
-				else
-				{
-					//non-ext
-				}
-			}
-		}
-	}
+                }
+                else
+                {
+                    printf("Commands leading up to the error are not avaiable!\n");
+                }
+                //TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
+                printf("Error:\n");
+                if (errorLogData->extLog)
+                {
+                    //ext
+                }
+                else
+                {
+                    //non-ext
+                }
+            }
+        }
+    }
+}
