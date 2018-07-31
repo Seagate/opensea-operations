@@ -2490,6 +2490,165 @@ int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
     return ret;
 }
 
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+
+int nvme_Print_Temp_Statistics(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    uint64_t size = 0; 
+    uint32_t temperature = 0, pcbTemp = 0, socTemp = 0, scCurrentTemp = 0, scMaxTemp = 0;
+    uint64_t maxTemperature = 0, maxSocTemp = 0;
+    nvmeGetLogPageCmdOpts   cmdOpts;
+    nvmeSmartLog            smartLog;
+    nvmeSuperCapDramSmart   scDramSmart;
+
+    if (is_Seagate(device, false))
+    {
+        //STEP-1 : Get Current Temperature from SMART
+
+        memset(&smartLog, 0, sizeof(nvmeSmartLog));
+
+        cmdOpts.nsid = NVME_ALL_NAMESPACES;
+        cmdOpts.addr = (uint64_t)(&smartLog);
+        cmdOpts.dataLen = sizeof(nvmeSmartLog);
+        cmdOpts.lid = 0x02;
+
+        ret = nvme_Get_Log_Page(device, &cmdOpts);
+
+        if(ret == SUCCESS)
+        {
+            temperature = ((smartLog.temperature[1] << 8) | smartLog.temperature[0]);
+            temperature = temperature ? temperature - 273 : 0;
+            pcbTemp = smartLog.tempSensor[0];
+            pcbTemp = pcbTemp ? pcbTemp - 273 : 0;
+            socTemp = smartLog.tempSensor[1];
+            socTemp = socTemp ? socTemp - 273 : 0;
+            
+            printf("%-20s : %" PRIu32 " C\n", "Current Temperature", temperature);
+            printf("%-20s : %" PRIu32 " C\n", "Current PCB Temperature", pcbTemp);
+            printf("%-20s : %" PRIu32 " C\n", "Current SOC Temperature", socTemp);
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < g_verbosity)
+            {
+                printf("Error: Could not retrieve Log Page 0x02\n");
+            }            
+        }
+
+        // STEP-2 : Get Max temperature form Ext SMART-id 194
+        // This I will add after pulling Linga's changes
+
+
+        // STEP-3 : Get Max temperature form SuperCap DRAM temperature
+        memset(&scDramSmart, 0, sizeof(nvmeSuperCapDramSmart));
+
+        cmdOpts.nsid = NVME_ALL_NAMESPACES;
+        cmdOpts.addr = (uint64_t)(&scDramSmart);
+        cmdOpts.dataLen = sizeof(nvmeSuperCapDramSmart);
+        cmdOpts.lid = 0xCF;
+
+        ret = nvme_Get_Log_Page(device, &cmdOpts);
+
+        if(ret == SUCCESS)
+        {
+            scCurrentTemp = scDramSmart.attrScSmart.superCapCurrentTemperature;
+            scCurrentTemp = scCurrentTemp ? scCurrentTemp - 273 : 0;
+            printf("%-20s : %" PRIu32 " C\n", "Super-cap Current Temperature", scCurrentTemp);		
+    
+            scMaxTemp = scDramSmart.attrScSmart.superCapMaximumTemperature;
+            scMaxTemp = scMaxTemp ? scMaxTemp - 273 : 0;
+            printf("%-20s : %" PRIu32 " C\n", "Super-cap Max Temperature", scMaxTemp);
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < g_verbosity)
+            {
+                printf("Error: Could not retrieve Log Page - SuperCap DRAM\n");
+            }
+            //exitCode = UTIL_EXIT_OPERATION_FAILURE; //should I fail it completely
+        }        
+    }
+
+    return ret;
+}
+
+#endif
+
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+
+int nvme_Print_PCI_Statistics(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    uint64_t size = 0; 
+    uint32_t correctPcieEc = 0, uncorrectPcieEc = 0;
+    nvmeGetLogPageCmdOpts   cmdOpts;
+    nvmePcieErrorLogPage    pcieErrorLog;
+
+    if (is_Seagate(device, false))
+    {
+
+        memset(&pcieErrorLog, 0, sizeof(nvmePcieErrorLogPage));
+
+        cmdOpts.nsid = NVME_ALL_NAMESPACES;
+        cmdOpts.addr = (uint64_t)(&pcieErrorLog);
+        cmdOpts.dataLen = sizeof(nvmePcieErrorLogPage);
+        cmdOpts.lid = 0xCB;
+
+        ret = nvme_Get_Log_Page(device, &cmdOpts);
+
+        if(ret == SUCCESS)
+        {
+        	correctPcieEc = pcieErrorLog.badDllpErrCnt + pcieErrorLog.badTlpErrCnt 
+        			+ pcieErrorLog.rcvrErrCnt + pcieErrorLog.replayTOErrCnt 
+        			+ pcieErrorLog.replayNumRolloverErrCnt;
+        
+        	uncorrectPcieEc = pcieErrorLog.fcProtocolErrCnt + pcieErrorLog.dllpProtocolErrCnt 
+        			+ pcieErrorLog.cmpltnTOErrCnt + pcieErrorLog.rcvrQOverflowErrCnt 
+        			+ pcieErrorLog.unexpectedCplTlpErrCnt + pcieErrorLog.cplTlpURErrCnt 
+        			+ pcieErrorLog.cplTlpCAErrCnt + pcieErrorLog.reqCAErrCnt  
+        			+ pcieErrorLog.reqURErrCnt + pcieErrorLog.ecrcErrCnt 
+        			+ pcieErrorLog.malformedTlpErrCnt + pcieErrorLog.cplTlpPoisonedErrCnt 
+        			+ pcieErrorLog.memRdTlpPoisonedErrCnt;
+        
+        	printf("%-45s : %u\n", "PCIe Correctable Error Count", correctPcieEc);
+        	printf("%-45s : %u\n", "PCIe Un-Correctable Error Count", uncorrectPcieEc); 
+        	printf("%-45s : %u\n", "Unsupported Request Error Status (URES)", pcieErrorLog.reqURErrCnt);
+        	printf("%-45s : %u\n", "ECRC Error Status (ECRCES)", pcieErrorLog.ecrcErrCnt);
+        	printf("%-45s : %u\n", "Malformed TLP Status (MTS)", pcieErrorLog.malformedTlpErrCnt);
+        	printf("%-45s : %u\n", "Receiver Overflow Status (ROS)", pcieErrorLog.rcvrQOverflowErrCnt);
+        	printf("%-45s : %u\n", "Unexpected Completion Status(UCS)", pcieErrorLog.unexpectedCplTlpErrCnt);
+        	printf("%-45s : %u\n", "Completion Timeout Status (CTS)", pcieErrorLog.cmpltnTOErrCnt);
+        	printf("%-45s : %u\n", "Flow Control Protocol Error Status (FCPES)", pcieErrorLog.fcProtocolErrCnt);
+        	printf("%-45s : %u\n", "Poisoned TLP Status (PTS)", pcieErrorLog.memRdTlpPoisonedErrCnt);
+        	printf("%-45s : %u\n", "Data Link Protocol Error Status(DLPES)", pcieErrorLog.dllpProtocolErrCnt);
+        	printf("%-45s : %u\n", "Replay Timer Timeout Status(RTS)", pcieErrorLog.replayTOErrCnt);
+        	printf("%-45s : %u\n", "Replay_NUM Rollover Status(RRS)", pcieErrorLog.replayNumRolloverErrCnt);
+        	printf("%-45s : %u\n", "Bad DLLP Status (BDS)", pcieErrorLog.badDllpErrCnt);
+        	printf("%-45s : %u\n", "Bad TLP Status (BTS)", pcieErrorLog.badTlpErrCnt);
+        	printf("%-45s : %u\n", "Receiver Error Status (RES)", pcieErrorLog.rcvrErrCnt);
+        	printf("%-45s : %u\n", "Cpl TLP Unsupported Request Error Count", pcieErrorLog.cplTlpURErrCnt);
+        	printf("%-45s : %u\n", "Cpl TLP Completion Abort Error Count", pcieErrorLog.cplTlpCAErrCnt);
+        	printf("%-45s : %u\n", "Cpl TLP Poisoned Error Count", pcieErrorLog.cplTlpPoisonedErrCnt);
+        	printf("%-45s : %u\n", "Request Completion Abort Error Count", pcieErrorLog.reqCAErrCnt);
+        	printf("%-45s : %s\n", "Advisory Non-Fatal Error Status(ANFES)", "Not Supported");
+        	printf("%-45s : %s\n", "Completer Abort Status (CAS)", "Not Supported");
+
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < g_verbosity)
+            {
+                printf("Error: Could not retrieve Log Page 0x02\n");
+            }            
+        }
+    }
+
+    return ret;
+}
+
+#endif
+
 int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog)
 {
     int ret = NOT_SUPPORTED;
@@ -5560,4 +5719,3 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
 			}
 		}
 	}
-}
