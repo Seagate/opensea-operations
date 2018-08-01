@@ -971,6 +971,8 @@ void show_Test_Unit_Ready_Status(tDevice *device)
 	}
 }
 
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+
 int clr_Pcie_Correctable_Errs(tDevice *device)
 {
     const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
@@ -1003,3 +1005,4 @@ int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsig
 }
 
 
+#endif
