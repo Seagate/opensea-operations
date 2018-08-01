@@ -2792,6 +2792,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                             {
                                 smartErrorLog->checksumsValid = false;
                             }
+                            smartErrorLog->extLog = true;
                             smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[501], errorLog[500]);
                             uint16_t errorLogIndex = M_BytesTo2ByteValue(errorLog[3], errorLog[2]);
                             if (errorLogIndex > 0)
@@ -2800,7 +2801,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                 pageNumber = errorLogIndex / 4;//4 entries per page
                                 uint8_t pageEntryNumber = errorLogIndex % 4;//which entry on the page (zero indexed)
                                 uint8_t zeros[124] = { 0 };
-                                while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount)
+                                while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                 {
                                     while (pageNumber < maxPage)
                                     {
@@ -2824,7 +2825,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                                     continue;
                                                 }
                                                 //each entry has 5 command data structures to fill in followed by error data
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extDataStructures = true;
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extDataStructures = true;
                                                 //NOTE: don't memcpy since we aren't packing the structs
                                                 uint32_t commandEntryOffset = offset;
                                                 for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += 18)
@@ -2833,39 +2834,39 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                                     {
                                                         continue;
                                                     }
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].deviceControl = errorLog[commandEntryOffset + 0];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].feature = errorLog[commandEntryOffset + 1];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].featureExt = errorLog[commandEntryOffset + 2];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].count = errorLog[commandEntryOffset + 3];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].countExt = errorLog[commandEntryOffset + 4];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLow = errorLog[commandEntryOffset + 5];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLowExt = errorLog[commandEntryOffset + 6];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMid = errorLog[commandEntryOffset + 7];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMidExt = errorLog[commandEntryOffset + 8];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHi = errorLog[commandEntryOffset + 9];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHiExt = errorLog[commandEntryOffset + 10];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].device = errorLog[commandEntryOffset + 11];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].contentWritten = errorLog[commandEntryOffset + 12];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].reserved = errorLog[commandEntryOffset + 13];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 17], errorLog[commandEntryOffset + 16], errorLog[commandEntryOffset + 15], errorLog[commandEntryOffset + 14]);
-                                                    ++(smartErrorLog->smartError[smartErrorLog->numberOfEntries].numberOfCommands);
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].deviceControl = errorLog[commandEntryOffset + 0];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].feature = errorLog[commandEntryOffset + 1];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].featureExt = errorLog[commandEntryOffset + 2];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].count = errorLog[commandEntryOffset + 3];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].countExt = errorLog[commandEntryOffset + 4];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLow = errorLog[commandEntryOffset + 5];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLowExt = errorLog[commandEntryOffset + 6];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMid = errorLog[commandEntryOffset + 7];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMidExt = errorLog[commandEntryOffset + 8];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHi = errorLog[commandEntryOffset + 9];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHiExt = errorLog[commandEntryOffset + 10];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].device = errorLog[commandEntryOffset + 11];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].contentWritten = errorLog[commandEntryOffset + 12];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].reserved = errorLog[commandEntryOffset + 13];
+                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 17], errorLog[commandEntryOffset + 16], errorLog[commandEntryOffset + 15], errorLog[commandEntryOffset + 14]);
+                                                    ++(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].numberOfCommands);
                                                 }
                                                 //now set the error data
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.transportSpecific = errorLog[offset + 90];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.error = errorLog[offset + 91];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.count = errorLog[offset + 92];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.countExt = errorLog[offset + 93];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.lbaLow = errorLog[offset + 94];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.lbaLowExt = errorLog[offset + 95];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.lbaMid = errorLog[offset + 96];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.lbaMidExt = errorLog[offset + 97];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.lbaHi = errorLog[offset + 98];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.lbaHiExt = errorLog[offset + 99];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.device = errorLog[offset + 100];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.status = errorLog[offset + 101];
-                                                memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.extendedErrorInformation, &errorLog[offset + 102], 19);
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.state = errorLog[offset + 121];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extError.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 123], errorLog[offset + 122]);
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.transportSpecific = errorLog[offset + 90];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.error = errorLog[offset + 91];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.count = errorLog[offset + 92];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.countExt = errorLog[offset + 93];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaLow = errorLog[offset + 94];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaLowExt = errorLog[offset + 95];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaMid = errorLog[offset + 96];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaMidExt = errorLog[offset + 97];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaHi = errorLog[offset + 98];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaHiExt = errorLog[offset + 99];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.device = errorLog[offset + 100];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.status = errorLog[offset + 101];
+                                                memcpy(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.extendedErrorInformation, &errorLog[offset + 102], 19);
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.state = errorLog[offset + 121];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 123], errorLog[offset + 122]);
                                                 ++(smartErrorLog->numberOfEntries);
                                             }
                                             //reset the pageEntry number to zero for next page
@@ -3332,15 +3333,15 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     default:
         if (logAddress >= 0x80 && logAddress <= 0x9F)
         {
-            snprintf(logAddressName, 31, "Host Specific");
+            snprintf(logAddressName, 31, "Host Specific (%02" PRIX8 "h)", logAddress);
         }
         else if (logAddress >= 0xA0 && logAddress <= 0xDF)
         {
-            snprintf(logAddressName, 31, "Vendor Specific");
+            snprintf(logAddressName, 31, "Vendor Specific (%02" PRIX8 "h)", logAddress);
         }
         else
         {
-            snprintf(logAddressName, 31, "Unknown");
+            snprintf(logAddressName, 31, "Unknown (%02" PRIX8 "h)", logAddress);
         }
         break;
     }
@@ -4240,7 +4241,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
             break;
         case SF_TRANSFER_MODE_RESERVED:
         default:
-            snprintf(transferMode, 30, "Unknown Mode %" PRIu8 "", mode);
+            snprintf(transferMode, 30, "Unknown %02" PRIX8 "h", subcommandCount);
             break;
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Transfer Mode: %s", commandName, transferMode);
@@ -5777,7 +5778,7 @@ bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 }
 
 #define ATA_ERROR_INFO_MAX_LENGTH UINT8_C(4096) //making this bigger than we need for the moment
-void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t status, uint8_t error, uint16_t count, uint64_t lba, uint8_t device, uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
+void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceReg, uint8_t status, uint8_t error, uint16_t count, uint64_t lba, uint8_t device, uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
 {
     //bool isDMAQueued = is_DMA_Queued_Command(commandOpCodeThatCausedError);
     bool isStream = is_Stream_Command(commandOpCodeThatCausedError);
@@ -5811,13 +5812,10 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t status, uint8_
         //streaming deferred write error
         strcat(statusMessage, "Deferred Write Error");
     }
-    if (strlen(statusMessage) == 0)
-    {
-        snprintf(statusMessage, 2047, "Unknown Status Bits Set: %02" PRIX8 "h)", status);
-    }
 
     if (status & ATA_STATUS_BIT_ERROR)
     {
+        strcat(statusMessage, "Error Reg Valid");
         //TODO: Parse error field bits
         if (error & ATA_ERROR_BIT_ABORT)
         {
@@ -5886,11 +5884,15 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t status, uint8_
     }
     else
     {
+        if (strlen(statusMessage) == 0)
+        {
+            snprintf(statusMessage, 2047, "Unknown Status Bits Set: %02" PRIX8 "h)", status);
+        }
         strcat(errorMessage, "No Error Bits Set");
     }
     if (isReadWrite)
     {
-        if (device & LBA_MODE_BIT)
+        if (commandDeviceReg & LBA_MODE_BIT)
         {
             if (is_Ext_Read_Write_Command(commandOpCodeThatCausedError))
             {
@@ -6077,7 +6079,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     //errorDeviceControl is not available here.
                 }
                 char errorString[ATA_ERROR_INFO_MAX_LENGTH + 1] = { 0 };
-                get_Error_Info(commandOpCode, status, error, count, errorlba, errorDevice, errorDeviceControl, errorString);
+                get_Error_Info(commandOpCode, device, status, error, count, errorlba, errorDevice, errorDeviceControl, errorString);
                 printf("Error: %s\n", errorString);
             }
         }
