@@ -2776,7 +2776,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     uint8_t errorLog[512] = { 0 };
                     uint16_t pageNumber = 0;
                     uint32_t compErrLogSize = 0;
-                    get_ATA_Log_Size(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, false, true);
+                    get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false);
                     uint16_t maxPage = compErrLogSize / 512;
                     if (compErrLogSize > 0)
                     {
@@ -5636,6 +5636,284 @@ void convert_Milliseconds_To_Time_String(uint64_t milliseconds, char timeString[
     snprintf(timeString, TIMESTRING_MAX_LEN, "%" PRIu8 "D:%" PRIu8 "H:%" PRIu8 "M:%" PRIu8 "S:%" PRIu64 "MS", days, hours, minutes, seconds, milliseconds);
 }
 
+bool is_Read_Write_Command(uint8_t commandOpCode)
+{
+    bool isReadWrite = false;
+    switch (commandOpCode)
+    {
+    case ATA_WRITE_LONG_NORETRY:
+    case ATA_READ_LONG_NORETRY:
+    case ATA_READ_LONG_RETRY:
+    case ATA_WRITE_LONG_RETRY:
+    case ATA_READ_SECT_NORETRY:
+    case ATA_WRITE_SECT_NORETRY:
+    case ATA_READ_DMA_NORETRY:
+    case ATA_WRITE_DMA_NORETRY:
+    case ATA_READ_SECT:
+    case ATA_WRITE_SECT:
+    case ATA_WRITE_SECTV_RETRY:
+    case ATA_READ_MULTIPLE:
+    case ATA_WRITE_MULTIPLE:
+    case ATA_READ_DMA_RETRY:
+    case ATA_WRITE_DMA_RETRY:
+    case ATA_READ_SECT_EXT:
+    case ATA_READ_DMA_EXT:
+    case ATA_READ_READ_MULTIPLE_EXT:
+    case ATA_WRITE_MULTIPLE_FUA_EXT:
+    case ATA_WRITE_SECT_EXT:
+    case ATA_WRITE_DMA_EXT:
+    case ATA_WRITE_MULTIPLE_EXT:
+    case ATA_WRITE_DMA_FUA_EXT:
+    case ATA_WRITE_STREAM_DMA_EXT:
+    case ATA_WRITE_STREAM_EXT:
+    case ATA_READ_STREAM_DMA_EXT:
+    case ATA_READ_STREAM_EXT:
+    case ATA_READ_VERIFY_NORETRY:
+    case ATA_READ_VERIFY_RETRY:
+    case ATA_READ_VERIFY_EXT:
+    case ATA_READ_FPDMA_QUEUED_CMD:
+    case ATA_WRITE_FPDMA_QUEUED_CMD:
+    case ATA_READ_DMA_QUE_EXT:
+    case ATA_WRITE_DMA_QUE_FUA_EXT:
+    case ATA_WRITE_DMA_QUE_EXT:
+    case ATA_WRITE_DMA_QUEUED_CMD:
+    case ATA_READ_DMA_QUEUED_CMD:
+        isReadWrite = true;
+        break;
+    default://unknown command...
+        break;
+    }
+    return isReadWrite;
+}
+
+bool is_Ext_Read_Write_Command(uint8_t commandOpCode)
+{
+    bool isReadWrite = false;
+    switch (commandOpCode)
+    {
+    case ATA_READ_SECT_EXT:
+    case ATA_READ_DMA_EXT:
+    case ATA_READ_READ_MULTIPLE_EXT:
+    case ATA_WRITE_MULTIPLE_FUA_EXT:
+    case ATA_WRITE_SECT_EXT:
+    case ATA_WRITE_DMA_EXT:
+    case ATA_WRITE_MULTIPLE_EXT:
+    case ATA_WRITE_DMA_FUA_EXT:
+    case ATA_WRITE_STREAM_DMA_EXT:
+    case ATA_WRITE_STREAM_EXT:
+    case ATA_READ_STREAM_DMA_EXT:
+    case ATA_READ_STREAM_EXT:
+    case ATA_READ_VERIFY_EXT:
+    case ATA_READ_FPDMA_QUEUED_CMD:
+    case ATA_WRITE_FPDMA_QUEUED_CMD:
+    case ATA_READ_DMA_QUE_EXT:
+    case ATA_WRITE_DMA_QUE_FUA_EXT:
+    case ATA_WRITE_DMA_QUE_EXT:
+        isReadWrite = true;
+        break;
+    default://unknown command...
+        break;
+    }
+    return isReadWrite;
+}
+
+bool is_Stream_Command(uint8_t commandOpCode)
+{
+    bool isStream = false;
+    switch (commandOpCode)
+    {
+    case ATA_WRITE_STREAM_DMA_EXT:
+    case ATA_WRITE_STREAM_EXT:
+    case ATA_READ_STREAM_DMA_EXT:
+    case ATA_READ_STREAM_EXT:
+        isStream = true;
+        break;
+    default://unknown command...
+        break;
+    }
+    return isStream;
+}
+
+bool is_DMA_Queued_Command(uint8_t commandOpCode)
+{
+    bool isDMAQueued = false;
+    switch (commandOpCode)
+    {
+    case ATA_READ_DMA_QUE_EXT:
+    case ATA_WRITE_DMA_QUE_FUA_EXT:
+    case ATA_WRITE_DMA_QUE_EXT:
+    case ATA_WRITE_DMA_QUEUED_CMD:
+    case ATA_READ_DMA_QUEUED_CMD:
+        isDMAQueued = true;
+        break;
+    default://unknown command...
+        break;
+    }
+    return isDMAQueued;
+}
+
+bool is_Possible_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
+{
+    if (M_Nibble1(commandOpCodeThatCausedError) == 0x1)//All possible recalibrate commands start with nibble 0 set to 1
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
+{
+    if (commandOpCodeThatCausedError == ATA_RECALIBRATE)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+#define ATA_ERROR_INFO_MAX_LENGTH UINT8_C(4096) //making this bigger than we need for the moment
+void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t status, uint8_t error, uint16_t count, uint64_t lba, uint8_t device, uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
+{
+    //bool isDMAQueued = is_DMA_Queued_Command(commandOpCodeThatCausedError);
+    bool isStream = is_Stream_Command(commandOpCodeThatCausedError);
+    bool isReadWrite = is_Read_Write_Command(commandOpCodeThatCausedError);
+    bool isRecal = is_Recalibrate_Command(commandOpCodeThatCausedError);//NOTE: This will only catch case 0x10. The function is_Possible_Recalibrate_Command can also be used, but some of those op-codes HAVE been repurposed so it is less accurate!
+
+    char statusMessage[2048] = { 0 };
+    char errorMessage[2048] = { 0 };
+
+    //TODO: Start with Status bits!
+    if (status & ATA_STATUS_BIT_DEVICE_FAULT)
+    {
+        //device fault occurred as a result of the command!
+        strcat(statusMessage, "Device Fault");
+    }
+    if (status & ATA_STATUS_BIT_ALIGNMENT_ERROR)
+    {
+        //device reports an alignment error
+        if (strlen(statusMessage) > 0)
+        {
+            strcat(statusMessage, ", ");
+        }
+        strcat(statusMessage, "Alignment Error");
+    }
+    if (isStream && (status & ATA_STATUS_BIT_DEFERRED_WRITE_ERROR))
+    {
+        if (strlen(statusMessage) > 0)
+        {
+            strcat(statusMessage, ", ");
+        }
+        //streaming deferred write error
+        strcat(statusMessage, "Deferred Write Error");
+    }
+    if (strlen(statusMessage) == 0)
+    {
+        snprintf(statusMessage, 2047, "Unknown Status Bits Set: %02" PRIX8 "h)", status);
+    }
+
+    if (status & ATA_STATUS_BIT_ERROR)
+    {
+        //TODO: Parse error field bits
+        if (error & ATA_ERROR_BIT_ABORT)
+        {
+            strcat(errorMessage, "Abort");
+        }
+        if (error & ATA_ERROR_BIT_INTERFACE_CRC)//abort bit will also be set to 1 if this is set to 1
+        {
+            if (strlen(errorMessage) > 0)
+            {
+                strcat(errorMessage, ", ");
+            }
+            strcat(errorMessage, "Interface CRC Error");
+        }
+        if (error & ATA_ERROR_BIT_UNCORRECTABLE_DATA)
+        {
+            if (strlen(errorMessage) > 0)
+            {
+                strcat(errorMessage, ", ");
+            }
+            strcat(errorMessage, "Uncorrectable Data");
+        }
+        if (error & ATA_ERROR_BIT_ID_NOT_FOUND)// - media access and possibly commands to set max lba
+        {
+            if (strlen(errorMessage) > 0)
+            {
+                strcat(errorMessage, ", ");
+            }
+            strcat(errorMessage, "ID Not Found");
+        }
+        if (isRecal && (error & ATA_ERROR_BIT_TRACK_ZERO_NOT_FOUND))// - recalibrate commands only
+        {
+            if (strlen(errorMessage) > 0)
+            {
+                strcat(errorMessage, ", ");
+            }
+            strcat(errorMessage, "Track Zero Not Found");
+        }
+        if (isStream && (error & ATA_ERROR_BIT_COMMAND_COMPLETION_TIME_OUT))// - streaming
+        {
+             if (strlen(errorMessage) > 0)
+             {
+                 strcat(errorMessage, ", ");
+             }
+            strcat(errorMessage, "Command Completion Time Out");
+        }
+        if(strlen(errorMessage) == 0)
+        {
+            if (is_Possible_Recalibrate_Command(commandOpCodeThatCausedError))
+            {
+                if (strlen(errorMessage) > 0)
+                {
+                    strcat(errorMessage, ", ");
+                }
+                strcat(errorMessage, "(Likely) Track Zero Not Found");
+            }
+            else
+            {
+                if (strlen(errorMessage) > 0)
+                {
+                    strcat(errorMessage, ", ");
+                }
+                //unknown error, possibly recalibrate command + track zero not found....
+                snprintf(errorMessage, 2047, "Unknown Error Condition (%02" PRIX8 "h)");
+            }
+        }
+    }
+    else
+    {
+        strcat(errorMessage, "No Error Bits Set");
+    }
+    if (isReadWrite)
+    {
+        if (device & LBA_MODE_BIT)
+        {
+            if (is_Ext_Read_Write_Command(commandOpCodeThatCausedError))
+            {
+                snprintf(errorInfo, ATA_ERROR_INFO_MAX_LENGTH, "Status: %s\tError: %s\tLBA: %" PRIu64 "\tDevice: %02" PRIX8 "", statusMessage, errorMessage, lba, device);
+            }
+            else
+            {
+                uint32_t smallLba = (lba & 0xFFFFFF) | (M_Nibble0(device) << 24);
+                snprintf(errorInfo, ATA_ERROR_INFO_MAX_LENGTH, "Status: %s\tError: %s\tLBA: %" PRIu32 "\tDevice: %02" PRIX8 "", statusMessage, errorMessage, smallLba, device);
+            }
+        }
+        else //CHS read/write command
+        {
+            //not handling ext...shouldn't be an issue since CHS and 48bit don't really go together.
+            snprintf(errorInfo, ATA_ERROR_INFO_MAX_LENGTH, "Status: %s\tError: %s\tCyl: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 "\tDevice: %02" PRIX8 "", statusMessage, errorMessage, M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba)), M_Nibble0(device), M_Byte0(lba), device);
+        }
+    }
+    else
+    {
+        snprintf(errorInfo, ATA_ERROR_INFO_MAX_LENGTH, "Status: %s\tError: %s\tLBA: %012" PRIX64 "h\tDevice: %02" PRIX8 "", statusMessage, errorMessage, lba, device);
+    }
+}
+
 void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData)
 {
     if (errorLogData)
@@ -5666,10 +5944,10 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
             {
                 printf("\n===============================================\n");
                 printf("Error %" PRIu16 " - Drive State: ", iter + 1);
-                uint8_t errorState = M_Nibble0(errorLogData->smartError->error.state);
+                uint8_t errorState = M_Nibble0(errorLogData->smartError[iter].error.state);
                 if (errorLogData->extLog)
                 {
-                    errorState = M_Nibble0(errorLogData->extSmartError->error.state);
+                    errorState = M_Nibble0(errorLogData->extSmartError[iter].extError.state);
                 }
                 switch (errorState)
                 {
@@ -5716,80 +5994,91 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 {
                     numberOfCommandsBeforeError = errorLogData->extSmartError->numberOfCommands;
                 }
-                if (numberOfCommandsBeforeError > 0)//this SHOULD always be the case...
+                //Putting these vars here because we may need to look at them while parsing the error reason.
+                uint16_t features = 0, count = 0;
+                uint8_t commandOpCode = 0, device = 0;
+                uint64_t lba = 0;
+                //Loop through and print out commands leading up to the error
+                //call get command info function above
+                for (uint8_t commandIter = UINT8_C(5) - numberOfCommandsBeforeError; commandIter < UINT8_C(5); ++commandIter)
                 {
-                    //Loop through and print out commands leading up to the error
-                    //call get command info function above
-                    for (uint8_t commandIter = 0; commandIter < numberOfCommandsBeforeError; ++commandIter)
+                    uint32_t timestampMilliseconds = 0;
+                    char timestampString[TIMESTRING_MAX_LEN + 1] = { 0 };
+                    bool isHardReset = false;
+                    bool isSoftReset = false;
+                    if (errorLogData->extLog)
                     {
-                        uint16_t features = 0, count = 0;
-                        uint8_t commandOpCode = 0, device = 0;
-                        uint64_t lba = 0;
-                        uint32_t timestampMilliseconds = 0;
-                        char timestampString[TIMESTRING_MAX_LEN + 1] = { 0 };
-                        bool isHardReset = false;
-                        bool isSoftReset = false;
-                        if (errorLogData->extLog)
+                        features = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extCommand[commandIter].featureExt, errorLogData->extSmartError[iter].extCommand[commandIter].feature);
+                        count = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extCommand[commandIter].countExt, errorLogData->extSmartError[iter].extCommand[commandIter].count);
+                        commandOpCode = errorLogData->extSmartError[iter].extCommand[commandIter].contentWritten;
+                        device = errorLogData->extSmartError[iter].extCommand[commandIter].device;
+                        lba = M_BytesTo8ByteValue(0, 0, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
+                        timestampMilliseconds = errorLogData->extSmartError[iter].extCommand[commandIter].timestampMilliseconds;
+                        isSoftReset = errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl & DEVICE_CONTROL_SOFT_RESET;
+                        if (errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl == UINT8_MAX)
                         {
-                            features = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extCommand[commandIter].featureExt, errorLogData->extSmartError[iter].extCommand[commandIter].feature);
-                            count = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extCommand[commandIter].countExt, errorLogData->extSmartError[iter].extCommand[commandIter].count);
-                            commandOpCode = errorLogData->extSmartError[iter].extCommand[commandIter].contentWritten;
-                            device = errorLogData->extSmartError[iter].extCommand[commandIter].device;
-                            lba = M_BytesTo8ByteValue(0, 0, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt, errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi, errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid, errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
-                            timestampMilliseconds = errorLogData->extSmartError[iter].extCommand[commandIter].timestampMilliseconds;
-                            isSoftReset = errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl & DEVICE_CONTROL_SOFT_RESET;
-                            if (errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl == UINT8_MAX)
-                            {
-                                isHardReset = true;
-                            }
-                        }
-                        else
-                        {
-                            features = errorLogData->smartError[iter].command[commandIter].feature;
-                            count = errorLogData->smartError[iter].command[commandIter].count;
-                            commandOpCode = errorLogData->smartError[iter].command[commandIter].contentWritten;
-                            device = errorLogData->smartError[iter].command[commandIter].device;
-                            lba = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi, errorLogData->smartError[iter].command[commandIter].lbaMid, errorLogData->smartError[iter].command[commandIter].lbaLow);
-                            isSoftReset = errorLogData->smartError[iter].command[commandIter].transportSpecific & DEVICE_CONTROL_SOFT_RESET;
-                            timestampMilliseconds = errorLogData->smartError[iter].command[commandIter].timestampMilliseconds;
-                            if (errorLogData->smartError[iter].command[commandIter].transportSpecific == UINT8_MAX)
-                            {
-                                isHardReset = true;
-                            }
-                        }
-                        //convert the timestamp to something simple.
-                        convert_Milliseconds_To_Time_String(timestampMilliseconds, timestampString);
-                        if (isHardReset)
-                        {
-                            printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter, timestampString);
-                        }
-                        else if (isSoftReset)
-                        {
-                            printf("%" PRIu8 " - %s - Software Reset\n", commandIter, timestampString);
-                        }
-                        else
-                        {
-                            //translate into a command
-                            char commandDescription[ATA_COMMAND_INFO_MAX_LENGTH] = { 0 };
-                            get_Command_Info(commandOpCode, features, count, lba, device, commandDescription);
-                            printf("%" PRIu8 " - %s - %s\n", commandIter, timestampString, commandDescription);
+                            isHardReset = true;
                         }
                     }
-                }
-                else
-                {
-                    printf("Commands leading up to the error are not avaiable!\n");
+                    else
+                    {
+                        features = errorLogData->smartError[iter].command[commandIter].feature;
+                        count = errorLogData->smartError[iter].command[commandIter].count;
+                        commandOpCode = errorLogData->smartError[iter].command[commandIter].contentWritten;
+                        device = errorLogData->smartError[iter].command[commandIter].device;
+                        lba = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi, errorLogData->smartError[iter].command[commandIter].lbaMid, errorLogData->smartError[iter].command[commandIter].lbaLow);
+                        isSoftReset = errorLogData->smartError[iter].command[commandIter].transportSpecific & DEVICE_CONTROL_SOFT_RESET;
+                        timestampMilliseconds = errorLogData->smartError[iter].command[commandIter].timestampMilliseconds;
+                        if (errorLogData->smartError[iter].command[commandIter].transportSpecific == UINT8_MAX)
+                        {
+                            isHardReset = true;
+                        }
+                    }
+                    //convert the timestamp to something simple.
+                    convert_Milliseconds_To_Time_String(timestampMilliseconds, timestampString);
+                    if (isHardReset)
+                    {
+                        printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter, timestampString);
+                    }
+                    else if (isSoftReset)
+                    {
+                        printf("%" PRIu8 " - %s - Software Reset\n", commandIter, timestampString);
+                    }
+                    else
+                    {
+                        //translate into a command
+                        char commandDescription[ATA_COMMAND_INFO_MAX_LENGTH] = { 0 };
+                        get_Command_Info(commandOpCode, features, count, lba, device, commandDescription);
+                        printf("%" PRIu8 " - %s - %s\n", commandIter, timestampString, commandDescription);
+                    }
                 }
                 //TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
-                printf("Error:\n");
+                uint8_t status = 0, error = 0, errorDevice = 0, errorDeviceControl = 0;
+                uint64_t errorlba = 0;
+                uint16_t errorCount = 0;
                 if (errorLogData->extLog)
                 {
                     //ext
+                    status = errorLogData->extSmartError[iter].extError.status;
+                    error = errorLogData->extSmartError[iter].extError.error;
+                    errorDevice = errorLogData->extSmartError[iter].extError.device;
+                    errorCount = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extError.countExt, errorLogData->extSmartError[iter].extError.count);
+                    errorlba = M_BytesTo8ByteValue(0, 0, errorLogData->extSmartError[iter].extError.lbaHiExt, errorLogData->extSmartError[iter].extError.lbaMidExt, errorLogData->extSmartError[iter].extError.lbaLowExt, errorLogData->extSmartError[iter].extError.lbaHi, errorLogData->extSmartError[iter].extError.lbaMid, errorLogData->extSmartError[iter].extError.lbaLow);
+                    errorDeviceControl = errorLogData->extSmartError[iter].extError.transportSpecific;
                 }
                 else
                 {
                     //non-ext
+                    status = errorLogData->smartError[iter].error.status;
+                    error = errorLogData->smartError[iter].error.error;
+                    errorDevice = errorLogData->smartError[iter].error.device;
+                    errorCount = errorLogData->smartError[iter].error.count;
+                    errorlba = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].error.lbaHi, errorLogData->smartError[iter].error.lbaMid, errorLogData->smartError[iter].error.lbaLow);
+                    //errorDeviceControl is not available here.
                 }
+                char errorString[ATA_ERROR_INFO_MAX_LENGTH + 1] = { 0 };
+                get_Error_Info(commandOpCode, status, error, count, errorlba, errorDevice, errorDeviceControl, errorString);
+                printf("Error: %s\n", errorString);
             }
         }
     }

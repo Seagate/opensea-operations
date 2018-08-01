@@ -333,7 +333,7 @@ extern "C"
         uint8_t status;
         uint8_t extendedErrorInformation[19];//vendor specific
         uint8_t state;
-        uint16_t lifeTimestamp;
+        uint16_t lifeTimestamp; //POH when error occured
     }SMARTCommandErrorDataStructure;
 
     typedef struct _ExtSMARTCommandErrorDataStructure
@@ -352,7 +352,7 @@ extern "C"
         uint8_t status;
         uint8_t extendedErrorInformation[19];//vendor specific
         uint8_t state;
-        uint16_t lifeTimestamp;
+        uint16_t lifeTimestamp; //POH when error occured
     }ExtSMARTCommandErrorDataStructure;
 
     typedef struct _SMARTErrorDataStructure
@@ -399,6 +399,11 @@ extern "C"
     }comprehensiveSMARTErrorLog, *ptrComprehensiveSMARTErrorLog;
 
     OPENSEA_OPERATIONS_API int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
+
+    //This function will automatically detect SMART vs GPL log to pull
+    OPENSEA_OPERATIONS_API int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog);
+
+    OPENSEA_OPERATIONS_API void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData);
 
 #if defined (__cplusplus)
 }
