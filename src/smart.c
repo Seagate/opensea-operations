@@ -2798,9 +2798,9 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                             if (errorLogIndex > 0)
                             {
                                 //get the starting page number
-                                pageNumber = errorLogIndex / 4;//4 entries per page
                                 uint8_t pageEntryNumber = errorLogIndex % 4;//which entry on the page (zero indexed)
                                 uint8_t zeros[124] = { 0 };
+                                pageNumber = errorLogIndex / 4;//4 entries per page
                                 while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                 {
                                     while (pageNumber < maxPage)
@@ -2814,7 +2814,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                             {
                                                 smartErrorLog->checksumsValid = false;
                                             }
-                                            while (pageEntryNumber < 4)
+                                            while (pageEntryNumber < 4 && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)//4 entries per page in the ext log
                                             {
                                                 uint32_t offset = (pageEntryNumber * 124) + 4;
                                                 ++pageEntryNumber;//increment now before we forget
