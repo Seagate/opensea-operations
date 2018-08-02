@@ -2951,11 +2951,11 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                     //Now, we need to loop through the data and jump between pages.
                                     //go until we fill up our structure with a max number of entries
                                     uint8_t zeros[90] = { 0 };
-                                    while (smartErrorLog->numberOfEntries < SMART_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount)
+                                    while (smartErrorLog->numberOfEntries < SMART_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount  && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                     {
                                         while (pageNumber < maxPages)
                                         {
-                                            while (pageEntryNumber < 5)
+                                            while (pageEntryNumber < 5 && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                             {
                                                 //calculate the offset of the first entry we need to read from this page
                                                 offset = (pageNumber * 512) + (pageEntryNumber * 90) + 2;
