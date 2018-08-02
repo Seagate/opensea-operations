@@ -6040,18 +6040,18 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     convert_Milliseconds_To_Time_String(timestampMilliseconds, timestampString);
                     if (isHardReset)
                     {
-                        printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter, timestampString);
+                        printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter + 1, timestampString);
                     }
                     else if (isSoftReset)
                     {
-                        printf("%" PRIu8 " - %s - Software Reset\n", commandIter, timestampString);
+                        printf("%" PRIu8 " - %s - Software Reset\n", commandIter + 1, timestampString);
                     }
                     else
                     {
                         //translate into a command
                         char commandDescription[ATA_COMMAND_INFO_MAX_LENGTH] = { 0 };
                         get_Command_Info(commandOpCode, features, count, lba, device, commandDescription);
-                        printf("%" PRIu8 " - %s - %s\n", commandIter, timestampString, commandDescription);
+                        printf("%" PRIu8 " - %s - %s\n", commandIter + 1, timestampString, commandDescription);
                     }
                 }
                 //TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
