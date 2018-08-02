@@ -370,12 +370,12 @@ extern "C"
         };
     }SMARTErrorDataStructure;
 
-
+    #define SMART_SUMMARY_ERRORS_MAX UINT8_C(5) //defined as this in ATA spec
     typedef struct _summarySMARTErrorLog
     {
         uint8_t version;
         uint8_t numberOfEntries;//max of 5
-        SMARTErrorDataStructure smartError[5];//sorted in order from most recent to oldest
+        SMARTErrorDataStructure smartError[SMART_SUMMARY_ERRORS_MAX];//sorted in order from most recent to oldest
         uint16_t deviceErrorCount;
         bool checksumsValid;
     }summarySMARTErrorLog, *ptrSummarySMARTErrorLog;
@@ -399,6 +399,8 @@ extern "C"
     }comprehensiveSMARTErrorLog, *ptrComprehensiveSMARTErrorLog;
 
     OPENSEA_OPERATIONS_API int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
+
+    OPENSEA_OPERATIONS_API void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData);
 
     //This function will automatically detect SMART vs GPL log to pull
     OPENSEA_OPERATIONS_API int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog);
