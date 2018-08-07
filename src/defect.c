@@ -982,7 +982,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             }
             else
             {
-                dataLength += M_2sCOMPLEMENT(senseFields.descriptorInformation);//length different is a twos compliment value since we requested less than is available.
+                dataLength += (uint16_t)M_2sCOMPLEMENT(senseFields.descriptorInformation);//length different is a twos compliment value since we requested less than is available.
             }
             uint8_t *temp = (uint8_t*)realloc(dataBuffer, dataLength);
             if (temp)
