@@ -187,7 +187,7 @@ extern "C" {
 
     //-----------------------------------------------------------------------------
     //
-    //  corrupt_LBA_Read_Write_Long(tDevice *device)
+    //  corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
     //
     //! \brief   Description:  Performs a read long, modify, write long on a drive to a single (physical) sector to create an error condition
     //
@@ -201,6 +201,47 @@ extern "C" {
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
+    //
+    //! \brief   Description:  Uses the corrupt_LBA_Read_Write_Long function to corrupt a range of LBAs
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startingLBA = 1st LBA to corrupt with an error
+    //!   \param[in] range = # of LBAs after the first to corrupt with an error
+    //!   \param[in] readCorruptedLBAs = set to true (recommended) to perform a read to the LBA so that if it is uncorrectable, it can be logged by the drive
+    //!   \param[in] numberOfBytesToCorrupt = This is the number of bytes to corrupt in the user-data to test the ECC algorithm. If set to zero, no changes are made. A value greater than the sector size will corrupt all data bytes. Otherwise, only the number of specified bytes will be changed to create the error (correctable or uncorrectable)
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
+    //
+    //! \brief   Description:  Uses the corrupt_LBA_Read_Write_Long function to corrupt random LBAs
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] numberOfRandomLBAs = 1st LBA to corrupt with an error
+    //!   \param[in] readCorruptedLBAs = set to true (recommended) to perform a read to the LBA so that if it is uncorrectable, it can be logged by the drive
+    //!   \param[in] numberOfBytesToCorrupt = This is the number of bytes to corrupt in the user-data to test the ECC algorithm. If set to zero, no changes are made. A value greater than the sector size will corrupt all data bytes. Otherwise, only the number of specified bytes will be changed to create the error (correctable or uncorrectable)
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData);
 
 #if defined(__cplusplus)
 }

@@ -982,7 +982,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             }
             else
             {
-                dataLength += M_2sCOMPLEMENT(senseFields.descriptorInformation);//length different is a twos compliment value since we requested less than is available.
+                dataLength += (uint16_t)M_2sCOMPLEMENT(senseFields.descriptorInformation);//length different is a twos compliment value since we requested less than is available.
             }
             uint8_t *temp = (uint8_t*)realloc(dataBuffer, dataLength);
             if (temp)
@@ -1030,6 +1030,84 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             ret = NOT_SUPPORTED;
         }
         safe_Free(dataBuffer);
+    }
+    return ret;
+}
+
+int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
+{
+    int ret = SUCCESS;
+    uint64_t iterator = 0;
+    char message[MAX_JSON_MSG];
+
+    bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
+
+    uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+    uint16_t increment = logicalPerPhysicalSectors;
+    if (readWriteLong && logicalPerPhysicalSectors != 1 && device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //changing the increment amount to 1 because the ATA read/write long commands can only do a single LBA at a time.
+        increment = 1;
+    }
+    startingLBA = align_LBA(device, startingLBA);
+    for (iterator = startingLBA; iterator < (startingLBA + range); iterator += increment)
+    {
+        if (g_verbosity > VERBOSITY_QUIET)
+        {
+            snprintf(message, MAX_JSON_MSG, "Creating Uncorrectable error at LBA %-20"PRIu64"", iterator);
+            printf("%s\n", message);
+            SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+        }
+        if (readWriteLong)
+        {
+            ret = corrupt_LBA_Read_Write_Long(device, iterator, numberOfBytesToCorrupt);
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+        if (ret != SUCCESS)
+        {
+            break;
+        }
+        if (readCorruptedLBAs)
+        {
+            uint8_t *dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t));
+            if (!dataBuf)
+            {
+                return MEMORY_FAILURE;
+            }
+            //don't check return status since we expect this to fail after creating the error
+            if (g_verbosity > VERBOSITY_QUIET)
+            {
+                snprintf(message, MAX_JSON_MSG, "Reading Corrupted LBA %-20"PRIu64"", iterator);
+                printf("%s\n", message);
+                SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+            }
+            read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
+            //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
+            safe_Free(dataBuf);
+        }
+    }
+    return ret;
+}
+
+int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
+{
+    int ret = SUCCESS;
+    uint16_t iterator = 0;
+    seed_64(time(NULL));//start the random number generator
+    for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
+    {
+        uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
+        //align the random LBA to the physical sector
+        randomLBA = align_LBA(device, randomLBA);
+        //call the function to create an uncorrectable with the range set to 1 so we only corrupt 1 physical block at a time randomly
+        ret = corrupt_LBAs(device, randomLBA, 1, readCorruptedLBAs, numberOfBytesToCorrupt, updateFunction, updateData);
+        if (ret != SUCCESS)
+        {
+            break;
+        }
     }
     return ret;
 }
