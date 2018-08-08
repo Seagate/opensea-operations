@@ -6050,19 +6050,19 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 uint64_t lifeTimeStampSeconds = 0;
                 if (errorLogData->extLog)
                 {
-                    lifeTimeStampSeconds = errorLogData->extSmartError->extError.lifeTimestamp * 3600;
+                    lifeTimeStampSeconds = errorLogData->extSmartError[iter].extError.lifeTimestamp * 3600;
                 }
                 else
                 {
-                    lifeTimeStampSeconds = errorLogData->smartError->error.lifeTimestamp * 3600;
+                    lifeTimeStampSeconds = errorLogData->smartError[iter].error.lifeTimestamp * 3600;
                 }
                 convert_Seconds_To_Displayable_Time(lifeTimeStampSeconds, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
-                uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
+                uint8_t numberOfCommandsBeforeError = errorLogData->smartError[iter].numberOfCommands;
                 if (errorLogData->extLog)
                 {
-                    numberOfCommandsBeforeError = errorLogData->extSmartError->numberOfCommands;
+                    numberOfCommandsBeforeError = errorLogData->extSmartError[iter].numberOfCommands;
                 }
                 //Putting these vars here because we may need to look at them while parsing the error reason.
                 uint16_t features = 0, count = 0;
@@ -6208,10 +6208,10 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData)
                 }
                 printf(" Life Timestamp: ");
                 uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
-                convert_Seconds_To_Displayable_Time(errorLogData->smartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(errorLogData->smartError[iter].error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
-                uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
+                uint8_t numberOfCommandsBeforeError = errorLogData->smartError[iter].numberOfCommands;
                 //Putting these vars here because we may need to look at them while parsing the error reason.
                 uint16_t features = 0, count = 0;
                 uint8_t commandOpCode = 0, device = 0;
