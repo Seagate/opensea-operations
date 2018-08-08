@@ -400,7 +400,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
 
-    OPENSEA_OPERATIONS_API void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData);
+    OPENSEA_OPERATIONS_API void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput);
 
     //This function will automatically detect SMART vs GPL log to pull
     OPENSEA_OPERATIONS_API int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog);

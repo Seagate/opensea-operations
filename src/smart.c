@@ -6012,12 +6012,12 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
             {
                 printf("\n===============================================\n");
                 printf("Error %" PRIu16 " - Drive State: ", iter + 1);
-                uint8_t errorState = M_Nibble0(errorLogData->smartError[iter].error.state);
+                uint8_t errorState = errorLogData->smartError[iter].error.state;
                 if (errorLogData->extLog)
                 {
-                    errorState = M_Nibble0(errorLogData->extSmartError[iter].extError.state);
+                    errorState = errorLogData->extSmartError[iter].extError.state;
                 }
-                switch (errorState)
+                switch (M_Nibble0(errorState))
                 {
                 case 0:
                     printf("Unknown");
@@ -6035,13 +6035,13 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     printf("Executing Off-line or self test");
                     break;
                 default:
-                    if (errorState >= 5 && errorState <= 0x0A)
+                    if (M_Nibble0(errorState) >= 5 && M_Nibble0(errorState) <= 0x0A)
                     {
-                        printf("Reserved");
+                        printf("Reserved (%02" PRIX8 "h)", errorState);
                     }
                     else
                     {
-                        printf("Vendor Specific");
+                        printf("Vendor Specific (%02" PRIX8 "h)", errorState);
                     }
                     break;
                 }
@@ -6155,7 +6155,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
 }
 
 //Ext commands reported in the summary log will be truncated to 28bits! Data will not be as accurate!
-void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData)
+void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput)
 {
     if (errorLogData)
     {
@@ -6172,37 +6172,88 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData)
             {
                 printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
             }
+
+            if (genericOutput)
+            {
+                //print out a key for commands and errors!
+                //Generic printout of SMART error log:
+                //Command & Error need to know when it's a entry from the ext log or not so they can print it correctly!
+                //Command:
+                // CD=Command  FT=Feature  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount  DC=DeviceControl
+                // CD FT LL LM LH DH SC DC
+                //Ext Command:
+                // CD=Command  FT=Feature  FTe=FeatureExt  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt  LMe=LBAMidExt  LHe=LBAHiExt  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl
+                // CD FT FTe LL LM LH LLe LMe LHe DH SC SCe DC
+                //Error:
+                // ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount  DC=DeviceControl
+                // ST ER LL LM LH DH SC DC
+                //Ext Error:
+                // ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt  LMe=LBAMidExt  LHe=LBAHiExt  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl
+                // ST ER LL LM LH LLe LMe LHe DH SC DC
+                printf("\t-----Command Key-----\n");
+                printf("\tCD - Command     \tFT - Feature\n");
+                printf("\tSC - Sector Count\tLL - LBA Low\n");
+                printf("\tLM - LBA Mid     \tLH - LBA Hi\n");
+                printf("\tDH - Device/Head \tDC - Device Control (transport specific)\n");
+                printf("\t------Error Key------\n");
+                printf("\tST - Status      \tER - Error\n");
+                printf("\tSC - Sector Count\tLL - LBA Low\n");
+                printf("\tLM - LBA Mid     \tLH - LBA Hi\n");
+                printf("\tDH - Device/Head \tVU Bytes - Extended Error Info (Vendor Unique)\n");
+                printf("\t---------------------\n");
+            }
+
             uint16_t totalErrorCountLimit = SMART_SUMMARY_ERRORS_MAX;
             for (uint8_t iter = 0; iter < errorLogData->numberOfEntries && iter < totalErrorCountLimit; ++iter)
             {
                 printf("\n===============================================\n");
                 printf("Error %" PRIu16 " - Drive State: ", iter + 1);
-                uint8_t errorState = M_Nibble0(errorLogData->smartError[iter].error.state);
-                switch (errorState)
+                uint8_t errorState = errorLogData->smartError[iter].error.state;
+                switch (M_Nibble0(errorState))
                 {
                 case 0:
                     printf("Unknown");
+                    if (genericOutput)
+                    {
+                        printf("(% 02" PRIX8 "h)", errorState);
+                    }
                     break;
                 case 1:
                     printf("Sleep");
+                    if (genericOutput)
+                    {
+                        printf("(% 02" PRIX8 "h)", errorState);
+                    }
                     break;
                 case 2:
                     printf("Standby");
+                    if (genericOutput)
+                    {
+                        printf("(% 02" PRIX8 "h)", errorState);
+                    }
                     break;
                 case 3:
                     printf("Active/Idle");
+                    if (genericOutput)
+                    {
+                        printf("(% 02" PRIX8 "h)", errorState);
+                    }
                     break;
                 case 4:
                     printf("Executing Off-line or self test");
+                    if (genericOutput)
+                    {
+                        printf("(% 02" PRIX8 "h)", errorState);
+                    }
                     break;
                 default:
-                    if (errorState >= 5 && errorState <= 0x0A)
+                    if (M_Nibble0(errorState) >= 5 && M_Nibble0(errorState) <= 0x0A)
                     {
-                        printf("Reserved");
+                        printf("Reserved (%02" PRIX8 "h)", errorState);
                     }
                     else
                     {
-                        printf("Vendor Specific");
+                        printf("Vendor Specific (%02" PRIX8 "h)", errorState);
                     }
                     break;
                 }
@@ -6218,6 +6269,11 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData)
                 uint64_t lba = 0;
                 //Loop through and print out commands leading up to the error
                 //call get command info function above
+                if (genericOutput)
+                {
+                    //printf the command register format before printing commands
+                    printf("CD FT SC LL LM LH DH DC\tTimeStamp\n");
+                }
                 for (uint8_t commandIter = UINT8_C(5) - numberOfCommandsBeforeError; commandIter < UINT8_C(5); ++commandIter)
                 {
                     uint32_t timestampMilliseconds = 0;
@@ -6237,20 +6293,28 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData)
                     }
                     //convert the timestamp to something simple.
                     convert_Milliseconds_To_Time_String(timestampMilliseconds, timestampString);
-                    if (isHardReset)
+                    if (genericOutput)
                     {
-                        printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter + 1, timestampString);
-                    }
-                    else if (isSoftReset)
-                    {
-                        printf("%" PRIu8 " - %s - Software Reset\n", commandIter + 1, timestampString);
+                        //printf("CD FT SC LL LM LH DH DC\tTimeStamp\n");
+                        printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 "\t%s\n", errorLogData->smartError[iter].command[commandIter].contentWritten, errorLogData->smartError[iter].command[commandIter].feature, errorLogData->smartError[iter].command[commandIter].count, errorLogData->smartError[iter].command[commandIter].lbaLow, errorLogData->smartError[iter].command[commandIter].lbaMid, errorLogData->smartError[iter].command[commandIter].lbaHi, errorLogData->smartError[iter].command[commandIter].device, errorLogData->smartError[iter].command[commandIter].transportSpecific, timestampString);
                     }
                     else
                     {
-                        //translate into a command
-                        char commandDescription[ATA_COMMAND_INFO_MAX_LENGTH] = { 0 };
-                        get_Command_Info(commandOpCode, features, count, lba, device, commandDescription);
-                        printf("%" PRIu8 " - %s - %s\n", commandIter + 1, timestampString, commandDescription);
+                        if (isHardReset)
+                        {
+                            printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter + 1, timestampString);
+                        }
+                        else if (isSoftReset)
+                        {
+                            printf("%" PRIu8 " - %s - Software Reset\n", commandIter + 1, timestampString);
+                        }
+                        else
+                        {
+                            //translate into a command
+                            char commandDescription[ATA_COMMAND_INFO_MAX_LENGTH] = { 0 };
+                            get_Command_Info(commandOpCode, features, count, lba, device, commandDescription);
+                            printf("%" PRIu8 " - %s - %s\n", commandIter + 1, timestampString, commandDescription);
+                        }
                     }
                 }
                 //TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
@@ -6263,9 +6327,24 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData)
                 errorCount = errorLogData->smartError[iter].error.count;
                 errorlba = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].error.lbaHi, errorLogData->smartError[iter].error.lbaMid, errorLogData->smartError[iter].error.lbaLow);
                 //errorDeviceControl is not available here.
-                char errorString[ATA_ERROR_INFO_MAX_LENGTH + 1] = { 0 };
-                get_Error_Info(commandOpCode, device, status, error, count, errorlba, errorDevice, errorDeviceControl, errorString);
-                printf("Error: %s\n", errorString);
+                if (genericOutput)
+                {
+                    //first print out the format
+                    //printf the error register format before printing commands
+                    printf("\nST ER SC LL LM LH DH\tVU Bytes\n");
+                    printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 "\t", errorLogData->smartError[iter].error.status, errorLogData->smartError[iter].error.error, errorLogData->smartError[iter].error.count, errorLogData->smartError[iter].error.lbaLow, errorLogData->smartError[iter].error.lbaMid, errorLogData->smartError[iter].error.lbaHi, errorLogData->smartError[iter].error.device);
+                    for (uint8_t vuIter = 0; vuIter < 19; ++vuIter)
+                    {
+                        printf("%02" PRIX8 "", errorLogData->smartError[iter].error.extendedErrorInformation[vuIter]);
+                    }
+                    printf("\n");
+                }
+                else
+                {
+                    char errorString[ATA_ERROR_INFO_MAX_LENGTH + 1] = { 0 };
+                    get_Error_Info(commandOpCode, device, status, error, count, errorlba, errorDevice, errorDeviceControl, errorString);
+                    printf("Error: %s\n", errorString);
+                }
             }
         }
     }
