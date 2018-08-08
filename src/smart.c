@@ -2719,7 +2719,7 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
                         if (errorLogIndex > 0 && errorLogIndex < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE)
                         {
                             uint8_t zeros[SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
-                            uint32_t offset = 2 + (errorLogIndex * SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);//first entry is at offset 2, each entry is 90 bytes long
+                            uint32_t offset = 2 + ((errorLogIndex - 1) * SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);//first entry is at offset 2, each entry is 90 bytes long
                             //offset should now be our starting point to populate the list
                             uint8_t entryCount = 0;
                             while(entryCount < M_Min(SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE, smartErrorLog->deviceErrorCount))
