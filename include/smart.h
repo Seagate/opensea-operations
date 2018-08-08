@@ -169,8 +169,35 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
+    //
+    //! \brief   Description:  Function to Perform a SMART check on a NVMe device
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param[in] tripInfo = OPTIONAL pointer to a struct to get why a drive has been tripped (if available).
+    //!   
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected, COMMAND_FAILURE = unknown error/smart not enabled undefined status, UNKNOWN - didn't get back rtfrs, so unable to verify SMART status
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  is_SMART_Enabled(tDevice *device)
+    //
+    //! \brief   Description:  Function to check if SMART is enabled on a device
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   
+    //  Exit:
+    //!   \return true = enabled, false = not enabled (may not be supported or just not enabled)
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_SMART_Enabled(tDevice *device);
 
     OPENSEA_OPERATIONS_API int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount);
@@ -185,8 +212,42 @@ extern "C"
         SCT_FEATURE_CONTROL_RESERVED
     }eSCTFeature;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool isVolatile, uint16_t hdaTemperatureIntervalOrState)
+    //
+    //! \brief   Description:  set a SCT feature to a specific value using SCT (SMART command transport)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param sctFeature - the code of the SCT feature to change
+    //!   \param enableDisable - true = enable, false = disable
+    //!   \param defaultValue - restore to drive's default value
+    //!   \param isVolatile - true = volatile change (cleared on reset/power cycle), false = non-volatile change
+    //!   \param hdaTemperatureIntervalOrState - used for the HDA Temperature interval feature code only to change the state or frequency of the logging.
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool isVolatile, uint16_t hdaTemperatureIntervalOrState);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool isVolatile, uint16_t hdaTemperatureIntervalOrState)
+    //
+    //! \brief   Description:  get a SCT feature's information using SCT (SMART command transport)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param sctFeature - the code of the SCT feature to change
+    //!   \param enableDisable - true = enable, false = disable
+    //!   \param defaultValue - restore to drive's default value
+    //!   \param hdaTemperatureIntervalOrState - used for the HDA Temperature interval feature code only to change the state or frequency of the logging.
+    //!   \param featureOptionFlags - option flags specific to the feature
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enableDisable, bool *defaultValue, uint16_t *hdaTemperatureIntervalOrState, uint16_t *featureOptionFlags);
 
     typedef enum _eSCTErrorRecoveryCommand
@@ -195,14 +256,81 @@ extern "C"
         SCT_ERC_WRITE_COMMAND
     }eSCTErrorRecoveryCommand;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds)
+    //
+    //! \brief   Description:  Set the SCT Error recovery command timeout value
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param ercCommand - specifies if the timer is for read or write commands
+    //!   \param timerValueMilliseconds - how long to set the timer to in milliseconds
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds)
+    //
+    //! \brief   Description:  Get the SCT Error recovery command timeout value
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param ercCommand - specifies if the timer is for read or write commands
+    //!   \param timerValueMilliseconds - how long to set the timer to in milliseconds
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds);
     
+    //-----------------------------------------------------------------------------
+    //
+    //  enable_Disable_SMART_Feature(tDevice *device, bool enable)
+    //
+    //! \brief   Description:  Enable or disable the SMART feature on a device
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param enable - true = set to enabled, false = set to disabled
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int enable_Disable_SMART_Feature(tDevice *device, bool enable);
     
+    //-----------------------------------------------------------------------------
+    //
+    //  enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)
+    //
+    //! \brief   Description:  Enable or disable the SMART Attribute Autosave feature on a device
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param enable - true = set to enabled, false = set to disabled
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable)
+    //
+    //! \brief   Description:  Enable or disable the SMART Auto Offline feature on a device
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param enable - true = set to enabled, false = set to disabled
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable);
 
     typedef struct _smartFeatureInfo
@@ -225,8 +353,34 @@ extern "C"
         //checksum
     }smartFeatureInfo, *ptrSmartFeatureInfo;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
+    //
+    //! \brief   Description:  Get SMART information from an ATA device (excludes vendor unique data and attributes)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param smartInfo - pointer to structure to save SMART info to
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
+    //
+    //! \brief   Description:  Print SMART information from an ATA device (excludes vendor unique data and attributes)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param smartInfo - pointer to structure to save SMART info to
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo);
 
     OPENSEA_OPERATIONS_API int nvme_Print_Temp_Statistics(tDevice *device);
@@ -260,11 +414,53 @@ extern "C"
         //all other bytes are vendor specific
     }informationalExceptionsLog, *ptrInformationalExceptionsLog;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc, ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData)
+    //
+    //! \brief   Description:  Get SCSI Informational Exceptions information (SMART)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param mpc - Default vs Saved vs Current information
+    //!   \param controlData - pointer to structure to save mode page data to
+    //!   \param logData - pointer to structure to save log page data to
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc, ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData);
 
-    //NOTE: This should be called AFTER the get_SCSI_Informational_Exceptions_Info function since a mode sense is required before a mode select...
+    //-----------------------------------------------------------------------------
+    //
+    //  get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc, ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData)
+    //
+    //! \brief   Description:  Set SCSI Informational Exceptions information (SMART). This should be called AFTER the get_SCSI_Informational_Exceptions_Info function since a mode sense is required before a mode select...
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param save - Set to true to make this change save across a power cycle. False to make this change without saving it.
+    //!   \param controlData - pointer to structure to save mode page data to
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInformationalExceptionsControl controlData);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault)
+    //
+    //! \brief   Description:  Set SCSI Informational Exceptions MRIE (Method of reporting informational exceptions) (SMART Check) (Changes when the condition is reported and the sense code used)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param mrieMode - A value of 0 - 6. 0 = off, 6 = on request. See spec for mode details or use enum from scsi_helper.h
+    //!   \param driveDefault - restore to the drive's default value
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault);
 
 
@@ -398,13 +594,65 @@ extern "C"
         bool checksumsValid;
     }comprehensiveSMARTErrorLog, *ptrComprehensiveSMARTErrorLog;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog)
+    //
+    //! \brief   Description:  Get the ATA Summary SMART Error Log (will be ordered from most recent to oldest according to ATA spec) (only holds 28bit commands accurately)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param smartErrorLog - pointer to the summary SMART error log structure to fill in
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput)
+    //
+    //! \brief   Description:  Print the ATA Summary SMART Error Log (will be ordered from most recent to oldest according to ATA spec) (only prints 28bit commands accurately due to 48bit truncation)
+    //
+    //  Entry:
+    //!   \param errorLogData - pointer to the summary SMART error log structure to print out
+    //!   \param genericOutput - true = generic output showing registers in hex. false = detailed output that is translated from the reported regiters according to ATA spec
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput);
 
-    //This function will automatically detect SMART vs GPL log to pull
+    //-----------------------------------------------------------------------------
+    //
+    //  get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog)
+    //
+    //! \brief   Description:  Get the ATA (ext) Comprehensive SMART Error Log (will be ordered from most recent to oldest according to ATA spec). Automatically pulls Ext log when GPL is supported (48bit drive) for most accurate information
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param smartErrorLog - pointer to the comprehensive SMART error log structure to fill in
+    //!   \param forceSMARTLog - set this to true to force a 48bit drive with GPL to read the SMART log instead. NOTE: not recommended as the SMART log can only hold 28bit commands. 48Bit may show up, but will be truncated to fit.
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput)
+    //
+    //! \brief   Description:  Print the ATA (ext) comprehensive SMART Error Log (will be ordered from most recent to oldest according to ATA spec)
+    //
+    //  Entry:
+    //!   \param errorLogData - pointer to the summary SMART error log structure to print out
+    //!   \param genericOutput - true = generic output showing registers in hex. false = detailed output that is translated from the reported regiters according to ATA spec
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);
 
 #if defined (__cplusplus)
