@@ -5944,7 +5944,7 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceR
                     strcat(errorMessage, ", ");
                 }
                 //unknown error, possibly recalibrate command + track zero not found....
-                snprintf(errorMessage, 2047, "Unknown Error Condition (%02" PRIX8 "h)");
+                snprintf(errorMessage, 2047, "Unknown Error Condition (%02" PRIX8 "h)", error);
             }
         }
     }
