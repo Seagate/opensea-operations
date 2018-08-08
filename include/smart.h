@@ -405,7 +405,7 @@ extern "C"
     //This function will automatically detect SMART vs GPL log to pull
     OPENSEA_OPERATIONS_API int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog);
 
-    OPENSEA_OPERATIONS_API void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData);
+    OPENSEA_OPERATIONS_API void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);
 
 #if defined (__cplusplus)
 }
