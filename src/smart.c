@@ -2802,7 +2802,7 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
 #define COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE UINT8_C(5)
 
 //This function will automatically select SMART vs GPL log
-int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog)
+int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2816,7 +2816,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
             if (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0)//checking that SMART error logging is supported
             {
                 //now check for GPL summort so we know if we are reading the ext log or not
-                if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
+                if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !forceSMARTLog)
                 {
                     //extended comprehensive SMART error log
                     //We will read each sector of the log as we need it to help with some USB compatibility (and so we don't read more than we need)
@@ -2846,9 +2846,9 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                             if (errorLogIndex > 0)
                             {
                                 //get the starting page number
-                                uint8_t pageEntryNumber = errorLogIndex % 4;//which entry on the page (zero indexed)
+                                uint8_t pageEntryNumber = errorLogIndex % EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//which entry on the page (zero indexed)
                                 uint8_t zeros[EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
-                                pageNumber = errorLogIndex / 4;//4 entries per page
+                                pageNumber = errorLogIndex / EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//4 entries per page
                                 while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                 {
                                     while (pageIter <= maxPage)
@@ -2997,7 +2997,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                     uint16_t maxPages = compErrLogSize / 512;
                                     uint16_t pageIter = 0;
                                     //byte offset, this will point to the first entry
-                                    uint8_t pageEntryNumber = errorLogIndex % COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//remainder...zero indexed
+                                    uint8_t pageEntryNumber = errorLogIndex % COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//remainder...zero indexed
                                     uint32_t offset = 0;// (pageNumber * 512) + (pageEntryNumber * 90) + 2;
                                     //EX: Entry 28: pageNumber = 28 / 5 = 5;
                                     //              pageEntryNumber = 28 % 5 = 3;
@@ -3010,7 +3010,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                     uint8_t zeros[COMP_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
                                     while (smartErrorLog->numberOfEntries < SMART_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount  && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                     {
-                                        while (pageIter < maxPages)
+                                        while (pageIter <= maxPages)
                                         {
                                             uint16_t pageEntryCounter = 0;
                                             while (pageEntryNumber < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
