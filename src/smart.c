@@ -2851,7 +2851,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                 pageNumber = errorLogIndex / 4;//4 entries per page
                                 while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                 {
-                                    while (pageIter < maxPage)
+                                    while (pageIter <= maxPage)
                                     {
                                         //first read this page
                                         memset(errorLog, 0, 512);
@@ -6047,14 +6047,16 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 }
                 printf(" Life Timestamp: ");
                 uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint64_t lifeTimeStampSeconds = 0;
                 if (errorLogData->extLog)
                 {
-                    convert_Seconds_To_Displayable_Time(errorLogData->extSmartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
+                    lifeTimeStampSeconds = errorLogData->extSmartError->extError.lifeTimestamp * 3600;
                 }
                 else
                 {
-                    convert_Seconds_To_Displayable_Time(errorLogData->smartError->error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
+                    lifeTimeStampSeconds = errorLogData->smartError->error.lifeTimestamp * 3600;
                 }
+                convert_Seconds_To_Displayable_Time(lifeTimeStampSeconds, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
                 uint8_t numberOfCommandsBeforeError = errorLogData->smartError->numberOfCommands;
