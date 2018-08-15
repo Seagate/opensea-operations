@@ -1900,7 +1900,23 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
 	return retStatus;
 }
 
-
+int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes)
+{
+    int ret = UNKNOWN;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = get_ATA_Log(device, 0xA6, "FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        ret = get_SCSI_Log(device, 0x3D, 0x03, "FARM", "bin", false, NULL, 0, filePath);
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
 
 //Linga starts here
 

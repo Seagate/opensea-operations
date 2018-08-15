@@ -541,6 +541,22 @@ extern "C" {
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  pull_FARM_Log(tDevice *device, const char * const filePath);
+    //
+    //! \brief   Description: This function pulls the Seagate FARM log from ATA drives
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
+    //  Exit:
+    //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
+
+
 #if defined(__cplusplus)
 }
 #endif
