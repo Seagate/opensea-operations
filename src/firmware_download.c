@@ -28,6 +28,19 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     {
 		ret = firmware_Download_Command(device, DL_FW_ACTIVATE, options->useDMA, 0, 0, options->firmwareFileMem, options->firmwareSlot);
 		options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+#if defined (_WIN32)
+        if (ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
+        {
+            //This means that we encountered a driver that is not allowing us to issue the Win10 API Firmware activate call for some unknown reason. 
+            //This doesn't happen with Microsoft's AHCI driver though...
+            //Instead, we should disable the use of the API and retry with passthrough to perform the activation. This is not preferred at all. 
+            //We want to use the Win10 API whenever possible so the system is ready for the changes to the bus and drive information so that it is less likely to BSOD like we used to see in older versions of Windows.
+            device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, options->useDMA, 0, 0, options->firmwareFileMem, options->firmwareSlot);
+            options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+            device->os_info.fwdlIOsupport.fwdlIOSupported = true;
+        }
+#endif
 		return ret; 
     }
 	if (options->firmwareMemoryLength == 0)
