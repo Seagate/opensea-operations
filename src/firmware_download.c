@@ -107,6 +107,14 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
             }
+            if (currentDownloadBlock == 0)
+            {
+                device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = true;
+            }
+            else
+            {
+                device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
+            }
 #endif
 #endif
 			ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID);
