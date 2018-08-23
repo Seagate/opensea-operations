@@ -3268,10 +3268,10 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
     bool async = false;//dma queued and fpdma
     bool stream = false;//read/write stream
     bool streamDir = false;//true = write
-    bool longCmd = false;//read/write long
+    //bool longCmd = false;//read/write long
     bool fpdma = false;
     //bool noRetries = false;
-    uint64_t commandLBA = lba;
+    //uint64_t commandLBA = lba;
     uint32_t sectorsToTransfer = count;//true for synchronous commands...
     switch (commandOpCode)
     {
@@ -3280,7 +3280,7 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
         //noRetries = true;
     case ATA_READ_LONG_RETRY:
     case ATA_WRITE_LONG_RETRY:
-        longCmd = true;
+        //longCmd = true;
         break;
     case ATA_READ_SECT_NORETRY:
     case ATA_WRITE_SECT_NORETRY:
@@ -3352,7 +3352,7 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
             }
             if (fpdma)
             {
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu64 " Count: %" PRIu32 " NCQ Tag: %" PRIu8 " FUA: %d PRIO: %" PRIu8 "", commandName, lba, sectorsToTransfer, tag, forceUnitAccess, prio);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu64 " Count: %" PRIu32 " NCQ Tag: %" PRIu8 " FUA: %d PRIO: %" PRIu8 " RARC: %d", commandName, lba, sectorsToTransfer, tag, forceUnitAccess, prio, rarc);
             }
             else
             {
@@ -3616,11 +3616,11 @@ void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     uint8_t securityProtocol = M_Byte0(features);
     uint16_t securityProtocolSpecific = M_BytesTo2ByteValue(M_Byte3(lba), M_Byte2(lba));
     uint16_t transferLength = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
-    char securityProtocolName[21] = { 0 };
+    char securityProtocolName[31] = { 0 };
     switch (securityProtocol)
     {
     case SECURITY_PROTOCOL_RETURN_SUPPORTED:
-        snprintf(securityProtocolName, 20, "Supported");
+        snprintf(securityProtocolName, 30, "Supported");
         break;
     case SECURITY_PROTOCOL_TCG_1:
     case SECURITY_PROTOCOL_TCG_2:
@@ -3628,50 +3628,50 @@ void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     case SECURITY_PROTOCOL_TCG_4:
     case SECURITY_PROTOCOL_TCG_5:
     case SECURITY_PROTOCOL_TCG_6:
-        snprintf(securityProtocolName, 20, "TCG %" PRIu8 "", securityProtocol);
+        snprintf(securityProtocolName, 30, "TCG %" PRIu8 "", securityProtocol);
         break;
     case SECURITY_PROTOCOL_CbCS:
-        snprintf(securityProtocolName, 20, "CbCS");
+        snprintf(securityProtocolName, 30, "CbCS");
         break;
     case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
-        snprintf(securityProtocolName, 20, "Tape Encryption");
+        snprintf(securityProtocolName, 30, "Tape Encryption");
         break;
     case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
-        snprintf(securityProtocolName, 20, "Encryption Configuration");
+        snprintf(securityProtocolName, 30, "Encryption Configuration");
         break;
     case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
-        snprintf(securityProtocolName, 20, "SA Creation Cap");
+        snprintf(securityProtocolName, 30, "SA Creation Cap");
         break;
     case SECURITY_PROTOCOL_IKE_V2_SCSI:
-        snprintf(securityProtocolName, 20, "IKE V2 SCSI");
+        snprintf(securityProtocolName, 30, "IKE V2 SCSI");
         break;
     case SECURITY_PROTOCOL_NVM_EXPRESS:
-        snprintf(securityProtocolName, 20, "NVM Express");
+        snprintf(securityProtocolName, 30, "NVM Express");
         break;
     case SECURITY_PROTOCOL_SCSA:
-        snprintf(securityProtocolName, 20, "SCSA");
+        snprintf(securityProtocolName, 30, "SCSA");
         break;
     case SECURITY_PROTOCOL_JEDEC_UFS:
-        snprintf(securityProtocolName, 20, "JEDEC UFS");
+        snprintf(securityProtocolName, 30, "JEDEC UFS");
         break;
     case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
-        snprintf(securityProtocolName, 20, "SD Trusted Flash");
+        snprintf(securityProtocolName, 30, "SD Trusted Flash");
         break;
     case SECURITY_PROTOCOL_IEEE_1667:
-        snprintf(securityProtocolName, 20, "IEEE 1667");
+        snprintf(securityProtocolName, 30, "IEEE 1667");
         break;
     case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
-        snprintf(securityProtocolName, 20, "ATA Security");
+        snprintf(securityProtocolName, 30, "ATA Security");
         break;
     default:
         if (securityProtocol >= 0xF0 && securityProtocol <= 0xFF)
         {
-            snprintf(securityProtocolName, 20, "Vendor Specific (%02" PRIX8"h)", securityProtocol);
+            snprintf(securityProtocolName, 30, "Vendor Specific (%02" PRIX8"h)", securityProtocol);
             break;
         }
         else
         {
-            snprintf(securityProtocolName, 20, "Unknown (%02" PRIX8"h)", securityProtocol);
+            snprintf(securityProtocolName, 30, "Unknown (%02" PRIX8"h)", securityProtocol);
             break;
         }
     }
@@ -3698,64 +3698,64 @@ void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, ui
 void get_SMART_Offline_Immediate_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
 {
     uint8_t offlineImmdTest = M_Byte0(lba);
-    char offlineTestName[31] = { 0 };
+    char offlineTestName[41] = { 0 };
     switch (offlineImmdTest)
     {
     case 0://SMART off-line routine (offline mode)
-        snprintf(offlineTestName, 30, "SMART Off-line routine");
+        snprintf(offlineTestName, 40, "SMART Off-line routine");
         break;
     case 0x01://short self test (offline)
-        snprintf(offlineTestName, 30, "Short Self-Test (offline)");
+        snprintf(offlineTestName, 40, "Short Self-Test (offline)");
         break;
     case 0x02://extended self test (offline)
-        snprintf(offlineTestName, 30, "Extended Self-Test (offline)");
+        snprintf(offlineTestName, 40, "Extended Self-Test (offline)");
         break;
     case 0x03://conveyance self test (offline)
-        snprintf(offlineTestName, 30, "Conveyance Self-Test (offline)");
+        snprintf(offlineTestName, 40, "Conveyance Self-Test (offline)");
         break;
     case 0x04://selective self test (offline)
-        snprintf(offlineTestName, 30, "Selective Self-Test (offline)");
+        snprintf(offlineTestName, 40, "Selective Self-Test (offline)");
         break;
     case 0x7F://abort offline test
-        snprintf(offlineTestName, 30, "Abort Self-Test");
+        snprintf(offlineTestName, 40, "Abort Self-Test");
         break;
     case 0x81://short self test (captive)
-        snprintf(offlineTestName, 30, "Short Self-Test (captive)");
+        snprintf(offlineTestName, 40, "Short Self-Test (captive)");
         break;
     case 0x82://extended self test (captive)
-        snprintf(offlineTestName, 30, "Extended Self-Test (captive)");
+        snprintf(offlineTestName, 40, "Extended Self-Test (captive)");
         break;
     case 0x83://conveyance self test (captive)
-        snprintf(offlineTestName, 30, "Conveyance Self-Test (captive)");
+        snprintf(offlineTestName, 40, "Conveyance Self-Test (captive)");
         break;
     case 0x84://selective self test (captive)
-        snprintf(offlineTestName, 30, "Selective Self-Test (captive)");
+        snprintf(offlineTestName, 40, "Selective Self-Test (captive)");
         break;
     default:
         if (offlineImmdTest >= 0x05 && offlineImmdTest <= 0x3F)
         {
             //reserved (offline)
-            snprintf(offlineTestName, 30, "Unknown %" PRIX8 "h (offline)", offlineImmdTest);
+            snprintf(offlineTestName, 40, "Unknown %" PRIX8 "h (offline)", offlineImmdTest);
         }
         else if (offlineImmdTest == 0x80 || (offlineImmdTest >= 0x85 && offlineImmdTest <= 0x8F))
         {
             //reserved (captive)
-            snprintf(offlineTestName, 30, "Unknown %" PRIX8 "h (captive)", offlineImmdTest);
+            snprintf(offlineTestName, 40, "Unknown %" PRIX8 "h (captive)", offlineImmdTest);
         }
         else if (offlineImmdTest >= 0x40 && offlineImmdTest <= 0x7E)
         {
             //vendor unique (offline)
-            snprintf(offlineTestName, 30, "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
+            snprintf(offlineTestName, 40, "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
         }
         else if (offlineImmdTest >= 0x90 && offlineImmdTest <= 0xFF)
         {
             //vendor unique (captive)
-            snprintf(offlineTestName, 30, "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
+            snprintf(offlineTestName, 40, "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
         }
         else
         {
             //shouldn't get here, but call it a generic unknown self test
-            snprintf(offlineTestName, 30, "Unknown %" PRIX8 "h", offlineImmdTest);
+            snprintf(offlineTestName, 40, "Unknown %" PRIX8 "h", offlineImmdTest);
         }
         break;
     }
@@ -3765,133 +3765,133 @@ void get_SMART_Offline_Immediate_Info(const char* commandName, uint8_t commandOp
 void get_SMART_Log_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
 {
     uint8_t logAddress = M_Byte0(lba);
-    char logAddressName[31] = { 0 };
+    char logAddressName[41] = { 0 };
     uint8_t logPageCount = M_Byte0(count);
     bool invalidLog = false;
     switch (logAddress)
     {
     case ATA_LOG_DIRECTORY:
-        snprintf(logAddressName, 30, "Directory");
+        snprintf(logAddressName, 40, "Directory");
         break;
     case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
-        snprintf(logAddressName, 30, "Summary SMART Error");
+        snprintf(logAddressName, 40, "Summary SMART Error");
         break;
     case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
-        snprintf(logAddressName, 30, "Comprehensive SMART Error");
+        snprintf(logAddressName, 40, "Comprehensive SMART Error");
         break;
     case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Ext Comprehensive SMART Error");
+        snprintf(logAddressName, 40, "Ext Comprehensive SMART Error");
         invalidLog = true;
         break;
     case ATA_LOG_DEVICE_STATISTICS:
-        snprintf(logAddressName, 30, "Device Statistics");
+        snprintf(logAddressName, 40, "Device Statistics");
         break;
     case ATA_LOG_SMART_SELF_TEST_LOG:
-        snprintf(logAddressName, 30, "SMART Self-Test");
+        snprintf(logAddressName, 40, "SMART Self-Test");
         break;
     case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Ext SMART Self-Test");
+        snprintf(logAddressName, 40, "Ext SMART Self-Test");
         invalidLog = true;
         break;
     case ATA_LOG_POWER_CONDITIONS://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Power Conditions");
+        snprintf(logAddressName, 40, "Power Conditions");
         invalidLog = true;
         break;
     case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
-        snprintf(logAddressName, 30, "Selective Self-Test");
+        snprintf(logAddressName, 40, "Selective Self-Test");
         break;
     case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Device Statistics Notification");
+        snprintf(logAddressName, 40, "Device Statistics Notification");
         invalidLog = true;
         break;
     case ATA_LOG_PENDING_DEFECTS_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Pending Defects");
+        snprintf(logAddressName, 40, "Pending Defects");
         invalidLog = true;
         break;
     case ATA_LOG_LPS_MISALIGNMENT_LOG:
-        snprintf(logAddressName, 30, "LPS Misalignment");
+        snprintf(logAddressName, 40, "LPS Misalignment");
         break;
     case ATA_LOG_SENSE_DATA_FOR_SUCCESSFUL_NCQ_COMMANDS://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Sense Data for Successful NCQ");
+        snprintf(logAddressName, 40, "Sense Data for Successful NCQ");
         invalidLog = true;
         break;
     case ATA_LOG_NCQ_COMMAND_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "NCQ Command Errors");
+        snprintf(logAddressName, 40, "NCQ Command Errors");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "SATA Phy Event Counters");
+        snprintf(logAddressName, 40, "SATA Phy Event Counters");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_NCQ_QUEUE_MANAGEMENT_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "NCQ Queue Management");
+        snprintf(logAddressName, 40, "NCQ Queue Management");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_NCQ_SEND_AND_RECEIVE_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "NCQ Send and Receive");
+        snprintf(logAddressName, 40, "NCQ Send and Receive");
         invalidLog = true;
         break;
     case ATA_LOG_HYBRID_INFORMATION://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Hybrid Information");
+        snprintf(logAddressName, 40, "Hybrid Information");
         invalidLog = true;
         break;
     case ATA_LOG_REBUILD_ASSIST://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Rebuild Assist");
+        snprintf(logAddressName, 40, "Rebuild Assist");
         invalidLog = true;
         break;
     case ATA_LOG_LBA_STATUS://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "LBA Status");
+        snprintf(logAddressName, 40, "LBA Status");
         invalidLog = true;
         break;
     case ATA_LOG_STREAMING_PERFORMANCE://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Streaming Performance");
+        snprintf(logAddressName, 40, "Streaming Performance");
         invalidLog = true;
         break;
     case ATA_LOG_WRITE_STREAM_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Write Stream Errors");
+        snprintf(logAddressName, 40, "Write Stream Errors");
         invalidLog = true;
         break;
     case ATA_LOG_READ_STREAM_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Read Stream Errors");
+        snprintf(logAddressName, 40, "Read Stream Errors");
         invalidLog = true;
         break;
     case ATA_LOG_DELAYED_LBA_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Delayed LBA");
+        snprintf(logAddressName, 40, "Delayed LBA");
         invalidLog = true;
         break;
     case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Current Device Internal Status");
+        snprintf(logAddressName, 40, "Current Device Internal Status");
         invalidLog = true;
         break;
     case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Saved Device Internal Status");
+        snprintf(logAddressName, 40, "Saved Device Internal Status");
         invalidLog = true;
         break;
     case ATA_LOG_SECTOR_CONFIGURATION_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 30, "Sector Configuration");
+        snprintf(logAddressName, 40, "Sector Configuration");
         invalidLog = true;
         break;
     case ATA_LOG_IDENTIFY_DEVICE_DATA:
-        snprintf(logAddressName, 30, "Identify Device Data");
+        snprintf(logAddressName, 40, "Identify Device Data");
         break;
     case ATA_SCT_COMMAND_STATUS:
-        snprintf(logAddressName, 30, "SCT Command/Status");
+        snprintf(logAddressName, 40, "SCT Command/Status");
         break;
     case ATA_SCT_DATA_TRANSFER:
-        snprintf(logAddressName, 30, "SCT Data Transfer");
+        snprintf(logAddressName, 40, "SCT Data Transfer");
         break;
     default:
         if (logAddress >= 0x80 && logAddress <= 0x9F)
         {
-            snprintf(logAddressName, 30, "Host Specific");
+            snprintf(logAddressName, 40, "Host Specific (%02" PRIX8 "h)", logAddress);
         }
         else if (logAddress >= 0xA0 && logAddress <= 0xDF)
         {
-            snprintf(logAddressName, 30, "Vendor Specific");
+            snprintf(logAddressName, 40, "Vendor Specific (%02" PRIX8 "h)", logAddress);
         }
         else
         {
-            snprintf(logAddressName, 30, "Unknown");
+            snprintf(logAddressName, 40, "Unknown (%02" PRIX8 "h)", logAddress);
         }
         break;
     }
@@ -4237,7 +4237,6 @@ void get_Idle_Or_Standby_Command_Info(const char* commandName, uint8_t commandOp
 void get_NV_Cache_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t subcommand = features;
-    char subCommandName[31] = { 0 };
     switch (subcommand)
     {
     case NV_SET_NV_CACHE_POWER_MODE:
@@ -4939,40 +4938,40 @@ void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t command
             switch (reportingOptions)
             {
             case ZONE_REPORT_LIST_ALL_ZONES:
-                snprintf(reportOptionString, 30, "List All Zones");
+                snprintf(reportOptionString, 60, "List All Zones");
                 break;
             case ZONE_REPORT_LIST_EMPTY_ZONES:
-                snprintf(reportOptionString, 30, "List Empty Zones");
+                snprintf(reportOptionString, 60, "List Empty Zones");
                 break;
             case ZONE_REPORT_LIST_IMPLICIT_OPEN_ZONES:
-                snprintf(reportOptionString, 30, "List Implicitly Opened Zones");
+                snprintf(reportOptionString, 60, "List Implicitly Opened Zones");
                 break;
             case ZONE_REPORT_LIST_EXPLICIT_OPEN_ZONES:
-                snprintf(reportOptionString, 30, "List Explicitly Opened Zones");
+                snprintf(reportOptionString, 60, "List Explicitly Opened Zones");
                 break;
             case ZONE_REPORT_LIST_CLOSED_ZONES:
-                snprintf(reportOptionString, 30, "List Closed Zones");
+                snprintf(reportOptionString, 60, "List Closed Zones");
                 break;
             case ZONE_REPORT_LIST_FULL_ZONES:
-                snprintf(reportOptionString, 30, "List Full Zones");
+                snprintf(reportOptionString, 60, "List Full Zones");
                 break;
             case ZONE_REPORT_LIST_READ_ONLY_ZONES:
-                snprintf(reportOptionString, 30, "List Read Only Zones");
+                snprintf(reportOptionString, 60, "List Read Only Zones");
                 break;
             case ZONE_REPORT_LIST_OFFLINE_ZONES:
-                snprintf(reportOptionString, 30, "List Offline Zones");
+                snprintf(reportOptionString, 60, "List Offline Zones");
                 break;
             case ZONE_REPORT_LIST_ZONES_WITH_RESET_SET_TO_ONE:
-                snprintf(reportOptionString, 30, "List Zones with RWP=True");
+                snprintf(reportOptionString, 60, "List Zones with RWP=True");
                 break;
             case ZONE_REPORT_LIST_ZONES_WITH_NON_SEQ_SET_TO_ONE:
                 snprintf(reportOptionString, 60, "List Zones W/ Non-Sequential Write Resources Active");
                 break;
             case ZONE_REPORT_LIST_ALL_ZONES_THAT_ARE_NOT_WRITE_POINTERS:
-                snprintf(reportOptionString, 30, "List Zones W/ Not Write Pointer Condition");
+                snprintf(reportOptionString, 60, "List Zones W/ Not Write Pointer Condition");
                 break;
             default:
-                snprintf(reportOptionString, 30, "Unknown Report Options (%02" PRIX8 "h)", reportingOptions);
+                snprintf(reportOptionString, 60, "Unknown Report Options (%02" PRIX8 "h)", reportingOptions);
                 break;
             }
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Report Zones, Zone Locator: %" PRIu64 "  Partial %d  Page Count: %" PRIu16 " Report: %s", commandName, lba, partial, countActionSpecific, reportOptionString);
@@ -4993,14 +4992,14 @@ void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t comman
 {
     uint8_t zmAction = M_Nibble0(features);
     uint8_t featuresActionSpecific = M_Byte1(features);
-    uint16_t countActionSpecific = count;
+    //uint16_t countActionSpecific = count;
     bool featureActionSpecificAvailable = true;
     if (commandOpCode == ATA_FPDMA_NON_DATA || commandOpCode == ATA_SEND_FPDMA)
     {
-        if (commandOpCode == ATA_FPDMA_NON_DATA)
-        {
-            countActionSpecific = M_BytesTo2ByteValue(M_Byte1(count), M_Byte1(features));
-        }
+//      if (commandOpCode == ATA_FPDMA_NON_DATA)
+//      {
+//          countActionSpecific = M_BytesTo2ByteValue(M_Byte1(count), M_Byte1(features));
+//      }
         featuresActionSpecific = 0;//this is in the AUX register and we cannot read this in this log page.
         featureActionSpecificAvailable = false;
     }
@@ -5075,23 +5074,23 @@ void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCod
     {
         uint8_t abortType = M_GETBITRANGE(features, 7, 4);
         uint8_t ttag = M_GETBITRANGE(lba, 7, 3);
-        char abortTypeString[21] = { 0 };
+        char abortTypeString[31] = { 0 };
         switch (abortType)
         {
         case 0:
-            snprintf(abortTypeString, 20, "Abort All");
+            snprintf(abortTypeString, 30, "Abort All");
             break;
         case 1:
-            snprintf(abortTypeString, 20, "Abort Streaming");
+            snprintf(abortTypeString, 30, "Abort Streaming");
             break;
         case 2:
-            snprintf(abortTypeString, 20, "Abort Non-Streaming");
+            snprintf(abortTypeString, 30, "Abort Non-Streaming");
             break;
         case 3:
-            snprintf(abortTypeString, 20, "Abort Selected. TTAG = %" PRIu8 "", ttag);
+            snprintf(abortTypeString, 30, "Abort Selected. TTAG = %" PRIu8 "", ttag);
             break;
         default:
-            snprintf(abortTypeString, 20, "Unknown Abort Type (%" PRIX8 "h)", abortType);
+            snprintf(abortTypeString, 30, "Unknown Abort Type (%" PRIX8 "h)", abortType);
             break;
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Abort NCQ Queue: %s. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, abortTypeString, tag, prio);
@@ -5525,7 +5524,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
                 //legacy seek command
                 if (isLBAMode)
                 {
-                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
 
                 }
                 else
@@ -5542,12 +5541,12 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         else if (commandOpCode == ATA_SET_DATE_AND_TIME_EXT)
         {
             //this one will be difficult to tell the difference between...LBA should be less that 24bits, LBAmode should not be on, and head field should be zero
-            if (M_Nibble0(device) > 0 || (device & LBA_MODE_BIT) && lba < 0xFFFFFF)
+            if (M_Nibble0(device) > 0 || ((device & LBA_MODE_BIT) && lba < 0xFFFFFF))
             {
                 //most likely a seek
                 if (isLBAMode)
                 {
-                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
 
                 }
                 else
@@ -5582,7 +5581,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
                 //legacy seek
                 if (isLBAMode)
                 {
-                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
 
                 }
                 else
@@ -5595,7 +5594,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         {
             if (isLBAMode)
             {
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: % " PRIu32 "", commandOpCode, seekLBA);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
 
             }
             else
@@ -6233,35 +6232,35 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     printf("Unknown");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 1:
                     printf("Sleep");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 2:
                     printf("Standby");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 3:
                     printf("Active/Idle");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 4:
                     printf("Executing Off-line or self test");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 default:
@@ -6435,7 +6434,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 else
                 {
                     char errorString[ATA_ERROR_INFO_MAX_LENGTH + 1] = { 0 };
-                    get_Error_Info(commandOpCode, device, status, error, count, errorlba, errorDevice, errorDeviceControl, errorString);
+                    get_Error_Info(commandOpCode, device, status, error, errorCount, errorlba, errorDevice, errorDeviceControl, errorString);
                     printf("Error: %s\n", errorString);
                 }
             }
@@ -6504,35 +6503,35 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     printf("Unknown");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 1:
                     printf("Sleep");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 2:
                     printf("Standby");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 3:
                     printf("Active/Idle");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 4:
                     printf("Executing Off-line or self test");
                     if (genericOutput)
                     {
-                        printf("(% 02" PRIX8 "h)", errorState);
+                        printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 default:
@@ -6631,7 +6630,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 else
                 {
                     char errorString[ATA_ERROR_INFO_MAX_LENGTH + 1] = { 0 };
-                    get_Error_Info(commandOpCode, device, status, error, count, errorlba, errorDevice, errorDeviceControl, errorString);
+                    get_Error_Info(commandOpCode, device, status, error, errorCount, errorlba, errorDevice, errorDeviceControl, errorString);
                     printf("Error: %s\n", errorString);
                 }
             }

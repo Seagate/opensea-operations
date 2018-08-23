@@ -497,7 +497,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Extended Physical Sector Format---\n");
-            printf("  %-8s  %-3s  %+10s \n", "Cylinder", "Head", "Sector");
+            printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
             if (defects->numberOfElements > 0)
             {
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
@@ -518,7 +518,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
                     }
                     if (defects->physical[iter].sectorNumber == MAX_28BIT)
                     {
-                        printf("%c %8" PRIu32 "  %3" PRIu8 "  %+10s\n", multi, defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, "Full Track");
+                        printf("%c %8" PRIu32 "  %3" PRIu8 "  %10s\n", multi, defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, "Full Track");
                     }
                     else
                     {
@@ -538,14 +538,14 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Physical Sector Format---\n");
-            printf("  %-8s  %-3s  %+10s \n", "Cylinder", "Head", "Sector");
+            printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
             if (defects->numberOfElements > 0)
             {
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     if (defects->physical[iter].sectorNumber == UINT32_MAX)
                     {
-                        printf("  %8" PRIu32 "  %3" PRIu8 "  %+10s\n", defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, "Full Track");
+                        printf("  %8" PRIu32 "  %3" PRIu8 "  %10s\n", defects->physical[iter].cylinderNumber, defects->physical[iter].headNumber, "Full Track");
                     }
                     else
                     {
@@ -560,7 +560,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Extended Bytes From Index Format---\n");
-            printf("  %-8s  %-3s  %+16s \n", "Cylinder", "Head", "Bytes From Index");
+            printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
             if (defects->numberOfElements > 0)
             {
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
@@ -580,7 +580,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
                     }
                     if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
                     {
-                        printf("%c %8" PRIu32 "  %3" PRIu8 "  %+10s\n", multi, defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, "Full Track");
+                        printf("%c %8" PRIu32 "  %3" PRIu8 "  %10s\n", multi, defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, "Full Track");
                     }
                     else
                     {
@@ -600,14 +600,14 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Bytes From Index Format---\n");
-            printf("  %-8s  %-3s  %+16s \n", "Cylinder", "Head", "Bytes From Index");
+            printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
             if (defects->numberOfElements > 0)
             {
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     if (defects->bfi[iter].bytesFromIndex == UINT32_MAX)
                     {
-                        printf("  %8" PRIu32 "  %3" PRIu8 "  %+16s\n", defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, "Full Track");
+                        printf("  %8" PRIu32 "  %3" PRIu8 "  %16s\n", defects->bfi[iter].cylinderNumber, defects->bfi[iter].headNumber, "Full Track");
                     }
                     else
                     {

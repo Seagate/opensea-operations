@@ -5559,7 +5559,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         }
         
         memset(nvmeIdentifyData, 0, NVME_IDENTIFY_DATA_LEN);
-        if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, 0, 0))
+        if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.lunOrNSID, 0))
         {
             driveInfo->namespaceData.valid = true;
             driveInfo->namespaceData.namespaceSize = M_BytesTo8ByteValue(nvmeIdentifyData[7], nvmeIdentifyData[6], nvmeIdentifyData[5], nvmeIdentifyData[4], nvmeIdentifyData[3], nvmeIdentifyData[2], nvmeIdentifyData[1], nvmeIdentifyData[0]);
