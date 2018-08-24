@@ -89,7 +89,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         {
             return MEMORY_FAILURE;
         }
-        ret = ata_SCT_Status(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
+        ret = send_ATA_SCT_Status(device, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
         if (ret == SUCCESS)
         {
             uint16_t sctStatus = M_BytesTo2ByteValue(sctStatusBuf[15], sctStatusBuf[14]);
@@ -180,7 +180,7 @@ int show_Write_Same_Current_LBA(tDevice *device)
         {
             return MEMORY_FAILURE;
         }
-        ret = ata_SCT_Status(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
+        ret = send_ATA_SCT_Status(device, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
         if (ret == SUCCESS)
         {
             sctStatus = M_BytesTo2ByteValue(sctStatusBuf[15], sctStatusBuf[14]);

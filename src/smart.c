@@ -1816,7 +1816,7 @@ int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enable
             {
                 optionFlags = BIT0;
             }
-            ret = ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, featureCode, &state, &optionFlags);
+            ret = send_ATA_SCT_Feature_Control(device, 0x0001, featureCode, &state, &optionFlags);
             if (ret == SUCCESS)
             {
                 //do we need to check and get specific status?
@@ -1854,7 +1854,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
                 featureCode = (uint16_t)sctFeature;
                 break;
             }
-            ret = ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, featureCode, &state, &optionFlags);
+            ret = send_ATA_SCT_Feature_Control(device, 0x0002, featureCode, &state, &optionFlags);
             if (ret == SUCCESS)
             {
                 if (hdaTemperatureIntervalOrState)
@@ -1926,7 +1926,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
                 //get option flags if pointer is valid
                 if (featureOptionFlags)
                 {
-                    ret = ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0003, featureCode, &state, &optionFlags);
+                    ret = send_ATA_SCT_Feature_Control(device, 0x0003, featureCode, &state, &optionFlags);
                     *featureOptionFlags = optionFlags;
                 }
             }
@@ -1946,10 +1946,10 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             switch (ercCommand)
             {
             case SCT_ERC_READ_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0x0001, NULL, timerValueMilliseconds / 100);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, timerValueMilliseconds / 100);
                 break;
             case SCT_ERC_WRITE_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0x0002, NULL, timerValueMilliseconds / 100);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, timerValueMilliseconds / 100);
                 break;
             default:
                 break;
@@ -1971,10 +1971,10 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             switch (ercCommand)
             {
             case SCT_ERC_READ_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0x0001, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0001, &currentTimerValue, 0);
                 break;
             case SCT_ERC_WRITE_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0x0002, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0002, &currentTimerValue, 0);
                 break;
             default:
                 break;
