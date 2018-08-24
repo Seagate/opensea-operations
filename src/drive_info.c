@@ -1312,7 +1312,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
     
     bool gotLogDirectory = false;
     bool directoryFromGPL = false;
-    if (gplSupported && SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+    if (gplSupported && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
     {
         gotLogDirectory = true;
         directoryFromGPL = true;
@@ -1349,7 +1349,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             if (gplSupported && directoryFromGPL)
             {
                 //we need to read pages 2, 3 (read them one at a time to work around some USB issues as best we can)
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 2, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 2, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     //get the nominal buffer size
                     uint64_t nominalBufferSize = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
@@ -1367,7 +1367,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     scsi_Test_Unit_Ready(device, NULL);
                 }
 				bool dlcSupported = false;
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     //supported capabilities
                     uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
@@ -1426,7 +1426,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
 					scsi_Test_Unit_Ready(device, NULL);
 				}
 				bool dlcEnabled = false;
-				if(SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+				if(SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
 				{
 					uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
 					if (currentSettings & BIT63)
@@ -1604,7 +1604,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             if (gplSupported && directoryFromGPL)
             {
                 //we need to read pages 1, 7, 5 (read them one at a time to work around some USB issues as best we can)
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     //power on hours
                     uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
@@ -1636,7 +1636,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_TEMP, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_TEMP, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     //current temperature
                     uint64_t currentTemp = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
@@ -1665,7 +1665,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_SSD, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_SSD, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     //percent used endurance
                     uint64_t percentUsed = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
@@ -1806,7 +1806,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
         }
         if (gplSupported && hybridInfoSize > 0)//GPL only. Page is also only a size of 1 512B block
         {
-            if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_HYBRID_INFORMATION, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_HYBRID_INFORMATION, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 driveInfo->hybridNANDSize = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]) * driveInfo->logicalSectorSize;
             }
@@ -1821,7 +1821,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
             //get the most recent result
             //read the first page to get the pointer to the most recent result, then if that's on another page, read that page
-            if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 uint16_t selfTestIndex = M_BytesTo2ByteValue(logBuffer[3], logBuffer[2]);
                 if (selfTestIndex > 0)
@@ -1834,7 +1834,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     {
                         //adjust the offset for when we read the correct page
                         descriptorOffset = descriptorOffset - (LEGACY_DRIVE_SEC_SIZE * pageNumber);
-                        if (SUCCESS != ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                        if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                         {
                             mostRecentPageRead = false;
                         }
@@ -1924,7 +1924,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
             //Read the SCT status log
             bool sctStatusRead = false;
-            if (gplSupported && !readSCTStatusWithSMARTCommand && directoryFromGPL && SUCCESS == ata_Read_Log_Ext(device, ATA_SCT_COMMAND_STATUS, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (gplSupported && !readSCTStatusWithSMARTCommand && directoryFromGPL && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_SCT_COMMAND_STATUS, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 sctStatusRead = true;
             }

@@ -22,7 +22,7 @@ bool is_Depopulation_Feature_Supported(tDevice *device, uint64_t *depopulationTi
     {
         //support is listed in the ID Data log, supported capabilities page
         uint8_t supportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-        if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
         {
             uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4], supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
             if (supportedCapabilitiesQWord0 & BIT63 && M_GETBITRANGE(supportedCapabilitiesQWord0, 23, 16) == 0x03)//make sure required bits/fields are there...checking for bit63 to be 1 and page number to be 3

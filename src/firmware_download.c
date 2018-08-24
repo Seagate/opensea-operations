@@ -307,7 +307,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             }
             //now try reading the supportd capabilities page of the identify device data log for the remaining info (deferred download)
             uint8_t supportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 uint64_t supportedCapabilitiesQword = M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13], supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10], supportedCapabilities[9], supportedCapabilities[8]);
                 uint64_t dlMicrocodeBits = M_BytesTo8ByteValue(supportedCapabilities[23], supportedCapabilities[22], supportedCapabilities[21], supportedCapabilities[20], supportedCapabilities[19], supportedCapabilities[18], supportedCapabilities[17], supportedCapabilities[16]);
