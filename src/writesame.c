@@ -279,11 +279,11 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
         //start the write same for the requested range
         if (pattern && patternLength == device->drive_info.deviceBlockSize)
         {
-            ret = write_Same(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, startingLba, numberOfLogicalBlocks, pattern);//null for the pattern means we'll write a bunch of zeros
+            ret = write_Same(device, startingLba, numberOfLogicalBlocks, pattern);//null for the pattern means we'll write a bunch of zeros
         }
         else
         {
-            ret = write_Same(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, startingLba, numberOfLogicalBlocks, zeroPatternBuf);//null for the pattern means we'll write a bunch of zeros
+            ret = write_Same(device, startingLba, numberOfLogicalBlocks, zeroPatternBuf);//null for the pattern means we'll write a bunch of zeros
         }
         //if the user wants us to poll for progress, then start polling
         if (pollForProgress && device->drive_info.drive_type == ATA_DRIVE)
