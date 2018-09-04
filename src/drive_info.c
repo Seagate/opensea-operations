@@ -1348,8 +1348,46 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
         {
             if (gplSupported && directoryFromGPL)
             {
+                bool capacity = false;
+                bool supportedCapabilities = false;
+                bool currentSettings = false;
+                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                {
+                    uint8_t pageNumber = logBuffer[2];
+                    uint16_t revision = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
+                    if (pageNumber == (uint8_t)ATA_ID_DATA_LOG_SUPPORTED_PAGES && revision == 0x0001)
+                    {
+                        //data is valid, so figure out supported pages
+                        uint8_t listLen = logBuffer[8];
+                        for (uint8_t iter = 8; iter < (listLen + 8) && iter < 512; ++iter)
+                        {
+                            switch (logBuffer[iter])
+                            {
+                            case ATA_ID_DATA_LOG_SUPPORTED_PAGES:
+                            case ATA_ID_DATA_LOG_COPY_OF_IDENTIFY_DATA:
+                                break;
+                            case ATA_ID_DATA_LOG_CAPACITY:
+                                capacity = true;
+                                break;
+                            case ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES:
+                                supportedCapabilities = true;
+                                break;
+                            case ATA_ID_DATA_LOG_CURRENT_SETTINGS:
+                                currentSettings = true;
+                                break;
+                            case ATA_ID_DATA_LOG_ATA_STRINGS:
+                            case ATA_ID_DATA_LOG_SECURITY:
+                            case ATA_ID_DATA_LOG_PARALLEL_ATA:
+                            case ATA_ID_DATA_LOG_SERIAL_ATA:
+                            case ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION:
+                            default:
+                                break;
+                            }
+                        }
+                    }
+                }
                 //we need to read pages 2, 3 (read them one at a time to work around some USB issues as best we can)
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 2, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (capacity && SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_CAPACITY, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
                 {
                     //get the nominal buffer size
                     uint64_t nominalBufferSize = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
@@ -1367,7 +1405,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     scsi_Test_Unit_Ready(device, NULL);
                 }
 				bool dlcSupported = false;
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (supportedCapabilities && SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
                 {
                     //supported capabilities
                     uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
@@ -1426,7 +1464,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
 					scsi_Test_Unit_Ready(device, NULL);
 				}
 				bool dlcEnabled = false;
-				if(SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+				if(currentSettings && SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_CURRENT_SETTINGS, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
 				{
 					uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
 					if (currentSettings & BIT63)
