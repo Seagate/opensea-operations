@@ -833,7 +833,18 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
 		if (iddDiagPage)
 		{
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
-			scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage);
+			ret = scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage);
+            if (ret != SUCCESS)
+            {
+                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                //We are checking if the reset part of the test is still in progress by checking for this sense data and will try again after a second until we know this part of the test is complete.
+                if (senseKey == SENSE_KEY_UNIT_ATTENTION && asc == 0x29 && ascq == 0x01 && fru == 0x0A)
+                {
+                    *status = 0x0F;//this is setting that the IDD is still in progress. This is because we got specific sense data related to this test, so that is why we are setting this here instead of trying to look at the data buffer.
+                    return SUCCESS;
+                }
+            }
             if (iddDiagPage[0] == 0x98 && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
             {
 				ret = SUCCESS;
@@ -906,7 +917,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
 			}
 			if (captiveForeground)
 			{
-				commandTimeoutSeconds = UINT32_MAX;
+                commandTimeoutSeconds = 300;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
 				iddDiagPage[1] |= BIT4;
 			}
 			else
@@ -1000,6 +1011,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 					int ret = get_IDD_Status(device, &status);
 					if (status == 0 && ret == SUCCESS)
 					{
+                        pollForProgress = false;
 						result = SUCCESS; //we passed.
 					}
 					else
@@ -1033,13 +1045,13 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                         }
 					}
 				}
-				else if (SUCCESS == result && pollForProgress)
+				if (SUCCESS == result && pollForProgress)
 				{
 					status = 0xF;//assume that the operation is in progress until it isn't anymore
 					int ret = SUCCESS;//for use in the loop below...assume that we are successful
 					while (status > 0x08 && ret == SUCCESS)
 					{
-						ret = get_IDD_Status(device, &status);
+                        ret = get_IDD_Status(device, &status);
 						if (VERBOSITY_QUIET <= g_verbosity)
 						{
 							printf("\n    IDD test is still in progress...please wait");
