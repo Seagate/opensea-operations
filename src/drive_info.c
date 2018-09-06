@@ -1348,17 +1348,59 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
         {
             if (gplSupported && directoryFromGPL)
             {
-                //we need to read pages 2, 3 (read them one at a time to work around some USB issues as best we can)
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 2, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                bool capacity = false;
+                bool supportedCapabilities = false;
+                bool currentSettings = false;
+                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
                 {
-                    //get the nominal buffer size
-                    uint64_t nominalBufferSize = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
-                    if (nominalBufferSize & BIT63)
+                    uint8_t pageNumber = logBuffer[2];
+                    uint16_t revision = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
+                    if (pageNumber == (uint8_t)ATA_ID_DATA_LOG_SUPPORTED_PAGES && revision >= 0x0001)
                     {
-                        //data is valid. Remove bit 63
-                        nominalBufferSize ^= BIT63;
-                        //now save this value to cache size (number of bytes)
-                        driveInfo->cacheSize = nominalBufferSize;
+                        //data is valid, so figure out supported pages
+                        uint8_t listLen = logBuffer[8];
+                        for (uint8_t iter = 9; iter < (listLen + 8) && iter < 512; ++iter)
+                        {
+                            switch (logBuffer[iter])
+                            {
+                            case ATA_ID_DATA_LOG_SUPPORTED_PAGES:
+                            case ATA_ID_DATA_LOG_COPY_OF_IDENTIFY_DATA:
+                                break;
+                            case ATA_ID_DATA_LOG_CAPACITY:
+                                capacity = true;
+                                break;
+                            case ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES:
+                                supportedCapabilities = true;
+                                break;
+                            case ATA_ID_DATA_LOG_CURRENT_SETTINGS:
+                                currentSettings = true;
+                                break;
+                            case ATA_ID_DATA_LOG_ATA_STRINGS:
+                            case ATA_ID_DATA_LOG_SECURITY:
+                            case ATA_ID_DATA_LOG_PARALLEL_ATA:
+                            case ATA_ID_DATA_LOG_SERIAL_ATA:
+                            case ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION:
+                            default:
+                                break;
+                            }
+                        }
+                    }
+                }
+                //we need to read pages 2, 3 (read them one at a time to work around some USB issues as best we can)
+                if (capacity && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 2, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                {
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_CAPACITY && M_Word0(qword0) >= 0x0001)
+                    {
+                        //get the nominal buffer size
+                        uint64_t nominalBufferSize = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
+                        if (nominalBufferSize & BIT63)
+                        {
+                            //data is valid. Remove bit 63
+                            nominalBufferSize ^= BIT63;
+                            //now save this value to cache size (number of bytes)
+                            driveInfo->cacheSize = nominalBufferSize;
+                        }
                     }
                 }
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
@@ -1367,56 +1409,60 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     scsi_Test_Unit_Ready(device, NULL);
                 }
 				bool dlcSupported = false;
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                if (supportedCapabilities && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     //supported capabilities
-                    uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-					if (supportedCapabilities & BIT63)
-					{
-						if (supportedCapabilities & BIT54)
-						{
-							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Advanced Background Operations");
-							driveInfo->numberOfFeaturesSupported++;
-						}
-						if (supportedCapabilities & BIT49)
-						{
-							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Set Sector Configuration");
-							driveInfo->numberOfFeaturesSupported++;
-						}
-						if (supportedCapabilities & BIT46)
-						{
-							dlcSupported = true;
-							sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
-							driveInfo->numberOfFeaturesSupported++;
-						}
-					}
-                    //Download capabilities
-                    uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
-                    if (downloadCapabilities & BIT63)
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= 0x0001)
                     {
-                        if (downloadCapabilities & BIT34)
+                        uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        if (supportedCapabilities & BIT63)
                         {
-                            driveInfo->fwdlSupport.deferredSupported = true;
+                            if (supportedCapabilities & BIT54)
+                            {
+                                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Advanced Background Operations");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
+                            if (supportedCapabilities & BIT49)
+                            {
+                                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Set Sector Configuration");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
+                            if (supportedCapabilities & BIT46)
+                            {
+                                dlcSupported = true;
+                                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
                         }
-                    }
-                    //Utilization (IDK if we need anything from this log for this information)
-
-                    //zoned capabilities
-                    uint64_t zonedCapabilities = M_BytesTo8ByteValue(logBuffer[111], logBuffer[110], logBuffer[109], logBuffer[108], logBuffer[107], logBuffer[106], logBuffer[105], logBuffer[104]);
-                    if (zonedCapabilities & BIT63)
-                    {
-                        //we only need bits 1 & 2
-                        driveInfo->zonedDevice = zonedCapabilities & 0x3;
-                    }
-
-                    //depopulate storage element support
-                    uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(logBuffer[159], logBuffer[158], logBuffer[157], logBuffer[156], logBuffer[155], logBuffer[154], logBuffer[153], logBuffer[152]);
-                    if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
-                    {
-                        if (supportedCapabilitiesQWord18 & BIT1 && supportedCapabilitiesQWord18 & BIT0)//checking for both commands to be supported
+                        //Download capabilities
+                        uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
+                        if (downloadCapabilities & BIT63)
                         {
-                            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Storage Element Depopulation");
-                            driveInfo->numberOfFeaturesSupported++;
+                            if (downloadCapabilities & BIT34)
+                            {
+                                driveInfo->fwdlSupport.deferredSupported = true;
+                            }
+                        }
+                        //Utilization (IDK if we need anything from this log for this information)
+
+                        //zoned capabilities
+                        uint64_t zonedCapabilities = M_BytesTo8ByteValue(logBuffer[111], logBuffer[110], logBuffer[109], logBuffer[108], logBuffer[107], logBuffer[106], logBuffer[105], logBuffer[104]);
+                        if (zonedCapabilities & BIT63)
+                        {
+                            //we only need bits 1 & 2
+                            driveInfo->zonedDevice = zonedCapabilities & 0x3;
+                        }
+
+                        //depopulate storage element support
+                        uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(logBuffer[159], logBuffer[158], logBuffer[157], logBuffer[156], logBuffer[155], logBuffer[154], logBuffer[153], logBuffer[152]);
+                        if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
+                        {
+                            if (supportedCapabilitiesQWord18 & BIT1 && supportedCapabilitiesQWord18 & BIT0)//checking for both commands to be supported
+                            {
+                                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Storage Element Depopulation");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
                         }
                     }
                 }
@@ -1426,16 +1472,20 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
 					scsi_Test_Unit_Ready(device, NULL);
 				}
 				bool dlcEnabled = false;
-				if(SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+				if(currentSettings && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
 				{
-					uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-					if (currentSettings & BIT63)
-					{
-						if (currentSettings & BIT17)
-						{
-							dlcEnabled = true;
-						}
-					}
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_CURRENT_SETTINGS && M_Word0(qword0) >= 0x0001)
+                    {
+                        uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        if (currentSettings & BIT63)
+                        {
+                            if (currentSettings & BIT17)
+                            {
+                                dlcEnabled = true;
+                            }
+                        }
+                    }
 				}
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
                 {
@@ -1467,7 +1517,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                         bool readFullLog = false;
                         //check that pages 2 and/or 3 are supported
                         uint16_t numberOfEntries = logBuffer[8];
-                        for (uint16_t offset = 9; offset < (numberOfEntries + UINT8_C(8)); ++offset)
+                        for (uint16_t offset = 9; offset < (numberOfEntries + UINT8_C(8)) && offset < 512; ++offset)
                         {
                             if (logBuffer[offset] == 0x02 || logBuffer[offset] == 0x03)
                             {
@@ -1490,7 +1540,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                     for (uint32_t offset = UINT32_C(1024); offset < logBufferSize; offset += UINT32_C(512))
                                     {
                                         uint64_t pageHeader = M_BytesTo8ByteValue(logBuffer[offset + 7], logBuffer[offset + 6], logBuffer[offset + 5], logBuffer[offset + 4], logBuffer[offset + 3], logBuffer[offset + 2], logBuffer[offset + 1], logBuffer[offset + 0]);
-                                        if (M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == 0x02) //check page and version number
+                                        if (pageHeader & BIT63 && M_Word0(pageHeader) >= 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_CAPACITY) //check page and version number
                                         {
                                             //read page 2 data
                                             //get the nominal buffer size
@@ -1503,7 +1553,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                                 driveInfo->cacheSize = nominalBufferSize;
                                             }
                                         }
-                                        else if (M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == 0x03) //check page and version number
+                                        else if (pageHeader & BIT63 && M_Word0(pageHeader) >= 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES) //check page and version number
                                         {
                                             //read page 3 data
                                             //supported capabilities
@@ -1555,7 +1605,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                                 }
                                             }
                                         }
-										else if (M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == 0x04) //check page and version number
+										else if (pageHeader & BIT63 && M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_CURRENT_SETTINGS) //check page and version number
 										{
 											//supported capabilities
 											uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
@@ -1604,31 +1654,71 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             if (gplSupported && directoryFromGPL)
             {
                 //we need to read pages 1, 7, 5 (read them one at a time to work around some USB issues as best we can)
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                //get list of supported pages first to use that to find supported pages we are interested in.
+                bool generalStatistics = false;
+                bool solidStateStatistics = false;
+                bool temperatureStatistics = false;
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_LIST, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
-                    //power on hours
-                    uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
-                    if (pohQword & BIT63 && pohQword & BIT62)
+                    uint16_t iter = 9;
+                    uint8_t numberOfEntries = logBuffer[8];
+                    for (iter = 9; iter < (numberOfEntries + 9) && iter < 512; ++iter)
                     {
-                        driveInfo->powerOnMinutes = M_DoubleWord0(pohQword) * 60;
+                        switch (logBuffer[iter])
+                        {
+                        case ATA_DEVICE_STATS_LOG_LIST:
+                            break;
+                        case ATA_DEVICE_STATS_LOG_GENERAL:
+                            generalStatistics = true;
+                            break;
+                        case ATA_DEVICE_STATS_LOG_FREE_FALL:
+                            break;
+                        case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA:
+                            break;
+                        case ATA_DEVICE_STATS_LOG_GEN_ERR:
+                            break;
+                        case ATA_DEVICE_STATS_LOG_TEMP:
+                            temperatureStatistics = true;
+                            break;
+                        case ATA_DEVICE_STATS_LOG_TRANSPORT:
+                            break;
+                        case ATA_DEVICE_STATS_LOG_SSD:
+                            solidStateStatistics = true;
+                            break;
+                        default:
+                            break;
+                        }
                     }
-                    //logical sectors written
-                    uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[31], logBuffer[30], logBuffer[29], logBuffer[28], logBuffer[27], logBuffer[26], logBuffer[25], logBuffer[24]);
-                    if (lsWrittenQword & BIT63 && lsWrittenQword & BIT62)
+                }
+                if (generalStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                {
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_GENERAL && M_Word0(qword0) >= 0x0001)//validating we got the right page
                     {
-                        driveInfo->totalLBAsWritten = lsWrittenQword & MAX_48_BIT_LBA;
-                    }
-                    //logical sectors read
-                    uint64_t lsReadQword = M_BytesTo8ByteValue(logBuffer[47], logBuffer[46], logBuffer[45], logBuffer[44], logBuffer[43], logBuffer[42], logBuffer[41], logBuffer[40]);
-                    if (lsReadQword & BIT63 && lsReadQword & BIT62)
-                    {
-                        driveInfo->totalLBAsRead = lsReadQword & MAX_48_BIT_LBA;
-                    }
-                    //workload utilization
-                    uint64_t worloadUtilization = M_BytesTo8ByteValue(logBuffer[79], logBuffer[78], logBuffer[77], logBuffer[76], logBuffer[75], logBuffer[74], logBuffer[73], logBuffer[72]);
-                    if (worloadUtilization & BIT63 && worloadUtilization & BIT62)
-                    {
-                        driveInfo->deviceReportedUtilizationRate = ((double)M_Word0(worloadUtilization)) / 1000.0;
+                        //power on hours
+                        uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
+                        if (pohQword & BIT63 && pohQword & BIT62)
+                        {
+                            driveInfo->powerOnMinutes = M_DoubleWord0(pohQword) * 60;
+                        }
+                        //logical sectors written
+                        uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[31], logBuffer[30], logBuffer[29], logBuffer[28], logBuffer[27], logBuffer[26], logBuffer[25], logBuffer[24]);
+                        if (lsWrittenQword & BIT63 && lsWrittenQword & BIT62)
+                        {
+                            driveInfo->totalLBAsWritten = lsWrittenQword & MAX_48_BIT_LBA;
+                        }
+                        //logical sectors read
+                        uint64_t lsReadQword = M_BytesTo8ByteValue(logBuffer[47], logBuffer[46], logBuffer[45], logBuffer[44], logBuffer[43], logBuffer[42], logBuffer[41], logBuffer[40]);
+                        if (lsReadQword & BIT63 && lsReadQword & BIT62)
+                        {
+                            driveInfo->totalLBAsRead = lsReadQword & MAX_48_BIT_LBA;
+                        }
+                        //workload utilization
+                        uint64_t worloadUtilization = M_BytesTo8ByteValue(logBuffer[79], logBuffer[78], logBuffer[77], logBuffer[76], logBuffer[75], logBuffer[74], logBuffer[73], logBuffer[72]);
+                        if (worloadUtilization & BIT63 && worloadUtilization & BIT62)
+                        {
+                            driveInfo->deviceReportedUtilizationRate = ((double)M_Word0(worloadUtilization)) / 1000.0;
+                        }
                     }
                 }
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
@@ -1636,28 +1726,32 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_TEMP, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                if (temperatureStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_TEMP, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
-                    //current temperature
-                    uint64_t currentTemp = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                    if (currentTemp & BIT63 && currentTemp & BIT62)
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_TEMP && M_Word0(qword0) >= 0x0001)//validating we got the right page
                     {
-                        driveInfo->temperatureData.temperatureDataValid = true;
-                        driveInfo->temperatureData.currentTemperature = M_Byte0(currentTemp);
-                    }
-                    //highest temperature
-                    uint64_t highestTemp = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
-                    if (highestTemp & BIT63 && highestTemp & BIT62)
-                    {
-                        driveInfo->temperatureData.highestTemperature = M_Byte0(highestTemp);
-                        driveInfo->temperatureData.highestValid = true;
-                    }
-                    //lowest temperature
-                    uint64_t lowestTemp = M_BytesTo8ByteValue(logBuffer[47], logBuffer[46], logBuffer[45], logBuffer[44], logBuffer[43], logBuffer[42], logBuffer[41], logBuffer[40]);
-                    if (lowestTemp & BIT63 && lowestTemp & BIT62)
-                    {
-                        driveInfo->temperatureData.lowestTemperature = M_Byte0(lowestTemp);
-                        driveInfo->temperatureData.lowestValid = true;
+                        //current temperature
+                        uint64_t currentTemp = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        if (currentTemp & BIT63 && currentTemp & BIT62)
+                        {
+                            driveInfo->temperatureData.temperatureDataValid = true;
+                            driveInfo->temperatureData.currentTemperature = M_Byte0(currentTemp);
+                        }
+                        //highest temperature
+                        uint64_t highestTemp = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
+                        if (highestTemp & BIT63 && highestTemp & BIT62)
+                        {
+                            driveInfo->temperatureData.highestTemperature = M_Byte0(highestTemp);
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                        //lowest temperature
+                        uint64_t lowestTemp = M_BytesTo8ByteValue(logBuffer[47], logBuffer[46], logBuffer[45], logBuffer[44], logBuffer[43], logBuffer[42], logBuffer[41], logBuffer[40]);
+                        if (lowestTemp & BIT63 && lowestTemp & BIT62)
+                        {
+                            driveInfo->temperatureData.lowestTemperature = M_Byte0(lowestTemp);
+                            driveInfo->temperatureData.lowestValid = true;
+                        }
                     }
                 }
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
@@ -1665,13 +1759,17 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_SSD, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                if (solidStateStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_SSD, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
-                    //percent used endurance
-                    uint64_t percentUsed = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                    if (percentUsed & BIT63 && percentUsed & BIT62)
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_SSD && M_Word0(qword0) >= 0x0001)//validating we got the right page
                     {
-                        driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
+                        //percent used endurance
+                        uint64_t percentUsed = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        if (percentUsed & BIT63 && percentUsed & BIT62)
+                        {
+                            driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
+                        }
                     }
                 }
                 else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
@@ -1693,7 +1791,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                         uint16_t numberOfEntries = logBuffer[8];
                         for (uint16_t offset = 9; offset < (numberOfEntries + UINT8_C(8)); ++offset)
                         {
-                            if (logBuffer[offset] == 0x01 || logBuffer[offset] == 0x05 || logBuffer[offset] == 0x07)
+                            if (logBuffer[offset] == ATA_DEVICE_STATS_LOG_GENERAL || logBuffer[offset] == ATA_DEVICE_STATS_LOG_TEMP || logBuffer[offset] == ATA_DEVICE_STATS_LOG_SSD)
                             {
                                 readFullLog = true;
                                 break;
@@ -1717,8 +1815,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                         pageNumber = M_Byte2(header);
                                         switch (pageNumber)
                                         {
-                                        case 1:
-                                            if (revision == 0x0001)
+                                        case ATA_DEVICE_STATS_LOG_GENERAL:
+                                            if (revision >= 0x0001)
                                             {
                                                 //power on hours
                                                 uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
@@ -1746,8 +1844,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                                 }
                                             }
                                             break;
-                                        case 5:
-                                            if (revision == 0x0001)
+                                        case ATA_DEVICE_STATS_LOG_TEMP:
+                                            if (revision >= 0x0001)
                                             {
                                                 //current temperature
                                                 uint64_t currentTemp = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
@@ -1772,8 +1870,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                                                 }
                                             }
                                             break;
-                                        case 7:
-                                            if (revision == 0x0001)
+                                        case ATA_DEVICE_STATS_LOG_SSD:
+                                            if (revision >= 0x0001)
                                             {
                                                 //percent used endurance
                                                 uint64_t percentUsed = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
