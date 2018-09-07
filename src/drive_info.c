@@ -17,9 +17,6 @@
 #include "scsi_helper.h"
 #include "nvme_helper_func.h"
 #include "firmware_download.h"
-#if !defined(DISABLE_NVME_PASSTHROUGH)
-#include "math.h"
-#endif
 #include "usb_hacks.h"
 
 int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo)
@@ -7173,7 +7170,7 @@ int print_Nvme_Ctrl_Information(tDevice *device)
     for (c=0; c <= nsData->nlbaf; c++) 
     {
         printf("\t\tLBAF%"PRIu32" | Metadata Size %"PRIu16" | LBA Data Size %"PRIu32" ", \
-               c,nsData->lbaf[c].ms, (uint32_t)pow((double)2, (double)nsData->lbaf[c].lbaDS));
+               c,nsData->lbaf[c].ms, 2 << (nsData->lbaf[c].lbaDS - 1));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
         switch(nsData->lbaf[c].rp)
         {
         case NVME_NS_LBAF_BEST_RP:

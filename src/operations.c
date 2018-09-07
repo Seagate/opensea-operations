@@ -17,9 +17,6 @@
 #include "ata_helper_func.h"
 #include "scsi_helper_func.h"
 #include "nvme_helper_func.h"
-#if !defined(DISABLE_NVME_PASSTHROUGH)
-#include "math.h"
-#endif
 
 //headers below are for determining quickest erase
 #include "sanitize.h"
