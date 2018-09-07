@@ -199,7 +199,7 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
     if (gpl && device->drive_info.ata_Options.generalPurposeLoggingSupported) //greater than one means check for it in the GPL directory
     {
         //first, check to see if the log is in the GPL directory.
-		if (ata_Read_Log_Ext(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0) == SUCCESS)
+		if (send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0) == SUCCESS)
         {
             *logFileSize = M_BytesTo2ByteValue(logBuffer[(logAddress * 2) + 1], logBuffer[(logAddress * 2)]) * LEGACY_DRIVE_SEC_SIZE;
             if (*logFileSize > 0)
@@ -766,7 +766,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             {
                 ret = SUCCESS;//assume success
                 //loop and read each page or set of pages, then save to a file
-                if (SUCCESS == ata_Read_Log_Ext(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     if (g_verbosity > VERBOSITY_QUIET)
                     {
@@ -812,7 +812,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             if (remainderPages > 0 && ret == SUCCESS)
             {
                 //read the remaining chunk of pages at once.
-                if (SUCCESS == ata_Read_Log_Ext(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], remainderPages * LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], remainderPages * LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     if (!toBuffer && !fileOpened)
                     {
@@ -1065,7 +1065,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
         return MEMORY_FAILURE;
     }
     //check the GPL directory to make sure that the internal status log is supported by the drive
-	if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_DIRECTORY, 0, dataBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+	if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, dataBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
     {
         uint8_t islLogToPull = 0;
         if (currentOrSaved == true)
@@ -1098,7 +1098,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                 }
             }
             //read the first sector of the log with the trigger bit set
-            if (SUCCESS == ata_Read_Log_Ext(device, islLogToPull, 0, dataBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, islLogToPull, 0, dataBuffer, LEGACY_DRIVE_SEC_SIZE, 0x0001))
             {
                 //now we need to check the sizes reported for the log and what the user is requesting to pull (and save what we just read to a file)
                 uint16_t reportedSmallSize = 0;
@@ -1178,7 +1178,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                         pullChunkSize = (islPullingSize - pageNumber) * LEGACY_DRIVE_SEC_SIZE;
                     }
                     //read each remaining chunk with the trigger bit set to 0
-                    if (SUCCESS == ata_Read_Log_Ext(device, islLogToPull, pageNumber, dataBuffer, pullChunkSize, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, islLogToPull, pageNumber, dataBuffer, pullChunkSize, 0))
                     {
                         //save to file, or copy to the ptr we were given
                         if (saveToFile == true)
@@ -1592,7 +1592,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 	uint8_t *logBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
 	if (logBuffer)
 	{
-		retStatus = ata_Read_Log_Ext(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0);
+		retStatus = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0);
 		if (retStatus == SUCCESS)
 		{
 			uint16_t log = 0;

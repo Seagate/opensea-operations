@@ -240,7 +240,7 @@ bool is_Low_Current_Spin_Up_Enabled(tDevice *device)
         {
             uint16_t optionFlags = 0x0000;
             uint16_t state = 0x0000;
-            if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0xD001, &state, &optionFlags))
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0002, 0xD001, &state, &optionFlags))
             {
                 if (state > 0 && state < 3)//if the state is not 1 or 2, then we have an unknown value being given to us.
                 {
@@ -279,7 +279,7 @@ int enable_Low_Current_Spin_Up(tDevice *device)
         {
             uint16_t saveToDrive = 0x0001;
             uint16_t state = 0x0001;
-            if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0xD001, &state, &saveToDrive))
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD001, &state, &saveToDrive))
             {
                 ret = SUCCESS;
             }
@@ -305,7 +305,7 @@ int disable_Low_Current_Spin_Up(tDevice *device)
         {
             uint16_t saveToDrive = 0x0001;
             uint16_t state = 0x0002;
-            if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0xD001, &state, &saveToDrive))
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD001, &state, &saveToDrive))
             {
                 ret = SUCCESS;
             }
@@ -332,7 +332,7 @@ int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
             {
                 uint16_t state = (uint16_t)mode;
                 uint16_t saveToDrive = 0x0001;
-                if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0xD002, &state, &saveToDrive))
+                if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD002, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
                 }
@@ -365,7 +365,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
             {
                 uint16_t state = 0;
                 uint16_t saveToDrive = 0;
-                if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0xD002, &state, &saveToDrive))
+                if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0002, 0xD002, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
                     *mode = (eSSCFeatureState)state;
