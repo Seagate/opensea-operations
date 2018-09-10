@@ -101,20 +101,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
             }
             else //multiple logical sectors per physical sector
             {
-                uint8_t logicalPerPhysical = 1;
                 uint8_t sectorSizeExponent = 0;
                 //get the number of logical blocks per physical blocks
                 sectorSizeExponent = wordPtr[106] & 0x000F;
-                if (sectorSizeExponent != 0)
-                {
-                    uint8_t shiftCounter = 0;
-                    while (shiftCounter < sectorSizeExponent)
-                    {
-                        logicalPerPhysical = logicalPerPhysical << 1; //multiply by 2
-                        shiftCounter++;
-                    }
-                    driveInfo->physicalSectorSize = driveInfo->logicalSectorSize * logicalPerPhysical;
-                }
+                driveInfo->physicalSectorSize = driveInfo->logicalSectorSize * power_Of_Two(sectorSizeExponent);
             }
         }
         else
@@ -5673,7 +5663,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             //lba formats start at byte 128, and are 4 bytes in size each
             uint32_t lbaFormatOffset = 128 + (lbaFormatIdentifier * 4);
             uint32_t lbaFormatData = M_BytesTo4ByteValue(nvmeIdentifyData[lbaFormatOffset + 3], nvmeIdentifyData[lbaFormatOffset + 2], nvmeIdentifyData[lbaFormatOffset + 1], nvmeIdentifyData[lbaFormatOffset + 0]);
-            driveInfo->namespaceData.formattedLBASizeBytes = 1 << (M_GETBITRANGE(lbaFormatData, 23, 16));
+            driveInfo->namespaceData.formattedLBASizeBytes = power_Of_Two(M_GETBITRANGE(lbaFormatData, 23, 16));
             driveInfo->namespaceData.relativeFormatPerformance = M_GETBITRANGE(lbaFormatData, 25, 24);
             //nvm capacity
             for (uint8_t i = 0; i < 16; ++i)
@@ -7178,7 +7168,7 @@ int print_Nvme_Ctrl_Information(tDevice *device)
     for (c=0; c <= nsData->nlbaf; c++) 
     {
         printf("\t\tLBAF%"PRIu32" | Metadata Size %"PRIu16" | LBA Data Size %"PRIu32" ", \
-               c,nsData->lbaf[c].ms, 2 << (nsData->lbaf[c].lbaDS - 1));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
+               c,nsData->lbaf[c].ms, power_Of_Two(nsData->lbaf[c].lbaDS));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
         switch(nsData->lbaf[c].rp)
         {
         case NVME_NS_LBAF_BEST_RP:
