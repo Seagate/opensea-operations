@@ -36,15 +36,13 @@ extern "C"
     //
     //  Entry:
     //!   \param device - pointer to the device structure.
-    //!   \param useGPL - set to true to use read/write log ext instead of SMART commands
-    //!   \param useDMA - only valid when useGPL is set. Set to true to issue DMA commands instead of PIO commands
     //!   \param speedGen - Which SATA generation speed to set. 1 = 1.5Gb/s, 2 = 3.0Gb/s, 3 = 6.0Gb/s. All other inputs return BAD_PARAMETER
     //!
     //  Exit:
     //!   \return SUCCESS = successfully set Phy Speed, !SUCCESS = check return code
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int seagate_ata_SCT_SATA_phy_speed(tDevice *device, bool useGPL, bool useDMA, uint8_t speedGen);
+    OPENSEA_OPERATIONS_API int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen);
 
     //-----------------------------------------------------------------------------
     //

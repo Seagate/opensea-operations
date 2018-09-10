@@ -20,7 +20,7 @@
 #include "sanitize.h"
 #include "format_unit.h"
 
-int seagate_ata_SCT_SATA_phy_speed(tDevice *device, bool useGPL, bool useDMA, uint8_t speedGen)
+int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
     int ret = UNKNOWN;
     uint8_t *sctSATAPhySpeed = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
@@ -57,7 +57,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, bool useGPL, bool useDMA, ui
     sctSATAPhySpeed[28] = speedGen;
     sctSATAPhySpeed[29] = 0x00;
 
-    ret = ata_SCT_Command(device, useGPL, useDMA, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
+    ret = send_ATA_SCT_Command(device, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
 
     safe_Free(sctSATAPhySpeed);
     return ret;
