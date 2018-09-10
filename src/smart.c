@@ -1051,7 +1051,7 @@ int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
         bool readSCTStatusWithSMARTCommand = sct_With_SMART_Commands(device);//USB hack
         uint8_t sctStatus[512] = { 0 };
         if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !readSCTStatusWithSMARTCommand &&
-            SUCCESS == ata_Read_Log_Ext(device, ATA_SCT_COMMAND_STATUS, 0, sctStatus, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0)
+            SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_SCT_COMMAND_STATUS, 0, sctStatus, 512, 0)
             )
         {
             checkData = true;
@@ -1776,7 +1776,7 @@ int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount)
         {
             //printf("In Device Statistics\n");
             uint8_t rotatingMediaStatistics[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_ROTATING_MEDIA, rotatingMediaStatistics, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_ROTATING_MEDIA, rotatingMediaStatistics, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 uint64_t *qWordPtr = (uint64_t*)&rotatingMediaStatistics[0];
                 if (qWordPtr[7] & BIT63 && qWordPtr[7] & BIT62)
@@ -1841,7 +1841,7 @@ int get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
         if (device->drive_info.softSATFlags.deviceStatisticsSupported)
         {
             uint8_t rotatingMediaStatistics[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_ROTATING_MEDIA, rotatingMediaStatistics, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_ROTATING_MEDIA, rotatingMediaStatistics, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 uint64_t *qWordPtr = (uint64_t*)&rotatingMediaStatistics[0];
                 if (qWordPtr[4] & BIT63 && qWordPtr[4] & BIT62)
@@ -1974,7 +1974,7 @@ int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enable
             {
                 optionFlags = BIT0;
             }
-            ret = ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, featureCode, &state, &optionFlags);
+            ret = send_ATA_SCT_Feature_Control(device, 0x0001, featureCode, &state, &optionFlags);
             if (ret == SUCCESS)
             {
                 //do we need to check and get specific status?
@@ -2012,7 +2012,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
                 featureCode = (uint16_t)sctFeature;
                 break;
             }
-            ret = ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, featureCode, &state, &optionFlags);
+            ret = send_ATA_SCT_Feature_Control(device, 0x0002, featureCode, &state, &optionFlags);
             if (ret == SUCCESS)
             {
                 if (hdaTemperatureIntervalOrState)
@@ -2084,7 +2084,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
                 //get option flags if pointer is valid
                 if (featureOptionFlags)
                 {
-                    ret = ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0003, featureCode, &state, &optionFlags);
+                    ret = send_ATA_SCT_Feature_Control(device, 0x0003, featureCode, &state, &optionFlags);
                     *featureOptionFlags = optionFlags;
                 }
             }
@@ -2104,10 +2104,10 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             switch (ercCommand)
             {
             case SCT_ERC_READ_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0x0001, NULL, timerValueMilliseconds / 100);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, timerValueMilliseconds / 100);
                 break;
             case SCT_ERC_WRITE_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0x0002, NULL, timerValueMilliseconds / 100);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, timerValueMilliseconds / 100);
                 break;
             default:
                 break;
@@ -2129,10 +2129,10 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             switch (ercCommand)
             {
             case SCT_ERC_READ_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0x0001, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0001, &currentTimerValue, 0);
                 break;
             case SCT_ERC_WRITE_COMMAND:
-                ret = ata_SCT_Error_Recovery_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0x0002, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0002, &currentTimerValue, 0);
                 break;
             default:
                 break;
@@ -2987,7 +2987,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     if (compErrLogSize > 0)
                     {
                         ret = SUCCESS;
-                        int getLog = ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0);
+                        int getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
                         if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                         {
                             smartErrorLog->version = errorLog[0];
@@ -3014,7 +3014,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                     {
                                         //first read this page
                                         memset(errorLog, 0, 512);
-                                        getLog = ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0);
+                                        getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
                                         if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                                         {
                                             uint8_t pageEntryCounter = 0;

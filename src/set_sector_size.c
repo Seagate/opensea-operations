@@ -21,7 +21,7 @@ bool is_Set_Sector_Configuration_Supported(tDevice *device)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t idDataLogSupportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-        if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
         {
             uint64_t supportedCapabilitiesQWord = M_BytesTo8ByteValue(&idDataLogSupportedCapabilities[15], &idDataLogSupportedCapabilities[14], &idDataLogSupportedCapabilities[13], &idDataLogSupportedCapabilities[12], &idDataLogSupportedCapabilities[11], &idDataLogSupportedCapabilities[10], &idDataLogSupportedCapabilities[9], &idDataLogSupportedCapabilities[8]);
             if (supportedCapabilitiesQWord & BIT49)
@@ -93,7 +93,7 @@ int get_Supported_Sector_Sizes(tDevice *device, sectorSize * ptrSectorSizeList, 
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             uint8_t sectorConfigurationLog[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_SECTOR_CONFIGURATION_LOG, 0, sectorConfigurationLog, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SECTOR_CONFIGURATION_LOG, 0, sectorConfigurationLog, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 for (uint16_t iter = 0, sectorSizeCounter = 0; iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < numberOfSectorSizeStructs; iter += 16, ++sectorSizeCounter)
                 {

@@ -846,7 +846,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
     {
         //read the extended self test results log with read log ext
-        if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
         {
             uint16_t selfTestIndex = M_BytesTo2ByteValue(selfTestResults[3], selfTestResults[2]);
             if (selfTestIndex > 0) 
@@ -873,7 +873,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
 
                 if (pageNumber > 0)
                 {
-                    if (SUCCESS != ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                    if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
                     {
                         //this SHOULDN'T happen, but in case it does, we need to fail gracefully
                         safe_Free(selfTestResults);
