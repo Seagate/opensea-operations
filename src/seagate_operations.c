@@ -742,7 +742,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
 			uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
 			if (iddDiagPage)
 			{
-				if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage))
+				if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15))
 				{
 					ret = SUCCESS;
 					iddSupport->iddShort = true;//short
@@ -833,7 +833,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
 		if (iddDiagPage)
 		{
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
-			ret = scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage);
+			ret = scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15);
             if (ret != SUCCESS)
             {
                 uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
