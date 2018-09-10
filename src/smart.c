@@ -638,6 +638,164 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             break;
         }
         break;
+	case SEAGATE_VENDOR_F:
+		switch (attributeNumber)
+		{
+		case 1://UECC error count
+			sprintf(*attributeName, "UECC Error count");
+			break;
+		case 9: //Power on Hours
+			sprintf(*attributeName, "Power On Hours");
+			break;
+		case 12: //Drive Power Cycle Count
+			sprintf(*attributeName, "Drive Power Cycle Count");
+			break;
+		case 16: //Spare Blocks Available
+			sprintf(*attributeName, "Spare Blocks Available");
+			break;
+		case 17: //Remaining Spare Blocks
+			sprintf(*attributeName, "Remaining Spare Blocks");
+			break;
+		case 168: //Sata Phy Error Count
+			sprintf(*attributeName, "Sata Phy Error Count");
+			break;
+		case 170: //Bad Block Count
+			sprintf(*attributeName, "Bad Block Count");
+			break;
+		case 173: //Erase Count
+			sprintf(*attributeName, "Erase Count");
+			break;
+		case 174: //Unexpected Power Loss Count
+			sprintf(*attributeName, "Unexpected Power Loss Count");
+			break;
+		case 177: //Wear Range Delta
+			sprintf(*attributeName, "Wear Range Delta");
+			break;
+		case 192: //Unexpected power loss count
+			sprintf(*attributeName, "Unexpected Power loss Count");
+			break;
+		case 194: //Primary Temperature
+			sprintf(*attributeName, "Primary Temperature");
+			break;
+		case 218: //CRC Error Count
+			sprintf(*attributeName, "CRC Error Count");
+			break;
+		case 231: //SSD Life Left
+			sprintf(*attributeName, "SSD Life Left");
+			break;
+		case 232: //Read failure block count
+			sprintf(*attributeName, "Read Failure Block Count");
+			break;
+		case 233: //NAND GiB written
+			sprintf(*attributeName, "NAND GiB Written");
+			break;
+		case 235: //NAND sectors written
+			sprintf(*attributeName, "NAND sectors Written");
+			break;
+		case 241: //Lifetime Writes from Host
+			sprintf(*attributeName, "Lifetime Writes From Host");
+			break;
+		case 242: //Lifetime Reads from Host
+			sprintf(*attributeName, "Lifetime Reads From Host");
+			break;
+		default:
+			break;
+		}
+		break;
+	case SEAGATE_VENDOR_G:
+		switch (attributeNumber)
+		{
+		case 1://Raw Read Error Rate
+			sprintf(*attributeName, "Raw Read Error Rate");
+			break;
+		case 5://Reallocated Sector Count
+			sprintf(*attributeName, "Reallocated Sector Count");
+			break;
+		case 9: //Power on Hours
+			sprintf(*attributeName, "Power On Hours");
+			break;
+		case 11: //Power Fail Event Count
+			sprintf(*attributeName, "Power Fail Event Count");
+			break;
+		case 12: //Drive Power Cycle Count
+			sprintf(*attributeName, "Drive Power Cycle Count");
+			break;
+		case 100: //Flash Gigabytes Erased
+			sprintf(*attributeName, "Flash Gigabytes Erased");
+			break;
+		case 101: //Lifetime DevSleep Exit Count
+			sprintf(*attributeName, "Lifetime DevSleep Exit Count");
+			break;
+		case 102: //Lifetime PS4 Entry Count
+			sprintf(*attributeName, "Lifetime PS4 Entry Count");
+			break;
+		case 103: //Lifetime PS3 Exit Count
+			sprintf(*attributeName, "Lifetime PS3 Exit Count");
+			break;
+		case 170: //Grown Bad Block Count
+			sprintf(*attributeName, "Grown Bad Block Count");
+			break;
+		case 171: //Program Fail Count
+			sprintf(*attributeName, "Program Fail Count");
+			break;
+		case 172: //Erase Fail Count
+			sprintf(*attributeName, "Erase Fail Count");
+			break;
+		case 173: //Average Program/Erase Count
+			sprintf(*attributeName, "Average Program/Erase Count");
+			break;
+		case 174: //Unexpected Power Loss Count
+			sprintf(*attributeName, "Unexpected Power Loss Count");
+			break;
+		case 177: //Wear Range Delta
+			sprintf(*attributeName, "Wear Range Delta");
+			break;
+		case 183: //SATA/PCIe Interface Downshift Count
+			sprintf(*attributeName, "SATA/PCIe Interface Downshift Count");
+			break;
+		case 184: //End-To-End CRC Error Count
+			sprintf(*attributeName, "End-To-End CRC Error Count");
+			break;
+		case 187: //Uncorrectable ECC Count
+			sprintf(*attributeName, "Uncorrectable ECC Count");
+			break;
+		case 194: //Primary Temperature
+			sprintf(*attributeName, "Primary Temperature");
+			break;
+		case 195: //RAISE ECC Correctable Count
+			sprintf(*attributeName, "RAISE ECC Correctable Count");
+			break;
+		case 198: //Uncorrectable Read Error Count
+			sprintf(*attributeName, "Uncorrectable Read Error Count");
+			break;
+		case 199: //SATA R-Error (CRC) Error Count
+			sprintf(*attributeName, "SATA R-Error (CRC) Error Count");
+			break;
+		case 230: //Drive Life Protection Status
+			sprintf(*attributeName, "Drive Life Protection Status");
+			break;
+		case 231: //SSD Life Left
+			sprintf(*attributeName, "SSD Life Left");
+			break;
+		case 232: //Available Reserved Space
+			sprintf(*attributeName, "Available Reserved Space");
+			break;
+		case 233: //Lifetime Writes to Flash
+			sprintf(*attributeName, "Lifetime Writes to Flash");
+			break;
+		case 241: //Lifetime Writes from Host
+			sprintf(*attributeName, "Lifetime Writes From Host");
+			break;
+		case 242: //Lifetime Reads from Host
+			sprintf(*attributeName, "Lifetime Reads From Host");
+			break;
+		case 243: //Free Space
+			sprintf(*attributeName, "Free Space");
+			break;
+		default:
+			break;
+		}
+		break;
     default:
         break;
     }

@@ -2192,8 +2192,16 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                     }
                 }
                 break;
+			case 233: //Lifetime Write to Flash (SSD)
+				if (seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_F)
+				{
+					driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
+					//convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
+					driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
+				}
+				break;
             case 234: //Lifetime Write to Flash (SSD)
-                if (seagateFamily == SEAGATE && (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B))
+                if (seagateFamily == SEAGATE || (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B))
                 {
                     driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
                     //convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
@@ -2201,10 +2209,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 }
                 break;
             case 241: //Total Bytes written (SSD) Total LBAs written (HDD)
-				if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B) && driveInfo->totalLBAsWritten == 0)
+				if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsWritten == 0)
                 {
                     driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
-                    if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B)
+                    if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB written, so convert to LBAs
                         driveInfo->totalLBAsWritten = (driveInfo->totalLBAsWritten * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
@@ -2212,10 +2220,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 }
                 break;
             case 242: //Total Bytes read (SSD) Total LBAs read (HDD)
-				if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B) && driveInfo->totalLBAsRead == 0)
+				if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsRead == 0)
                 {
                     driveInfo->totalLBAsRead = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
-                    if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B)
+                    if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB read, so convert to LBAs
                         driveInfo->totalLBAsRead = (driveInfo->totalLBAsRead * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
