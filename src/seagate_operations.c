@@ -190,7 +190,7 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
     {
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            if (device->drive_info.IdentifyData.ata.Word206 & BIT7 && is_SSD(device) == false)
+            if (device->drive_info.IdentifyData.ata.Word206 & BIT7 && !is_SSD(device))
             {
                 if (phySpeedGen > 3)
                 {
@@ -201,7 +201,7 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
                     }
                     return BAD_PARAMETER;
                 }
-                ret = seagate_ata_SCT_SATA_phy_speed(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.dmaSupported, phySpeedGen);
+                ret = seagate_ata_SCT_SATA_phy_speed(device, phySpeedGen);
             }
             else
             {
