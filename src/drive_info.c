@@ -2151,7 +2151,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 }
                 break;
             case 231: //SSD Endurance
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C) && driveInfo->percentEnduranceUsed < 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->percentEnduranceUsed < 0)
                 {
                     // SCSI was implemented first, and it returns a value where 0 means 100% spares left, ATA is the opposite,
                     // so we need to subtract our number from 100
