@@ -7168,7 +7168,7 @@ int print_Nvme_Ctrl_Information(tDevice *device)
     for (c=0; c <= nsData->nlbaf; c++) 
     {
         printf("\t\tLBAF%"PRIu32" | Metadata Size %"PRIu16" | LBA Data Size %"PRIu32" ", \
-               c,nsData->lbaf[c].ms, power_Of_Two(nsData->lbaf[c].lbaDS));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
+               c,nsData->lbaf[c].ms, (uint32_t) power_Of_Two(nsData->lbaf[c].lbaDS));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
         switch(nsData->lbaf[c].rp)
         {
         case NVME_NS_LBAF_BEST_RP:
