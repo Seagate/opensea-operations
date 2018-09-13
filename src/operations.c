@@ -1003,6 +1003,73 @@ void show_Test_Unit_Ready_Status(tDevice *device)
 	}
 }
 
+int enable_Disable_AAM_Feature(tDevice *device, bool enable)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure APM is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        {
+            if (enable)
+            {
+                //set value to the vendor recommended value reported in identify data when requesting an enable operation
+                //TODO: Should we set max performance instead by default?
+                ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, M_Byte1(device->drive_info.IdentifyData.ata.Word094), 0, 0, 0);
+            }
+            else
+            {
+                //subcommand C2
+                ret = ata_Set_Features(device, SF_DISABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT, 0, 0, 0, 0);
+                if (ret != SUCCESS)
+                {
+                    //the disable AAM feature is not available on all devices according to ATA spec.
+                    ret = NOT_SUPPORTED;
+                }
+            }
+        }
+    }
+    return ret;
+}
+//AAM Levels:
+// 0 - vendor specific
+// 1-7Fh = These are labelled as "Retired" in every spec I can find, so no idea what these even mean. - TJE
+// 80h = minimum acoustic emanation
+// 81h - FDh = intermediate acoustic management levels
+// FEh = maximum performance.
+int set_AAM_Level(tDevice *device, uint8_t apmLevel)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure APM is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        {
+            //subcommand 42 with the aamLevel in the count field
+            ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, apmLevel, 0, 0, 0);
+        }
+    }
+    return ret;
+}
+
+int get_AAM_Level(tDevice *device, uint8_t *aamLevel)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure AAM is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)//word 86 says "enabled". We may or may not want to check for that.
+        {
+            //get it from identify device word 94
+            ret = SUCCESS;
+            *aamLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word094);
+        }
+    }
+    return ret;
+}
+
+
+
 #if !defined (DISABLE_NVME_PASSTHROUGH)
 
 int clr_Pcie_Correctable_Errs(tDevice *device)
@@ -1035,6 +1102,5 @@ int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsig
 
 	return pci_Correctble_Err( device, 0x09, nsid, cdw10, value, data_len, data);
 }
-
 
 #endif

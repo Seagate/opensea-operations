@@ -366,6 +366,12 @@ extern "C"
 
 	OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
 
+    OPENSEA_OPERATIONS_API int enable_Disable_AAM_Feature(tDevice *device, bool enable);
+
+    OPENSEA_OPERATIONS_API int set_AAM_Level(tDevice *device, uint8_t apmLevel);
+
+    OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
+
     #if defined (__cplusplus)
 }
     #endif
