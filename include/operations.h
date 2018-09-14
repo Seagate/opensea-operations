@@ -24,6 +24,22 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+    //  get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
+    //
+    //! \brief   Get the current Ready LED behavior on SAS drives.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param readyLEDOnOff - when set to true, the ready LED bit is set to a 1, other wise set to a 0. See the SAS protocol spec for details on this mode page.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff);
+
+    //-----------------------------------------------------------------------------
+    //
     //  change_Ready_LED( tDevice * device )
     //
     //! \brief   Change Ready LED behavior on SAS drives. SAS is configurable with a command, SATA is not so SAS is the only thing supported in this call.

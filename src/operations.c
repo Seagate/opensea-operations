@@ -26,6 +26,41 @@
 #include "format_unit.h"
 #include "dst.h"
 
+int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
+{
+    int ret = UNKNOWN;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t *modeSense = (uint8_t*)calloc(24, sizeof(uint8_t));
+        if (!modeSense)
+        {
+            perror("calloc failure!");
+            return MEMORY_FAILURE;
+        }
+        if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_CURRENT_VALUES, modeSense))
+        {
+            ret = SUCCESS;
+            if (modeSense[2 + MODE_PARAMETER_HEADER_10_LEN] & BIT4)
+            {
+                *readyLEDOnOff = true;
+            }
+            else
+            {
+                *readyLEDOnOff = false;
+            }
+        }
+        else
+        {
+            ret = FAILURE;
+        }
+        safe_Free(modeSense);
+    }
+    else //ata cannot control ready LED since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
 
 int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
 {
@@ -82,7 +117,7 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
         }
         safe_Free(modeSelect);
     }
-    else //ata cannot control pin 11 since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
+    else //ata cannot control ready LED since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
     {
         ret = NOT_SUPPORTED;
     }

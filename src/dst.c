@@ -930,8 +930,11 @@ bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
     {
         uint8_t parameterOffset = 4;
         //most recent result is always at the top of the log
-        if (selfTestResultsLog[parameterOffset + 4] != 0)//check for valid log entry...otherwise DST has never been run so nothing to return
+        uint8_t selfTestResult = M_Nibble0(selfTestResultsLog[parameterOffset + 4]);
+        //TODO: If we ever find another scsi device type where this is not true, we should keep this as a special case for ATA drives or block devices since they seem to report the failure this way.
+        if (selfTestResult == 0x07/*read element failure*/)
         {
+            
             *lba = M_BytesTo8ByteValue(selfTestResultsLog[parameterOffset + 8], selfTestResultsLog[parameterOffset + 9], \
                 selfTestResultsLog[parameterOffset + 10], selfTestResultsLog[parameterOffset + 11], \
                 selfTestResultsLog[parameterOffset + 12], selfTestResultsLog[parameterOffset + 13], \

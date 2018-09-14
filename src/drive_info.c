@@ -2151,7 +2151,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 }
                 break;
             case 231: //SSD Endurance
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C) && driveInfo->percentEnduranceUsed < 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->percentEnduranceUsed < 0)
                 {
                     // SCSI was implemented first, and it returns a value where 0 means 100% spares left, ATA is the opposite,
                     // so we need to subtract our number from 100
@@ -7168,7 +7168,7 @@ int print_Nvme_Ctrl_Information(tDevice *device)
     for (c=0; c <= nsData->nlbaf; c++) 
     {
         printf("\t\tLBAF%"PRIu32" | Metadata Size %"PRIu16" | LBA Data Size %"PRIu32" ", \
-               c,nsData->lbaf[c].ms, power_Of_Two(nsData->lbaf[c].lbaDS));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
+               c,nsData->lbaf[c].ms, (uint32_t) power_Of_Two(nsData->lbaf[c].lbaDS));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
         switch(nsData->lbaf[c].rp)
         {
         case NVME_NS_LBAF_BEST_RP:

@@ -149,7 +149,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 //this means that we had an error on the last sector, which is a drive bug in old products.
 				//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
 				//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
-				if (device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+				if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
 				{
 					uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
 					get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
@@ -223,7 +223,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 					//this means that we had an error on the last sector, which is a drive bug in old products.
 					//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
 					//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
-					if (device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+					if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
 					{
 						uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
 						get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
