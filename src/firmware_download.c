@@ -28,8 +28,8 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     {
 		ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot);
 		options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-#if defined (_WIN32)
-        if (ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
+#if WINVER >= SEA_WIN32_WINNT_WIN10
+		if (ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
         {
             //This means that we encountered a driver that is not allowing us to issue the Win10 API Firmware activate call for some unknown reason. 
             //This doesn't happen with Microsoft's AHCI driver though...
