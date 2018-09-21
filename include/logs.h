@@ -106,6 +106,7 @@ extern "C" {
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, NOT_SUPPORTED = log is not supported by device, !SUCCESS means something went wrong
+    //!                     If SUCCESS is returned AND the logFileSize is UINT16_MAX, then the page should be supported, but determining the length was not possible due to a likely firmware bug in the device.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize);

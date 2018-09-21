@@ -264,15 +264,6 @@ int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint
                 break;
             }
         }
-        //we know the page is supported, but to get the size, we need to try reading it.
-        if (ret == SUCCESS)
-        {
-            memset(logBuffer, 0, 255);
-            if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logPage, logSubPage, 0, logBuffer, 255) == SUCCESS)
-            {
-                *logFileSize = (uint32_t)(M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH);
-            }
-        }
     }
     else if (logSubPage == 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, 255))
     {
@@ -287,14 +278,37 @@ int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint
                 break;
             }
         }
-        //we know the page is supported, but to get the size, we need to try reading it.
-        if (ret == SUCCESS)
+    }
+    //we know the page is supported, but to get the size, we need to try reading it.
+    if (ret == SUCCESS)
+    {
+        memset(logBuffer, 0, 255);
+        //only requesting the header since this should get us the total length.
+        //If this fails, we return success, but a size of zero. This shouldn't happen, but there are firmware bugs...
+        if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logPage, logSubPage, 0, logBuffer, SCSI_LOG_PARAMETER_HEADER_LENGTH) == SUCCESS)
         {
-            memset(logBuffer, 0, 255);
-            if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logPage, 0, 0, logBuffer, 255) == SUCCESS)
+            //validate the page code and subpage code
+            uint8_t pageCode = M_GETBITRANGE(logBuffer[0], 5, 0);
+            uint8_t subpageCode = logBuffer[1];
+            bool spf = (logBuffer[0] & BIT6) > 0 ? true : false;
+            if (logSubPage != 0 && spf && pageCode == logPage && subpageCode == logSubPage)
             {
                 *logFileSize = (uint32_t)(M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH);
             }
+            else if (pageCode == logPage && !spf && subpageCode == 0)
+            {
+                *logFileSize = (uint32_t)(M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH);
+            }
+            else
+            {
+                //not the page we requested, return NOT_SUPPORTED
+                ret = NOT_SUPPORTED;
+                *logFileSize = 0;
+            }
+        }
+        else //trust that the page is supported, but this method of getting the size is broken on this firmware/device
+        {
+            *logFileSize = UINT16_MAX;//maximum transfer for a log page, so return this so that the page can at least be read....
         }
     }
     safe_Free(logBuffer);
@@ -960,30 +974,28 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
 
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logAddress, subpage, 0, logBuffer, pageLen) == SUCCESS)
         {
+            uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]);
             ret = SUCCESS;
 			memset(&name[0], 0, OPENSEA_PATH_MAX);
-            
-
             if (logName && fileExtension) //Because you can also get a log file & get it in buffer. 
             {
                 if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                 {
                     //write the log to a file
-                    fwrite(logBuffer, sizeof(uint8_t), pageLen, fp_log);
+                    fwrite(logBuffer, sizeof(uint8_t), M_Min(pageLen, returnedPageLength), fp_log);//only write what the log reported the size to be if more was requested than is available by the device.
                     fflush(fp_log);
                     fclose(fp_log);
                 }
             }
             if (toBuffer) //NOTE: the buffer size checked earlier. 
             {
-                memcpy(myBuf, logBuffer, pageLen);
+                memcpy(myBuf, logBuffer, M_Min(pageLen, returnedPageLength));
             }
         }
         else
         {
             ret = FAILURE;
         }
-
         safe_Free(logBuffer);
     }
     return ret;
@@ -1529,7 +1541,7 @@ int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
         uint16_t supportedPagesLength = M_BytesTo2ByteValue(logBuffer[2],logBuffer[3]);
     	uint8_t incrementAmount = subpagesSupported ? 2 : 1;
         uint16_t pageLength = 0;//for each page in the supported buffer so we can report the size
-        uint8_t logPage[255] = { 0 };
+        uint8_t logPage[4] = { 0 };
         bool vsHeaderPrinted = false;
         bool reservedHeaderPrinted = false;
         printf("\n  Page Code  :  Subpage Code  :  Size (Bytes)\n");
@@ -1559,7 +1571,7 @@ int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
     			printf("\t\t------------------\n");
                 reservedHeaderPrinted = true;
             }
-            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, logPage, 255))
+            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, logPage, 4))
             {
                 pageLength = M_BytesTo2ByteValue(logPage[2], logPage[3]);
             }
