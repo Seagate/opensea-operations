@@ -1676,7 +1676,7 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 
     memset(&suptLogPage, 0, sizeof(logPageMap));
     memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-    suptLogOpts.addr = (uint64_t)(&suptLogPage);
+    suptLogOpts.addr = (uint8_t*)(&suptLogPage);
     suptLogOpts.dataLen = sizeof(logPageMap);
     suptLogOpts.lid = 0xc5;
     suptLogOpts.nsid = 0;//controller data

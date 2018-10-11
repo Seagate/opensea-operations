@@ -432,7 +432,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 //read the firmware log for more information
                 uint8_t firmwareLog[512] = { 0 };
                 nvmeGetLogPageCmdOpts firmwareLogOpts;
-                firmwareLogOpts.addr = (uint64_t)firmwareLog;
+                firmwareLogOpts.addr = firmwareLog;
                 firmwareLogOpts.dataLen = 512;
                 firmwareLogOpts.lid = 3;
                 firmwareLogOpts.nsid = 0;

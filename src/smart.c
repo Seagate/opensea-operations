@@ -1623,7 +1623,7 @@ int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     uint8_t smartLogPage[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     nvmeGetLogPageCmdOpts smartPageOpts;
     memset(&smartPageOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-    smartPageOpts.addr = (uint64_t)smartLogPage;
+    smartPageOpts.addr = smartLogPage;
     smartPageOpts.dataLen = LEGACY_DRIVE_SEC_SIZE;
     smartPageOpts.lid = NVME_LOG_SMART_ID;
     smartPageOpts.nsid = UINT32_MAX;//requesting controller page, not namespace page. - TJE
@@ -2669,7 +2669,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&smartLog, 0, sizeof(nvmeSmartLog));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&smartLog);
+        cmdOpts.addr = (uint8_t*)(&smartLog);
         cmdOpts.dataLen = sizeof(nvmeSmartLog);
         cmdOpts.lid = 0x02;
 
@@ -2700,7 +2700,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&smartLog, 0, sizeof(nvmeSmartLog));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&extSmartLog);
+        cmdOpts.addr = (uint8_t*)(&extSmartLog);
         cmdOpts.dataLen = sizeof(EXTENDED_SMART_INFO_T);
         cmdOpts.lid = 0xC4;
 
@@ -2732,7 +2732,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&scDramSmart, 0, sizeof(nvmeSuperCapDramSmart));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&scDramSmart);
+        cmdOpts.addr = (uint8_t*)(&scDramSmart);
         cmdOpts.dataLen = sizeof(nvmeSuperCapDramSmart);
         cmdOpts.lid = 0xCF;
 
@@ -2779,7 +2779,7 @@ int nvme_Print_PCI_Statistics(tDevice *device)
         memset(&pcieErrorLog, 0, sizeof(nvmePcieErrorLogPage));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&pcieErrorLog);
+        cmdOpts.addr = (uint8_t*)(&pcieErrorLog);
         cmdOpts.dataLen = sizeof(nvmePcieErrorLogPage);
         cmdOpts.lid = 0xCB;
 
