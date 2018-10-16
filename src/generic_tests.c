@@ -1280,7 +1280,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
                 printf("\rWriting LBA: %-20"PRIu64"", outerLBA);
                 break;
             case RWV_COMMAND_VERIFY:
-                printf("\rVerifyinging LBA: %-20"PRIu64"", outerLBA);
+                printf("\rVerifying LBA: %-20"PRIu64"", outerLBA);
                 break;
             default:
                 printf("\rUnknown OPing LBA: %-20"PRIu64"", outerLBA);
@@ -1316,7 +1316,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
                 printf("\rWriting LBA: %-20"PRIu64"", innerLBA);
                 break;
             case RWV_COMMAND_VERIFY:
-                printf("\rVerifyinging LBA: %-20"PRIu64"", innerLBA);
+                printf("\rVerifying LBA: %-20"PRIu64"", innerLBA);
                 break;
             default:
                 printf("\rUnknown OPing LBA: %-20"PRIu64"", innerLBA);
@@ -1417,7 +1417,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
                 printf("\rWriting LBA: %-20"PRIu64"", randomLBA);
                 break;
             case RWV_COMMAND_VERIFY:
-                printf("\rVerifyinging LBA: %-20"PRIu64"", randomLBA);
+                printf("\rVerifying LBA: %-20"PRIu64"", randomLBA);
                 break;
             default:
                 printf("\rUnknown OPing LBA: %-20"PRIu64"", randomLBA);
@@ -1436,6 +1436,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     {
         printf("\n");
     }
+    safe_Free(dataBuf);
     return ret;
 }
 
