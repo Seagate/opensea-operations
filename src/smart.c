@@ -1646,31 +1646,31 @@ int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             if (smartLogPage[0] & BIT0)
             {
                 tripInfo->nvmeCriticalWarning.spareSpaceBelowThreshold = true;
-                sprintf(tripInfo->reasonString, "Available Spare Space has fallen below the threshold\0");
+                sprintf(tripInfo->reasonString, "Available Spare Space has fallen below the threshold");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT1)
             {
                 tripInfo->nvmeCriticalWarning.temperatureExceedsThreshold = true;
-                sprintf(tripInfo->reasonString, "Temperature is above an over termperature threshold or below an under temperature threshold\0");
+                sprintf(tripInfo->reasonString, "Temperature is above an over termperature threshold or below an under temperature threshold");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT2)
             {
                 tripInfo->nvmeCriticalWarning.nvmSubsystemDegraded = true;
-                sprintf(tripInfo->reasonString, "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability\0");
+                sprintf(tripInfo->reasonString, "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT3)
             {
                 tripInfo->nvmeCriticalWarning.mediaReadOnly = true;
-                sprintf(tripInfo->reasonString, "Media has been placed in read only mode\0");
+                sprintf(tripInfo->reasonString, "Media has been placed in read only mode");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT4)
             {
                 tripInfo->nvmeCriticalWarning.volatileMemoryBackupFailed = true;
-                sprintf(tripInfo->reasonString, "Volatile Memory backup device has failed\0");
+                sprintf(tripInfo->reasonString, "Volatile Memory backup device has failed");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT5)
@@ -2654,7 +2654,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
     int index;
-    uint64_t size = 0; 
+    //uint64_t size = 0; 
     uint32_t temperature = 0, pcbTemp = 0, socTemp = 0, scCurrentTemp = 0, scMaxTemp = 0;
     uint64_t maxTemperature = 0, maxSocTemp = 0;
     nvmeGetLogPageCmdOpts   cmdOpts;
