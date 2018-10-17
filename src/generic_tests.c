@@ -757,6 +757,10 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_
         }
     }
     stop_Timer(&randomTestTimer);
+    if (g_verbosity > VERBOSITY_QUIET)
+    {
+        printf("\n");
+    }
     randomTest.averageCommandTimeNS /= randomTest.numberOfCommandsIssued;
     randomTest.totalTimeNS = get_Nano_Seconds(randomTestTimer);
     randomTest.iops = (uint64_t)(randomTest.numberOfCommandsIssued / (randomTest.totalTimeNS * 1e-9));
