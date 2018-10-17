@@ -974,7 +974,7 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
 
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logAddress, subpage, 0, logBuffer, pageLen) == SUCCESS)
         {
-            uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]);
+            uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + LOG_PAGE_HEADER_LENGTH;
             ret = SUCCESS;
 			memset(&name[0], 0, OPENSEA_PATH_MAX);
             if (logName && fileExtension) //Because you can also get a log file & get it in buffer. 
