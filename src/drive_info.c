@@ -104,7 +104,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
                 uint8_t sectorSizeExponent = 0;
                 //get the number of logical blocks per physical blocks
                 sectorSizeExponent = wordPtr[106] & 0x000F;
-                driveInfo->physicalSectorSize = driveInfo->logicalSectorSize * power_Of_Two(sectorSizeExponent);
+                driveInfo->physicalSectorSize = (uint32_t)(driveInfo->logicalSectorSize * power_Of_Two(sectorSizeExponent));
             }
         }
         else
@@ -5438,7 +5438,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             uint8_t nvmeDSTLog[564] = { 0 };
             nvmeGetLogPageCmdOpts dstLogOpts;
             memset(&dstLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-            dstLogOpts.addr = (uint64_t)nvmeDSTLog;
+            dstLogOpts.addr = nvmeDSTLog;
             dstLogOpts.dataLen = 564;
             dstLogOpts.lid = 6;
             dstLogOpts.nsid = 0;//controller data
@@ -5655,7 +5655,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.lunOrNSID, 0))
         {
             driveInfo->namespaceData.valid = true;
-            driveInfo->namespaceData.namespaceSize = M_BytesTo8ByteValue(nvmeIdentifyData[7], nvmeIdentifyData[6], nvmeIdentifyData[5], nvmeIdentifyData[4], nvmeIdentifyData[3], nvmeIdentifyData[2], nvmeIdentifyData[1], nvmeIdentifyData[0]);
+            driveInfo->namespaceData.namespaceSize = M_BytesTo8ByteValue(nvmeIdentifyData[7], nvmeIdentifyData[6], nvmeIdentifyData[5], nvmeIdentifyData[4], nvmeIdentifyData[3], nvmeIdentifyData[2], nvmeIdentifyData[1], nvmeIdentifyData[0]) - 1;//spec says this is 0 to (n-1)!
             driveInfo->namespaceData.namespaceCapacity = M_BytesTo8ByteValue(nvmeIdentifyData[15], nvmeIdentifyData[14], nvmeIdentifyData[13], nvmeIdentifyData[12], nvmeIdentifyData[11], nvmeIdentifyData[10], nvmeIdentifyData[9], nvmeIdentifyData[8]);
             driveInfo->namespaceData.namespaceUtilization = M_BytesTo8ByteValue(nvmeIdentifyData[23], nvmeIdentifyData[22], nvmeIdentifyData[21], nvmeIdentifyData[20], nvmeIdentifyData[19], nvmeIdentifyData[18], nvmeIdentifyData[17], nvmeIdentifyData[16]);
             //lba size & relative performance
@@ -5663,7 +5663,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             //lba formats start at byte 128, and are 4 bytes in size each
             uint32_t lbaFormatOffset = 128 + (lbaFormatIdentifier * 4);
             uint32_t lbaFormatData = M_BytesTo4ByteValue(nvmeIdentifyData[lbaFormatOffset + 3], nvmeIdentifyData[lbaFormatOffset + 2], nvmeIdentifyData[lbaFormatOffset + 1], nvmeIdentifyData[lbaFormatOffset + 0]);
-            driveInfo->namespaceData.formattedLBASizeBytes = power_Of_Two(M_GETBITRANGE(lbaFormatData, 23, 16));
+            driveInfo->namespaceData.formattedLBASizeBytes = (uint32_t)power_Of_Two(M_GETBITRANGE(lbaFormatData, 23, 16));
             driveInfo->namespaceData.relativeFormatPerformance = M_GETBITRANGE(lbaFormatData, 25, 24);
             //nvm capacity
             for (uint8_t i = 0; i < 16; ++i)
@@ -5741,7 +5741,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         uint8_t nvmeSMARTData[512] = { 0 };
         nvmeGetLogPageCmdOpts smartLogOpts;
         memset(&smartLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-        smartLogOpts.addr = (uint64_t)nvmeSMARTData;
+        smartLogOpts.addr = nvmeSMARTData;
         smartLogOpts.dataLen = 512;
         smartLogOpts.lid = 2;
         smartLogOpts.nsid = NVME_ALL_NAMESPACES;//controller data

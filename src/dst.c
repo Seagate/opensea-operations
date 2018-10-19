@@ -109,7 +109,7 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
     uint8_t nvmeSelfTestLog[563] = { 0 };//strange size for the log, but it's what I see in the spec - TJE
     nvmeGetLogPageCmdOpts getDSTLog;
     memset(&getDSTLog, 0, sizeof(nvmeGetLogPageCmdOpts));
-    getDSTLog.addr = (uint64_t)nvmeSelfTestLog;
+    getDSTLog.addr = nvmeSelfTestLog;
     getDSTLog.dataLen = 563;
     getDSTLog.lid = 0x06;
     if (SUCCESS == nvme_Get_Log_Page(device, &getDSTLog))
@@ -957,7 +957,7 @@ bool get_Error_LBA_From_NVMe_DST_Log(tDevice *device, uint64_t *lba)
     nvmeGetLogPageCmdOpts dstLogParms;
     memset(&dstLogParms, 0, sizeof(nvmeGetLogPageCmdOpts));
     uint8_t nvmeDSTLog[564] = { 0 };
-    dstLogParms.addr = (uint64_t)nvmeDSTLog;
+    dstLogParms.addr = nvmeDSTLog;
     dstLogParms.dataLen = 564;
     dstLogParms.lid = 0x06;
     dstLogParms.nsid = UINT32_MAX;
@@ -1590,7 +1590,7 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
         nvmeGetLogPageCmdOpts dstLogParms;
         memset(&dstLogParms, 0, sizeof(nvmeGetLogPageCmdOpts));
         uint8_t nvmeDSTLog[564] = { 0 };
-        dstLogParms.addr = (uint64_t)nvmeDSTLog;
+        dstLogParms.addr = nvmeDSTLog;
         dstLogParms.dataLen = 564;
         dstLogParms.lid = 0x06;
         dstLogParms.nsid = UINT32_MAX;

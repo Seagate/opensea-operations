@@ -1076,7 +1076,7 @@ int clr_Pcie_Correctable_Errs(tDevice *device)
 {
     const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
     const char *save = "specifies that the controller shall save the attribute";
-    int err, fd;
+    int err;
     void *buf = NULL;
 
     struct config {

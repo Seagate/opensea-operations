@@ -1623,7 +1623,7 @@ int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     uint8_t smartLogPage[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     nvmeGetLogPageCmdOpts smartPageOpts;
     memset(&smartPageOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-    smartPageOpts.addr = (uint64_t)smartLogPage;
+    smartPageOpts.addr = smartLogPage;
     smartPageOpts.dataLen = LEGACY_DRIVE_SEC_SIZE;
     smartPageOpts.lid = NVME_LOG_SMART_ID;
     smartPageOpts.nsid = UINT32_MAX;//requesting controller page, not namespace page. - TJE
@@ -1646,31 +1646,31 @@ int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             if (smartLogPage[0] & BIT0)
             {
                 tripInfo->nvmeCriticalWarning.spareSpaceBelowThreshold = true;
-                sprintf(tripInfo->reasonString, "Available Spare Space has fallen below the threshold\0");
+                sprintf(tripInfo->reasonString, "Available Spare Space has fallen below the threshold");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT1)
             {
                 tripInfo->nvmeCriticalWarning.temperatureExceedsThreshold = true;
-                sprintf(tripInfo->reasonString, "Temperature is above an over termperature threshold or below an under temperature threshold\0");
+                sprintf(tripInfo->reasonString, "Temperature is above an over termperature threshold or below an under temperature threshold");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT2)
             {
                 tripInfo->nvmeCriticalWarning.nvmSubsystemDegraded = true;
-                sprintf(tripInfo->reasonString, "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability\0");
+                sprintf(tripInfo->reasonString, "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT3)
             {
                 tripInfo->nvmeCriticalWarning.mediaReadOnly = true;
-                sprintf(tripInfo->reasonString, "Media has been placed in read only mode\0");
+                sprintf(tripInfo->reasonString, "Media has been placed in read only mode");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT4)
             {
                 tripInfo->nvmeCriticalWarning.volatileMemoryBackupFailed = true;
-                sprintf(tripInfo->reasonString, "Volatile Memory backup device has failed\0");
+                sprintf(tripInfo->reasonString, "Volatile Memory backup device has failed");
                 tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
             }
             if (smartLogPage[0] & BIT5)
@@ -2654,7 +2654,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
     int index;
-    uint64_t size = 0; 
+    //uint64_t size = 0; 
     uint32_t temperature = 0, pcbTemp = 0, socTemp = 0, scCurrentTemp = 0, scMaxTemp = 0;
     uint64_t maxTemperature = 0, maxSocTemp = 0;
     nvmeGetLogPageCmdOpts   cmdOpts;
@@ -2669,7 +2669,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&smartLog, 0, sizeof(nvmeSmartLog));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&smartLog);
+        cmdOpts.addr = (uint8_t*)(&smartLog);
         cmdOpts.dataLen = sizeof(nvmeSmartLog);
         cmdOpts.lid = 0x02;
 
@@ -2700,7 +2700,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&smartLog, 0, sizeof(nvmeSmartLog));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&extSmartLog);
+        cmdOpts.addr = (uint8_t*)(&extSmartLog);
         cmdOpts.dataLen = sizeof(EXTENDED_SMART_INFO_T);
         cmdOpts.lid = 0xC4;
 
@@ -2732,7 +2732,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&scDramSmart, 0, sizeof(nvmeSuperCapDramSmart));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&scDramSmart);
+        cmdOpts.addr = (uint8_t*)(&scDramSmart);
         cmdOpts.dataLen = sizeof(nvmeSuperCapDramSmart);
         cmdOpts.lid = 0xCF;
 
@@ -2779,7 +2779,7 @@ int nvme_Print_PCI_Statistics(tDevice *device)
         memset(&pcieErrorLog, 0, sizeof(nvmePcieErrorLogPage));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint64_t)(&pcieErrorLog);
+        cmdOpts.addr = (uint8_t*)(&pcieErrorLog);
         cmdOpts.dataLen = sizeof(nvmePcieErrorLogPage);
         cmdOpts.lid = 0xCB;
 

@@ -45,7 +45,7 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, bool *saniti
         memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
         getLogOpts.dataLen = 512;
         getLogOpts.lid = 0x81;
-        getLogOpts.addr = (uint64_t)sanitizeStatusLog;
+        getLogOpts.addr = sanitizeStatusLog;
         //TODO: Set namespace ID?
         if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
         {
@@ -349,7 +349,7 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
             memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
             getLogOpts.dataLen = 512;
             getLogOpts.lid = 0x81;
-            getLogOpts.addr = (uint64_t)sanitizeStatusLog;
+            getLogOpts.addr = sanitizeStatusLog;
             //TODO: Set namespace ID?
             if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
             {
