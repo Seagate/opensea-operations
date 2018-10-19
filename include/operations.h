@@ -24,6 +24,22 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+    //  get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
+    //
+    //! \brief   Get the current Ready LED behavior on SAS drives.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param readyLEDOnOff - when set to true, the ready LED bit is set to a 1, other wise set to a 0. See the SAS protocol spec for details on this mode page.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff);
+
+    //-----------------------------------------------------------------------------
+    //
     //  change_Ready_LED( tDevice * device )
     //
     //! \brief   Change Ready LED behavior on SAS drives. SAS is configurable with a command, SATA is not so SAS is the only thing supported in this call.
@@ -235,7 +251,13 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(tDevice *device);
+
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    OPENSEA_OPERATIONS_API int clr_Pcie_Correctable_Errs(tDevice *device);
+    
+    int nvme_set_feature(tDevice *device, uint32_t  nsid, uint8_t  fid, uint32_t  value, bool save, uint32_t  data_len, void *data);
+#endif
 	
     typedef enum _eEraseMethod
     {
@@ -341,6 +363,14 @@ extern "C"
     OPENSEA_OPERATIONS_API int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity);//enables the feature. Value of zero sets a vendor's recommended setting
 
     OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
+
+	OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int enable_Disable_AAM_Feature(tDevice *device, bool enable);
+
+    OPENSEA_OPERATIONS_API int set_AAM_Level(tDevice *device, uint8_t apmLevel);
+
+    OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
     #if defined (__cplusplus)
 }

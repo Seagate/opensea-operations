@@ -17,9 +17,6 @@
 #include "ata_helper_func.h"
 #include "scsi_helper_func.h"
 #include "nvme_helper_func.h"
-#if !defined(DISABLE_NVME_PASSTHROUGH)
-#include "math.h"
-#endif
 
 //headers below are for determining quickest erase
 #include "sanitize.h"
@@ -29,6 +26,41 @@
 #include "format_unit.h"
 #include "dst.h"
 
+int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
+{
+    int ret = UNKNOWN;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t *modeSense = (uint8_t*)calloc(24, sizeof(uint8_t));
+        if (!modeSense)
+        {
+            perror("calloc failure!");
+            return MEMORY_FAILURE;
+        }
+        if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_CURRENT_VALUES, modeSense))
+        {
+            ret = SUCCESS;
+            if (modeSense[2 + MODE_PARAMETER_HEADER_10_LEN] & BIT4)
+            {
+                *readyLEDOnOff = true;
+            }
+            else
+            {
+                *readyLEDOnOff = false;
+            }
+        }
+        else
+        {
+            ret = FAILURE;
+        }
+        safe_Free(modeSense);
+    }
+    else //ata cannot control ready LED since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
 
 int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
 {
@@ -85,7 +117,7 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
         }
         safe_Free(modeSelect);
     }
-    else //ata cannot control pin 11 since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
+    else //ata cannot control ready LED since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
     {
         ret = NOT_SUPPORTED;
     }
@@ -952,3 +984,123 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
     }
     return ret;
 }
+
+void show_Test_Unit_Ready_Status(tDevice *device)
+{
+	scsiStatus returnedStatus = { 0 };
+	int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
+	if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
+	{
+		printf("READY\n");
+	}
+	else
+	{
+		eVerbosityLevels tempVerbosity = g_verbosity;
+		printf("NOT READY\n");
+		g_verbosity = VERBOSITY_COMMAND_NAMES;//the function below will print out a sense data translation, but only it we are at this verbosity or higher which is why it's set before this call.
+		check_Sense_Key_ASC_ASCQ_And_FRU(device, returnedStatus.senseKey, returnedStatus.asc, returnedStatus.ascq, returnedStatus.fru);
+		g_verbosity = tempVerbosity;//restore it back to what it was now that this is done.
+	}
+}
+
+int enable_Disable_AAM_Feature(tDevice *device, bool enable)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure APM is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        {
+            if (enable)
+            {
+                //set value to the vendor recommended value reported in identify data when requesting an enable operation
+                //TODO: Should we set max performance instead by default?
+                ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, M_Byte1(device->drive_info.IdentifyData.ata.Word094), 0, 0, 0);
+            }
+            else
+            {
+                //subcommand C2
+                ret = ata_Set_Features(device, SF_DISABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT, 0, 0, 0, 0);
+                if (ret != SUCCESS)
+                {
+                    //the disable AAM feature is not available on all devices according to ATA spec.
+                    ret = NOT_SUPPORTED;
+                }
+            }
+        }
+    }
+    return ret;
+}
+//AAM Levels:
+// 0 - vendor specific
+// 1-7Fh = These are labelled as "Retired" in every spec I can find, so no idea what these even mean. - TJE
+// 80h = minimum acoustic emanation
+// 81h - FDh = intermediate acoustic management levels
+// FEh = maximum performance.
+int set_AAM_Level(tDevice *device, uint8_t apmLevel)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure APM is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        {
+            //subcommand 42 with the aamLevel in the count field
+            ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, apmLevel, 0, 0, 0);
+        }
+    }
+    return ret;
+}
+
+int get_AAM_Level(tDevice *device, uint8_t *aamLevel)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure AAM is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)//word 86 says "enabled". We may or may not want to check for that.
+        {
+            //get it from identify device word 94
+            ret = SUCCESS;
+            *aamLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word094);
+        }
+    }
+    return ret;
+}
+
+
+
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+
+int clr_Pcie_Correctable_Errs(tDevice *device)
+{
+    const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
+    const char *save = "specifies that the controller shall save the attribute";
+    int err;
+    void *buf = NULL;
+
+    struct config {
+        int   save;
+    };
+
+    struct config cfg = {
+        .save         = 0,
+    };
+    err = nvme_set_feature( device, 0, 0xE1, 0xCB, cfg.save, 0, buf);
+	if (err < 0) {
+        perror("set-feature");
+        return errno;
+    }
+
+    return err;
+
+}
+
+int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsigned int value, bool save, unsigned int  data_len, void *data)
+{
+	unsigned int cdw10 = fid | (save ? 1 << 31 : 0);
+
+	return pci_Correctble_Err( device, 0x09, nsid, cdw10, value, data_len, data);
+}
+
+#endif

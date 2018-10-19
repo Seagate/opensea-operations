@@ -230,7 +230,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>opensea-transport.lib;opensea-common.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -250,7 +250,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>opensea-transport.lib;opensea-common.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -269,7 +269,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>opensea-transport.lib;opensea-common.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -289,7 +289,7 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>opensea-transport.lib;opensea-common.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -299,6 +299,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\ata_Security.h" />
     <ClInclude Include="..\..\..\..\include\buffer_test.h" />
+    <ClInclude Include="..\..\..\..\include\defect.h" />
     <ClInclude Include="..\..\..\..\include\depopulate.h" />
     <ClInclude Include="..\..\..\..\include\device_statistics.h" />
     <ClInclude Include="..\..\..\..\include\drive_info.h" />
@@ -326,6 +327,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\ata_Security.c" />
     <ClCompile Include="..\..\..\..\src\buffer_test.c" />
+    <ClCompile Include="..\..\..\..\src\defect.c" />
     <ClCompile Include="..\..\..\..\src\depopulate.c" />
     <ClCompile Include="..\..\..\..\src\device_statistics.c" />
     <ClCompile Include="..\..\..\..\src\drive_info.c" />

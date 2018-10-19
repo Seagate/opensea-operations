@@ -89,7 +89,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         {
             return MEMORY_FAILURE;
         }
-        ret = ata_SCT_Status(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
+        ret = send_ATA_SCT_Status(device, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
         if (ret == SUCCESS)
         {
             uint16_t sctStatus = M_BytesTo2ByteValue(sctStatusBuf[15], sctStatusBuf[14]);
@@ -180,7 +180,7 @@ int show_Write_Same_Current_LBA(tDevice *device)
         {
             return MEMORY_FAILURE;
         }
-        ret = ata_SCT_Status(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
+        ret = send_ATA_SCT_Status(device, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
         if (ret == SUCCESS)
         {
             sctStatus = M_BytesTo2ByteValue(sctStatusBuf[15], sctStatusBuf[14]);
@@ -279,11 +279,11 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
         //start the write same for the requested range
         if (pattern && patternLength == device->drive_info.deviceBlockSize)
         {
-            ret = write_Same(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, startingLba, numberOfLogicalBlocks, pattern);//null for the pattern means we'll write a bunch of zeros
+            ret = write_Same(device, startingLba, numberOfLogicalBlocks, pattern);//null for the pattern means we'll write a bunch of zeros
         }
         else
         {
-            ret = write_Same(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, startingLba, numberOfLogicalBlocks, zeroPatternBuf);//null for the pattern means we'll write a bunch of zeros
+            ret = write_Same(device, startingLba, numberOfLogicalBlocks, zeroPatternBuf);//null for the pattern means we'll write a bunch of zeros
         }
         //if the user wants us to poll for progress, then start polling
         if (pollForProgress && device->drive_info.drive_type == ATA_DRIVE)

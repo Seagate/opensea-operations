@@ -45,7 +45,7 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, bool *saniti
         memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
         getLogOpts.dataLen = 512;
         getLogOpts.lid = 0x81;
-        getLogOpts.addr = (uint64_t)sanitizeStatusLog;
+        getLogOpts.addr = sanitizeStatusLog;
         //TODO: Set namespace ID?
         if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
         {
@@ -349,7 +349,7 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
             memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
             getLogOpts.dataLen = 512;
             getLogOpts.lid = 0x81;
-            getLogOpts.addr = (uint64_t)sanitizeStatusLog;
+            getLogOpts.addr = sanitizeStatusLog;
             //TODO: Set namespace ID?
             if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
             {
@@ -395,15 +395,15 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
     switch (sanitizeOperation)
     {
     case SANITIZE_BLOCK_ERASE:
-        ret = send_Sanitize_Block_Erase(device, false);
+        ret = send_Sanitize_Block_Erase(device, false, false);
         delayTime = 1;
         break;
     case SANITIZE_CRYPTO_ERASE:
-        ret = send_Sanitize_Crypto_Erase(device, false);
+        ret = send_Sanitize_Crypto_Erase(device, false, false);
         delayTime = 1;
         break;
     case SANITIZE_OVERWRITE_ERASE:
-        ret = send_Sanitize_Overwrite_Erase(device, false, false, 1, pattern, patternLength);
+        ret = send_Sanitize_Overwrite_Erase(device, false, false, 1, pattern, patternLength, false);
         delayTime = 600;//this is 10 minute delay between progress updates
         break;
     case SANTIZIE_FREEZE_LOCK:

@@ -117,7 +117,10 @@ int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSiz
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return ata_Read_Buffer(device, ptrData, device->drive_info.ata_Options.readBufferDMASupported);
+        //return ata_Read_Buffer(device, ptrData, device->drive_info.ata_Options.readBufferDMASupported);
+        //Switching to this new function since it will automatically try DMA mode if supported by the drive.
+        //If the controller or driver don't like issuing DMA mode, this will detect it and retry the command with PIO mode.
+        return send_ATA_Read_Buffer_Cmd(device, ptrData);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -133,7 +136,10 @@ int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSi
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return ata_Write_Buffer(device, ptrData, device->drive_info.ata_Options.writeBufferDMASupported);
+        //return ata_Write_Buffer(device, ptrData, device->drive_info.ata_Options.writeBufferDMASupported);
+        //Switching to this new function since it will automatically try DMA mode if supported by the drive.
+        //If the controller or driver don't like issuing DMA mode, this will detect it and retry the command with PIO mode.
+        return send_ATA_Write_Buffer_Cmd(device, ptrData);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {

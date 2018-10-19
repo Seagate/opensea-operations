@@ -106,6 +106,7 @@ extern "C" {
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, NOT_SUPPORTED = log is not supported by device, !SUCCESS means something went wrong
+    //!                     If SUCCESS is returned AND the logFileSize is UINT16_MAX, then the page should be supported, but determining the length was not possible due to a likely firmware bug in the device.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize);
@@ -540,6 +541,22 @@ extern "C" {
     OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16,\
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  pull_FARM_Log(tDevice *device, const char * const filePath);
+    //
+    //! \brief   Description: This function pulls the Seagate FARM log from ATA drives
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
+    //  Exit:
+    //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
+
 
 #if defined(__cplusplus)
 }

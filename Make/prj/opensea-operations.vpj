@@ -78,6 +78,7 @@
         <Folder Name="../../include">
             <F N="../../include/ata_Security.h"/>
             <F N="../../include/buffer_test.h"/>
+            <F N="../../include/defect.h"/>
             <F N="../../include/depopulate.h"/>
             <F N="../../include/device_statistics.h"/>
             <F N="../../include/drive_info.h"/>
@@ -105,6 +106,7 @@
         <Folder Name="../../src">
             <F N="../../src/ata_Security.c"/>
             <F N="../../src/buffer_test.c"/>
+            <F N="../../src/defect.c"/>
             <F N="../../src/depopulate.c"/>
             <F N="../../src/device_statistics.c"/>
             <F N="../../src/drive_info.c"/>

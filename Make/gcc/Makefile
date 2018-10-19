@@ -17,9 +17,9 @@ FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
 MAJOR=1
 #Change the Minor version when new features are added. 
-MINOR=17
+MINOR=19
 #Change the patch version when only bug fixes are made.
-PATCH=5
+PATCH=3
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-common/include -I../../../SeaCTCG/include
@@ -53,7 +53,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)sas_phy.c\
 	$(SRC_DIR)depopulate.c\
 	$(SRC_DIR)zoned_operations.c\
-	$(SRC_DIR)buffer_test.c
+	$(SRC_DIR)buffer_test.c\
+	$(SRC_DIR)defect.c
 
 #Only define public stuff 
 PROJECT_DEFINES += #-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG

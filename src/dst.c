@@ -87,7 +87,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         perror("Calloc Failure!\n");
         return MEMORY_FAILURE;
     }
-    result = scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, 0x10, 0, 0, temp_buf, LEGACY_DRIVE_SEC_SIZE);
+    result = scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SELF_TEST_RESULTS, 0, 0, temp_buf, LP_SELF_TEST_RESULTS_LEN);
     if (result == SUCCESS)
     {
         *status = temp_buf[8];
@@ -95,7 +95,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         //check the progress since the test is still running
         memset(temp_buf, 0, LEGACY_DRIVE_SEC_SIZE);
         scsi_Request_Sense_Cmd(device, false, temp_buf, LEGACY_DRIVE_SEC_SIZE);
-        *percentComplete = ((uint16_t)temp_buf[16] << 8) | temp_buf[17];
+        *percentComplete = M_BytesTo2ByteValue(temp_buf[16], temp_buf[17]);
         *percentComplete *= 100;
         *percentComplete /= 65536;
     }
@@ -109,7 +109,7 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
     uint8_t nvmeSelfTestLog[563] = { 0 };//strange size for the log, but it's what I see in the spec - TJE
     nvmeGetLogPageCmdOpts getDSTLog;
     memset(&getDSTLog, 0, sizeof(nvmeGetLogPageCmdOpts));
-    getDSTLog.addr = (uint64_t)nvmeSelfTestLog;
+    getDSTLog.addr = nvmeSelfTestLog;
     getDSTLog.dataLen = 563;
     getDSTLog.lid = 0x06;
     if (SUCCESS == nvme_Get_Log_Page(device, &getDSTLog))
@@ -846,7 +846,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
     {
         //read the extended self test results log with read log ext
-        if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
         {
             uint16_t selfTestIndex = M_BytesTo2ByteValue(selfTestResults[3], selfTestResults[2]);
             if (selfTestIndex > 0) 
@@ -873,7 +873,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
 
                 if (pageNumber > 0)
                 {
-                    if (SUCCESS != ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+                    if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
                     {
                         //this SHOULDN'T happen, but in case it does, we need to fail gracefully
                         safe_Free(selfTestResults);
@@ -930,8 +930,11 @@ bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
     {
         uint8_t parameterOffset = 4;
         //most recent result is always at the top of the log
-        if (selfTestResultsLog[parameterOffset + 4] != 0)//check for valid log entry...otherwise DST has never been run so nothing to return
+        uint8_t selfTestResult = M_Nibble0(selfTestResultsLog[parameterOffset + 4]);
+        //TODO: If we ever find another scsi device type where this is not true, we should keep this as a special case for ATA drives or block devices since they seem to report the failure this way.
+        if (selfTestResult == 0x07/*read element failure*/)
         {
+            
             *lba = M_BytesTo8ByteValue(selfTestResultsLog[parameterOffset + 8], selfTestResultsLog[parameterOffset + 9], \
                 selfTestResultsLog[parameterOffset + 10], selfTestResultsLog[parameterOffset + 11], \
                 selfTestResultsLog[parameterOffset + 12], selfTestResultsLog[parameterOffset + 13], \
@@ -954,7 +957,7 @@ bool get_Error_LBA_From_NVMe_DST_Log(tDevice *device, uint64_t *lba)
     nvmeGetLogPageCmdOpts dstLogParms;
     memset(&dstLogParms, 0, sizeof(nvmeGetLogPageCmdOpts));
     uint8_t nvmeDSTLog[564] = { 0 };
-    dstLogParms.addr = (uint64_t)nvmeDSTLog;
+    dstLogParms.addr = nvmeDSTLog;
     dstLogParms.dataLen = 564;
     dstLogParms.lid = 0x06;
     dstLogParms.nsid = UINT32_MAX;
@@ -1587,7 +1590,7 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
         nvmeGetLogPageCmdOpts dstLogParms;
         memset(&dstLogParms, 0, sizeof(nvmeGetLogPageCmdOpts));
         uint8_t nvmeDSTLog[564] = { 0 };
-        dstLogParms.addr = (uint64_t)nvmeDSTLog;
+        dstLogParms.addr = nvmeDSTLog;
         dstLogParms.dataLen = 564;
         dstLogParms.lid = 0x06;
         dstLogParms.nsid = UINT32_MAX;

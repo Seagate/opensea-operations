@@ -165,7 +165,7 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             ++descriptorCount;
         }
         //send the command(s) to the drive....currently only 1 command to do this. May need to revisit later - TJE
-        ret = nvme_Dataset_Management(device, (uint8_t)descriptorCount, true, false, false, deallocate, 4096);
+        ret = nvme_Dataset_Management(device, (uint8_t)(descriptorCount - 1), true, false, false, deallocate, 4096);
     }
     else
     {

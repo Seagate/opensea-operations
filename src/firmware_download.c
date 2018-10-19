@@ -26,8 +26,21 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 #endif
 	if (options->dlMode == DL_FW_ACTIVATE)
     {
-		ret = firmware_Download_Command(device, DL_FW_ACTIVATE, options->useDMA, 0, 0, options->firmwareFileMem, options->firmwareSlot);
+		ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot);
 		options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+#if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+        if (ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
+        {
+            //This means that we encountered a driver that is not allowing us to issue the Win10 API Firmware activate call for some unknown reason. 
+            //This doesn't happen with Microsoft's AHCI driver though...
+            //Instead, we should disable the use of the API and retry with passthrough to perform the activation. This is not preferred at all. 
+            //We want to use the Win10 API whenever possible so the system is ready for the changes to the bus and drive information so that it is less likely to BSOD like we used to see in older versions of Windows.
+            device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot);
+            options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+            device->os_info.fwdlIOsupport.fwdlIOSupported = true;
+        }
+#endif
 		return ret; 
     }
 	if (options->firmwareMemoryLength == 0)
@@ -41,11 +54,17 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 	if (options->dlMode == DL_FW_FULL || options->dlMode == DL_FW_TEMP)
     {
         //single command to do the whole download
-        ret = firmware_Download_Command(device, options->dlMode, options->useDMA, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID);
+        ret = firmware_Download_Command(device, options->dlMode, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID);
 		options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
     }
     else
     {
+		eDownloadMode specifiedDLMode = options->dlMode;
+		if (device->drive_info.drive_type == NVME_DRIVE)
+		{
+			//switch to deferred and we'll send the activate at the end
+			options->dlMode = DL_FW_DEFERRED;
+		}
         //multiple commands needed to do the download (segmented)
 		if (options->segmentSize == 0)
         {
@@ -88,9 +107,17 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
             }
+            if (currentDownloadBlock == 0)
+            {
+                device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = true;
+            }
+            else
+            {
+                device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
+            }
 #endif
 #endif
-			ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID);
+			ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID);
 			options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
 
 #if defined(DISABLE_NVME_PASSTHROUGH)//Remove it later if someone wants to. -X
@@ -122,7 +149,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 //this means that we had an error on the last sector, which is a drive bug in old products.
 				//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
 				//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
-				if (device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+				if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
 				{
 					uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
 					get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
@@ -151,12 +178,13 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             //So now we are going to check if this meets those requirements...if not, we need to allocate a different buffer that meets the requirements, copy the data to it, then send the command. - TJE
             if (device->os_info.fwdlIOsupport.fwdlIOSupported && options->dlMode == DL_FW_DEFERRED)//checking to see if Windows says the FWDL API is supported
             {
+				//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
                 //ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset]);
                 if (downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize && (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment == 0))
                 {
                     //we're fine, just issue the command
-                    ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
+                    ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
                 }
                 else if (!(downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize))
                 {
@@ -171,15 +199,17 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
             else //not supported, so nothing else needs to be done other than issue the command
             {
-               ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
+               ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
             }
+			//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
+			device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
 #else
             //not windows 10 API, so just issue the command
-            ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
+            ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
 #endif
 #else
             //not windows 10 API, so just issue the command
-			ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
+			ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
 #endif
             if (g_verbosity > VERBOSITY_QUIET)
             {
@@ -193,7 +223,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 					//this means that we had an error on the last sector, which is a drive bug in old products.
 					//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
 					//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
-					if (device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+					if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
 					{
 						uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
 						get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
@@ -207,6 +237,13 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 			options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
 			options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
         }
+		if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
+		{
+			//send an activate command
+			ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot);
+			options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+		}
+
         if (g_verbosity > VERBOSITY_QUIET)
         {
             printf("\n");
@@ -270,7 +307,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             }
             //now try reading the supportd capabilities page of the identify device data log for the remaining info (deferred download)
             uint8_t supportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 uint64_t supportedCapabilitiesQword = M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13], supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10], supportedCapabilities[9], supportedCapabilities[8]);
                 uint64_t dlMicrocodeBits = M_BytesTo8ByteValue(supportedCapabilities[23], supportedCapabilities[22], supportedCapabilities[21], supportedCapabilities[20], supportedCapabilities[19], supportedCapabilities[18], supportedCapabilities[17], supportedCapabilities[16]);
@@ -395,7 +432,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 //read the firmware log for more information
                 uint8_t firmwareLog[512] = { 0 };
                 nvmeGetLogPageCmdOpts firmwareLogOpts;
-                firmwareLogOpts.addr = (uint64_t)firmwareLog;
+                firmwareLogOpts.addr = firmwareLog;
                 firmwareLogOpts.dataLen = 512;
                 firmwareLogOpts.lid = 3;
                 firmwareLogOpts.nsid = 0;

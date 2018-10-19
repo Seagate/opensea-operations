@@ -20,7 +20,7 @@
 #include "sanitize.h"
 #include "format_unit.h"
 
-int seagate_ata_SCT_SATA_phy_speed(tDevice *device, bool useGPL, bool useDMA, uint8_t speedGen)
+int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
     int ret = UNKNOWN;
     uint8_t *sctSATAPhySpeed = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
@@ -57,7 +57,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, bool useGPL, bool useDMA, ui
     sctSATAPhySpeed[28] = speedGen;
     sctSATAPhySpeed[29] = 0x00;
 
-    ret = ata_SCT_Command(device, useGPL, useDMA, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
+    ret = send_ATA_SCT_Command(device, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
 
     safe_Free(sctSATAPhySpeed);
     return ret;
@@ -190,7 +190,7 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
     {
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            if (device->drive_info.IdentifyData.ata.Word206 & BIT7 && is_SSD(device) == false)
+            if (device->drive_info.IdentifyData.ata.Word206 & BIT7 && !is_SSD(device))
             {
                 if (phySpeedGen > 3)
                 {
@@ -201,7 +201,7 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
                     }
                     return BAD_PARAMETER;
                 }
-                ret = seagate_ata_SCT_SATA_phy_speed(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.dmaSupported, phySpeedGen);
+                ret = seagate_ata_SCT_SATA_phy_speed(device, phySpeedGen);
             }
             else
             {
@@ -240,7 +240,7 @@ bool is_Low_Current_Spin_Up_Enabled(tDevice *device)
         {
             uint16_t optionFlags = 0x0000;
             uint16_t state = 0x0000;
-            if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0xD001, &state, &optionFlags))
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0002, 0xD001, &state, &optionFlags))
             {
                 if (state > 0 && state < 3)//if the state is not 1 or 2, then we have an unknown value being given to us.
                 {
@@ -279,7 +279,7 @@ int enable_Low_Current_Spin_Up(tDevice *device)
         {
             uint16_t saveToDrive = 0x0001;
             uint16_t state = 0x0001;
-            if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0xD001, &state, &saveToDrive))
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD001, &state, &saveToDrive))
             {
                 ret = SUCCESS;
             }
@@ -305,7 +305,7 @@ int disable_Low_Current_Spin_Up(tDevice *device)
         {
             uint16_t saveToDrive = 0x0001;
             uint16_t state = 0x0002;
-            if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0xD001, &state, &saveToDrive))
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD001, &state, &saveToDrive))
             {
                 ret = SUCCESS;
             }
@@ -332,7 +332,7 @@ int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
             {
                 uint16_t state = (uint16_t)mode;
                 uint16_t saveToDrive = 0x0001;
-                if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0001, 0xD002, &state, &saveToDrive))
+                if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD002, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
                 }
@@ -365,7 +365,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
             {
                 uint16_t state = 0;
                 uint16_t saveToDrive = 0;
-                if (SUCCESS == ata_SCT_Feature_Control(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0x0002, 0xD002, &state, &saveToDrive))
+                if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0002, 0xD002, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
                     *mode = (eSSCFeatureState)state;
@@ -742,7 +742,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
 			uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
 			if (iddDiagPage)
 			{
-				if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage))
+				if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15))
 				{
 					ret = SUCCESS;
 					iddSupport->iddShort = true;//short
@@ -833,7 +833,18 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
 		if (iddDiagPage)
 		{
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
-			scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage);
+			ret = scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15);
+            if (ret != SUCCESS)
+            {
+                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                //We are checking if the reset part of the test is still in progress by checking for this sense data and will try again after a second until we know this part of the test is complete.
+                if (senseKey == SENSE_KEY_UNIT_ATTENTION && asc == 0x29 && ascq == 0x01 && fru == 0x0A)
+                {
+                    *status = 0x0F;//this is setting that the IDD is still in progress. This is because we got specific sense data related to this test, so that is why we are setting this here instead of trying to look at the data buffer.
+                    return SUCCESS;
+                }
+            }
             if (iddDiagPage[0] == 0x98 && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
             {
 				ret = SUCCESS;
@@ -906,7 +917,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
 			}
 			if (captiveForeground)
 			{
-				commandTimeoutSeconds = UINT32_MAX;
+                commandTimeoutSeconds = 300;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
 				iddDiagPage[1] |= BIT4;
 			}
 			else
@@ -1000,6 +1011,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 					int ret = get_IDD_Status(device, &status);
 					if (status == 0 && ret == SUCCESS)
 					{
+                        pollForProgress = false;
 						result = SUCCESS; //we passed.
 					}
 					else
@@ -1033,13 +1045,13 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                         }
 					}
 				}
-				else if (SUCCESS == result && pollForProgress)
+				if (SUCCESS == result && pollForProgress)
 				{
 					status = 0xF;//assume that the operation is in progress until it isn't anymore
 					int ret = SUCCESS;//for use in the loop below...assume that we are successful
 					while (status > 0x08 && ret == SUCCESS)
 					{
-						ret = get_IDD_Status(device, &status);
+                        ret = get_IDD_Status(device, &status);
 						if (VERBOSITY_QUIET <= g_verbosity)
 						{
 							printf("\n    IDD test is still in progress...please wait");
