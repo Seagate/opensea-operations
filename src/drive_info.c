@@ -6002,6 +6002,25 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("(%s): %0.02f\n", unitWritten, totalBytesWritten);
 
     }
+	//Encryption Support
+	printf("\tEncryption Support: ");
+	switch (driveInfo->controllerData.encryptionSupport)
+	{
+	case ENCRYPTION_SELF_ENCRYPTING:
+		printf("Self Encrypting\n");
+		/*if (driveInfo->trustedCommandsBeingBlocked)
+		{
+			printf("\t\tWARNING: OS is blocking TCG commands over passthrough. Please enable it before running any TCG commands\n");
+		}*/
+		break;
+	case ENCRYPTION_FULL_DISK:
+		printf("Full Disk Encryption\n");
+		break;
+	case ENCRYPTION_NONE:
+	default:
+		printf("Not Supported\n");
+		break;
+	}
     //number of firmware slots
     printf("\tNumber of Firmware Slots: %" PRIu8 "\n", driveInfo->controllerData.numberOfFirmwareSlots);
     //Print out Controller features! (admin commands, etc)
