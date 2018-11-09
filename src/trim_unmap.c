@@ -231,7 +231,7 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             {
                 trimCommandLen = (uint32_t)(trimBufferLen - (trimCommandLen * trimCommands));
             }
-            if (ata_Data_Set_Management(device, true, &trimBuffer[trimOffset], trimCommandLen) != SUCCESS)
+            if (ata_Data_Set_Management(device, true, &trimBuffer[trimOffset], trimCommandLen, false) != SUCCESS)
             {
                 ret = FAILURE;
                 break;
