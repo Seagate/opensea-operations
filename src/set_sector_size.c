@@ -284,6 +284,13 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
     int ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device))
     {
+        if (g_verbosity >= VERBOSITY_DEFAULT)
+        {
+            printf("Setting the drive sector size quickly.\n");
+            printf("Please wait a few minutes for this command to complete.\n");
+            printf("It should complete in under 5 minutes, but interrupting it may make\n");
+            printf("the drive unusable or require performing this command again!!\n");
+        }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             uint16_t descriptorCheck = 0;
