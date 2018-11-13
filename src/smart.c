@@ -1228,7 +1228,7 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reasonString, uint8_t reasonStringMaxLength)
+void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reasonString, uint8_t reasonStringMaxLength, uint8_t *reasonStringOutputLength)
 {
     switch (asc)
     {
@@ -1433,6 +1433,7 @@ void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reaso
         //Don't do anything. This is not a valid sense combination for a SMART trip
         break;
     }
+    *reasonStringOutputLength = (uint8_t)strlen(reasonString);
 }
 //
 int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
@@ -1466,7 +1467,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                     tripInfo->scsiSenseCode.asc = infoExceptionsLog.additionalSenseCode;
                     tripInfo->scsiSenseCode.ascq = infoExceptionsLog.additionalSenseCodeQualifier;
-                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
                 }
             }
             else if (infoExceptionsLog.additionalSenseCode == 0x0B)
@@ -1478,7 +1479,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                     tripInfo->scsiSenseCode.asc = infoExceptionsLog.additionalSenseCode;
                     tripInfo->scsiSenseCode.ascq = infoExceptionsLog.additionalSenseCodeQualifier;
-                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
                 }
             }
             else
@@ -1570,7 +1571,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                 tripInfo->scsiSenseCode.asc = asc;
                 tripInfo->scsiSenseCode.ascq = ascq;
-                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
             }
         }
         else if (asc == 0x0B)
@@ -1582,7 +1583,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                 tripInfo->scsiSenseCode.asc = asc;
                 tripInfo->scsiSenseCode.ascq = ascq;
-                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
             }
         }
         else
