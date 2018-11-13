@@ -429,7 +429,14 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         uint32_t formatCommandTimeout = 15;
         if (formatParameters.disableImmediate)
         {
-            formatCommandTimeout = 172800;//setting to 2 days worth of time...nothing should take this long...yet. Doing this because Windows doesn't like setting a max time like we were. UINT32_MAX;
+            if (formatParameters.formatType != FORMAT_STD_FORMAT)
+            {
+                formatCommandTimeout = 3600;//fast format should complete in a few minutes, but setting a 1 hour timeout leaves plenty of room for error.
+            }
+            else
+            {
+                formatCommandTimeout = 86400;//setting to 1 day worth of time...nothing should take this long...yet. Doing this because Windows doesn't like setting a max time like we were. UINT32_MAX;
+            }
         }
         //send the format command
         if (formatParameters.defaultFormat && formatParameters.disableImmediate)
