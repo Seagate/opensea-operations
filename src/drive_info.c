@@ -5093,6 +5093,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
     //one at a time instead of asking for everything all at once.
     //Format unit
     bool formatSupported = false;
+    bool fastFormatSupported = false;
     if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_UNIT_CMD, 0, 10, supportedCommands))
     {
         switch (supportedCommands[1] & 0x07)
@@ -5103,6 +5104,14 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
         case 3://supported according to spec
         case 5://supported in vendor specific mannor in same format as case 3
             formatSupported = true;
+            //now check for fast format support
+            if (!(supportedCommands[7] == 0xFF && supportedCommands[8] == 0xFF))//if both these bytes are FFh, then the drive conforms to SCSI2 where this was the "interleave" field
+            {
+                if (supportedCommands[8] & 0x03)//checks that fast format bits are available for use.
+                {
+                    fastFormatSupported = true;
+                }
+            }
             break;
         default:
             break;
@@ -5131,6 +5140,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driv
     if (formatSupported)
     {
         sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Format Unit");
+        driveInfo->numberOfFeaturesSupported++;
+    }
+    if (fastFormatSupported)
+    {
+        sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Fast Format");
         driveInfo->numberOfFeaturesSupported++;
     }
     memset(supportedCommands, 0, 1024);
