@@ -353,7 +353,7 @@ int run_Disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, 
                 //if frozen, then we can't do anything
                 if (securityStatus.securityFrozen)
                 {
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("Security is Frozen. Cannot disable password.\n");
                     }
@@ -363,7 +363,7 @@ int run_Disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, 
                 {
                     if (securityStatus.securityLocked)
                     {
-                        if (VERBOSITY_QUIET < g_verbosity)
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("Attempting to unlock security with password = \"%s\".\n", ATAPassword);
                         }
@@ -373,7 +373,7 @@ int run_Disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, 
                         }
                         else
                         {
-                            if (VERBOSITY_QUIET < g_verbosity)
+                            if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
                                 printf("Unable to unlock drive with password = \"%s\".\n", ATAPassword);
                             }
@@ -386,7 +386,7 @@ int run_Disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, 
                     }
                     else
                     {
-                        if (VERBOSITY_QUIET < g_verbosity)
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("Security is Locked. Cannot disable password.\n");
                         }
@@ -396,7 +396,7 @@ int run_Disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, 
             }
             else
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("Security Feature is not enabled. Nothing to do.\n");
                 }
@@ -405,7 +405,7 @@ int run_Disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, 
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Security Feature Not Supported by device.\n");
             }
@@ -425,7 +425,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (device->drive_info.drive_type != ATA_DRIVE && !satATASecuritySupported)
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("ATA Security Erase not supported on this drive\n");
         }
@@ -442,7 +442,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
             //if they asked for enhanced erase, make sure it is supported
             if (!securityStatus.enhancedEraseSupported && enhanced)
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("Enhanced ATA security erase is not supported on this drive.\n");
                 }
@@ -451,7 +451,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
             //check if the drive is frozen
             if (securityStatus.securityFrozen)
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("ATA security is frozen.\n");
                 }
@@ -469,7 +469,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("ATA security not supported.\n");
             }
@@ -477,7 +477,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
         }
         if (securityStatus.securityLocked)
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Attempting to unlock security with password = \"%s\".\n", password);
             }
@@ -487,7 +487,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
             }
             else
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("Unable to unlock drive with password = \"%s\".\n", password);
                 }
@@ -497,13 +497,13 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
         if (!securityStatus.securityEnabled)
         {
             //set the password
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Setting ATA Security password to \"%s\"\n", password);
             }
             if (SUCCESS != set_ATA_Security_Password(device, password, master, false, 0, satATASecuritySupported))
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("Failed to set ATA Security Password. Cannot erase drive.\n");
                 }
@@ -511,7 +511,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
             }
         }
 
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Starting ");
             if (enhanced)
@@ -599,7 +599,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
             uint8_t validateCompletion[SPC3_SENSE_LEN] = { 0 };
             scsi_Request_Sense_Cmd(device, false, validateCompletion, SPC3_SENSE_LEN);
             get_Sense_Key_ASC_ASCQ_FRU(validateCompletion, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-            if (g_verbosity >= VERBOSITY_BUFFERS)
+            if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
             {
                 printf("ATA Security Validate Erase Completion, validate completion buffer:\n");
                 print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
@@ -614,7 +614,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
                 hostResetDuringErase = true;
             }
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-            if (g_verbosity >= VERBOSITY_BUFFERS)
+            if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
             {
                 printf("ATA Security Validate Erase Completion, request sense command completion:\n");
                 print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
@@ -644,7 +644,7 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
         if (SUCCESS == ataEraseResult && !securityStatus.securityEnabled && !securityStatus.securityLocked)
         {
             
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("\tATA security erase has completed successfully.\n");
                 printf("\tTime to erase was ");
@@ -654,14 +654,14 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("\tATA Security erase failed to complete after ");
             }
             result = FAILURE;
         }
         
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
             convert_Seconds_To_Displayable_Time((uint64_t)get_Seconds(ataSecureEraseTimer), &years, &days, &hours, &minutes, &seconds);
@@ -681,26 +681,26 @@ int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const ch
             {
                 if (SUCCESS == disable_ATA_Security_Password(device, password, master, satATASecuritySupported))
                 {
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("\tThe ATA Security password used during erase has been cleared.\n\n");
                     }
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("\tUnable to remove the ATA security password.\n\n");
                     }
                 }
             }
-            else if(VERBOSITY_QUIET < g_verbosity)
+            else if(VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("\tThe drive is in a security state where clearing the password is not possible.\n\n");
             }
             if (hostResetDuringErase)
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("\tThe host reset the drive during the erase.\n\tEnsure no other applications are trying to access\n\tthe drive while it is erasing.\n\n");
                 }

@@ -284,7 +284,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
     int ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device))
     {
-        if (g_verbosity >= VERBOSITY_DEFAULT)
+        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Setting the drive sector size quickly.\n");
             printf("Please wait a few minutes for this command to complete.\n");

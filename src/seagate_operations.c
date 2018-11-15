@@ -195,7 +195,7 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
                 if (phySpeedGen > 3)
                 {
                     //error, invalid input
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("Invalid PHY generation speed input. Please use 0 - 3.\n");
                     }
@@ -210,7 +210,7 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Setting the PHY speed of a device is only available on Seagate Drives.\n");
             }
@@ -344,7 +344,7 @@ int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Setting the SSC feature of a device is only available on Seagate Drives.\n");
             }
@@ -378,7 +378,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Getting the SSC feature of a device is only available on Seagate Drives.\n");
             }
@@ -1052,7 +1052,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 					while (status > 0x08 && ret == SUCCESS)
 					{
                         ret = get_IDD_Status(device, &status);
-						if (VERBOSITY_QUIET <= g_verbosity)
+						if (VERBOSITY_QUIET <= device->deviceVerbosity)
 						{
 							printf("\n    IDD test is still in progress...please wait");
                             fflush(stdout);
@@ -1083,7 +1083,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
 				}
 				else if (!pollForProgress && result != SUCCESS)
 				{
-					if (VERBOSITY_QUIET < g_verbosity)
+					if (VERBOSITY_QUIET < device->deviceVerbosity)
 					{
 						printf("An error occured while trying to start an IDD test.\n");
 					}

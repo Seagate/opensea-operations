@@ -153,7 +153,7 @@ int get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status
         result = scsi_Get_DST_Progress(device, percentComplete, status);
         break;
     default:
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Not supported on this device type at this time");
         }
@@ -311,7 +311,7 @@ int print_DST_Progress(tDevice *device)
     }
     else if (result != SUCCESS)
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("An error occured while trying to retrieve DST Progress\n");
         }
@@ -596,7 +596,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 {
                     lastProgressIndication = percentComplete;
                     ret = get_DST_Progress(device, &percentComplete, &status);
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("\r    Test progress: %" PRIu32"%% complete   ", percentComplete);
                         if (status != 0x00)
@@ -636,7 +636,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 {
                     ret = FAILURE; //failed the test
                 }
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     bool isNVMeDrive = false;
                     char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
@@ -864,7 +864,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
                 uint16_t descriptorOffset = (entryWithinPage * descriptorLength) + 4;
 
 
-                if (VERBOSITY_BUFFERS == g_verbosity)
+                if (VERBOSITY_BUFFERS == device->deviceVerbosity)
                 {
                    printf("Page Number: %d\n",pageNumber);
                    printf("Entry within page: %d\n",entryWithinPage);
@@ -1056,7 +1056,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     {
         SendJSONString (JSON_TEXT | JSON_LOG, "Running DST...", updateFunction, updateData);
         //start DST
-        if (g_verbosity >= VERBOSITY_DEFAULT)
+        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Running DST.\n");
         }
@@ -1112,7 +1112,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     {
                         break;
                     }
-                    if (g_verbosity > VERBOSITY_QUIET)
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         snprintf (message, MAX_JSON_MSG, "Reparing LBA %"PRIu64"", errorList[*errorIndex].errorAddress);
                         printf("%s\n",message);
@@ -1187,7 +1187,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                             }
                             if (verify != SUCCESS)
                             {
-                                if (g_verbosity > VERBOSITY_QUIET)
+                                if (device->deviceVerbosity > VERBOSITY_QUIET)
                                 {
                                     snprintf(message, MAX_JSON_MSG, "Reparing LBA %"PRIu64"", iter);
                                     printf("%s\n", message);
@@ -1236,7 +1236,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     {
         ret = FAILURE;
     }
-    if (g_verbosity > VERBOSITY_QUIET && localErrorList)
+    if (device->deviceVerbosity > VERBOSITY_QUIET && localErrorList)
     {
         if (errorList[0].errorAddress != UINT64_MAX)
         {

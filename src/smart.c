@@ -73,7 +73,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
     else
     {
         ret = NOT_SUPPORTED;
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Getting SMART attributes is not supported on this drive type at this time\n");
         }
@@ -1439,7 +1439,7 @@ void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reaso
 int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
     int ret = NOT_SUPPORTED;
-    if (VERBOSITY_COMMAND_NAMES <= g_verbosity)
+    if (VERBOSITY_COMMAND_NAMES <= device->deviceVerbosity)
     {
         printf("Starting SCSI SMART Check\n");
     }
@@ -2691,7 +2691,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Error: Could not retrieve Log Page 0x02\n");
             }            
@@ -2751,7 +2751,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Error: Could not retrieve Log Page - SuperCap DRAM\n");
             }
@@ -2826,7 +2826,7 @@ int nvme_Print_PCI_Statistics(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Error: Could not retrieve Log Page 0x02\n");
             }            

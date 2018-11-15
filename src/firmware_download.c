@@ -45,7 +45,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     }
 	if (options->firmwareMemoryLength == 0)
     {
-        if (g_verbosity > VERBOSITY_QUIET)
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("Error: empty file\n");
         }
@@ -124,7 +124,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             if (currentDownloadBlock % 20 == 0)
 #endif
             {
-                if (g_verbosity > VERBOSITY_QUIET)
+                if (device->deviceVerbosity > VERBOSITY_QUIET)
                 {
                     printf(".");
                     fflush(stdout);
@@ -211,7 +211,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             //not windows 10 API, so just issue the command
 			ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID);
 #endif
-            if (g_verbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 printf(".");
                 fflush(stdout);
@@ -244,7 +244,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 			options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
 		}
 
-        if (g_verbosity > VERBOSITY_QUIET)
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("\n");
         }

@@ -467,7 +467,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
                 break;
             }
             delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 uint8_t seconds = 0, minutes = 0, hours = 0;
                 convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
@@ -477,7 +477,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             }
             while (IN_PROGRESS == get_Format_Progress(device, &progress))
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("\r\tPercent Complete: %0.02f%%", progress);
                     fflush(stdout);
@@ -487,13 +487,13 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             ret = get_Format_Progress(device, &progress);
             if (ret == SUCCESS && progress < 100.00)
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("\r\tPercent Complete: 100.00%%\n");
                     fflush(stdout);
                 }
             }
-            else if (VERBOSITY_QUIET < g_verbosity)
+            else if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("\n");
             }

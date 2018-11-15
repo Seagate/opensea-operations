@@ -67,7 +67,7 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, bool *saniti
         result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
         get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
         result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
-        if (VERBOSITY_BUFFERS <= g_verbosity)
+        if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
         {
             printf("\n\tSense Data:\n");
             print_Data_Buffer(&req_sense_buf[0], SPC3_SENSE_LEN, false);
@@ -83,7 +83,7 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, bool *saniti
     }
     break;
     default:
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Not supported on this device type at this time");
         }
@@ -457,7 +457,7 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
         {
             delay_Seconds(delayTime);
             ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 if ((ret == SUCCESS || ret == IN_PROGRESS))
                 {

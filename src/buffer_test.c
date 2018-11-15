@@ -571,8 +571,6 @@ int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
 
 void print_Cable_Test_Results(cableTestResults testResults)
 {
-    int tempverbosity = g_verbosity;
-    g_verbosity = VERBOSITY_COMMAND_VERBOSE;
     printf("Test Results:\n");
     printf("=============\n");
     printf("Total test time: ");
@@ -682,5 +680,4 @@ void print_Cable_Test_Results(cableTestResults testResults)
         print_Command_Time(testResults.randomTest[count].totalTimeNS);
         printf("\n");
     }
-    g_verbosity = tempverbosity;
 }
