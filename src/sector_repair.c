@@ -27,7 +27,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
     }
     LBA->errorAddress = align_LBA(device, LBA->errorAddress);
     LBA->repairStatus = NOT_REPAIRED;
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n\tAttempting repair on LBA %"PRIu64" (aligned)", LBA->errorAddress);
     }
@@ -330,7 +330,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
         LBA->repairStatus = NOT_REPAIRED;
         break;
     }
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("...");
         if (ret == SUCCESS)
@@ -350,7 +350,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
     if (ret == PERMISSION_DENIED && !forcePassthroughCommand && device->drive_info.interface_type != IDE_INTERFACE && device->drive_info.drive_type == ATA_DRIVE && !emulationActive)
     {
         //We are going to call this function recursively to try it again forcing ATA passthrough
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("\tAttempting SAT ATA Pass-through command for repair...\n");
         }

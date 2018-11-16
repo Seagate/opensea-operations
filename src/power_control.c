@@ -172,7 +172,7 @@ int print_Current_Power_Mode(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Unable to retrive current power mode!\n");
             }
@@ -250,7 +250,7 @@ int print_Current_Power_Mode(tDevice *device)
             }
             else
             {
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("Unable to retrive current power mode!\n");
                 }
@@ -270,7 +270,7 @@ int print_Current_Power_Mode(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Unable to retrive current power state!\n");
             }
@@ -279,7 +279,7 @@ int print_Current_Power_Mode(tDevice *device)
 	#endif
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Showing the current power mode is not supported on this drive type at this time\n");
         }
@@ -317,7 +317,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             break;
         case PWR_CND_ACTIVE: //No such thing in ATA (...yet)
         default:
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Power State Transition is not supported on this device type at this time\n");
             }
@@ -348,7 +348,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             ret = scsi_Start_Stop_Unit(device, true, 2, PC_IDLE, false, false, false); 
             break;
         default:
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Power State Transition is not supported on this device type at this time\n");
             }
@@ -367,7 +367,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
         ret = nvme_Set_Features(device,&cmdOpts);
         if (ret != SUCCESS) 
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Power State Transition Failed in NVMe Set Features command\n");
             }
@@ -376,7 +376,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
 	#endif
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Power State Transition is not supported on this device type at this time\n");
         }
@@ -403,7 +403,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
         if ((wordPtr[119] & BIT7) == 0)
         {
             //this means EPC is not supported by the drive.
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Device does not support the Extended Power Control Feature!\n");
             }
@@ -413,7 +413,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Failed to check if drive supports EPC feature!!\n");
         }
@@ -471,7 +471,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
     {
         if (scsiDataBuffer[1] != POWER_CONDITION)//make sure we got the correct page...if we did, we will proceed to do what we can with the other passed in options
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Failed to check if drive supports modifying power conditions!\n");
             }
@@ -481,7 +481,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Failed to check if drive supports modifying power conditions!\n");
         }
@@ -615,7 +615,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         else
         {
             //failure
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Failed to read default power condition values!\n");
             }
@@ -826,7 +826,7 @@ int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisa
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Power choice configuration not supported on this device type at this time.\n");
         }
@@ -859,7 +859,7 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
         case CAPABILITIES:
         case CHANGEABLE_VALUE:
         default:
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Power State=0x%x is currently not supported on this device.\n",selectValue);
             }
@@ -871,7 +871,7 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
     else
 	#endif
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Get Power State is currently not supported on this device type at this time.\n");
         }

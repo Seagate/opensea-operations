@@ -673,7 +673,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
     startingLBA = align_LBA(device, startingLBA);
     for (iterator = startingLBA; iterator < (startingLBA + range); iterator += increment)
     {
-        if (g_verbosity > VERBOSITY_QUIET)
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             snprintf(message, MAX_JSON_MSG, "Creating Uncorrectable error at LBA %-20"PRIu64"", iterator);
             printf("%s\n", message);
@@ -703,7 +703,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
                 return MEMORY_FAILURE;
             }
             //don't check return status since we expect this to fail after creating the error
-            if (g_verbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 snprintf(message, MAX_JSON_MSG, "Reading Uncorrectable error at LBA %-20"PRIu64"", iterator);
                 printf("%s\n", message);
@@ -730,7 +730,7 @@ int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, c
         startingLBA = align_LBA(device, startingLBA);
         for (iterator = startingLBA; iterator < (startingLBA + range); iterator += 1)
         {
-            if (g_verbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 snprintf(message, MAX_JSON_MSG, "Flagging Uncorrectable error at LBA %-20"PRIu64"", iterator);
                 printf("%s\n", message);
@@ -1052,7 +1052,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
     startingLBA = align_LBA(device, startingLBA);
     for (iterator = startingLBA; iterator < (startingLBA + range); iterator += increment)
     {
-        if (g_verbosity > VERBOSITY_QUIET)
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             snprintf(message, MAX_JSON_MSG, "Creating Uncorrectable error at LBA %-20"PRIu64"", iterator);
             printf("%s\n", message);
@@ -1078,7 +1078,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
                 return MEMORY_FAILURE;
             }
             //don't check return status since we expect this to fail after creating the error
-            if (g_verbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 snprintf(message, MAX_JSON_MSG, "Reading Corrupted LBA %-20"PRIu64"", iterator);
                 printf("%s\n", message);

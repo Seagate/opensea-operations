@@ -139,7 +139,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         uint8_t asc = 0, ascq = 0, senseKey = 0, fru = 0;
         ret = scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
         get_Sense_Key_ASC_ASCQ_FRU(&senseData[0], SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-        if (VERBOSITY_BUFFERS <= g_verbosity)
+        if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
         {
             printf("\n\tSense Data:\n");
             print_Data_Buffer(&senseData[0], SPC3_SENSE_LEN, false);
@@ -307,7 +307,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                     delayTime = 600;//once every ten minutes
                 }
             }
-            if (g_verbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 uint8_t minutes = 0, seconds = 0;
                 printf("Write same progress will be updated every");
@@ -322,7 +322,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 ret = get_Writesame_Progress(device, &percentComplete, &writeSameInProgress, startingLba, numberOfLogicalBlocks);
                 if (SUCCESS == ret)
                 {
-                    if (g_verbosity > VERBOSITY_QUIET)
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         if (lastPercentComplete > 0 && writeSameInProgress == false)
                         {

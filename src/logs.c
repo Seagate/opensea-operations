@@ -18,6 +18,8 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
                            eLogFileNamingConvention logFileNamingConvention, char **logFileNameUsed)
 {
     int ret = SUCCESS;
+    time_t currentTime = 0;
+    char currentTimeString[64] = { 0 };
     #ifdef _DEBUG
     printf("%s: Drive SN: %s#\n",__FUNCTION__, device->drive_info.serialNumber);
     #endif
@@ -34,15 +36,15 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         break;
     case NAMING_SERIAL_NUMBER_DATE_TIME:
         //get current date and time
-        g_currentTime = time(NULL);
-        memset(g_currentTimeString, 0, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString));
-        strftime(g_currentTimeString, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&g_currentTime));
+        currentTime = time(NULL);
+        memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
+        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&currentTime));
         //set up the log file name
         strcat(*logFileNameUsed, serialNumber);
         strcat(*logFileNameUsed, "_");
         strcat(*logFileNameUsed, logName);
         strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, g_currentTimeStringPtr);
+        strcat(*logFileNameUsed, &currentTimeString[0]);
         break;
     case NAMING_OPENSTACK:
         return NOT_SUPPORTED;
@@ -148,14 +150,16 @@ int create_And_Open_Log_File(tDevice *device,\
     //check if file already exist
     if ((*filePtr = fopen(*logFileNameUsed, "r")) != NULL)
     {
+        time_t currentTime = 0;
+        char currentTimeString[64] = { 0 };
         fclose(*filePtr);
         //append timestamp
-        g_currentTime = time(NULL);
-        memset(g_currentTimeString, 0, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString));
-        strftime(g_currentTimeString, sizeof(g_currentTimeString) / sizeof(*g_currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&g_currentTime));
+        currentTime = time(NULL);
+        memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
+        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&currentTime));
         //Append timestamp to the log file name
         strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, g_currentTimeStringPtr);
+        strcat(*logFileNameUsed, &currentTimeString[0]);
     }
 
     #ifdef _DEBUG
@@ -322,7 +326,7 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
     uint8_t *vpdBuffer = (uint8_t *)calloc(vpdBufferLength, sizeof(uint8_t));
     if (vpdBuffer == NULL)
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             perror("Calloc failure!\n");
         }
@@ -453,7 +457,7 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
 
         if (!historyBuffer)
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 perror("Calloc failure!\n");
             }
@@ -782,7 +786,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 //loop and read each page or set of pages, then save to a file
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, 0))
                 {
-                    if (g_verbosity > VERBOSITY_QUIET)
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         if (currentPage % 20 == 0)
                         {
@@ -860,7 +864,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     logFromGPL = true;
                 }
             }
-            if (g_verbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 printf("\n");
             }
@@ -965,7 +969,7 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
         
         if (!logBuffer)
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 perror("Calloc failure!\n");
             }
@@ -1013,7 +1017,7 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
         bool fileOpened = false;
         if (!vpdBuffer)
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 perror("Calloc failure!\n");
             }
@@ -1097,7 +1101,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                 if (SUCCESS == create_And_Open_Log_File(device, &isl, filePath, "ISL", "isl", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                 {
                     //fileOpened = true;
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("Saving ISL log to file %s\n", fileNameUsed);
                     }
@@ -1176,7 +1180,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                 //read the remaining data
                 for (pageNumber = 1; pageNumber < islPullingSize; pageNumber += (pullChunkSize / LEGACY_DRIVE_SEC_SIZE))
                 {
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         if ((pageNumber - 1) % 16 == 0)
                         {
@@ -1215,7 +1219,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                     }
                     memset(dataBuffer, 0, pullChunkSize);
                 }
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("\n");
                 }
@@ -1288,7 +1292,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("Found ISL log in error history but length is 0! Cannot pull the log!\n");
                     }
@@ -1306,7 +1310,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("Found ISL log in error history but length is 0! Cannot pull the log!\n");
                     }
@@ -1334,7 +1338,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 {
                     if (SUCCESS == create_And_Open_Log_File(device, &isl, filePath, "ISL", "isl", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                     {
-                        if (VERBOSITY_QUIET < g_verbosity)
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("Saving to file %s\n", fileNameUsed);
                         }
@@ -1403,7 +1407,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 //read the remaining data
                 for (pageNumber = 1; pageNumber < islPullingSize; pageNumber += (pullChunkSize / LEGACY_DRIVE_SEC_SIZE))
                 {
-                    if (VERBOSITY_QUIET < g_verbosity)
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         if ((pageNumber - 1) % 16 == 0)
                         {
@@ -1442,7 +1446,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                     }
                     memset(dataBuffer, 0, pullChunkSize);
                 }
-                if (VERBOSITY_QUIET < g_verbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     printf("\n");
                 }
@@ -1484,7 +1488,7 @@ int pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t islDa
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Drive Type %d is not supported\n",device->drive_info.drive_type);
         }

@@ -129,7 +129,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Failed to retrieve block descriptor from device!\n");
         }
@@ -176,7 +176,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         else //shouldn't even get here right now...
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Setting max LBA is not supported on this device\n");
             }
@@ -203,7 +203,7 @@ int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Setting the max LBA is not supported on this device type at this time\n");
         }

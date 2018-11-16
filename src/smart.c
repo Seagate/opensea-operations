@@ -73,7 +73,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
     else
     {
         ret = NOT_SUPPORTED;
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Getting SMART attributes is not supported on this drive type at this time\n");
         }
@@ -1228,7 +1228,7 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reasonString, uint8_t reasonStringMaxLength)
+void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reasonString, uint8_t reasonStringMaxLength, uint8_t *reasonStringOutputLength)
 {
     switch (asc)
     {
@@ -1433,12 +1433,13 @@ void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reaso
         //Don't do anything. This is not a valid sense combination for a SMART trip
         break;
     }
+    *reasonStringOutputLength = (uint8_t)strlen(reasonString);
 }
 //
 int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
     int ret = NOT_SUPPORTED;
-    if (VERBOSITY_COMMAND_NAMES <= g_verbosity)
+    if (VERBOSITY_COMMAND_NAMES <= device->deviceVerbosity)
     {
         printf("Starting SCSI SMART Check\n");
     }
@@ -1466,7 +1467,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                     tripInfo->scsiSenseCode.asc = infoExceptionsLog.additionalSenseCode;
                     tripInfo->scsiSenseCode.ascq = infoExceptionsLog.additionalSenseCodeQualifier;
-                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
                 }
             }
             else if (infoExceptionsLog.additionalSenseCode == 0x0B)
@@ -1478,7 +1479,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                     tripInfo->scsiSenseCode.asc = infoExceptionsLog.additionalSenseCode;
                     tripInfo->scsiSenseCode.ascq = infoExceptionsLog.additionalSenseCodeQualifier;
-                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                    translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
                 }
             }
             else
@@ -1570,7 +1571,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                 tripInfo->scsiSenseCode.asc = asc;
                 tripInfo->scsiSenseCode.ascq = ascq;
-                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
             }
         }
         else if (asc == 0x0B)
@@ -1582,7 +1583,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_SCSI;
                 tripInfo->scsiSenseCode.asc = asc;
                 tripInfo->scsiSenseCode.ascq = ascq;
-                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX);
+                translate_SCSI_SMART_Sense_To_String(tripInfo->scsiSenseCode.asc, tripInfo->scsiSenseCode.ascq, tripInfo->reasonString, UINT8_MAX, &tripInfo->reasonStringLength);
             }
         }
         else
@@ -2690,7 +2691,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Error: Could not retrieve Log Page 0x02\n");
             }            
@@ -2750,7 +2751,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Error: Could not retrieve Log Page - SuperCap DRAM\n");
             }
@@ -2825,7 +2826,7 @@ int nvme_Print_PCI_Statistics(tDevice *device)
         }
         else
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Error: Could not retrieve Log Page 0x02\n");
             }            
