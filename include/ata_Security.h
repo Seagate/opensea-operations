@@ -21,6 +21,17 @@ extern "C"
 {
 #endif
 
+    typedef enum _eATASecurityState
+    {
+        ATA_SEC0 = 0, //powered off, we will never see this
+        ATA_SEC1 = 1, //not enabled, locked, or frozen
+        ATA_SEC2 = 2, //frozen
+        ATA_SEC3 = 3, //powered off, we will never see this
+        ATA_SEC4 = 4, //enabled, locked
+        ATA_SEC5 = 5, //enabled
+        ATA_SEC6 = 6  //enabled, frozen
+    }eATASecurityState;
+
     //-----------------------------------------------------------------------------
     //
     //  sat_ATA_Security_Protocol_Supported(tDevice *device)
@@ -49,6 +60,9 @@ extern "C"
         bool extendedTimeFormat; //this bool lets a caller know if the time was reported by the drive in extended format or normal format.
         uint16_t securityEraseUnitTimeMinutes;
         uint16_t enhancedSecurityEraseUnitTimeMinutes;
+        eATASecurityState securityState;
+        bool restrictedSanitizeOverridesSecurity;//If this is true, then a sanitize command can be run and clear the user password. (See ACS4 for more details)
+        bool encryptAll;//Set to true means the device encrypts all user data on the drive.
     }ataSecurityStatus, *ptrATASecurityStatus;
 
     //-----------------------------------------------------------------------------
@@ -67,6 +81,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus, bool useSAT);
+
+    OPENSEA_OPERATIONS_API void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported);
 
     typedef enum _eATASecurityPasswordType
     {

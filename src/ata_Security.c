@@ -52,7 +52,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
     }
     return supported;
 }
-
+//TODO: we may want to revisit this function since there are up to 3 places to get the information we need between SAT translation, ID, and IDData log
 void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus, bool useSAT)
 {
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
@@ -104,7 +104,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //word 128
-        if (device->drive_info.IdentifyData.ata.Word128 & BIT0)
+        if (device->drive_info.IdentifyData.ata.Word128 != 0 && device->drive_info.IdentifyData.ata.Word128 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word128 & BIT0)
         {
             securityStatus->securitySupported = true;
             if (device->drive_info.IdentifyData.ata.Word128 & BIT1)
@@ -174,6 +174,293 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
             //word 92
             securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
         }
+        if (device->drive_info.IdentifyData.ata.Word069 != 0 && device->drive_info.IdentifyData.ata.Word069 != UINT16_MAX)
+        {
+            securityStatus->encryptAll = device->drive_info.IdentifyData.ata.Word069 & BIT4;
+        }
+    }
+    //read ID data log page for security bits to get restrictedSanitizeOverridesSecurity bit
+    if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.ata_Options.generalPurposeLoggingSupported)
+    {
+        uint8_t securityPage[512] = { 0 };
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, 0, 0, securityPage, 512, 0))
+        {
+            if (M_BytesTo2ByteValue(securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * 512 > 0)
+            {
+                memset(&securityPage, 0, 512);
+                //IDData log suppored. Read first page to see if security subpage (06h) is supported
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, securityPage, 512, 0))
+                {
+                    uint8_t pageNumber = securityPage[2];
+                    uint16_t revision = M_BytesTo2ByteValue(securityPage[1], securityPage[0]);
+                    if (pageNumber == (uint8_t)ATA_ID_DATA_LOG_SUPPORTED_PAGES && revision >= 0x0001)
+                    {
+                        uint8_t listLen = securityPage[8];
+                        for (uint8_t iter = 9; iter < (listLen + 8) && iter < 512; ++iter)
+                        {
+                            bool foundSecurityPage = false;
+                            switch (securityPage[iter])
+                            {
+                            case ATA_ID_DATA_LOG_SECURITY:
+                                foundSecurityPage = true;
+                                memset(securityPage, 0, 512);
+                                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SECURITY, securityPage, 512, 0))
+                                {
+                                    //make sure we got the right page first!
+                                    uint64_t header = M_BytesTo8ByteValue(securityPage[7], securityPage[6],securityPage[5],securityPage[4],securityPage[3],securityPage[2],securityPage[1],securityPage[0]);
+                                    if (header & BIT63 && M_Word0(header) >= 0x0001  && M_Byte2(header) == ATA_ID_DATA_LOG_SECURITY)
+                                    {
+                                        uint64_t securityCapabilities = M_BytesTo8ByteValue(securityPage[55], securityPage[54],securityPage[53],securityPage[52],securityPage[51],securityPage[50],securityPage[49],securityPage[48]);
+                                        if (securityCapabilities & BIT63)
+                                        {
+                                            securityStatus->restrictedSanitizeOverridesSecurity = securityCapabilities & BIT7;
+                                            securityStatus->encryptAll = securityCapabilities & BIT0;
+                                        }
+                                    }
+                                }
+                                break;
+                            default:
+                                break;
+                            }
+                            if (foundSecurityPage)
+                            {
+                                //exit the loop since we got what we wanted.
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //set security state
+    if (securityStatus->securityEnabled == false && securityStatus->securityLocked == false && securityStatus->securityFrozen == false)
+    {
+        securityStatus->securityState = ATA_SEC1;
+    }
+    else if (securityStatus->securityEnabled == false && securityStatus->securityLocked == false && securityStatus->securityFrozen == true)
+    {
+        securityStatus->securityState = ATA_SEC2;
+    }
+    else if (securityStatus->securityEnabled == true && securityStatus->securityLocked == true && securityStatus->securityFrozen == false)
+    {
+        securityStatus->securityState = ATA_SEC4;
+    }
+    else if (securityStatus->securityEnabled == true && securityStatus->securityLocked == false && securityStatus->securityFrozen == false)
+    {
+        securityStatus->securityState = ATA_SEC5;
+    }
+    else if (securityStatus->securityEnabled == true && securityStatus->securityLocked == false && securityStatus->securityFrozen == true)
+    {
+        securityStatus->securityState = ATA_SEC6;
+    }
+}
+
+void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported)
+{
+    printf("\n====ATA Security Information====\n");
+    if (securityStatus->securitySupported)
+    {
+        printf("Security State: %u\n", securityStatus->securityState);
+        //Now print out the other bits
+        printf("\tEnabled: ");
+        if (securityStatus->securityEnabled)
+        {
+            printf("True\n");
+        }
+        else
+        {
+            printf("False\n");
+        }
+        printf("\tLocked: ");
+        if (securityStatus->securityLocked)
+        {
+            printf("True\n");
+        }
+        else
+        {
+            printf("False\n");
+        }
+        printf("\tFrozen: ");
+        if (securityStatus->securityFrozen)
+        {
+            printf("True\n");
+        }
+        else
+        {
+            printf("False\n");
+        }
+        printf("\tPassword Attempts Exceeded: ");
+        if (securityStatus->securityCountExpired)
+        {
+            printf("True\n");
+        }
+        else
+        {
+            printf("False\n");
+        }
+        //Show master password capability and identifier
+        printf("Master Password Capability: ");
+        if (securityStatus->masterPasswordCapability)
+        {
+            printf("Maximum\n");
+        }
+        else
+        {
+            printf("High\n");
+        }
+        printf("Master Password Identifier: ");
+        if (securityStatus->masterPasswordIdentifier != 0x0000 && securityStatus->masterPasswordIdentifier != UINT16_MAX)
+        {
+            printf("%" PRIu16, securityStatus->masterPasswordIdentifier);
+            if (securityStatus->masterPasswordIdentifier == 0xFFFE)
+            {
+                //possibly the original used at manufacture
+                printf(" (may be set to manufacture master password)");
+            }
+            printf("\n");
+        }
+        else
+        {
+            printf("Not supported\n");
+        }
+        //Now print out security erase times
+        printf("Enhanced Erase Time Estimate: ");
+        if (securityStatus->enhancedEraseSupported)
+        {
+            if (securityStatus->extendedTimeFormat)
+            {
+                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == 0)
+                {
+                    printf("Not reported\n");
+                }
+                else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
+                {
+                    uint64_t totalSeconds = 65532 * 60;
+                    uint8_t days = 0, hours = 0, minutes = 0;
+                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                    printf(">");
+                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                    printf("\n");
+                }
+                else
+                {
+                    uint64_t totalSeconds = securityStatus->enhancedSecurityEraseUnitTimeMinutes * 60;
+                    uint8_t days = 0, hours = 0, minutes = 0;
+                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                    printf("\n");
+                }
+            }
+            else
+            {
+                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == 0)
+                {
+                    printf("Not reported\n");
+                }
+                else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
+                {
+                    uint64_t totalSeconds = 508 * 60;
+                    uint8_t days = 0, hours = 0, minutes = 0;
+                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                    printf(">");
+                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                    printf("\n");
+                }
+                else
+                {
+                    uint64_t totalSeconds = securityStatus->enhancedSecurityEraseUnitTimeMinutes * 60;
+                    uint8_t days = 0, hours = 0, minutes = 0;
+                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                    printf("\n");
+                }
+            }
+        }
+        else
+        {
+            printf("Not Supported\n");
+        }
+        printf("Security Erase Time Estimate: ");
+        if (securityStatus->extendedTimeFormat)
+        {
+            if (securityStatus->securityEraseUnitTimeMinutes == 0)
+            {
+                printf("Not reported\n");
+            }
+            else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
+            {
+                uint64_t totalSeconds = 65532 * 60;
+                uint8_t days = 0, hours = 0, minutes = 0;
+                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                printf(">");
+                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                printf("\n");
+            }
+            else
+            {
+                uint64_t totalSeconds = securityStatus->securityEraseUnitTimeMinutes * 60;
+                uint8_t days = 0, hours = 0, minutes = 0;
+                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                printf("\n");
+            }
+        }
+        else
+        {
+            if (securityStatus->securityEraseUnitTimeMinutes == 0)
+            {
+                printf("Not reported\n");
+            }
+            else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
+            {
+                uint64_t totalSeconds = 508 * 60;
+                uint8_t days = 0, hours = 0, minutes = 0;
+                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                printf(">");
+                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                printf("\n");
+            }
+            else
+            {
+                uint64_t totalSeconds = securityStatus->securityEraseUnitTimeMinutes * 60;
+                uint8_t days = 0, hours = 0, minutes = 0;
+                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+                printf("\n");
+            }
+        }
+        printf("All user data is encrypted: ");
+        if (securityStatus->encryptAll)
+        {
+            printf("True\n");
+        }
+        else
+        {
+            printf("False\n");
+        }
+        printf("Restricted Sanitize Overrides ATA Security: ");
+        if (securityStatus->restrictedSanitizeOverridesSecurity)
+        {
+            printf("True\n");
+        }
+        else
+        {
+            printf("False\n");
+        }
+        printf("SAT security protocol supported: ");
+        if (satSecurityProtocolSupported)
+        {
+            printf("True\n");
+        }
+        else
+        {
+            printf("False\n");
+        }
+    }
+    else
+    {
+        printf("ATA Security is not supported on this device.\n");
     }
 }
 
