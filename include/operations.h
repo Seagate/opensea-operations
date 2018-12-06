@@ -372,6 +372,18 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
+	typedef struct _removeDuplicateDriveType
+	{
+		uint8_t csmi;
+		uint8_t raid;
+	}removeDuplicateDriveType;
+
+	OPENSEA_OPERATIONS_API void remove_Duplicate_Drives(tDevice *deviceList, uint32_t * numberOfDevices, removeDuplicateDriveType rmvDevFlag);
+
+	OPENSEA_OPERATIONS_API void remove_Drive(tDevice *deviceList, uint32_t driveToRemoveIdx, uint32_t * numberOfDevices);
+
+	OPENSEA_OPERATIONS_API bool is_CSMI_Device(tDevice *device);
+
     #if defined (__cplusplus)
 }
     #endif
