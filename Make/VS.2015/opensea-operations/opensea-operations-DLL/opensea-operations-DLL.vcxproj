@@ -162,7 +162,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
@@ -177,7 +177,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -193,7 +193,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
@@ -208,7 +208,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -226,7 +226,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
@@ -245,7 +245,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -265,7 +265,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
@@ -284,7 +284,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;DISABLE_NVME_PASSTHROUGH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EXPORT_OPENSEA_OPERATIONS;IMPORT_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;WIN_API_TARGET_VERSION=100143930L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
