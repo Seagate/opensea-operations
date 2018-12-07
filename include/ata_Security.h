@@ -267,6 +267,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
+    OPENSEA_OPERATIONS_API int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT);
+
 #if defined (__cplusplus)
 }
 #endif

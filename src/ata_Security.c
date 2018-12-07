@@ -668,7 +668,7 @@ int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPa
 {
     int ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
-    if (forceSATValid)
+    if (forceSATvalid)
     {
         satATASecuritySupported = forceSAT;
     }
@@ -752,13 +752,53 @@ int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPa
     return ret;
 }
 
+int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
+{
+    int ret = UNKNOWN;
+    bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
+    if (forceSATvalid)
+    {
+        satATASecuritySupported = forceSAT;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
+    {
+        ataSecurityStatus securityStatus;
+        memset(&securityStatus, 0, sizeof(ataSecurityStatus));
+        get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
+        if (securityStatus.securitySupported)
+        {
+            if (satATASecuritySupported)//if SAT ATA security supported, use it so the SATL manages the commands.
+            {
+                ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_FREEZE_LOCK, false, 0, NULL, 15);
+            }
+            else
+            {
+                ret = ata_Security_Freeze_Lock(device);
+            }
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("Security Feature Not Supported by device.\n");
+            }
+            ret = NOT_SUPPORTED;
+        }
+    }
+    else //this is ATA specific and there's nothing to do on other drives since they don't support this
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
 //Will only unlock the drive
 //TODO: Check if security count expired!
 int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
     int ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
-    if (forceSATValid)
+    if (forceSATvalid)
     {
         satATASecuritySupported = forceSAT;
     }
@@ -833,7 +873,7 @@ int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
 {
     int ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
-    if (forceSATValid)
+    if (forceSATvalid)
     {
         satATASecuritySupported = forceSAT;
     }
@@ -868,7 +908,7 @@ int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
             {
                 //set the password!
                 //TODO: verbose message here about what password is being set?
-                ret = set_ATA_Security_Password(devie, ataPassword, satATASecuritySupported);
+                ret = set_ATA_Security_Password(device, ataPassword, satATASecuritySupported);
             }
         }
         else
@@ -891,7 +931,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
 {
     int result = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
-    if (forceSATValid)
+    if (forceSATvalid)
     {
         satATASecuritySupported = forceSAT;
     }
