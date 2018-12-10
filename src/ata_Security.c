@@ -697,6 +697,14 @@ int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPa
                 {
                     if (securityStatus.securityLocked)
                     {
+                        if (securityStatus.securityCountExpired)
+                        {
+                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            {
+                                printf("Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry the operation.\n");
+                            }
+                            return FAILURE;
+                        }
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("Attempting to unlock security with password = ");
@@ -827,6 +835,14 @@ int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bo
                 {
                     if (securityStatus.securityLocked)
                     {
+                        if (securityStatus.securityCountExpired)
+                        {
+                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            {
+                                printf("Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry the operation.\n");
+                            }
+                            return FAILURE;
+                        }
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("Attempting to unlock security with password = ");
@@ -997,28 +1013,38 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             }
             return NOT_SUPPORTED;
         }
-        if (securityStatus.securityLocked)
+        if (securityStatus.securityCountExpired)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Attempting to unlock security with password = ");
-                print_ATA_Security_Password(&ataPassword);
+                printf("Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry the operation.\n");
             }
-            if (SUCCESS == unlock_ATA_Security(device, ataPassword, satATASecuritySupported))
-            {
-                securityStatus.securityLocked = false;
-            }
-            else
-            {
-                if (VERBOSITY_QUIET < device->deviceVerbosity)
-                {
-                    printf("Unable to unlock drive with password = ");
-                    print_ATA_Security_Password(&ataPassword);
-                }
-                return FAILURE;
-            }
+            return FAILURE;
         }
-        if (!securityStatus.securityEnabled)
+        //ATA spec shows you can erase without unlocking the drive.
+        //We may want to put this back in as a "just in case" or a "try it to see if the password was right" though.
+//      if (securityStatus.securityLocked && ataPassword.passwordType != ATA_PASSWORD_MASTER)//master shouldn't need to unlock since it can be used to repurpose the drive
+//      {
+//          if (VERBOSITY_QUIET < device->deviceVerbosity)
+//          {
+//              printf("Attempting to unlock security with password = ");
+//              print_ATA_Security_Password(&ataPassword);
+//          }
+//          if (SUCCESS == unlock_ATA_Security(device, ataPassword, satATASecuritySupported))
+//          {
+//              securityStatus.securityLocked = false;
+//          }
+//          else
+//          {
+//              if (VERBOSITY_QUIET < device->deviceVerbosity)
+//              {
+//                  printf("Unable to unlock drive with password = ");
+//                  print_ATA_Security_Password(&ataPassword);
+//              }
+//              return FAILURE;
+//          }
+//      }
+        if (!securityStatus.securityEnabled)//ATA spec is not clear on whether an erase can be done at anytime with the master PW or not, so we'll try to set one for the erase.
         {
             //set the password
             if (VERBOSITY_QUIET < device->deviceVerbosity)
