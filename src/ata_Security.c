@@ -22,7 +22,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
     bool supported = false;
     //For non-ATA/IDE interfaces, we need to check if the translator (SATL) supports the ATA security protocol.
     //TODO: we may not need this check since software SAT in the opensea-transport library can do this translation
-    if (device->drive_info.interface_type != IDE_INTERFACE && SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))//adding non-data security protocol in as check that security protocol command is supported
+    if (device->drive_info.interface_type != IDE_INTERFACE)
     {
         uint8_t securityBuf[LEGACY_DRIVE_SEC_SIZE] = { 0 };
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, LEGACY_DRIVE_SEC_SIZE, securityBuf))
