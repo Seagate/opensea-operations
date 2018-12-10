@@ -522,29 +522,32 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
     {
         //copy the password in, but the max length is 32 bytes according to the spec!
         memcpy(&ptrData[2], ataPassword->password, M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH));
+        if (setPassword)//if setting the password in the set password command, we need to set a few other things up
+        {
+            //set master password capability
+            if (ataPassword->masterCapability == ATA_MASTER_PASSWORD_MAXIMUM)
+            {
+                ptrData[0] |= BIT0;//word zero bit 8
+            }
+        }
+        else if (eraseUnit)
+        {
+            if (ataPassword->zacSecurityOption == ATA_ZAC_ERASE_FULL_ZONES)
+            {
+                ptrData[1] |= BIT2;//word zero bit 2
+            }
+        }
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
             ptrData[1] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
             if (setPassword)//if setting the password in the set password command, we need to set a few other things up
             {
-                //set master password capability
-                if (ataPassword->masterCapability == ATA_MASTER_PASSWORD_MAXIMUM)
-                {
-                    ptrData[0] |= BIT0;//word zero bit 8
-                }
-                //set the maaster password identifier.
+                //set the master password identifier.
                 //Since this is ATA, this is little endian format. 
                 //TODO: verify this is set correctly on big endian
                 //Word 17
                 ptrData[34] = M_Byte1(ataPassword->masterPWIdentifier);
                 ptrData[35] = M_Byte0(ataPassword->masterPWIdentifier);
-            }
-            else if (eraseUnit)
-            {
-                if (ataPassword->zacSecurityOption == ATA_ZAC_ERASE_FULL_ZONES)
-                {
-                    ptrData[1] |= BIT2;//word zero bit 2
-                }
             }
         }
     }
@@ -842,6 +845,11 @@ int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bo
                             }
                         }
                     }
+                    else
+                    {
+                        printf("ATA security is not locked. Nothing to do.\n");
+                        ret = SUCCESS;
+                    }
                 }
             }
             else
@@ -864,6 +872,7 @@ int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bo
     }
     else //this is ATA specific and there's nothing to do on other drives since they don't support this
     {
+        printf("Not an ATA drive or ATA security protocol is not supported\n");
         ret = NOT_SUPPORTED;
     }
     return ret;
