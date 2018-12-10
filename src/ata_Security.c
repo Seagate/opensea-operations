@@ -527,19 +527,19 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
             //set master password capability
             if (ataPassword->masterCapability == ATA_MASTER_PASSWORD_MAXIMUM)
             {
-                ptrData[0] |= BIT0;//word zero bit 8
+                ptrData[1] |= BIT0;//word zero bit 8
             }
         }
         else if (eraseUnit)
         {
             if (ataPassword->zacSecurityOption == ATA_ZAC_ERASE_FULL_ZONES)
             {
-                ptrData[1] |= BIT2;//word zero bit 2
+                ptrData[0] |= BIT2;//word zero bit 2
             }
         }
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
-            ptrData[1] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
+            ptrData[0] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
             if (setPassword)//if setting the password in the set password command, we need to set a few other things up
             {
                 //set the master password identifier.
@@ -835,6 +835,7 @@ int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bo
                         if (SUCCESS == unlock_ATA_Security(device, ataPassword, satATASecuritySupported))
                         {
                             securityStatus.securityLocked = false;
+                            ret = SUCCESS;
                         }
                         else
                         {
