@@ -521,7 +521,7 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
     if (ptrData && ataPassword)
     {
         //copy the password in, but the max length is 32 bytes according to the spec!
-        memcpy(ptrData, ataPassword->password, M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH));
+        memcpy(&ptrData[2], ataPassword->password, M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH));
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
             ptrData[1] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
