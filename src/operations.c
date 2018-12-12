@@ -1073,8 +1073,8 @@ int get_AAM_Level(tDevice *device, uint8_t *aamLevel)
 
 int clr_Pcie_Correctable_Errs(tDevice *device)
 {
-    const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
-    const char *save = "specifies that the controller shall save the attribute";
+    //const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
+    //const char *save = "specifies that the controller shall save the attribute";
     int err;
     void *buf = NULL;
 
