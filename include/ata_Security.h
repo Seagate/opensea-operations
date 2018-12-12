@@ -263,10 +263,62 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+    //
+    //! \brief   Sets an ATA security password. NOTE: This is not recommended from software since some systems may not even boot with a locked drive,
+    //!          or may not encode the password the same way as this software. 
+    //!          NOTE2: Some SATLs don't seem to properly handle locked ATA security drives, so you may not be able to unlock them or remove the password without retrying multiple times from software.
+    //!          It is strongly recommended that passwords only be set from the BIOS or host controller option rom.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] ataPassword - structure holding password information.
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+    //
+    //! \brief   Unlocks ATA security with the provided password. This is useful if the ATA security erase was interrupted and a password is still set on the drive. 
+    //! Note that this takes the ASCII password sent in and uses it, but a BIOS may do a hash or something else when setting a password so this may 
+    //! not work for passwords other than those set by this code base
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] ataPassword - structure holding password information.
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
+    //
+    //! \brief   Freezes ATA security with the freezelock command. This is used to prevent other ATA security commands from being processed by the drive.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT);
 
 #if defined (__cplusplus)
