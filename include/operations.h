@@ -372,6 +372,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
+
     #if defined (__cplusplus)
 }
     #endif

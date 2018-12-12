@@ -2769,7 +2769,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
 int nvme_Print_PCI_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
-    uint64_t size = 0; 
+    //uint64_t size = 0; 
     uint32_t correctPcieEc = 0, uncorrectPcieEc = 0;
     nvmeGetLogPageCmdOpts   cmdOpts;
     nvmePcieErrorLogPage    pcieErrorLog;
