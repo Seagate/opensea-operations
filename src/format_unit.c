@@ -18,7 +18,11 @@
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
     uint8_t formatSupportData[10] = { 0 };
-    if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, 1, SCSI_FORMAT_UNIT_CMD, 0, 10, formatSupportData))
+    if (fastFormatSupported)
+    {
+        *fastFormatSupported = false;//make sure this defaults to false
+    }
+    if (device->drive_info.scsiVersion >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, 1, SCSI_FORMAT_UNIT_CMD, 0, 10, formatSupportData))
     {
         //uint16_t cdbSize = M_BytesTo2ByteValue(formatSupportData[2], formatSupportData[3]);
         uint8_t supportField = formatSupportData[1] & 0x07;//only need bits 2:0
@@ -38,45 +42,11 @@ bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
         //if we made it here, then it's at least supported...not check the bit field for fast format support
         if (fastFormatSupported)//make sure the pointer is valid
         {
-            //TODO: I don't think we need the SBC4 check since I found another, possibly more universal and long lasting, way to check for fast format support in the else case below. - TJE
-            //loop through version descriptors in inquiry data and check if SBC4 is supported
-            uint16_t versionDescriptor = 0;
-            bool sbc4Supported = false;
-            for (uint16_t versionIter = 0, offset = 58; versionIter < 7; ++versionIter, offset += 2)
+            if (!(formatSupportData[7] == 0xFF && formatSupportData[8] == 0xFF))//if both these bytes are FFh, then the drive conforms to SCSI2 where this was the "interleave" field
             {
-                versionDescriptor = M_BytesTo2ByteValue(device->drive_info.scsiVpdData.inquiryData[offset + 0], device->drive_info.scsiVpdData.inquiryData[offset + 1]);
-                if (is_Standard_Supported(versionDescriptor, STANDARD_CODE_SBC4))
-                {
-                    sbc4Supported = true;
-                    break;
-                }
-            }
-            //We need SBC4 support otherwise this could be referring to obsolete bits first declared in SBC-TJE
-            if (sbc4Supported)
-            {
-                if ((formatSupportData[8] & (BIT0 | BIT1)) > 0)//this used to be reserved, so as long as bits 0 or 1 are set, it's supported
+                if (formatSupportData[8] & 0x03)//checks that fast format bits are available for use.
                 {
                     *fastFormatSupported = true;
-                }
-                else
-                {
-                    *fastFormatSupported = false;
-                }
-            }
-            else
-            {
-                //we cannot just say "false" because currently, some drives will report SBC3 but fast format is available...
-                if(formatSupportData[8] & 0xFC) //if all but bits 0 and 1 are set, then this is the OLD obsolete bits, so not a fast format drive
-                {
-                    *fastFormatSupported = false;
-                }
-                else if((formatSupportData[8] & (BIT0 | BIT1)) > 0)
-                {
-                    *fastFormatSupported = true;
-                }
-                else
-                {
-                    *fastFormatSupported = false;
                 }
             }
         }
