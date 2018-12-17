@@ -1,0 +1,13 @@
+language: c
+os: linux
+sudo: false
+compiler: gcc
+dist: trusty
+before_script: 
+- git clone https://github.com/Seagate/opensea-common.git
+- git clone https://github.com/Seagate/opensea-transport.git
+- mv opensea-common ../
+- mv opensea-transport ../
+- cd Make/gcc
+
+script: make
