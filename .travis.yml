@@ -1,13 +1,38 @@
 language: c
-os: linux
-sudo: false
-compiler: gcc
-dist: xenial
-before_script: 
-- git clone https://github.com/Seagate/opensea-common.git
-- git clone https://github.com/Seagate/opensea-transport.git
-- mv opensea-common ../
-- mv opensea-transport ../
-- cd Make/gcc
 
-script: make
+branches:
+  only:
+  - master
+  - develop
+
+matrix:
+  include:
+    - os: linux
+      sudo: false
+      compiler: gcc
+      dist: xenial
+      before_script:
+        - git clone https://github.com/Seagate/opensea-common.git
+        - git clone https://github.com/Seagate/opensea-transport.git
+        - mv opensea-common ../
+        - mv opensea-transport ../
+        - cd Make/gcc
+      script: 
+        make
+    - os: windows
+      env:
+        - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
+      before_script:
+        - git clone https://github.com/Seagate/opensea-common.git
+        - git clone https://github.com/Seagate/opensea-transport.git
+        - mv opensea-common ../
+        - mv opensea-transport ../
+      script: 
+        - export PATH=$MSBUILD_PATH:$PATH 
+        - cd "..\opensea-common\Make\VS.2017\opensea-common"
+        - MSBuild.exe //p:Configuration=Static-Release //p:Platform=x64
+        - cd "..\..\..\..\opensea-transport\Make\VS.2017\opensea-transport"
+        - MSBuild.exe //p:Configuration=Static-Release //p:Platform=x64
+        - cd "..\..\..\..\opensea-operations\Make\VS.2017\opensea-operations"
+        - MSBuild.exe //p:Configuration=Static-Release //p:Platform=x64
+
