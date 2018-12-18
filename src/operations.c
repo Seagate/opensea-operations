@@ -25,6 +25,7 @@
 #include "trim_unmap.h"
 #include "format_unit.h"
 #include "dst.h"
+#include "logs.h"//for SCSI mode pages
 
 int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
 {
@@ -1103,3 +1104,452 @@ int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsig
 }
 
 #endif
+
+int scsi_Reset_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage)
+{
+    int ret = NOT_SUPPORTED;
+    uint32_t modePageLength = 0;
+    if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)//if asking for all mode pages, all mode pages and subpages, or all subpages of a specific page, we need to handle it in here.
+    {
+        if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
+        {
+            uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+            if (!modeData)
+            {
+                return MEMORY_FAILURE;
+            }
+            //now read all the data
+            bool used6ByteCmd = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            {
+                //now we need to loop through each page, and send it to the drive as a new mode select command.
+                uint32_t offset = 0;
+                uint16_t blockDescriptorLength = 0;
+                if (!used6ByteCmd)
+                {
+                    //got 10 byte command data
+                    blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                    offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                }
+                else
+                {
+                    //got 6 byte command data.
+                    blockDescriptorLength = modeData[3];
+                    offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                }
+                uint16_t currentPageLength = 0;
+                uint16_t counter = 0, failedModeSelects = 0;
+                for (; offset < modePageLength; offset += currentPageLength, ++counter)
+                {
+                    uint8_t* currentPageToSet = NULL;
+                    uint32_t currentPageToSetLength = used6ByteCmd ? MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength : MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                    uint8_t currentPage = M_GETBITRANGE(modeData[offset + 0], 5, 0);
+                    uint8_t currentSubPage = 0;
+                    uint16_t currentPageOffset = 0;
+                    if (modeData[offset] & BIT6)
+                    {
+                        //subpage format
+                        currentSubPage = modeData[offset + 1];
+                        currentPageLength = M_BytesTo2ByteValue(modeData[offset + 2], modeData[offset + 3]) + 4;//add 4 bytes for page code, subpage code, & page length bytes
+                    }
+                    else
+                    {
+                        currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
+                    }
+                    currentPageToSetLength += currentPageLength;
+                    currentPageToSet = (uint8_t*)calloc(currentPageToSetLength, sizeof(uint8_t));
+                    if (!currentPageToSet)
+                    {
+                        safe_Free(modeData);
+                        return MEMORY_FAILURE;
+                    }
+                    if (used6ByteCmd)
+                    {
+                        //copy header and block descriptors (if any)
+                        currentPageOffset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                        memcpy(currentPageToSet, &modeData[0], MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength);
+                        //now zero out the reserved bytes for the mode select command
+                        currentPageToSet[0] = 0;//mode data length is reserved for mode select commands
+                        //leave medium type alone
+                        //leave device specific parameter alone???
+                        //leave block descriptor length alone in case we got some.
+                    }
+                    else
+                    {
+                        //copy header and block descriptors (if any)
+                        currentPageOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                        memcpy(currentPageToSet, &modeData[0], MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength);
+                        //now zero out the reserved bytes for the mode select command
+                        currentPageToSet[0] = 0;//mode data length is reserved for mode select commands
+                        currentPageToSet[1] = 0;
+                        //leave medium type alone
+                        //leave device specific parameter alone???
+                        //leave block descriptor length alone in case we got some.
+                    }
+                    //now we need to copy the default data over now, then send it to the drive.
+                    memcpy(&currentPageToSet[currentPageOffset], &modeData[offset], currentPageLength);
+                    bool pageFormat = currentPage == 0 ? false : true;//set to false when reading vendor unique page zero
+                    bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
+                    if (used6ByteCmd)
+                    {
+                        if (SUCCESS != scsi_Mode_Select_6(device, currentPageToSetLength, pageFormat, savable, currentPageToSet, currentPageToSetLength))
+                        {
+                            ++failedModeSelects;
+                            printf("WARNING! Unable to reset page %" PRIX8 "h", currentPage);
+                            if (currentSubPage != 0)
+                            {
+                                printf(" - %" PRIX8 "h", currentSubPage);
+                            }
+                            else
+                            {
+                                printf("\n");
+                            }
+                        }
+                        else
+                        {
+                            ret = SUCCESS;
+                        }
+                    }
+                    else
+                    {
+                        if (SUCCESS != scsi_Mode_Select_10(device, currentPageToSetLength, pageFormat, savable, currentPageToSet, currentPageToSetLength))
+                        {
+                            ++failedModeSelects;
+                            printf("WARNING! Unable to reset page %" PRIX8 "h", currentPage);
+                            if (currentSubPage != 0)
+                            {
+                                printf(" - %" PRIX8 "h", currentSubPage);
+                            }
+                            else
+                            {
+                                printf("\n");
+                            }
+                        }
+                        else
+                        {
+                            ret = SUCCESS;
+                        }
+                    }
+                    safe_Free(currentPageToSet);
+                }
+                if (counter > 0 && counter == failedModeSelects)
+                {
+                    ret = FAILURE;
+                }
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            safe_Free(modeData);
+        }
+        else
+        {
+            //mode page not supported most likely
+        }
+    }
+    else
+    {
+        //individual page...easy peasy
+        if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
+        {
+            uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+            if (!modeData)
+            {
+                return MEMORY_FAILURE;
+            }
+            //now read all the data
+            bool used6ByteCmd = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            {
+                uint16_t offset = 0;
+                uint16_t blockDescriptorLength = 0;
+                if (used6ByteCmd)
+                {
+                    blockDescriptorLength = modeData[3];
+                    offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                    //now zero out the reserved bytes for the mode select command
+                    modeData[0] = 0;//mode data length is reserved for mode select commands
+                    //leave medium type alone
+                    //leave device specific parameter alone???
+                    //leave block descriptor length alone in case we got some.
+                }
+                else
+                {
+                    blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                    offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                    //now zero out the reserved bytes for the mode select command
+                    modeData[0] = 0;//mode data length is reserved for mode select commands
+                    modeData[1] = 0;
+                    //leave medium type alone
+                    //leave device specific parameter alone???
+                    //leave block descriptor length alone in case we got some.
+                }
+                //now send the mode select command
+                bool pageFormat = modePage == 0 ? false : true;//set to false when reading vendor unique page zero
+                bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
+                if (used6ByteCmd)
+                {
+                    if (SUCCESS != scsi_Mode_Select_6(device, modePageLength, pageFormat, savable, modeData, modePageLength))
+                    {
+                        ret = FAILURE;
+                    }
+                    else
+                    {
+                        ret = SUCCESS;
+                    }
+                }
+                else
+                {
+                    if (SUCCESS != scsi_Mode_Select_10(device, modePageLength, pageFormat, savable, modeData, modePageLength))
+                    {
+                        ret = FAILURE;
+                    }
+                    else
+                    {
+                        ret = SUCCESS;
+                    }
+                }
+            }
+            safe_Free(modeData);
+        }
+        else
+        {
+            //most likely not a supported page
+        }
+    }
+    return ret;
+}
+
+int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength)
+{
+    int ret = NOT_SUPPORTED;
+    if (!modePageData || modeDataLength == 0)
+    {
+        return BAD_PARAMETER;
+    }
+    uint32_t modePageLength = 0;
+    uint8_t modePage = M_GETBITRANGE(modePageData[0], 5, 0);
+    uint8_t subpage = 0;
+    if (modePageData[0] & BIT6)
+    {
+        //subpage format
+        subpage = modePageData[1];
+    }
+    //even though we have the data we want to send, we must ALWAYS request the page first, then modify the data and send it back.
+    if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
+    {
+        uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+        if (!modeData)
+        {
+            return MEMORY_FAILURE;
+        }
+        //now read all the data
+        bool used6ByteCmd = false;
+        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+        {
+            uint16_t offset = 0;
+            uint16_t blockDescriptorLength = 0;
+            if (used6ByteCmd)
+            {
+                blockDescriptorLength = modeData[3];
+                offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                //now zero out the reserved bytes for the mode select command
+                modeData[0] = 0;//mode data length is reserved for mode select commands
+                //leave medium type alone
+                //leave device specific parameter alone???
+                //leave block descriptor length alone in case we got some.
+            }
+            else
+            {
+                blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                //now zero out the reserved bytes for the mode select command
+                modeData[0] = 0;//mode data length is reserved for mode select commands
+                modeData[1] = 0;
+                //leave medium type alone
+                //leave device specific parameter alone???
+                //leave block descriptor length alone in case we got some.
+            }
+            //copy the incoming buffer (which is ONLY mode page data)
+            memcpy(&modeData[offset], modePageData, M_Min(modeDataLength, modePageLength));
+            //now send the mode select command
+            bool pageFormat = modePage == 0 ? false : true;//set to false when reading vendor unique page zero
+            bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
+            if (used6ByteCmd)
+            {
+                if (SUCCESS != scsi_Mode_Select_6(device, modePageLength, pageFormat, savable, modeData, modePageLength))
+                {
+                    ret = FAILURE;
+                }
+                else
+                {
+                    ret = SUCCESS;
+                }
+            }
+            else
+            {
+                if (SUCCESS != scsi_Mode_Select_10(device, modePageLength, pageFormat, savable, modeData, modePageLength))
+                {
+                    ret = FAILURE;
+                }
+                else
+                {
+                    ret = SUCCESS;
+                }
+            }
+        }
+        safe_Free(modeData);
+    }
+    else
+    {
+        //most likely not a supported page
+    }
+    return ret;
+}
+
+//this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
+void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc)
+{
+    if (modeData)
+    {
+        uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
+        uint8_t subpage = 0;
+        uint16_t pageLength = modeData[1];//page 0 format
+        if (modeData[0] & BIT6)
+        {
+            subpage = modeData[1];
+            pageLength = M_BytesTo2ByteValue(modeData[2], modeData[3]);
+        }
+        //print the header
+        printf("\n==================================\n");
+        printf(" Page %" PRIX8 "h", pageNumber);
+        if (subpage != 0)
+        {
+            printf(" - %" PRIX8 "h", subpage);
+        }
+        printf("\n");
+        switch (mpc)
+        {
+        case MPC_CURRENT_VALUES:
+            printf("Current Values");
+            break;
+        case MPC_CHANGABLE_VALUES:
+            printf("Changable Values");
+            break;
+        case MPC_DEFAULT_VALUES:
+            printf("Default Values");
+            break;
+        case MPC_SAVED_VALUES:
+            printf("Saved Values");
+            break;
+        default://this shouldn't happen...
+            break;
+        }
+        printf("\n==================================\n");
+        //print out the raw data bytes sent to this function
+        for (uint16_t iter = 0; iter < M_Min(pageLength, modeDataLen); ++iter)
+        {
+            printf("%" PRIX8, modeData[iter]);
+            if (iter + 1 < M_Min(pageLength, modeDataLen))
+            {
+                printf("_");
+            }
+        }
+        printf("\n\n");
+    }
+}
+
+//shows a single mode page for the selected control(current, saved, changable, default)
+void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc)
+{
+    int ret = NOT_SUPPORTED;
+    uint32_t modePageLength = 0;
+    if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)//if asking for all mode pages, all mode pages and subpages, or all subpages of a specific page, we need to handle it in here.
+    {
+        if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
+        {
+            uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+            if (!modeData)
+            {
+                return MEMORY_FAILURE;
+            }
+            //now read all the data
+            bool used6ByteCmd = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            {
+                //Loop through each page returned in the buffer and print it to the screen
+                uint32_t offset = 0;
+                uint16_t blockDescriptorLength = 0;
+                if (!used6ByteCmd)
+                {
+                    //got 10 byte command data
+                    blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                    offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                }
+                else
+                {
+                    //got 6 byte command data.
+                    blockDescriptorLength = modeData[3];
+                    offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                }
+                uint16_t currentPageLength = 0;
+                uint16_t counter = 0, failedModeSelects = 0;
+                for (; offset < modePageLength; offset += currentPageLength, ++counter)
+                {
+                    if (modeData[offset] & BIT6)
+                    {
+                        //subpage format
+                        currentPageLength = M_BytesTo2ByteValue(modeData[offset + 2], modeData[offset + 3]) + 4;//add 4 bytes for page code, subpage code, & page length bytes
+                    }
+                    else
+                    {
+                        currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
+                    }
+                    //now print the page out!
+                    print_Mode_Page(&modeData[offset], currentPageLength, mpc);
+                }
+            }
+            sae_Free(modeData);
+        }
+        else
+        {
+            //not supported (SATL most likely)
+        }
+    }
+    else
+    {
+        //single page...easy
+        if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
+        {
+            uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+            if (!modeData)
+            {
+                return MEMORY_FAILURE;
+            }
+            //now read all the data
+            bool used6ByteCmd = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            {
+                if (used6ByteCmd)
+                {
+                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc);
+                }
+                else
+                {
+                    uint16_t blockDescriptorLength = M_BytesTo2ByteValue(modeData[7], modeData[8]);
+                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc);
+                }
+            }
+        }
+    }
+}
+
+//shows all mpc values for a given page.
+//should we return an error when asking for all mode pages since that output will otherwise be really messy???
+void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage)
+{
+    //TODO: loop through and print a page out for each MPC value.
+
+    //TODO: custom function or other code to handle input of modepage == 0x3F || subpage == 0xFF and keep the output clean?
+}

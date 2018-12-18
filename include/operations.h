@@ -372,6 +372,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
+    OPENSEA_OPERATIONS_API int scsi_Reset_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage);
 
     #if defined (__cplusplus)
 }
