@@ -387,11 +387,11 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         //now send a mode select command
         if (modeSelect10)
         {
-            ret = scsi_Mode_Select_10(device, 24, false, true, modeParameterData, 24); //turning off page format bit due to reading page 0 above
+            ret = scsi_Mode_Select_10(device, 24, false, true, false, modeParameterData, 24); //turning off page format bit due to reading page 0 above
         }
         else
         {
-            ret = scsi_Mode_Select_6(device, 12, false, true, modeParameterData, 12); //turning off page format bit due to reading page 0 above
+            ret = scsi_Mode_Select_6(device, 12, false, true, false, modeParameterData, 12); //turning off page format bit due to reading page 0 above
         }
     }
     if (ret == SUCCESS)

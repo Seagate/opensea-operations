@@ -504,7 +504,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             if (powerCondition == PWR_CND_ALL)
             {
                 //this will reset all conditions back to default
-                ret = scsi_Mode_Select_10(device, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, scsiDataBuffer, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
+                ret = scsi_Mode_Select_10(device, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, scsiDataBuffer, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
             }
             else
             {
@@ -603,7 +603,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                         break;
                     }
                     //send the timers back with the default retored for the specified timer
-                    ret = scsi_Mode_Select_10(device, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, currentTimers, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
+                    ret = scsi_Mode_Select_10(device, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, currentTimers, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
                 }
                 else
                 {
@@ -802,7 +802,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             modeSelectBuffer[7] = 0;//block descriptor length LSB
             //copy the data we were modifying to the buffer with the header
             memcpy(&modeSelectBuffer[8], &scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN], MP_POWER_CONDITION_LEN);
-            ret = scsi_Mode_Select_10(device, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, modeSelectBuffer, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
+            ret = scsi_Mode_Select_10(device, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, modeSelectBuffer, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
             safe_Free(modeSelectBuffer);
         }
     }
@@ -1121,7 +1121,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
             if (ret != FAILURE)
             {
                 //now do mode select with the data for the mode to set
-                ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
+                ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
             }
         }
         safe_Free(pcModePage);
