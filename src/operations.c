@@ -1105,6 +1105,7 @@ int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsig
 
 #endif
 
+//TODO: should this function have the ability to saw restore to defaults vs restore to saved values?
 int scsi_Reset_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage)
 {
     int ret = NOT_SUPPORTED;
@@ -1321,6 +1322,8 @@ int scsi_Reset_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage)
     return ret;
 }
 
+//TODO: should we have another parameter to disable saving the page if they just want to make a temporary change?
+//If this is done. Do we want to just send the command, or do we want to turn off saving if the page isn't savable?
 int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength)
 {
     int ret = NOT_SUPPORTED;
@@ -1409,20 +1412,47 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
 }
 
 //this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
-void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc)
+void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
 {
     if (modeData)
     {
         uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
         uint8_t subpage = 0;
-        uint16_t pageLength = modeData[1];//page 0 format
+        uint16_t pageLength = modeData[1] + 2;//page 0 format
         if (modeData[0] & BIT6)
         {
             subpage = modeData[1];
-            pageLength = M_BytesTo2ByteValue(modeData[2], modeData[3]);
+            pageLength = M_BytesTo2ByteValue(modeData[2], modeData[3]) + 4;
         }
+        uint8_t equalsLengthToPrint = (M_Min(pageLength, modeDataLen) * 3) - 1;
         //print the header
-        printf("\n==================================\n");
+        if (outputWithPrintDataBuffer)
+        {
+            equalsLengthToPrint = 1;
+            switch (mpc)
+            {
+            case MPC_CURRENT_VALUES:
+                equalsLengthToPrint += strlen(" Current Values");
+                break;
+            case MPC_CHANGABLE_VALUES:
+                equalsLengthToPrint += strlen(" Changable Values");
+                break;
+            case MPC_DEFAULT_VALUES:
+                equalsLengthToPrint += strlen(" Default Values");
+                break;
+            case MPC_SAVED_VALUES:
+                equalsLengthToPrint += strlen(" Saved Values");
+                if (subpage > 0)
+                {
+                    ++equalsLengthToPrint;
+                }
+                break;
+            default://this shouldn't happen...
+                equalsLengthToPrint = 16;
+                break;
+            }
+        }
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
         printf(" Page %" PRIX8 "h", pageNumber);
         if (subpage != 0)
         {
@@ -1432,31 +1462,39 @@ void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageContr
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            printf("Current Values");
+            printf(" Current Values");
             break;
         case MPC_CHANGABLE_VALUES:
-            printf("Changable Values");
+            printf(" Changable Values");
             break;
         case MPC_DEFAULT_VALUES:
-            printf("Default Values");
+            printf(" Default Values");
             break;
         case MPC_SAVED_VALUES:
-            printf("Saved Values");
+            printf(" Saved Values");
             break;
         default://this shouldn't happen...
             break;
         }
-        printf("\n==================================\n");
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
         //print out the raw data bytes sent to this function
-        for (uint16_t iter = 0; iter < M_Min(pageLength, modeDataLen); ++iter)
+        if (outputWithPrintDataBuffer)
         {
-            printf("%" PRIX8, modeData[iter]);
-            if (iter + 1 < M_Min(pageLength, modeDataLen))
+            print_Data_Buffer(modeData, M_Min(pageLength, modeDataLen), false);
+        }
+        else
+        {
+            //TODO: Do we want another variable to track when we get to 80 characters wide and print a newline and indent the next line??? - Not needed yet since we don't have a mode page that large
+            for (uint16_t iter = 0; iter < M_Min(pageLength, modeDataLen); ++iter)
             {
-                printf("_");
+                printf("%02" PRIX8, modeData[iter]);
+                if (iter + 1 < M_Min(pageLength, modeDataLen))
+                {
+                    printf(" ");
+                }
             }
         }
-        printf("\n\n");
+        printf("\n");
     }
 }
 
@@ -1507,10 +1545,10 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                         currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
                     }
                     //now print the page out!
-                    print_Mode_Page(&modeData[offset], currentPageLength, mpc);
+                    print_Mode_Page(&modeData[offset], currentPageLength, mpc, false);
                 }
             }
-            sae_Free(modeData);
+            safe_Free(modeData);
         }
         else
         {
@@ -1533,12 +1571,12 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
             {
                 if (used6ByteCmd)
                 {
-                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc);
+                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc, false);
                 }
                 else
                 {
-                    uint16_t blockDescriptorLength = M_BytesTo2ByteValue(modeData[7], modeData[8]);
-                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc);
+                    uint16_t blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, false);
                 }
             }
         }
@@ -1549,7 +1587,17 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
 //should we return an error when asking for all mode pages since that output will otherwise be really messy???
 void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage)
 {
-    //TODO: loop through and print a page out for each MPC value.
-
-    //TODO: custom function or other code to handle input of modepage == 0x3F || subpage == 0xFF and keep the output clean?
+    //if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)
+    //{
+    //    //TODO: custom function or other code to handle input of modepage == 0x3F || subpage == 0xFF and keep the output clean?
+    //}
+    //else
+    {
+        //TODO: loop through and print a page out for each MPC value.
+        eScsiModePageControl mpc = MPC_CURRENT_VALUES;//will be incremented through a loop
+        for (; mpc <= MPC_SAVED_VALUES; ++mpc)
+        {
+            show_SCSI_Mode_Page(device, modePage, subpage, mpc);
+        }
+    }
 }
