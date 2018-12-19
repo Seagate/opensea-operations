@@ -1462,7 +1462,7 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
 //this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
 void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
 {
-    if (modeData)
+    if (modeData && modeDataLen > 2)
     {
         uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
         uint8_t subpage = 0;
@@ -1544,6 +1544,66 @@ void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageContr
         }
         printf("\n");
     }
+    else if(modeData)
+    {
+        //page not supported
+        uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
+        uint8_t subpage = 0;
+        if (modeData[0] & BIT6)
+        {
+            subpage = modeData[1];
+        }
+        size_t equalsLengthToPrint = 1;
+        //print the header
+        switch (mpc)
+        {
+        case MPC_CURRENT_VALUES:
+            equalsLengthToPrint += strlen(" Current Values");
+            break;
+        case MPC_CHANGABLE_VALUES:
+            equalsLengthToPrint += strlen(" Changable Values");
+            break;
+        case MPC_DEFAULT_VALUES:
+            equalsLengthToPrint += strlen(" Default Values");
+            break;
+        case MPC_SAVED_VALUES:
+            equalsLengthToPrint += strlen(" Saved Values");
+            if (subpage > 0)
+            {
+                ++equalsLengthToPrint;
+            }
+            break;
+        default://this shouldn't happen...
+            equalsLengthToPrint = 16;
+            break;
+        }
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
+        printf(" Page %" PRIX8 "h", pageNumber);
+        if (subpage != 0)
+        {
+            printf(" - %" PRIX8 "h", subpage);
+        }
+        printf("\n");
+        switch (mpc)
+        {
+        case MPC_CURRENT_VALUES:
+            printf(" Current Values");
+            break;
+        case MPC_CHANGABLE_VALUES:
+            printf(" Changable Values");
+            break;
+        case MPC_DEFAULT_VALUES:
+            printf(" Default Values");
+            break;
+        case MPC_SAVED_VALUES:
+            printf(" Saved Values");
+            break;
+        default://this shouldn't happen...
+            break;
+        }
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
+        printf("Not Supported.\n");
+    }
 }
 
 //shows a single mode page for the selected control(current, saved, changable, default)
@@ -1601,6 +1661,8 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         else
         {
             //not supported (SATL most likely)
+            uint8_t modeData[2] = { modePage , subpage };
+            print_Mode_Page(modeData, 2, mpc, false);
         }
     }
     else
@@ -1627,6 +1689,12 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                     print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, false);
                 }
             }
+        }
+        else
+        {
+            //not supported (SATL most likely)
+            uint8_t modeData[2] = { modePage , subpage };
+            print_Mode_Page(modeData, 2, mpc, false);
         }
     }
 }
