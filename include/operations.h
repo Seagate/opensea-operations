@@ -374,6 +374,10 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int scsi_Reset_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage);
 
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc);
+
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage);
+
     #if defined (__cplusplus)
 }
     #endif
