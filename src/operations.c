@@ -1459,8 +1459,443 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
     return ret;
 }
 
+#define SCSI_MODE_PAGE_NAME_MAX_LENGTH 40
+//TODO: this doesn't take into account some pages being device type specific. It does try for page 1Ch an 1Dh
+void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char *mpName)
+{
+    switch (modePage)
+    {
+    case 0x00://vendor unique
+        break;
+    case 0x01:
+        switch (subpage)
+        {
+        case 0x00://read-write error recovery
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Read-Write Error Recovery");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x02:
+        switch (subpage)
+        {
+        case 0x00://disconnect-reconnect
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Disconnect-Reconnect");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x03:
+        switch (subpage)
+        {
+        case 0x00://Format Device (block devie) or MRW CD-RW (cd/dvd)
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Format Device");
+                break;
+            case PERIPHERAL_CD_DVD_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "MRW CD-RW");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x04:
+        switch (subpage)
+        {
+        case 0x00://Rigid Disk Geometry
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Rigid Disk Geometry");
+            break;
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x05:
+        switch (subpage)
+        {
+        case 0x00://flexible disk
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Flexible Disk");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x06:
+        switch (subpage)
+        {
+        case 0x00://optical memory (SBC) OR RBC device parameters
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_OPTICAL_MEMORY_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Optical Memory");
+                break;
+            case PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "RBC Device Parameters");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x07:
+        switch (subpage)
+        {
+        case 0x00://verify error recovery
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Verify Error Recovery");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x08:
+        switch (subpage)
+        {
+        case 0x00://Caching
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Caching");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x09:
+        switch (subpage)
+        {
+        case 0x00://peripheral device
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Peripheral Device");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0A:
+        switch (subpage)
+        {
+        case 0x00://control
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control");
+            break;
+        case 0x01://control extension
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Extension");
+            break;
+        case 0x02://application tag
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Application Tag");
+            break;
+        case 0x03://command duration limit A
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit A");
+            break;
+        case 0x04://command duration limit B
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit B");
+            break;
+        case 0x05://IO Advice Hints Grouping
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "IO Advice Hints Grouping");
+            break;
+        case 0x06://Background Operation Control
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Operation Control");
+            break;
+        case 0xF0://Control Data Protection
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Data Protection");
+            break;
+        case 0xF1://PATA Control
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "PATA Control");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0B:
+        switch (subpage)
+        {
+        case 0x00://Medium Types Supported
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Types Supported");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0C:
+        switch (subpage)
+        {
+        case 0x00://notch and partition
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Notch And Partition");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0D:
+        switch (subpage)
+        {
+        case 0x00://Power Condition (direct accessblock device) or CD Device Parameters
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
+                break;
+            case PERIPHERAL_CD_DVD_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Device Parameters");
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0E:
+        switch (subpage)
+        {
+        case 0x00://CD Audio Control
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Audio Control");
+            break;
+        case 0x01://Target Device
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device");
+            break;
+        case 0x02://DT Device Primary Port
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "DT Devuce Primary Port");
+            break;
+        case 0x03://Logical Unit
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Unit");
+            break;
+        case 0x04://Target Device Serial Number
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device Serial Number");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0F:
+        switch (subpage)
+        {
+        case 0x00://Data Compression
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Data Compression");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x10:
+        switch (subpage)
+        {
+        case 0x00://XOR Control (direct access) OR Device configuration (tape)
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "XOR Control");
+                break;
+            case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration");
+                break;
+            default:
+                break;
+            }
+        case 0x01://Device Configuration Extension
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration Extension");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x11:
+        switch (subpage)
+        {
+        case 0x00://Medium Partition (1)
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Partition (1)");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+        //12h and 13h are in the SPC5 annex, but not named...skipping
+    case 0x14:
+        switch (subpage)
+        {
+        case 0x00://enclosure services management
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Enclosure Services Management");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x15://Extended
+        //all subpages
+        sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Extended - %" PRIu8, subpage);
+        break;
+    case 0x16://Extended Device-Type specific
+        //all subpages
+        sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Extended Device Type Specific - %" PRIu8, subpage);
+        break;
+        //17h is in spec, but not named
+    case 0x18://protocol specific logical unit
+        sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Logical Unit - %" PRIu8, subpage); 
+        break;
+    case 0x19://protocol specific port
+        sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Port - %" PRIu8, subpage);
+        break;
+    case 0x1A:
+        switch (subpage)
+        {
+        case 0x00://Power Condition
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
+            break;
+        case 0x01://Power Consumption
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Consumption");
+            break;
+        case 0xF1://ATA Power Condition
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "ATA Power Condition");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1B:
+        switch (subpage)
+        {
+        case 0x00://LUN Mapping
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "LUN Mapping");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1C:
+        switch (subpage)
+        {
+        case 0x00://Varies on name depending on device type. All related to failure reporting though!!!
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+            case PERIPHERAL_OPTICAL_MEMORY_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control");
+                break;
+            case PERIPHERAL_CD_DVD_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Fault/Failure Reporting");
+                break;
+            case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
+            case PERIPHERAL_AUTOMATION_DRIVE_INTERFACE:
+            case PERIPHERAL_MEDIUM_CHANGER_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control (Tape)");
+                break;
+            default:
+                break;
+            }
+            break;
+        case 0x01://background control
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Control");
+            break;
+        case 0x02://logical block provisioning
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Block Provisioning");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1D:
+        switch (subpage)
+        {
+        case 0x00://varies depending on device type
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_CD_DVD_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "C/DVD Time-Out And Protect");
+                break;
+            case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Configuration");
+                break;
+            case PERIPHERAL_MEDIUM_CHANGER_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Element Address Assignments");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1E:
+        switch (subpage)
+        {
+        case 0x00://transport geometry parameters
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Transport Geometry Parameters");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1F:
+        switch (subpage)
+        {
+        case 0x00://device capabilities
+            sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Capabilities");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x2A:
+        switch (subpage)
+        {
+        case 0x00://CD Capabilities and Mechanical Status - CD-DVD
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_CD_DVD_DEVICE:
+                sprintf_s(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Capabilities and Mechanical Status");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    default:
+        //unknown
+        break;
+    }
+}
+
 //this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
-void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
+void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer) 
 {
     if (modeData && modeDataLen > 2)
     {
@@ -1500,11 +1935,44 @@ void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageContr
                 break;
             }
         }
+        //before going further, check if we have a page name to lookup and printout to adjust the size for
+        char pageName[SCSI_MODE_PAGE_NAME_MAX_LENGTH] = { 0 };
+        get_SCSI_MP_Name(0/*TODO: Need to handle multiple device types!*/, pageNumber, subpage, pageName);
+        if (equalsLengthToPrint < strlen(pageName) + 6) //name will go too far over the end, need to enlarge
+        {
+            //the equals length should be enlarged for this!!!
+            equalsLengthToPrint = strlen(pageName) + 6;
+            if (pageNumber >= 0x10)
+            {
+                equalsLengthToPrint += 3;
+            }
+            else
+            {
+                equalsLengthToPrint += 2;
+            }
+            if (subpage > 0)
+            {
+                equalsLengthToPrint += 3;
+                if (subpage >= 0x10)
+                {
+                    equalsLengthToPrint += 3;
+                }
+                else
+                {
+                    equalsLengthToPrint += 2;
+                }
+            }
+            equalsLengthToPrint += 2;//for space at beginning and end
+        }
         printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
         printf(" Page %" PRIX8 "h", pageNumber);
         if (subpage != 0)
         {
             printf(" - %" PRIX8 "h", subpage);
+        }
+        if (strlen(pageName) > 0)
+        {
+            printf(" %s", pageName);
         }
         printf("\n");
         switch (mpc)
@@ -1653,7 +2121,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                         currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
                     }
                     //now print the page out!
-                    print_Mode_Page(&modeData[offset], currentPageLength, mpc, false);
+                    print_Mode_Page(&modeData[offset], currentPageLength, mpc, true);
                 }
             }
             safe_Free(modeData);
