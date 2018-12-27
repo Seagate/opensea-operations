@@ -2185,3 +2185,12 @@ void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage
         }
     }
 }
+
+int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges)
+{
+    int ret = NOT_SUPPORTED;
+    //TODO: should we check the SCSI version to see if it's SPC4 or later??? Or just let the drive return an error?
+    ret = scsi_Log_Select_Cmd(device, true, saveChanges, pageControl, logPage, logSubPage, 0, NULL, 0);
+
+    return ret;
+}
