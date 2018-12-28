@@ -28,7 +28,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         uint32_t dataLength = 8;
         uint8_t *defectData = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
         uint32_t defectListLength = 0;
-        if (device->drive_info.scsiVersion > 2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
         {
             gotDefectData = true;
             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
@@ -778,15 +778,15 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
             operationCode = READ_LONG_16;
             dataLength = 16;
         }
-        if (device->drive_info.scsiVersion >= 5)
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
         {
             dataLength += 4;
         }
-        else if (device->drive_info.scsiVersion >= 3 && device->drive_info.scsiVersion < 5)
+        else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3)
         {
             dataLength += 6;
         }
-        if (device->drive_info.scsiVersion >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, operationCode, 0, dataLength, commandSupportInformation))
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, operationCode, 0, dataLength, commandSupportInformation))
         {
             reportSuccess = true;
             switch (commandSupportInformation[1] & 0x07)
@@ -802,7 +802,7 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
                 break;
             }
         }
-        else if (device->drive_info.scsiVersion >= 3 && device->drive_info.scsiVersion < 5 && SUCCESS == scsi_Inquiry(device, commandSupportInformation, dataLength, operationCode, false, true))
+        else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3 && SUCCESS == scsi_Inquiry(device, commandSupportInformation, dataLength, operationCode, false, true))
         {
             reportSuccess = true;
             switch (commandSupportInformation[1] & 0x07)

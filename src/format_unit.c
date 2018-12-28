@@ -22,7 +22,7 @@ bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
     {
         *fastFormatSupported = false;//make sure this defaults to false
     }
-    if (device->drive_info.scsiVersion >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, 1, SCSI_FORMAT_UNIT_CMD, 0, 10, formatSupportData))
+    if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, 1, SCSI_FORMAT_UNIT_CMD, 0, 10, formatSupportData))
     {
         //uint16_t cdbSize = M_BytesTo2ByteValue(formatSupportData[2], formatSupportData[3]);
         uint8_t supportField = formatSupportData[1] & 0x07;//only need bits 2:0

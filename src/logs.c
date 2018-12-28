@@ -368,7 +368,7 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     bool sixByte = false;
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
-    if (device->drive_info.scsiVersion < 2)
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2)
     {
         sixByte = true;
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -431,7 +431,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
     bool sixByte = false;
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
-    if (device->drive_info.scsiVersion < 2)
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2)
     {
         sixByte = true;
     }

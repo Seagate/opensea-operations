@@ -163,7 +163,7 @@ int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported 
 int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
 {
     int                         ret = NOT_SUPPORTED;
-    if (device->drive_info.scsiVersion >= 5)//check for this version of SPC first since the report supported Operation codes and Sanitize command should only be on drives with this version or highter.
+    if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)//check for this version of SPC first since the report supported Operation codes and Sanitize command should only be on drives with this version or highter.
     {
         uint8_t supportedCommands[14] = { 0 };
         ret = FAILURE;

@@ -1109,7 +1109,7 @@ int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsig
 bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device)
 {
     bool supported = false;
-    if (device->drive_info.scsiVersion >= 2)//VPD added in SCSI2
+    if (device->drive_info.scsiVersion >= SCSI_VERSION_SCSI2)//VPD added in SCSI2
     {
         uint8_t extendedInquiryData[VPD_EXTENDED_INQUIRY_LEN] = { 0 };
         if (SUCCESS == scsi_Inquiry(device, extendedInquiryData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
@@ -2186,10 +2186,48 @@ void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage
     }
 }
 
+//if yes, a page and subpage can be provided when doing a log page reset
+bool reset_Specific_Mode_Page_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
+    {
+        uint8_t supportData[14] = { 0 };
+        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, 1, LOG_SELECT_CMD, 0, 14, supportData))
+        {
+            uint8_t support = M_GETBITRANGE(supportData[1], 2, 0);
+            uint16_t cdbSize = M_BytesTo2ByteValue(supportData[2], supportData[3]);
+            uint8_t offset = 4;
+            switch (support)
+            {
+            case 0x03://supports in conformance with a scsi standard
+                //check the CDB usage data to see if we can set a page code or subpage code
+                if (cdbSize > 0)
+                {
+                    if (M_GETBITRANGE(supportData[offset + 2], 5, 0) > 0 && supportData[offset + 3] > 0)
+                    {
+                        supported = true;
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return supported;
+}
+
 int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges)
 {
     int ret = NOT_SUPPORTED;
-    //TODO: should we check the SCSI version to see if it's SPC4 or later??? Or just let the drive return an error?
+    if (logPage || logSubPage)
+    {
+        if (!reset_Specific_Mode_Page_Supported(device))
+        {
+            return BAD_PARAMETER;//cannot reset a specific page on this device
+        }
+    }
     ret = scsi_Log_Select_Cmd(device, true, saveChanges, pageControl, logPage, logSubPage, 0, NULL, 0);
 
     return ret;
