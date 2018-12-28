@@ -1463,6 +1463,7 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
 //TODO: this doesn't take into account some pages being device type specific. It does try for page 1Ch an 1Dh
 void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char *mpName)
 {
+    scsiDeviceType = M_GETBITRANGE(scsiDeviceType, 4, 0);//strip off the qualifier if it was passed
     switch (modePage)
     {
     case 0x00://vendor unique
@@ -1895,7 +1896,7 @@ void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage,
 }
 
 //this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
-void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer) 
+void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
 {
     if (modeData && modeDataLen > 2)
     {
@@ -1937,7 +1938,7 @@ void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageContr
         }
         //before going further, check if we have a page name to lookup and printout to adjust the size for
         char pageName[SCSI_MODE_PAGE_NAME_MAX_LENGTH] = { 0 };
-        get_SCSI_MP_Name(0/*TODO: Need to handle multiple device types!*/, pageNumber, subpage, pageName);
+        get_SCSI_MP_Name(scsiPeripheralDeviceType, pageNumber, subpage, pageName);
         if (equalsLengthToPrint < strlen(pageName) + 6) //name will go too far over the end, need to enlarge
         {
             //the equals length should be enlarged for this!!!
@@ -2004,7 +2005,7 @@ void print_Mode_Page(uint8_t* modeData, uint32_t modeDataLen, eScsiModePageContr
             for (uint16_t iter = 0; iter < M_Min(pageLength, modeDataLen); ++iter)
             {
                 printf("%02" PRIX8, modeData[iter]);
-                if ((iter + UINT16_C(1)) < M_Min(pageLength, modeDataLen))
+                if ((uint32_t)(iter + UINT16_C(1)) < M_Min(pageLength, modeDataLen))
                 {
                     printf(" ");
                 }
@@ -2121,7 +2122,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                         currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
                     }
                     //now print the page out!
-                    print_Mode_Page(&modeData[offset], currentPageLength, mpc, true);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[offset], currentPageLength, mpc, true);
                 }
             }
             safe_Free(modeData);
@@ -2130,7 +2131,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         {
             //not supported (SATL most likely)
             uint8_t modeData[2] = { modePage , subpage };
-            print_Mode_Page(modeData, 2, mpc, false);
+            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, false);
         }
     }
     else
@@ -2149,12 +2150,12 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
             {
                 if (used6ByteCmd)
                 {
-                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc, false);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc, false);
                 }
                 else
                 {
                     uint16_t blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
-                    print_Mode_Page(&modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, false);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, false);
                 }
             }
         }
@@ -2162,7 +2163,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         {
             //not supported (SATL most likely)
             uint8_t modeData[2] = { modePage , subpage };
-            print_Mode_Page(modeData, 2, mpc, false);
+            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, false);
         }
     }
 }
