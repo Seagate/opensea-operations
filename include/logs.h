@@ -551,6 +551,8 @@ extern "C" {
     //  Entry:
     //!   \param[in] device = poiner to a valid device structure with a device handle
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
+    //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
+    //!                Any other value will specify a transfer size to use to pull SM2. On ATA, this must be a multiple of 512Bytes
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
