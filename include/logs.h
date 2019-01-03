@@ -560,6 +560,20 @@ extern "C" {
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
 
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
+    //-----------------------------------------------------------------------------
+    //
+    //  is_FARM_Log_Supported(tDevice *device);
+    //
+    //! \brief   Description: This function check's if the Seagate FARM log is supported
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(tDevice *device);
+
 
 #if defined(__cplusplus)
 }
