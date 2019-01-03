@@ -1934,142 +1934,27 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
     return ret;
 }
 
-//Linga starts here
-
-/*
-
-int get_ctrl_tele(tDevice *device)
+bool is_FARM_Log_Supported(tDevice *device)
 {
-    const char *desc = "Capture the Telemetry Controller-Initiated Data in either "\
-        "hex-dump (default) or binary format";
-    const char *namespace_id = "desired namespace";
-    const char *raw_binary = "output in raw format";
-    int err, fd, dump_fd;
-    struct nvme_temetry_log_hdr tele_log;
-    __le64  offset = 0;
-    U16 log_id;
-    int blkCnt, maxBlk = 0, blksToGet;
-    unsigned char  *log;
-
-    struct config {
-        uint32_t  namespace_id;
-        int   raw_binary;
-    };
-
-    struct config cfg = {
-        .namespace_id = 0xffffffff,
-    };
-
-    const struct argconfig_commandline_options command_line_options[] = {
-        {"namespace-id", 'n', "NUM", CFG_POSITIVE, &cfg.namespace_id, required_argument, namespace_id},
-        {"raw-binary",   'b', "",    CFG_NONE,     &cfg.raw_binary,   no_argument,       raw_binary},
-        {NULL}
-    };
-
-    fd = parse_and_open(argc, argv, desc, command_line_options, &cfg, sizeof(cfg));
-    if (fd < 0)
-        return fd;
-
-    dump_fd = STDOUT_FILENO;
-
-    log_id = 0x08;
-    err = nvme_get_log_with_offset(fd, cfg.namespace_id, log_id, sizeof(tele_log), offset, (void *)(&tele_log));
-    if (!err) {
-
-        maxBlk = tele_log.tele_data_area3;
-        offset += 512;
-
-        if (!cfg.raw_binary) {
-            printf("Device:%s namespace-id:%#x\n",
-                   devicename, cfg.namespace_id);
-            printf("Data Block 1 Last Block:%d Data Block 2 Last Block:%d Data Block 3 Last Block:%d\n",
-                   tele_log.tele_data_area1, tele_log.tele_data_area2, tele_log.tele_data_area3);
-
-            d((unsigned char *)(&tele_log), sizeof(tele_log), 16, 1);
-        } else
-            seaget_d_raw((unsigned char *)(&tele_log), sizeof(tele_log), dump_fd);
-    } else if (err > 0)
-        fprintf(stderr, "NVMe Status:%s(%x)\n",
-                    nvme_status_to_string(err), err);
-    else
-        perror("log page");
-
-    blkCnt = 0;
-
-    while(blkCnt < maxBlk) 
-    {
-        blksToGet = ((maxBlk - blkCnt) >= TELEMETRY_BLOCKS_TO_READ) ? TELEMETRY_BLOCKS_TO_READ : (maxBlk - blkCnt);
-
-        if(blksToGet == 0) {
-            return err;
-        }
-
-        log = malloc(blksToGet * 512);
-
-        if (!log) {
-            fprintf(stderr, "could not alloc buffer for log\n");
-            return EINVAL;
-        }
-
-        memset(log, 0, blksToGet * 512);
-
-        err = nvme_get_log_with_offset(fd, cfg.namespace_id, log_id, blksToGet * 512, offset, (void *)log);
-        if (!err) {
-            offset += blksToGet * 512;
-
-            if (!cfg.raw_binary) {
-                printf("\nBlock # :%d to %d\n", blkCnt + 1, blkCnt + blksToGet);
-
-                d((unsigned char *)log, blksToGet * 512, 16, 1);
-            } else
-                seaget_d_raw((unsigned char *)log, blksToGet * 512, dump_fd);
-        } else if (err > 0)
-            fprintf(stderr, "NVMe Status:%s(%x)\n",
-                        nvme_status_to_string(err), err);
-        else
-            perror("log page");
-
-        blkCnt += blksToGet;
-
-        free(log);
-    }
-
-#if 0
-    log = malloc(512);
-    
-    if (!log) {
-        fprintf(stderr, "could not alloc buffer for log\n");
-        return EINVAL;
-    }
-
-    for(blkCnt = 0; blkCnt < maxBlk; blkCnt++) 
-    {
-        memset(log, 0, 512);
-        err = nvme_get_log_with_offset(fd, cfg.namespace_id, log_id, 512, offset, (void *)log);
-        if (!err) {
-            offset += 512;
-
-            if (!cfg.raw_binary) {
-                printf("\nBlock # :%d\n", blkCnt + 1);
-
-                d((unsigned char *)log, 512, 16, 1);
-            } else
-                d_raw((unsigned char *)log, 512);
-        } else if (err > 0)
-            fprintf(stderr, "NVMe Status:%s(%x)\n",
-                        nvme_status_to_string(err), err);
-        else
-            perror("log page");
-    }
-
-    free(log);
+    bool supported = false;
+    uint32_t logSize = 0;
+#ifdef _DEBUG
+    printf("%s -->\n",__FUNCTION__);
 #endif
-    return err;
+
+    if ( (device->drive_info.drive_type == ATA_DRIVE) && (get_ATA_Log_Size(device, 0xA6, &logSize, true, false) == SUCCESS) )
+    {
+        supported = true;
+    }
+    else if ( (device->drive_info.drive_type == SCSI_DRIVE) && ( get_SCSI_Log_Size(device, 0x3D, 0x03, &logSize) == SUCCESS) )
+    {
+        supported = true;
+    }
+    //else currently not supported on NVMe. 
+#ifdef _DEBUG
+    printf("%s <-- (%d)\n",__FUNCTION__, supported);
+#endif
+
+    return supported;
 
 }
-
-void seaget_d_raw(unsigned char *buf, int len, int fd)
-{
-
-    write(fd, (void *)buf, len);
-} */

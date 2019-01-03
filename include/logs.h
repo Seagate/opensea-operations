@@ -557,6 +557,20 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  is_FARM_Log_Supported(tDevice *device);
+    //
+    //! \brief   Description: This function check's if the Seagate FARM log is supported
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(tDevice *device);
+
 
 #if defined(__cplusplus)
 }
