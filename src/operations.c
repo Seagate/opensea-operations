@@ -2122,7 +2122,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                         currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
                     }
                     //now print the page out!
-                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[offset], currentPageLength, mpc, true);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[offset], currentPageLength, mpc, false);
                 }
             }
             safe_Free(modeData);
