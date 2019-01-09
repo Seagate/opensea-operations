@@ -7088,6 +7088,7 @@ char * print_drive_type(tDevice *device)
 }
 
 #if !defined(DISABLE_NVME_PASSTHROUGH)
+#if 0
 int print_Nvme_Ctrl_Information(tDevice *device)
 {
     int ret = UNKNOWN;
@@ -7225,4 +7226,5 @@ int print_Nvme_Ctrl_Information(tDevice *device)
     return ret;
 
 }
+#endif
 #endif
