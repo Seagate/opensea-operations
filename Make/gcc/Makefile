@@ -1,7 +1,7 @@
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012 - 2019 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,13 +23,13 @@ PATCH=0
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-common/include -I../../../SeaCTCG/include
-CC=gcc
-AR=ar
+CC ?= gcc
+AR ?= ar
 #override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
 CFLAGS ?= -Wall 
 CFLAGS += -c -fPIC -I. -std=gnu99
 
-LFLAGS = -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
+LFLAGS ?= -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
 LIB_SRC_FILES = \
 	$(SRC_DIR)ata_Security.c \
 	$(SRC_DIR)dst.c \
