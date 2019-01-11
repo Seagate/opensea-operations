@@ -1916,16 +1916,16 @@ void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32
             switch (mpc)
             {
             case MPC_CURRENT_VALUES:
-                equalsLengthToPrint += strlen(" Current Values");
+                equalsLengthToPrint += (int)strlen(" Current Values");
                 break;
             case MPC_CHANGABLE_VALUES:
-                equalsLengthToPrint += strlen(" Changable Values");
+                equalsLengthToPrint += (int)strlen(" Changable Values");
                 break;
             case MPC_DEFAULT_VALUES:
-                equalsLengthToPrint += strlen(" Default Values");
+                equalsLengthToPrint += (int)strlen(" Default Values");
                 break;
             case MPC_SAVED_VALUES:
-                equalsLengthToPrint += strlen(" Saved Values");
+                equalsLengthToPrint += (int)strlen(" Saved Values");
                 if (subpage > 0)
                 {
                     ++equalsLengthToPrint;
@@ -1939,10 +1939,10 @@ void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32
         //before going further, check if we have a page name to lookup and printout to adjust the size for
         char pageName[SCSI_MODE_PAGE_NAME_MAX_LENGTH] = { 0 };
         get_SCSI_MP_Name(scsiPeripheralDeviceType, pageNumber, subpage, pageName);
-        if (equalsLengthToPrint < strlen(pageName) + 6) //name will go too far over the end, need to enlarge
+        if (equalsLengthToPrint < (int)strlen(pageName) + 6) //name will go too far over the end, need to enlarge
         {
             //the equals length should be enlarged for this!!!
-            equalsLengthToPrint = strlen(pageName) + 6;
+            equalsLengthToPrint = (int)strlen(pageName) + 6;
             if (pageNumber >= 0x10)
             {
                 equalsLengthToPrint += 3;
@@ -2027,16 +2027,16 @@ void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            equalsLengthToPrint += strlen(" Current Values");
+            equalsLengthToPrint += (int)strlen(" Current Values");
             break;
         case MPC_CHANGABLE_VALUES:
-            equalsLengthToPrint += strlen(" Changable Values");
+            equalsLengthToPrint += (int)strlen(" Changable Values");
             break;
         case MPC_DEFAULT_VALUES:
-            equalsLengthToPrint += strlen(" Default Values");
+            equalsLengthToPrint += (int)strlen(" Default Values");
             break;
         case MPC_SAVED_VALUES:
-            equalsLengthToPrint += strlen(" Saved Values");
+            equalsLengthToPrint += (int)strlen(" Saved Values");
             if (subpage > 0)
             {
                 ++equalsLengthToPrint;
