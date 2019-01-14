@@ -381,9 +381,9 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode);
 
-    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc);
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput);
 
-    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage);
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput);
 
     //Should this go into a different file???
     OPENSEA_OPERATIONS_API int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.

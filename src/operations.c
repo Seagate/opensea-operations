@@ -2076,7 +2076,7 @@ void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32
 }
 
 //shows a single mode page for the selected control(current, saved, changable, default)
-void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc)
+void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput)
 {
     uint32_t modePageLength = 0;
     if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)//if asking for all mode pages, all mode pages and subpages, or all subpages of a specific page, we need to handle it in here.
@@ -2121,7 +2121,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                         currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
                     }
                     //now print the page out!
-                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[offset], currentPageLength, mpc, false);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[offset], currentPageLength, mpc, bufferFormatOutput);
                 }
             }
             safe_Free(modeData);
@@ -2130,7 +2130,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         {
             //not supported (SATL most likely)
             uint8_t modeData[2] = { modePage , subpage };
-            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, false);
+            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
         }
     }
     else
@@ -2149,12 +2149,12 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
             {
                 if (used6ByteCmd)
                 {
-                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc, false);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc, bufferFormatOutput);
                 }
                 else
                 {
                     uint16_t blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
-                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, false);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, bufferFormatOutput);
                 }
             }
         }
@@ -2162,14 +2162,14 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         {
             //not supported (SATL most likely)
             uint8_t modeData[2] = { modePage , subpage };
-            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, false);
+            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
         }
     }
 }
 
 //shows all mpc values for a given page.
 //should we return an error when asking for all mode pages since that output will otherwise be really messy???
-void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage)
+void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput)
 {
     //if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)
     //{
@@ -2181,7 +2181,7 @@ void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage
         eScsiModePageControl mpc = MPC_CURRENT_VALUES;//will be incremented through a loop
         for (; mpc <= MPC_SAVED_VALUES; ++mpc)
         {
-            show_SCSI_Mode_Page(device, modePage, subpage, mpc);
+            show_SCSI_Mode_Page(device, modePage, subpage, mpc, bufferFormatOutput);
         }
     }
 }
