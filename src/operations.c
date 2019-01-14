@@ -2187,7 +2187,7 @@ void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage
 }
 
 //if yes, a page and subpage can be provided when doing a log page reset
-bool reset_Specific_Mode_Page_Supported(tDevice *device)
+bool reset_Specific_Log_Page_Supported(tDevice *device)
 {
     bool supported = false;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
@@ -2223,7 +2223,7 @@ int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8
     int ret = NOT_SUPPORTED;
     if (logPage || logSubPage)
     {
-        if (!reset_Specific_Mode_Page_Supported(device))
+        if (!reset_Specific_Log_Page_Supported(device))
         {
             return BAD_PARAMETER;//cannot reset a specific page on this device
         }
