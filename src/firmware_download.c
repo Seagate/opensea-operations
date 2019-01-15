@@ -763,9 +763,17 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             }
             else
             {
-                //assume 512B boundaries
-                supportedModes->driveOffsetBoundaryInBytes = LEGACY_DRIVE_SEC_SIZE;
-                supportedModes->driveOffsetBoundary = 9;
+                //assume 512B boundaries unless vendor ID is NVMe, in which case assume 4k
+                if (strncmp(device->drive_info.T10_vendor_ident, "NVMe", 4) == 0)
+                {
+                    supportedModes->driveOffsetBoundaryInBytes = UINT32_C(4096);
+                    supportedModes->driveOffsetBoundary = 12;
+                }
+                else
+                {   
+                    supportedModes->driveOffsetBoundaryInBytes = LEGACY_DRIVE_SEC_SIZE;
+                    supportedModes->driveOffsetBoundary = 9;
+                }
             }
 
             //The code below is Seagate specific...should this be in Seagate Operations? - TJE
