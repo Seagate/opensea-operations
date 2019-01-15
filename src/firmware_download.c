@@ -467,79 +467,129 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             //first try asking for supported operation code for Full Buffer download
             if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE, 14, writeBufferSupportData))
             {
-                supportedModes->downloadMicrocodeSupported = true;
-                supportedModes->fullBuffer = true;
+                switch (writeBufferSupportData[1] & 0x07)
+                {
+                case 0: //not available right now...so not supported
+                case 1://not supported
+                    break;
+                case 3://supported according to spec
+                case 5://supported in vendor specific mannor in same format as case 3
+                    supportedModes->downloadMicrocodeSupported = true;
+                    supportedModes->fullBuffer = true;
+                    break;
+                default:
+                    break;
+                }
                 //if this worked, then we know we can ask about other supported operation codes.
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_ACTIVATE, 14, writeBufferSupportData))
                 {
-                    supportedModes->segmented = true;
-                    supportedModes->recommendedSegmentSize = 64;
-                    //set the min/max segment size from the cmd information bitfield
-                    uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF) || length == 0)
+                    switch (writeBufferSupportData[1] & 0x07)
                     {
-                        supportedModes->maxSegmentSize = UINT32_MAX;
-                        supportedModes->minSegmentSize = 0;
-                    }
-                    else
-                    {
-                        supportedModes->maxSegmentSize = length;
-                        //the minimum is the lowest non-zero bit
-                        uint32_t counter = 0;
-                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
-                        {
-                            length = length >> 1;
-                            ++counter;
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        {   
+                            supportedModes->segmented = true;
+                            supportedModes->recommendedSegmentSize = 64;
+                            //set the min/max segment size from the cmd information bitfield
+                            uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
+                            if (length == UINT32_C(0xFFFFFF) || length == 0)
+                            {
+                                supportedModes->maxSegmentSize = UINT32_MAX;
+                                supportedModes->minSegmentSize = 0;
+                            }
+                            else
+                            {
+                                supportedModes->maxSegmentSize = length;
+                                //the minimum is the lowest non-zero bit
+                                uint32_t counter = 0;
+                                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                                {
+                                    length = length >> 1;
+                                    ++counter;
+                                }
+                                supportedModes->minSegmentSize = 1 << counter;
+                            }
                         }
-                        supportedModes->minSegmentSize = 1 << counter;
+                        break;
+                    default:
+                        break;
                     }
                 }
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_DEFER, 14, writeBufferSupportData))
                 {
-                    supportedModes->deferred = true;
-                    supportedModes->recommendedSegmentSize = 64;
-                    //set the min/max segment size from the cmd information bitfield
-                    uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF) || length == 0)
+                    switch (writeBufferSupportData[1] & 0x07)
                     {
-                        supportedModes->maxSegmentSize = UINT32_MAX;
-                        supportedModes->minSegmentSize = 0;
-                    }
-                    else
-                    {
-                        supportedModes->maxSegmentSize = length;
-                        //the minimum is the lowest non-zero bit
-                        uint32_t counter = 0;
-                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
                         {
-                            length = length >> 1;
-                            ++counter;
+                            supportedModes->deferred = true;
+                            supportedModes->recommendedSegmentSize = 64;
+                            //set the min/max segment size from the cmd information bitfield
+                            uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
+                            if (length == UINT32_C(0xFFFFFF) || length == 0)
+                            {
+                                supportedModes->maxSegmentSize = UINT32_MAX;
+                                supportedModes->minSegmentSize = 0;
+                            }
+                            else
+                            {
+                                supportedModes->maxSegmentSize = length;
+                                //the minimum is the lowest non-zero bit
+                                uint32_t counter = 0;
+                                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                                {
+                                    length = length >> 1;
+                                    ++counter;
+                                }
+                                supportedModes->minSegmentSize = 1 << counter;
+                            }
                         }
-                        supportedModes->minSegmentSize = 1 << counter;
+                        break;
+                    default:
+                        break;
                     }
                 }
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_SELECT_ACTIVATE_DEFER, 14, writeBufferSupportData))
                 {
-                    supportedModes->deferredSelectActivation = true;
-                    supportedModes->recommendedSegmentSize = 64;
-                    //set the min/max segment size from the cmd information bitfield
-                    uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF) || length == 0)
+                    switch (writeBufferSupportData[1] & 0x07)
                     {
-                        supportedModes->maxSegmentSize = UINT32_MAX;
-                        supportedModes->minSegmentSize = 0;
-                    }
-                    else
-                    {
-                        supportedModes->maxSegmentSize = length;
-                        //the minimum is the lowest non-zero bit
-                        uint32_t counter = 0;
-                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
                         {
-                            length = length >> 1;
-                            ++counter;
+                            supportedModes->deferredSelectActivation = true;
+                            supportedModes->recommendedSegmentSize = 64;
+                            //set the min/max segment size from the cmd information bitfield
+                            uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
+                            if (length == UINT32_C(0xFFFFFF) || length == 0)
+                            {
+                                supportedModes->maxSegmentSize = UINT32_MAX;
+                                supportedModes->minSegmentSize = 0;
+                            }
+                            else
+                            {
+                                supportedModes->maxSegmentSize = length;
+                                //the minimum is the lowest non-zero bit
+                                uint32_t counter = 0;
+                                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                                {
+                                    length = length >> 1;
+                                    ++counter;
+                                }
+                                supportedModes->minSegmentSize = 1 << counter;
+                            }
                         }
-                        supportedModes->minSegmentSize = 1 << counter;
+                        break;
+                    default:
+                        break;
                     }
                 }
                 //read the ext inquiry data for supported deferred activation events
@@ -567,38 +617,54 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, WRITE_BUFFER_CMD, 0, 14, writeBufferSupportData))
                 {
                     supportedModes->scsiInfoPossiblyIncomplete = true;
-                    //try to look at the mode bit field and determine which modes are supported...
-                    uint8_t mode = writeBufferSupportData[5] & 0x1F;//byte 1 of the write buffer cdb itself
-                    if ((mode & 0x07) == 0x07)
+                    bool writeBufferCmdSupported = false;
+                    switch (writeBufferSupportData[1] & 0x07)
                     {
-                        //full and segmented supported
-                        supportedModes->downloadMicrocodeSupported = true;
-                        supportedModes->fullBuffer = true;
-                        supportedModes->segmented = true;
-                        supportedModes->recommendedSegmentSize = 64;
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        writeBufferCmdSupported = true;
+                        break;
+                    default:
+                        break;
                     }
-                    else if (mode & BIT2) //we'll just say full only...no really good way to do this honestly
+                    if (writeBufferCmdSupported)
                     {
-                        supportedModes->downloadMicrocodeSupported = true;
-                        supportedModes->fullBuffer = true;
-                    }
-                    uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
-                    if (length == UINT32_C(0xFFFFFF) || length == 0)
-                    {
-                        supportedModes->maxSegmentSize = UINT32_MAX;
-                        supportedModes->minSegmentSize = 0;
-                    }
-                    else
-                    {
-                        supportedModes->maxSegmentSize = length;
-                        //the minimum is the lowest non-zero bit
-                        uint32_t counter = 0;
-                        while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                        //try to look at the mode bit field and determine which modes are supported...
+                        uint8_t mode = writeBufferSupportData[5] & 0x1F;//byte 1 of the write buffer cdb itself
+                        if ((mode & 0x07) == 0x07)
                         {
-                            length = length >> 1;
-                            ++counter;
+                            //full and segmented supported
+                            supportedModes->downloadMicrocodeSupported = true;
+                            supportedModes->fullBuffer = true;
+                            supportedModes->segmented = true;
+                            supportedModes->recommendedSegmentSize = 64;
                         }
-                        supportedModes->minSegmentSize = 1 << counter;
+                        else if (mode & BIT2) //we'll just say full only...no really good way to do this honestly
+                        {
+                            supportedModes->downloadMicrocodeSupported = true;
+                            supportedModes->fullBuffer = true;
+                        }
+                        uint32_t length = M_BytesTo4ByteValue(0, writeBufferSupportData[10], writeBufferSupportData[11], writeBufferSupportData[12]);
+                        if (length == UINT32_C(0xFFFFFF) || length == 0)
+                        {
+                            supportedModes->maxSegmentSize = UINT32_MAX;
+                            supportedModes->minSegmentSize = 0;
+                        }
+                        else
+                        {
+                            supportedModes->maxSegmentSize = length;
+                            //the minimum is the lowest non-zero bit
+                            uint32_t counter = 0;
+                            while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                            {
+                                length = length >> 1;
+                                ++counter;
+                            }
+                            supportedModes->minSegmentSize = 1 << counter;
+                        }
                     }
                 }
                 else
