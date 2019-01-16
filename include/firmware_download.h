@@ -32,6 +32,7 @@ extern "C"
             uint8_t firmwareSlot;//NVMe
             uint8_t bufferID;//SCSI
         };
+        bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
 	} firmwareUpdateData;
     //-----------------------------------------------------------------------------
     //
