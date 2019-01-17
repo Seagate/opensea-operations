@@ -34,7 +34,6 @@ int read_Write_Seek_Command(tDevice *device, eRWVCommandType rwvCommand, uint64_
 
 int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
-    char message[MAX_JSON_MSG] = { 0 };
     int ret = SUCCESS;
     uint64_t lbaIter = startingLBA;
     uint64_t maxSequentialLBA = startingLBA + range;
@@ -63,10 +62,6 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         if (range - startingLBA != 0)
         {
             progress = (int)(1.0 * (lbaIter - startingLBA) / (1.0 * (range - startingLBA)) * 100.0);
-            if (lastProgress != progress) 
-            {
-               SendJSONProgress (progress, updateFunction, updateData);
-            }
             lastProgress = progress;
         }
         //check that current LBA + sector count doesn't go beyond the maxLBA for the loop
@@ -94,20 +89,14 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
             switch (rwvCommand)
             {
             case RWV_COMMAND_WRITE: 
-                snprintf(message, MAX_JSON_MSG, "Writing LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-                SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-                printf("\r%s",message);
+                printf("\rWriting LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                 break;
             case RWV_COMMAND_READ:
-                snprintf(message, MAX_JSON_MSG, "Reading LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-                SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-                printf("\r%s",message);
+                printf("\rReading LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                 break;
             case RWV_COMMAND_VERIFY:
             default:
-                snprintf(message, MAX_JSON_MSG, "Verifying LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-                SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-                printf("\r%s",message);
+                printf("\rVerifying LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                 break;
             }
             fflush(stdout);
@@ -126,20 +115,14 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
                     switch (rwvCommand)
                     {
                     case RWV_COMMAND_WRITE: 
-                        snprintf(message, MAX_JSON_MSG, "Writing LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-                        SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-                        printf("\r%s",message);
+                        printf("\rWriting LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                         break;
                     case RWV_COMMAND_READ:
-                        snprintf(message, MAX_JSON_MSG, "Reading LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-                        SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-                        printf("\r%s",message);
+                        printf("\rReading LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                         break;
                     case RWV_COMMAND_VERIFY:
                     default:
-                        snprintf(message, MAX_JSON_MSG, "Verifying LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-                        SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-                        printf("\r%s",message);
+                        printf("\rVerifying LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                         break;
                     }
                     fflush(stdout);
@@ -164,20 +147,14 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         switch (rwvCommand)
         {
         case RWV_COMMAND_WRITE: 
-            snprintf(message, MAX_JSON_MSG, "Writing LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-            SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-            printf("\r%s",message);
+            printf("\rWriting LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
             break;
         case RWV_COMMAND_READ:
-            snprintf(message, MAX_JSON_MSG, "Reading LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-            SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-            printf("\r%s",message);
+            printf("\rReading LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
             break;
         case RWV_COMMAND_VERIFY:
         default:
-            snprintf(message, MAX_JSON_MSG, "Verifying LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
-            SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
-            printf("\r%s",message);
+            printf("\rVerifying LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
             break;
         }
         fflush(stdout);
@@ -219,7 +196,7 @@ int short_Generic_Write_Test(tDevice *device, custom_Update updateFunction, void
 int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
-    char message[MAX_JSON_MSG];
+    char message[256] = { 0 };
     uint16_t randomLBACount = 5000;
     uint64_t *randomLBAList = (uint64_t*)calloc(randomLBACount * sizeof(uint64_t),sizeof(uint64_t));
     uint64_t iterator = 0;
@@ -245,19 +222,18 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf(message, MAX_JSON_MSG, "Sequential Read Test at OD");
+            snprintf(message, 256, "Sequential Read Test at OD");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf(message, MAX_JSON_MSG, "Sequential Verify Test at OD");
+            snprintf(message, 256, "Sequential Verify Test at OD");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf(message, MAX_JSON_MSG, "Sequential Write Test at OD");
+            snprintf(message, 256, "Sequential Write Test at OD");
             break;
         default:
-            snprintf(message, MAX_JSON_MSG, "Unknown Sequential Test at OD");
+            snprintf(message, 256, "Unknown Sequential Test at OD");
             break;
         }
-        SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
         printf("%s for %"PRIu64" LBAs\n", message, onePercentOfDrive);
     }
     if (SUCCESS != sequential_RWV(device, rwvCommand, 0, onePercentOfDrive, sectorCount, &failingLBA, NULL, NULL, hideLBACounter))
@@ -268,19 +244,18 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, MAX_JSON_MSG, "Read failed within OD sequential read");
+                snprintf(message, 256, "Read failed within OD sequential read");
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, MAX_JSON_MSG, "Verify failed within OD sequential read");
+                snprintf(message, 256, "Verify failed within OD sequential read");
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, MAX_JSON_MSG, "Write failed within OD sequential read");
+                snprintf(message, 256, "Write failed within OD sequential read");
                 break;
             default:
-                snprintf(message, MAX_JSON_MSG, "Unknown failed within OD sequential read");
+                snprintf(message, 256, "Unknown failed within OD sequential read");
                 break;
             }
-            SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
             printf("\n%s\n",message);
         }
         safe_Free(randomLBAList);
@@ -296,19 +271,18 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf(message, MAX_JSON_MSG, "Sequential Read Test at ID");
+            snprintf(message, 256, "Sequential Read Test at ID");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf(message, MAX_JSON_MSG, "Sequential Verify Test at ID");
+            snprintf(message, 256, "Sequential Verify Test at ID");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf(message, MAX_JSON_MSG, "Sequential Write Test at ID");
+            snprintf(message, 256, "Sequential Write Test at ID");
             break;
         default:
-            snprintf(message, MAX_JSON_MSG, "Unknown Sequential Test at ID");
+            snprintf(message, 256, "Unknown Sequential Test at ID");
             break;
         }
-        SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
         printf("%s for %"PRIu64" LBAs\n", message, onePercentOfDrive);
     }
     if (SUCCESS != sequential_RWV(device, rwvCommand, device->drive_info.deviceMaxLba - onePercentOfDrive, onePercentOfDrive, sectorCount, &failingLBA, NULL, NULL, hideLBACounter))
@@ -319,19 +293,18 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, MAX_JSON_MSG, "Read failed within ID sequential read");
+                snprintf(message, 256, "Read failed within ID sequential read");
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, MAX_JSON_MSG, "Verify failed within ID sequential read");
+                snprintf(message, 256, "Verify failed within ID sequential read");
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, MAX_JSON_MSG, "Write failed within ID sequential read");
+                snprintf(message, 256, "Write failed within ID sequential read");
                 break;
             default:
-                snprintf(message, MAX_JSON_MSG, "Unknown failed within ID sequential read");
+                snprintf(message, 256, "Unknown failed within ID sequential read");
                 break;
             }
-           SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
             printf("\n%s\n",message);
         }
         safe_Free(randomLBAList);
@@ -347,19 +320,18 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf(message, MAX_JSON_MSG, "Random Read Test of 5000 LBAs");
+            snprintf(message, 256, "Random Read Test of 5000 LBAs");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf(message, MAX_JSON_MSG, "Random Verify Test of 5000 LBAs");
+            snprintf(message, 256, "Random Verify Test of 5000 LBAs");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf(message, MAX_JSON_MSG, "Random Write Test of 5000 LBAs");
+            snprintf(message, 256, "Random Write Test of 5000 LBAs");
             break;
         default:
-            snprintf(message, MAX_JSON_MSG, "Random Unknown Test of 5000 LBAs");
+            snprintf(message, 256, "Random Unknown Test of 5000 LBAs");
             break;
         }
-        SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
         printf("%s\n", message);
     }
     if (rwvCommand != RWV_COMMAND_VERIFY)
@@ -398,19 +370,18 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, MAX_JSON_MSG, "\nRead error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nRead error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, MAX_JSON_MSG, "\nVerify error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nVerify error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, MAX_JSON_MSG, "\nWrite error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nWrite error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
                 break;
             default:
-                snprintf(message, MAX_JSON_MSG, "\nUnknown error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nUnknown error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
                 break;
             }
-            SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
             printf("%s\n", message);
             ret = FAILURE;
             break;
@@ -1256,15 +1227,10 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
     innerLBA -= sectorCount;
     time(&startTime);//get the starting time before starting the loop
     double lastTime = 0.0;
-    SendJSONString (JSON_TEXT | JSON_LOG, "Butterfly Test in progress..", updateFunction, updateData);
     while ((lastTime = difftime(time(NULL), startTime)) < timeLimitSeconds)
     {
         int progress = 0, lastProgress = 0;
         progress = (int)((lastTime / timeLimitSeconds) * 100.0);
-        if (lastProgress != progress) 
-        {
-            SendJSONProgress (progress, updateFunction, updateData);
-        }
         lastProgress = progress;
 
         //read the outer lba
@@ -1385,29 +1351,10 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     seed_64(time(NULL));//start the seed for the random number generator
     time(&startTime);//get the starting time before starting the loop
     double lastTime = 0.0;
-    switch (rwvcommand)
-    {
-    case RWV_COMMAND_READ:
-        SendJSONString(JSON_TEXT, "Random Read Test in progress..", updateFunction, updateData);
-        break;
-    case RWV_COMMAND_WRITE:
-        SendJSONString(JSON_TEXT, "Random Write Test in progress..", updateFunction, updateData);
-        break;
-    case RWV_COMMAND_VERIFY:
-        SendJSONString(JSON_TEXT, "Random Verify Test in progress..", updateFunction, updateData);
-        break;
-    default:
-        SendJSONString(JSON_TEXT, "Random Unknown OP Test in progress..", updateFunction, updateData);
-        break;
-    }
     while ((lastTime = difftime(time(NULL), startTime)) < timeLimitSeconds)
     {
         int progress = 0, lastProgress = 0;
         progress = (int)((lastTime / timeLimitSeconds) * 100.0);
-        if (lastProgress != progress) 
-        {
-            SendJSONProgress (progress, updateFunction, updateData);
-        }
         lastProgress = progress;
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
