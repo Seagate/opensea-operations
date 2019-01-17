@@ -28,7 +28,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         uint32_t dataLength = 8;
         uint8_t *defectData = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
         uint32_t defectListLength = 0;
-        if (device->drive_info.scsiVersion > 2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
         {
             gotDefectData = true;
             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
@@ -658,11 +658,8 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
 {
     int ret = SUCCESS;
     uint64_t iterator = 0;
-    char message[MAX_JSON_MSG];
-
     bool wue = is_Write_Psuedo_Uncorrectable_Supported(device);
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
-
     uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
     uint16_t increment = logicalPerPhysicalSectors;
     if (!wue && readWriteLong && logicalPerPhysicalSectors != 1 && device->drive_info.drive_type == ATA_DRIVE)
@@ -675,9 +672,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            snprintf(message, MAX_JSON_MSG, "Creating Uncorrectable error at LBA %-20"PRIu64"", iterator);
-            printf("%s\n", message);
-            SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+            printf("Creating Uncorrectable error at LBA %-20"PRIu64"\n", iterator);
         }
         if (wue)
         {
@@ -705,9 +700,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
             //don't check return status since we expect this to fail after creating the error
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                snprintf(message, MAX_JSON_MSG, "Reading Uncorrectable error at LBA %-20"PRIu64"", iterator);
-                printf("%s\n", message);
-                SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+                printf("Reading Uncorrectable error at LBA %-20"PRIu64"\n", iterator);
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
@@ -721,8 +714,6 @@ int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, c
 {
     int ret = SUCCESS;
     uint64_t iterator = 0;
-    char message[MAX_JSON_MSG];
-
     if (is_Write_Flagged_Uncorrectable_Supported(device))
     {
         //uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
@@ -732,9 +723,7 @@ int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, c
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                snprintf(message, MAX_JSON_MSG, "Flagging Uncorrectable error at LBA %-20"PRIu64"", iterator);
-                printf("%s\n", message);
-                SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+                printf("Flagging Uncorrectable error at LBA %-20"PRIu64"\n", iterator);
             }
             ret = write_Flagged_Uncorrectable_Error(device, iterator);
             if (ret != SUCCESS)
@@ -778,15 +767,15 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
             operationCode = READ_LONG_16;
             dataLength = 16;
         }
-        if (device->drive_info.scsiVersion >= 5)
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
         {
             dataLength += 4;
         }
-        else if (device->drive_info.scsiVersion >= 3 && device->drive_info.scsiVersion < 5)
+        else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3)
         {
             dataLength += 6;
         }
-        if (device->drive_info.scsiVersion >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, operationCode, 0, dataLength, commandSupportInformation))
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, operationCode, 0, dataLength, commandSupportInformation))
         {
             reportSuccess = true;
             switch (commandSupportInformation[1] & 0x07)
@@ -802,7 +791,7 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
                 break;
             }
         }
-        else if (device->drive_info.scsiVersion >= 3 && device->drive_info.scsiVersion < 5 && SUCCESS == scsi_Inquiry(device, commandSupportInformation, dataLength, operationCode, false, true))
+        else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3 && SUCCESS == scsi_Inquiry(device, commandSupportInformation, dataLength, operationCode, false, true))
         {
             reportSuccess = true;
             switch (commandSupportInformation[1] & 0x07)
@@ -1038,10 +1027,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
 {
     int ret = SUCCESS;
     uint64_t iterator = 0;
-    char message[MAX_JSON_MSG];
-
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
-
     uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
     uint16_t increment = logicalPerPhysicalSectors;
     if (readWriteLong && logicalPerPhysicalSectors != 1 && device->drive_info.drive_type == ATA_DRIVE)
@@ -1054,9 +1040,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            snprintf(message, MAX_JSON_MSG, "Creating Uncorrectable error at LBA %-20"PRIu64"", iterator);
-            printf("%s\n", message);
-            SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+            printf("Creating Uncorrectable error at LBA %-20"PRIu64"\n", iterator);
         }
         if (readWriteLong)
         {
@@ -1080,9 +1064,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
             //don't check return status since we expect this to fail after creating the error
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                snprintf(message, MAX_JSON_MSG, "Reading Corrupted LBA %-20"PRIu64"", iterator);
-                printf("%s\n", message);
-                SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+                printf("Reading Corrupted LBA %-20"PRIu64"\n", iterator);
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);

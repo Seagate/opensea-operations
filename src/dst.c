@@ -1006,7 +1006,6 @@ bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
 int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList)
 {
     int ret = SUCCESS;//assume this works successfully
-    char message[MAX_JSON_MSG];
     errorLBA *errorList = NULL;
     bool localErrorList = false;
     uint64_t *errorIndex = NULL;
@@ -1054,7 +1053,6 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     //this is escentially a loop over the sequential read function
     while (totalErrors <= errorLimit)
     {
-        SendJSONString (JSON_TEXT | JSON_LOG, "Running DST...", updateFunction, updateData);
         //start DST
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
@@ -1114,9 +1112,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     }
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        snprintf (message, MAX_JSON_MSG, "Reparing LBA %"PRIu64"", errorList[*errorIndex].errorAddress);
-                        printf("%s\n",message);
-                        SendJSONString (JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+                        printf("Reparing LBA %"PRIu64"\n", errorList[*errorIndex].errorAddress);
                     }
                     //we got a valid LBA, so time to fix it
                     int repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
@@ -1189,9 +1185,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                             {
                                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                                 {
-                                    snprintf(message, MAX_JSON_MSG, "Reparing LBA %"PRIu64"", iter);
-                                    printf("%s\n", message);
-                                    SendJSONString(JSON_TEXT | JSON_LOG, message, updateFunction, updateData);
+                                    printf("Reparing LBA %"PRIu64"\n", iter);
                                 }
                                 //add the LBA to the error list we have going, then repair it
                                 errorList[totalErrors].repairStatus = NOT_REPAIRED;

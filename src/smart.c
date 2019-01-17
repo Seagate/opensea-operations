@@ -2376,11 +2376,11 @@ int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInform
 
     if (controlData->sixByteCommandUsed)
     {
-        ret = scsi_Mode_Select_6(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
+        ret = scsi_Mode_Select_6(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, false, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
     }
     else
     {
-        ret = scsi_Mode_Select_10(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
+        ret = scsi_Mode_Select_10(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, false, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
     }
     safe_Free(infoControlPage);
     return ret;

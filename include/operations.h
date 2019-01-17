@@ -372,6 +372,25 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
+    typedef enum _eSCSI_MP_UPDATE_MODE
+    {
+        UPDATE_SCSI_MP_RESET_TO_DEFAULT,
+        UPDATE_SCSI_MP_RESTORE_TO_SAVED,
+        UPDATE_SCSI_MP_SAVE_CURRENT
+    }eSCSI_MP_UPDATE_MODE;
+
+    OPENSEA_OPERATIONS_API int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode);
+
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput);
+
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput);
+
+    //Should this go into a different file???
+    OPENSEA_OPERATIONS_API int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.
+
+    //NOTE: SPC4 and higher is required to reset only a specific page. Prior to that, all pages will be reset (logpage and logSubPage both set to zero)
+    //This function will return BAD_PARAMETER if the device does not support resetting a specific page (logpage or subpage not equal to zero)
+    OPENSEA_OPERATIONS_API int reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
 
     #if defined (__cplusplus)
 }

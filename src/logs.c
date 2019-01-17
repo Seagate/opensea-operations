@@ -360,6 +360,205 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
     return ret;
 }
 
+//modePageSize includes any blockdescriptors that may be present
+int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize)
+{
+    int ret = NOT_SUPPORTED;//assume the page is not supported
+    uint32_t modeLength = MODE_PARAMETER_HEADER_10_LEN;
+    bool sixByte = false;
+    //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
+    //checking for this for old drives that may support mode pages, but not the dbd bit properly
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2)
+    {
+        sixByte = true;
+        modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
+    }
+    uint8_t *modeBuffer = (uint8_t *)calloc(modeLength, sizeof(uint8_t));
+    if (!modeBuffer)
+    {
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            perror("Calloc failure!\n");
+        }
+        return MEMORY_FAILURE;
+    }
+    *modePageSize = 0;
+    if (!sixByte)
+    {
+        if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, true, true, mpc, modeBuffer))
+        {
+            *modePageSize = M_BytesTo2ByteValue(modeBuffer[0], modeBuffer[1]) + 2;
+            ret = SUCCESS;
+        }
+        else
+        {
+            //if invalid operation code, then we should retry
+            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)//checking for invalid operation code
+            {
+                sixByte = true;
+                modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
+                //reallocate memory!
+                uint8_t *temp = (uint8_t*)realloc(modeBuffer, modeLength);
+                if (!temp)
+                {
+                    return MEMORY_FAILURE;
+                }
+                modeBuffer = temp;
+            }
+        }
+    }
+    if (sixByte)//not an else because in the above if, we can retry the command as 6 byte if it doesn't work.
+    {
+        if (SUCCESS == scsi_Mode_Sense_6(device, modePage, modeLength, subpage, false, mpc, modeBuffer))//don't disable block descriptors here since this is mostly to support old drives.
+        {
+            *modePageSize = modeBuffer[0] + 1;
+        }
+    }
+    safe_Free(modeBuffer);
+    return ret;
+}
+
+int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd)
+{
+    int ret = NOT_SUPPORTED;//assume the page is not supported
+    uint32_t modeLength = 0;
+    if (SUCCESS != get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modeLength))
+    {
+        return ret;
+    }
+    bool sixByte = false;
+    //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
+    //checking for this for old drives that may support mode pages, but not the dbd bit properly
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2)
+    {
+        sixByte = true;
+    }
+    uint8_t *modeBuffer = (uint8_t *)calloc(modeLength, sizeof(uint8_t));
+    if (!modeBuffer)
+    {
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            perror("Calloc failure!\n");
+        }
+        return MEMORY_FAILURE;
+    }
+    if (!sixByte)
+    {
+        if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, true, true, mpc, modeBuffer))
+        {
+            FILE *fpmp = NULL;
+            bool fileOpened = false;
+            if (used6ByteCmd)
+            {
+                *used6ByteCmd = false;
+            }
+            if (!toBuffer && !fileOpened && ret != FAILURE)
+            {
+                char *fileNameUsed = NULL;
+                if (SUCCESS == create_And_Open_Log_File(device, &fpmp, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+                {
+                    fileOpened = true;
+                }
+            }
+            if (fileOpened && ret != FAILURE)
+            {
+                //write the vpd page to a file
+                fwrite(modeBuffer, sizeof(uint8_t), modeLength, fpmp);
+            }
+            if (toBuffer && ret != FAILURE)
+            {
+                if (bufSize >= modeLength)
+                {
+                    memcpy(myBuf, modeBuffer, modeLength);
+                }
+                else
+                {
+                    return BAD_PARAMETER;
+                }
+            }
+            if (fileOpened)
+            {
+                fflush(fpmp);
+                fclose(fpmp);
+                fileOpened = false;
+            }
+            ret = SUCCESS;
+        }
+        else
+        {
+            //if invalid operation code, then we should retry
+            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)//checking for invalid operation code
+            {
+                sixByte = true;
+                modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
+                //reallocate memory!
+                uint8_t *temp = (uint8_t*)realloc(modeBuffer, modeLength);
+                if (!temp)
+                {
+                    return MEMORY_FAILURE;
+                }
+                modeBuffer = temp;
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+        }
+    }
+    if (sixByte)//not an else because in the above if, we can retry the command as 6 byte if it doesn't work.
+    {
+        if (SUCCESS == scsi_Mode_Sense_6(device, modePage, modeLength, subpage, false, mpc, modeBuffer))//don't disable block descriptors here since this is mostly to support old drives.
+        {
+            FILE *fpmp = NULL;
+            bool fileOpened = false;
+            if (used6ByteCmd)
+            {
+                *used6ByteCmd = true;
+            }
+            if (!toBuffer && !fileOpened && ret != FAILURE)
+            {
+                char *fileNameUsed = NULL;
+                if (SUCCESS == create_And_Open_Log_File(device, &fpmp, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+                {
+                    fileOpened = true;
+                }
+            }
+            if (fileOpened && ret != FAILURE)
+            {
+                //write the vpd page to a file
+                fwrite(modeBuffer, sizeof(uint8_t), modeLength, fpmp);
+            }
+            if (toBuffer && ret != FAILURE)
+            {
+                if (bufSize >= modeLength)
+                {
+                    memcpy(myBuf, modeBuffer, modeLength);
+                }
+                else
+                {
+                    return BAD_PARAMETER;
+                }
+            }
+            if (fileOpened)
+            {
+                fflush(fpmp);
+                fclose(fpmp);
+                fileOpened = false;
+            }
+        }
+        else
+        {
+            ret = FAILURE;
+        }
+    }
+    safe_Free(modeBuffer);
+    return ret;
+}
+
 bool is_SCSI_Read_Buffer_16_Supported(tDevice *device)
 {
     bool supported = false;

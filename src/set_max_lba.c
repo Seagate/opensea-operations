@@ -92,7 +92,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
             scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 7] = 0xFF;
         }
         //now issue the mode select 10 command
-        ret = scsi_Mode_Select_10(device, 0x18, true, true, scsiDataBuffer, 0x18);
+        ret = scsi_Mode_Select_10(device, 0x18, true, true, false, scsiDataBuffer, 0x18);
         if (ret == SUCCESS)
         {
             if (reset)

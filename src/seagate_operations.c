@@ -160,7 +160,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                     }
                 }
                 //we've finished making our changes to the mode page, so it's time to write it back!
-                if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), false, true, sasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength)))
+                if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), false, true, false, sasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength)))
                 {
                     ret = FAILURE;
                 }
@@ -552,11 +552,11 @@ int seagate_SAS_Set_JIT_Modes(tDevice *device, bool disableVjit, uint8_t jitMode
                 //Now we need to do a mode select to send this data back to the drive!!
                 if (headerLength == MODE_PARAMETER_HEADER_10_LEN)
                 {
-                    ret = scsi_Mode_Select_10(device, 12 + headerLength, false, nonvolatile, seagateUnitAttentionParameters, 12 + headerLength);
+                    ret = scsi_Mode_Select_10(device, 12 + headerLength, false, nonvolatile, false, seagateUnitAttentionParameters, 12 + headerLength);
                 }
                 else
                 {
-                    ret = scsi_Mode_Select_6(device, 12 + headerLength, false, nonvolatile, seagateUnitAttentionParameters, 12 + headerLength);
+                    ret = scsi_Mode_Select_6(device, 12 + headerLength, false, nonvolatile, false, seagateUnitAttentionParameters, 12 + headerLength);
                 }
             }
             else
@@ -694,7 +694,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
 				pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 0;
 			}
 			//now do mode select with the data for the mode to set
-			ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
+			ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
 		}
 		safe_Free(pcModePage);
 	}
