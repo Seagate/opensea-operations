@@ -57,12 +57,11 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
     *failingLBA = UINT64_MAX;//this means LBA access failed
     for (lbaIter = startingLBA; lbaIter < maxSequentialLBA; lbaIter += sectorCount)
     {
-        int lastProgress = 0, progress = 0;
+        int progress = 0;
         // Make sure we don't divide by zero.
         if (range - startingLBA != 0)
         {
             progress = (int)(1.0 * (lbaIter - startingLBA) / (1.0 * (range - startingLBA)) * 100.0);
-            lastProgress = progress;
         }
         //check that current LBA + sector count doesn't go beyond the maxLBA for the loop
         if ((lbaIter + sectorCount) > maxSequentialLBA)
@@ -1229,9 +1228,8 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
     double lastTime = 0.0;
     while ((lastTime = difftime(time(NULL), startTime)) < timeLimitSeconds)
     {
-        int progress = 0, lastProgress = 0;
+        int progress = 0;
         progress = (int)((lastTime / timeLimitSeconds) * 100.0);
-        lastProgress = progress;
 
         //read the outer lba
         if ((outerLBA + sectorCount) > device->drive_info.deviceMaxLba)
@@ -1353,9 +1351,8 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     double lastTime = 0.0;
     while ((lastTime = difftime(time(NULL), startTime)) < timeLimitSeconds)
     {
-        int progress = 0, lastProgress = 0;
+        int progress = 0;
         progress = (int)((lastTime / timeLimitSeconds) * 100.0);
-        lastProgress = progress;
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
