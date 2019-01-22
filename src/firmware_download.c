@@ -36,7 +36,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage);
 		options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
-        if (ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
+        if (device->drive_info.drive_type != NVME_DRIVE && ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
         {
             //This means that we encountered a driver that is not allowing us to issue the Win10 API Firmware activate call for some unknown reason. 
             //This doesn't happen with Microsoft's AHCI driver though...
@@ -87,7 +87,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 #if WINVER >= SEA_WIN32_WINNT_WIN10
         //saving this for later since we may need to turn it off...
         bool deviceSupportsWinAPI = device->os_info.fwdlIOsupport.fwdlIOSupported;
-        if (deviceSupportsWinAPI && options->dlMode == DL_FW_DEFERRED)
+        if (device->drive_info.drive_type != NVME_DRIVE && deviceSupportsWinAPI && options->dlMode == DL_FW_DEFERRED)
         {
             //check if alignment requirements will be met
             if (options->firmwareMemoryLength % device->os_info.fwdlIOsupport.payloadAlignment)
@@ -206,7 +206,8 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
             else //not supported, so nothing else needs to be done other than issue the command
             {
-               ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
+                device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;//set anyways, just in case.
+                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
             }
 			//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
 			device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
