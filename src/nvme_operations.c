@@ -10,6 +10,7 @@
 // ******************************************************************************************
 // 
 
+#if !defined (DISABLE_NVME_PASSTHROUGH)
 #include "nvme_operations.h"
 
 void nvme_Print_Feature_Identifiers_Help()
@@ -1218,3 +1219,20 @@ int get_Ext_Smrt_Log(tDevice *device)//, nvmeGetLogPageCmdOpts * getLogPageCmdOp
     return 0;
 
 }
+
+int clr_Pcie_Correctable_Errs(tDevice *device)
+{
+    //const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
+    //const char *save = "specifies that the controller shall save the attribute";
+    int err = SUCCESS;
+
+    nvmeFeaturesCmdOpt clearPCIeCorrectableErrors;
+    memset(&clearPCIeCorrectableErrors, 0, sizeof(nvmeFeaturesCmdOpt));
+    clearPCIeCorrectableErrors.fid = 0xE1;
+    clearPCIeCorrectableErrors.featSetGetValue = 0xCB;
+    clearPCIeCorrectableErrors.sv = false;
+    err = nvme_Set_Features(device, &clearPCIeCorrectableErrors);
+
+    return err;
+}
+#endif//DISABLE_NVME_PASSTHROUGH
