@@ -16,6 +16,9 @@
 #include "smart.h"
 #include "usb_hacks.h"
 #include "logs.h"
+#if !defined (DISABLE_NVME_PASSTHORUGH)
+#include "nvme_operations.h"
+#endif
 
 int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
