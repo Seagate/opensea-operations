@@ -198,6 +198,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int nvme_Get_Log_Size(uint8_t logPageId, uint64_t * logSize);
 
+    OPENSEA_OPERATIONS_API int clr_Pcie_Correctable_Errs(tDevice *device);
+
 #if defined (__cplusplus)
 }
 #endif
