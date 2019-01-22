@@ -183,7 +183,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             //If we are here, then this is windows and the Windows 10 API may be being used below.
             //Because of this, there are additional allignment requirements for the segments that we must meet.
             //So now we are going to check if this meets those requirements...if not, we need to allocate a different buffer that meets the requirements, copy the data to it, then send the command. - TJE
-            if (device->os_info.fwdlIOsupport.fwdlIOSupported && options->dlMode == DL_FW_DEFERRED)//checking to see if Windows says the FWDL API is supported
+            if (device->drive_info.drive_type != NVME_DRIVE && device->os_info.fwdlIOsupport.fwdlIOSupported && options->dlMode == DL_FW_DEFERRED)//checking to see if Windows says the FWDL API is supported
             {
 				//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
