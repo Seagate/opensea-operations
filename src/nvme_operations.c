@@ -744,7 +744,7 @@ int run_NVMe_Format(tDevice * device, uint32_t newLBASize, uint64_t flags)
     {
         memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
         formatCmdOptions.lbaf = c;
-        formatCmdOptions.nsid = device->drive_info.lunOrNSID;
+        formatCmdOptions.nsid = device->drive_info.namespaceID;
 
         if (flags & FORMAT_NVME_CRYPTO_ERASE)
         {
