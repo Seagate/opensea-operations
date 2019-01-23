@@ -686,6 +686,7 @@
     <ClInclude Include="..\..\..\..\include\generic_tests.h" />
     <ClInclude Include="..\..\..\..\include\host_erase.h" />
     <ClInclude Include="..\..\..\..\include\logs.h" />
+    <ClInclude Include="..\..\..\..\include\nvme_operations.h" />
     <ClInclude Include="..\..\..\..\include\opensea_operation_version.h" />
     <ClInclude Include="..\..\..\..\include\operations.h" />
     <ClInclude Include="..\..\..\..\include\operations_Common.h" />
@@ -714,6 +715,7 @@
     <ClCompile Include="..\..\..\..\src\generic_tests.c" />
     <ClCompile Include="..\..\..\..\src\host_erase.c" />
     <ClCompile Include="..\..\..\..\src\logs.c" />
+    <ClCompile Include="..\..\..\..\src\nvme_operations.c" />
     <ClCompile Include="..\..\..\..\src\operations.c" />
     <ClCompile Include="..\..\..\..\src\power_control.c" />
     <ClCompile Include="..\..\..\..\src\sanitize.c" />
