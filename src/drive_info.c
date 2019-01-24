@@ -5996,20 +5996,20 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 #ifndef MINUTES_IN_1_YEAR
 #define MINUTES_IN_1_YEAR 525600.0
 #endif // !MINUTES_IN_1_YEAR
-        double totalTerabytesRead = (double)((driveInfo->smartData.dataUnitsReadD * 512.0) / 1000000000000.0);
-        double totalTerabytesWritten = (double)((driveInfo->smartData.dataUnitsWrittenD * 512.0) / 1000000000000.0);
+        double totalTerabytesRead = (double)((driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0) / 1000000000000.0);
+        double totalTerabytesWritten = (double)((driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0) / 1000000000000.0);
         double calculatedUsage = (double)(totalTerabytesRead + totalTerabytesWritten) * (double)(MINUTES_IN_1_YEAR / (double)(driveInfo->smartData.powerOnHoursD * 60.0));
         printf("%0.02f\n", calculatedUsage);
         //Total Bytes Read
         printf("\tTotal Bytes Read ");
-        double totalBytesRead = driveInfo->smartData.dataUnitsReadD * 512.0;
+        double totalBytesRead = driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0;
         char unitReadString[4] = { '\0' };
         char *unitRead = &unitReadString[0];
         metric_Unit_Convert(&totalBytesRead, &unitRead);
         printf("(%s): %0.02f\n", unitRead, totalBytesRead);
         //Total Bytes Written
         printf("\tTotal Bytes Written ");
-        double totalBytesWritten = driveInfo->smartData.dataUnitsWrittenD * 512.0;
+        double totalBytesWritten = driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0;
         char unitWrittenString[4] = { '\0' };
         char *unitWritten = &unitWrittenString[0];
         metric_Unit_Convert(&totalBytesWritten, &unitWritten);
