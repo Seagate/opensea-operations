@@ -88,6 +88,7 @@
             <F N="../../include/generic_tests.h"/>
             <F N="../../include/host_erase.h"/>
             <F N="../../include/logs.h"/>
+            <F N="../../include/nvme_operations.h"/>
             <F N="../../include/opensea_operation_version.h"/>
             <F N="../../include/operations.h"/>
             <F N="../../include/operations_Common.h"/>
@@ -116,6 +117,7 @@
             <F N="../../src/generic_tests.c"/>
             <F N="../../src/host_erase.c"/>
             <F N="../../src/logs.c"/>
+            <F N="../../src/nvme_operations.c"/>
             <F N="../../src/operations.c"/>
             <F N="../../src/power_control.c"/>
             <F N="../../src/sanitize.c"/>
