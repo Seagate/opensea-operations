@@ -229,9 +229,9 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
     return ret;
 }
 
-bool is_Low_Current_Spin_Up_Enabled(tDevice *device)
+int is_Low_Current_Spin_Up_Enabled(tDevice *device)
 {
-    bool lowPowerSpinUpEnabled = false;
+    int lowPowerSpinUpEnabled = 0;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
     {
         int ret = NOT_SUPPORTED;
@@ -242,16 +242,20 @@ bool is_Low_Current_Spin_Up_Enabled(tDevice *device)
             uint16_t state = 0x0000;
             if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0002, 0xD001, &state, &optionFlags))
             {
-                if (state > 0 && state < 3)//if the state is not 1 or 2, then we have an unknown value being given to us.
+                if (state > 0 && state < 4)//if the state is not 1 or 2, then we have an unknown value being given to us.
                 {
                     ret = SUCCESS;
                     if (state == 0x0001)
                     {
-                        lowPowerSpinUpEnabled = true;
+                        lowPowerSpinUpEnabled = 1;
                     }
                     else if (state == 0x0002)
                     {
-                        lowPowerSpinUpEnabled = false;
+                        lowPowerSpinUpEnabled = 0;
+                    }
+                    else if (state == 0x0003)
+                    {
+                        lowPowerSpinUpEnabled = 2;
                     }
                 }
             }

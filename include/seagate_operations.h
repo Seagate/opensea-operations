@@ -90,10 +90,10 @@ extern "C"
     //!   \param device - pointer to the device structure.
     //!
     //  Exit:
-    //!   \return true = low current spinup enabled, false = not enabled or not supported.
+    //!   \return 1 = low current spinup enabled, 0 = not enabled or not supported, 2 = ultra low current spinup enabled
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Low_Current_Spin_Up_Enabled(tDevice *device);
+    OPENSEA_OPERATIONS_API int is_Low_Current_Spin_Up_Enabled(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //

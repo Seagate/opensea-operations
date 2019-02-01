@@ -6767,9 +6767,16 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
 	}
     if (driveInfo->lowCurrentSpinupValid)
     {
-        if (driveInfo->lowCurrentSpinupEnabled)
+        if (driveInfo->lowCurrentSpinupEnabled > 0)
         {
-            printf("\tLow Current Spinup: Enabled\n");
+            if (driveInfo->lowCurrentSpinupEnabled == 2)
+            {   
+                printf("\tLow Current Spinup: Ultra Low Enabled\n");
+            }
+            else
+            {
+                printf("\tLow Current Spinup: Enabled\n");
+            }
         }
         else
         {
