@@ -269,6 +269,26 @@ bool is_Low_Current_Spin_Up_Enabled(tDevice *device)
     return lowPowerSpinUpEnabled;
 }
 
+//SCT only
+int enable_Ultra_Low_Current_Spin_Up(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //first try the SCT feature control command
+        if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        {
+            uint16_t saveToDrive = 0x0001;
+            uint16_t state = 0x0003;
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD001, &state, &saveToDrive))
+            {
+                ret = SUCCESS;
+            }
+        }
+    }
+    return ret;
+}
+
 int enable_Low_Current_Spin_Up(tDevice *device)
 {
     int ret = NOT_SUPPORTED;

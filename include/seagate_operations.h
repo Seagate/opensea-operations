@@ -110,6 +110,9 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int enable_Low_Current_Spin_Up(tDevice *device);
 
+    //new products only
+    OPENSEA_OPERATIONS_API int enable_Ultra_Low_Current_Spin_Up(tDevice *device);
+
     //-----------------------------------------------------------------------------
     //
     //  disable_Low_Current_Spin_Up(tDevice *device)
