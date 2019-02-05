@@ -327,6 +327,7 @@ int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state)
             }
         }
     }
+    return ret;
 }
 
 int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
