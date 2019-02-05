@@ -253,7 +253,6 @@ int is_Low_Current_Spin_Up_Enabled(tDevice *device, bool sctCommandSupported)
     int lowPowerSpinUpEnabled = 0;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
     {
-        int ret = NOT_SUPPORTED;
         //first try the SCT feature control command to get it's state
         if ((device->drive_info.IdentifyData.ata.Word206 & BIT4) && sctCommandSupported)
         {
