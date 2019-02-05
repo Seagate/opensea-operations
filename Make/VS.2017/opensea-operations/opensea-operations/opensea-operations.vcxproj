@@ -335,7 +335,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -354,7 +354,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -373,7 +373,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -392,7 +392,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -412,7 +412,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -432,7 +432,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -452,7 +452,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -471,7 +471,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -493,7 +493,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -516,7 +516,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -539,7 +539,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -562,7 +562,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -586,7 +586,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -610,7 +610,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -634,7 +634,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -657,7 +657,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;WIN_API_TARGET_VERSION=100162990L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>

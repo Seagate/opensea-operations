@@ -2274,7 +2274,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
     if (is_Seagate_Family(device) == SEAGATE)
     {
         driveInfo->lowCurrentSpinupValid = true;
-        driveInfo->lowCurrentSpinupEnabled = is_Low_Current_Spin_Up_Enabled(device);
+        driveInfo->lowCurrentSpinupViaSCT = is_SCT_Low_Current_Spinup_Supported(device);
+        driveInfo->lowCurrentSpinupEnabled = is_Low_Current_Spin_Up_Enabled(device, driveInfo->lowCurrentSpinupViaSCT);
     }
     return ret;
 }
@@ -6767,20 +6768,35 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
 	}
     if (driveInfo->lowCurrentSpinupValid)
     {
-        if (driveInfo->lowCurrentSpinupEnabled > 0)
+        if (driveInfo->lowCurrentSpinupViaSCT)//to handle differences in reporting between 2.5" products and others
         {
-            if (driveInfo->lowCurrentSpinupEnabled == 2)
-            {   
-                printf("\tLow Current Spinup: Ultra Low Enabled\n");
-            }
-            else
+            printf("\tLow Current Spinup: ");
+            switch (driveInfo->lowCurrentSpinupEnabled)
             {
-                printf("\tLow Current Spinup: Enabled\n");
+            case SEAGATE_LOW_CURRENT_SPINUP_STATE_LOW:
+                printf("Enabled\n");
+                break;
+            case SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT:
+                printf("Disabled\n");
+                break;
+            case SEAGATE_LOW_CURRENT_SPINUP_STATE_ULTRA_LOW:
+                printf("Ultra Low Enabled\n");
+                break;
+            default:
+                printf("Unknown/Invalid state: %" PRIX16 "\n", (uint16_t)driveInfo->lowCurrentSpinupEnabled);
+                break;
             }
         }
         else
         {
-            printf("\tLow Current Spinup: Disabled\n");
+            if (driveInfo->lowCurrentSpinupEnabled > 0)
+            {
+                printf("\tLow Current Spinup: Enabled\n");
+            }
+            else
+            {
+                printf("\tLow Current Spinup: Disabled\n");
+            }
         }
     }
     //SMART Status

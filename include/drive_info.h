@@ -200,6 +200,7 @@ extern "C"
         uint8_t zonedDevice;//set to 0 for non-zoned devices (SMR). If non-zero, then this matches the latest ATA/SCSI specs for zoned devices
         lastDSTInformation dstInfo;
         bool lowCurrentSpinupValid;//will be set to true for ATA, set to false for SAS
+        bool lowCurrentSpinupViaSCT;
         int lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
 		uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
 		bool isWriteProtected;//Not available on SATA!
