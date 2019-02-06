@@ -15,6 +15,7 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "ata_helper.h"
 
 #if defined (__cplusplus)
 extern "C"
@@ -205,14 +206,6 @@ extern "C"
     OPENSEA_OPERATIONS_API int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount);
 
     OPENSEA_OPERATIONS_API int get_Grown_List_Count(tDevice *device, uint32_t *grownCount);
-
-    typedef enum _eSCTFeature
-    {
-        SCT_FEATURE_CONTROL_WRITE_CACHE_STATE = 1,
-        SCT_FEATURE_CONTROL_WRITE_CACHE_REORDERING = 2,
-        SCT_FEATURE_CONTROL_SET_HDA_TEMPERATURE_INTERVAL = 3,
-        SCT_FEATURE_CONTROL_RESERVED
-    }eSCTFeature;
 
     //-----------------------------------------------------------------------------
     //
