@@ -22,7 +22,7 @@ MINOR=20
 PATCH=0
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
-INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-common/include -I../../../SeaCTCG/include
+INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
 CC ?= gcc
 AR ?= ar
 #override CFLAGS = -Wall -c -fPIC -I. -std=gnu99

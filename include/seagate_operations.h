@@ -15,18 +15,12 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "seagate/seagate_ata_types.h"
 
 #if defined (__cplusplus)
 extern "C"
 {
 #endif
-
-    typedef enum _eSeagateSCTBISTFuncCodes{
-        BIST_SET_SATA_PHY_SPEED = 0x0003,
-        BIST_CHECK_SATA_PHY_SPEED = 0x0004
-    }eSeagateSCTBISTFuncCodes;
-
-#define SCT_SEAGATE_SPEED_CONTROL SCT_RESERVED_FOR_SATA
 
     //-----------------------------------------------------------------------------
     //
@@ -82,55 +76,68 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+    //  is_SCT_Low_Current_Spinup_Supported(tDevice *device)
+    //
+    //! \brief   Description:  This function checks if the SCT command for low current spinup is supported or not.
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure.
+    //!
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_SCT_Low_Current_Spinup_Supported(tDevice *device);
+
+    //-----------------------------------------------------------------------------
+    //
     //  is_Low_Current_Spin_Up_Enabled(tDevice *device)
     //
     //! \brief   Description:  This function will check if low current spin up is enabled on Seagate ATA drives. Not all drives support this feature.
     //
     //  Entry:
     //!   \param device - pointer to the device structure.
+    //!   \param sctCommandSupported - set to true means the SCT command is supported and to be used to determine the enabled value, otherwise false means check an identify bit on 2.5" products. Should be set to the return value of is_SCT_Low_Current_Spinup_Supported(device)
     //!
     //  Exit:
-    //!   \return true = low current spinup enabled, false = not enabled or not supported.
+    //!   \return sctCommandSupported = true: 0 - invalid state or could not be detected due to SAT translation failure, 1 = low, 2 = default, 3 = ultralow
+    //!                               = false: 0 - not enabled or not supported. 1 = low. The set features method does not have the same granularity as the SCT command.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Low_Current_Spin_Up_Enabled(tDevice *device);
+    OPENSEA_OPERATIONS_API int is_Low_Current_Spin_Up_Enabled(tDevice *device, bool sctCommandSupported);
 
     //-----------------------------------------------------------------------------
     //
-    //  enable_Low_Current_Spin_Up(tDevice *device)
+    //  seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLevel)
     //
-    //! \brief   Description:  This function will send the command to enable low current spinup on Seagate ATA drives. (Not all drives support this feature) Power cycle required to complete this change.
+    //! \brief   Description:  This function will send the SCT command to set the state of the low-current spinup feature on a Seagate drive that supports this SCT command. NOTE: Not all Seagate products support this command.
     //
     //  Entry:
     //!   \param device - pointer to the device structure.
+    //!   \param spinupLevel - the spinup mode to set
     //!
     //  Exit:
     //!   \return SUCCESS = successfully enabled low current spin up, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int enable_Low_Current_Spin_Up(tDevice *device);
+    OPENSEA_OPERATIONS_API int seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLevel);
 
     //-----------------------------------------------------------------------------
     //
-    //  disable_Low_Current_Spin_Up(tDevice *device)
+    //  set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state)
     //
-    //! \brief   Description:  This function will send the command to disable low current spinup on Seagate ATA drives. (Not all drives support this feature) Power cycle required to complete this change.
+    //! \brief   Description:  Sets the state of the low-current spinup feature.
     //
     //  Entry:
     //!   \param device - pointer to the device structure.
+    //!   \param useSCTCommand - set to true to use the SCT command to set spinup current level. Should be set to true when is_SCT_Low_Current_Spinup_Supported() == true
+    //!   \param state - state to set low current spinup to. Tt should be set to one of eSeagateLCSpinLevel regardless of the value of useSCTCommand. This will properly translate the SCT value to a value for the Set Features command version as necessary.
     //!
     //  Exit:
-    //!   \return SUCCESS = successfully disabled low current spin up, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
+    //!   \return SUCCESS = successfully enabled low current spin up, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int disable_Low_Current_Spin_Up(tDevice *device);
-
-    typedef enum _eSSCFeatureState
-    {
-        SSC_DEFAULT = 0,
-        SSC_ENABLED = 1,
-        SSC_DISABLED = 2
-    }eSSCFeatureState;
+    OPENSEA_OPERATIONS_API int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state);
 
     //-----------------------------------------------------------------------------
     //

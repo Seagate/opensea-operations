@@ -19,6 +19,7 @@
 #include "dst.h"
 #include "sanitize.h"
 #include "format_unit.h"
+#include "seagate/seagate_ata_types.h"
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
@@ -229,90 +230,97 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
     return ret;
 }
 
-bool is_Low_Current_Spin_Up_Enabled(tDevice *device)
+bool is_SCT_Low_Current_Spinup_Supported(tDevice *device)
 {
-    bool lowPowerSpinUpEnabled = false;
+    bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
     {
-        int ret = NOT_SUPPORTED;
-        //first try the SCT feature control command to get it's state
         if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
         {
             uint16_t optionFlags = 0x0000;
             uint16_t state = 0x0000;
-            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0002, 0xD001, &state, &optionFlags))
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_RETURN_CURRENT_STATE, SEAGATE_SCT_FEATURE_CONTROL_LOW_CURRENT_SPINUP, &state, &optionFlags))
             {
-                if (state > 0 && state < 3)//if the state is not 1 or 2, then we have an unknown value being given to us.
-                {
-                    ret = SUCCESS;
-                    if (state == 0x0001)
-                    {
-                        lowPowerSpinUpEnabled = true;
-                    }
-                    else if (state == 0x0002)
-                    {
-                        lowPowerSpinUpEnabled = false;
-                    }
-                }
+                supported = true;
             }
         }
-        if(ret != SUCCESS) //check the identify data for a bit (2.5" drives only I think) - TJE
+    }
+    return supported;
+}
+
+int is_Low_Current_Spin_Up_Enabled(tDevice *device, bool sctCommandSupported)
+{
+    int lowPowerSpinUpEnabled = 0;
+    if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
+    {
+        //first try the SCT feature control command to get it's state
+        if ((device->drive_info.IdentifyData.ata.Word206 & BIT4) && sctCommandSupported)
+        {
+            uint16_t optionFlags = 0x0000;
+            uint16_t state = 0x0000;
+            if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_RETURN_CURRENT_STATE, SEAGATE_SCT_FEATURE_CONTROL_LOW_CURRENT_SPINUP, &state, &optionFlags))
+            {
+                lowPowerSpinUpEnabled = state;
+            }
+        }
+        else if (!sctCommandSupported)//check the identify data for a bit (2.5" drives only I think) - TJE
         {
             //refresh Identify data
             ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
             if (device->drive_info.IdentifyData.ata.Word155 & BIT1)
             {
-                lowPowerSpinUpEnabled = true;
+                lowPowerSpinUpEnabled = 1;
             }
         }
     }
     return lowPowerSpinUpEnabled;
 }
 
-int enable_Low_Current_Spin_Up(tDevice *device)
+int seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLevel)
 {
     int ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
     {
-        //first try the SCT feature control command
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        uint16_t saveToDrive = 0x0001;//always set this because this feature requires saving for it to even work.
+        uint16_t state = (uint16_t)spinupLevel;
+        if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_SET_STATE_AND_OPTIONS, SEAGATE_SCT_FEATURE_CONTROL_LOW_CURRENT_SPINUP, &state, &saveToDrive))
         {
-            uint16_t saveToDrive = 0x0001;
-            uint16_t state = 0x0001;
-            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD001, &state, &saveToDrive))
-            {
-                ret = SUCCESS;
-            }
-        }
-        if (ret != SUCCESS) //try the Seagate unique set features (I think this is only on newer 2.5" drives) - TJE
-        {
-            if (SUCCESS == ata_Set_Features(device, 0x5B, 0, 0x01, 0xED, 0x00B5))
-            {
-                ret = SUCCESS;
-            }
+            ret = SUCCESS;
         }
     }
     return ret;
 }
 
-int disable_Low_Current_Spin_Up(tDevice *device)
+int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state)
 {
     int ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
     {
-        //first try the SCT feature control command
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        if (state == 0)
         {
-            uint16_t saveToDrive = 0x0001;
-            uint16_t state = 0x0002;
-            if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD001, &state, &saveToDrive))
-            {
-                ret = SUCCESS;
-            }
+            return NOT_SUPPORTED;
         }
-        if(ret != SUCCESS) //try the Seagate unique set features (I think this is only on newer 2.5" drives) - TJE
+        if (useSCTCommand)
         {
-            if (SUCCESS == ata_Set_Features(device, 0x5B, 0, 0x00, 0xED, 0x00B5))
+            if (state == 0)
+            {
+                state = SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT;
+            }
+            ret = seagate_SCT_Low_Current_Spinup(device, state);
+        }
+        else
+        {
+            //use set features command for 2.5" products
+            uint8_t secCnt = SEAGATE_SF_LCS_ENABLE;
+            if (state == 2)//0 means disable, 2 is here for compatibility with SCT command inputs
+            {
+                secCnt = SEAGATE_SF_LCS_DISABLE;
+            }
+            if (state >= 3)
+            {
+                return NOT_SUPPORTED;
+            }
+            if (SUCCESS == ata_Set_Features(device, SEAGATE_SF_LOW_CURRENT_SPINUP, 0, secCnt, LOW_CURRENT_SPINUP_LBA_MID_SIG, LOW_CURRENT_SPINUP_LBA_HI_SIG))
             {
                 ret = SUCCESS;
             }
@@ -332,7 +340,7 @@ int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
             {
                 uint16_t state = (uint16_t)mode;
                 uint16_t saveToDrive = 0x0001;
-                if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0001, 0xD002, &state, &saveToDrive))
+                if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_SET_STATE_AND_OPTIONS, SEAGATE_SCT_FEATURE_CONTROL_SPEAD_SPECTRUM_CLOCKING, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
                 }
@@ -365,7 +373,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
             {
                 uint16_t state = 0;
                 uint16_t saveToDrive = 0;
-                if (SUCCESS == send_ATA_SCT_Feature_Control(device, 0x0002, 0xD002, &state, &saveToDrive))
+                if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_RETURN_CURRENT_STATE, SEAGATE_SCT_FEATURE_CONTROL_SPEAD_SPECTRUM_CLOCKING, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
                     *mode = (eSSCFeatureState)state;
