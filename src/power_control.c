@@ -362,7 +362,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
         nvmeFeaturesCmdOpt cmdOpts;
         memset(&cmdOpts,0,sizeof(cmdOpts));
         cmdOpts.featSetGetValue = newState;
-        cmdOpts.fid = NVME_POWER_MGMT_FEAT;
+        cmdOpts.fid = NVME_FEAT_POWER_MGMT_;
         cmdOpts.sel = NVME_CURRENT_FEAT_SEL;
         ret = nvme_Set_Features(device,&cmdOpts);
         if (ret != SUCCESS) 
@@ -846,7 +846,7 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
         switch (selectValue) 
         {
         case CURRENT_VALUE:
-            cmdOpts.fid = NVME_POWER_MGMT_FEAT;
+            cmdOpts.fid = NVME_FEAT_POWER_MGMT_;
             cmdOpts.sel = NVME_CURRENT_FEAT_SEL;
             ret = nvme_Get_Features(device,&cmdOpts);
             if (ret == SUCCESS) 

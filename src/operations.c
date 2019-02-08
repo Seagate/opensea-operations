@@ -1070,42 +1070,6 @@ int get_AAM_Level(tDevice *device, uint8_t *aamLevel)
 }
 
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-
-int clr_Pcie_Correctable_Errs(tDevice *device)
-{
-    //const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
-    //const char *save = "specifies that the controller shall save the attribute";
-    int err;
-    void *buf = NULL;
-
-    struct config {
-        int   save;
-    };
-
-    struct config cfg = {
-        .save         = 0,
-    };
-    err = nvme_set_feature( device, 0, 0xE1, 0xCB, cfg.save, 0, buf);
-	if (err < 0) {
-        perror("set-feature");
-        return errno;
-    }
-
-    return err;
-
-}
-
-int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsigned int value, bool save, unsigned int  data_len, void *data)
-{
-	unsigned int cdw10 = fid | (save ? 1 << 31 : 0);
-
-	return pci_Correctble_Err( device, 0x09, nsid, cdw10, value, data_len, data);
-}
-
-#endif
-
-
 bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device)
 {
     bool supported = false;

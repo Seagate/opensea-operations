@@ -5667,7 +5667,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         }
         
         memset(nvmeIdentifyData, 0, NVME_IDENTIFY_DATA_LEN);
-        if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.lunOrNSID, 0))
+        if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.namespaceID, 0))
         {
             driveInfo->namespaceData.valid = true;
             driveInfo->namespaceData.namespaceSize = M_BytesTo8ByteValue(nvmeIdentifyData[7], nvmeIdentifyData[6], nvmeIdentifyData[5], nvmeIdentifyData[4], nvmeIdentifyData[3], nvmeIdentifyData[2], nvmeIdentifyData[1], nvmeIdentifyData[0]) - 1;//spec says this is 0 to (n-1)!
@@ -5997,20 +5997,20 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 #ifndef MINUTES_IN_1_YEAR
 #define MINUTES_IN_1_YEAR 525600.0
 #endif // !MINUTES_IN_1_YEAR
-        double totalTerabytesRead = (double)((driveInfo->smartData.dataUnitsReadD * 512.0) / 1000000000000.0);
-        double totalTerabytesWritten = (double)((driveInfo->smartData.dataUnitsWrittenD * 512.0) / 1000000000000.0);
+        double totalTerabytesRead = (double)((driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0) / 1000000000000.0);
+        double totalTerabytesWritten = (double)((driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0) / 1000000000000.0);
         double calculatedUsage = (double)(totalTerabytesRead + totalTerabytesWritten) * (double)(MINUTES_IN_1_YEAR / (double)(driveInfo->smartData.powerOnHoursD * 60.0));
         printf("%0.02f\n", calculatedUsage);
         //Total Bytes Read
         printf("\tTotal Bytes Read ");
-        double totalBytesRead = driveInfo->smartData.dataUnitsReadD * 512.0;
+        double totalBytesRead = driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0;
         char unitReadString[4] = { '\0' };
         char *unitRead = &unitReadString[0];
         metric_Unit_Convert(&totalBytesRead, &unitRead);
         printf("(%s): %0.02f\n", unitRead, totalBytesRead);
         //Total Bytes Written
         printf("\tTotal Bytes Written ");
-        double totalBytesWritten = driveInfo->smartData.dataUnitsWrittenD * 512.0;
+        double totalBytesWritten = driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0;
         char unitWrittenString[4] = { '\0' };
         char *unitWritten = &unitWrittenString[0];
         metric_Unit_Convert(&totalBytesWritten, &unitWritten);
@@ -7111,6 +7111,7 @@ char * print_drive_type(tDevice *device)
 }
 
 #if !defined(DISABLE_NVME_PASSTHROUGH)
+#if 0
 int print_Nvme_Ctrl_Information(tDevice *device)
 {
     int ret = UNKNOWN;
@@ -7248,4 +7249,5 @@ int print_Nvme_Ctrl_Information(tDevice *device)
     return ret;
 
 }
+#endif
 #endif
