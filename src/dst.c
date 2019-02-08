@@ -386,6 +386,7 @@ bool is_Self_Test_Supported(tDevice *device)
         {
             supported = true;
         }
+        break;
 #endif
     case SCSI_DRIVE:
     {
@@ -1590,6 +1591,7 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
         dstLogParms.nsid = UINT32_MAX;
         if (SUCCESS == nvme_Get_Log_Page(device, &dstLogParms))
         {
+            ret = SUCCESS;
             entries->logType = DST_LOG_TYPE_NVME;
             entries->numberOfEntries = 0;
             for (uint32_t offset = 4; offset < 564 && entries->numberOfEntries < 20; offset += 28)//maximum of 20 NVMe DST log entires
@@ -1631,6 +1633,10 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                     ++(entries->numberOfEntries);
                 }
             }
+        }
+        else
+        {
+            ret = FAILURE;
         }
     }
     return ret;
