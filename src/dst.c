@@ -114,6 +114,7 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
     getDSTLog.lid = 0x06;
     if (SUCCESS == nvme_Get_Log_Page(device, &getDSTLog))
     {
+        result = SUCCESS;
         if (nvmeSelfTestLog[0] == 0)
         {
             //no self test in progress
@@ -129,6 +130,10 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
             //Setting the status to Fh to work with existing SCSI/ATA code in the run_DST_Function - TJE
             *status = 0x0F;
         }
+    }
+    else
+    {
+        result = FAILURE;
     }
     return result;
 }
