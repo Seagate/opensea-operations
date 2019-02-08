@@ -106,11 +106,11 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
 int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
     int result = UNKNOWN;
-    uint8_t nvmeSelfTestLog[563] = { 0 };//strange size for the log, but it's what I see in the spec - TJE
+    uint8_t nvmeSelfTestLog[564] = { 0 };//strange size for the log, but it's what I see in the spec - TJE
     nvmeGetLogPageCmdOpts getDSTLog;
     memset(&getDSTLog, 0, sizeof(nvmeGetLogPageCmdOpts));
     getDSTLog.addr = nvmeSelfTestLog;
-    getDSTLog.dataLen = 563;
+    getDSTLog.dataLen = 564;
     getDSTLog.lid = 0x06;
     if (SUCCESS == nvme_Get_Log_Page(device, &getDSTLog))
     {
@@ -121,7 +121,7 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
             *percentComplete = 0;
             //need to set a status value based on the most recent result data
             uint32_t newestResultOffset = 4;
-            *status = nvmeSelfTestLog[newestResultOffset + 0] & 0x0F;//This should be fine for the rest of the running DST code.
+            *status = M_Nibble0(nvmeSelfTestLog[newestResultOffset + 0]);//This should be fine for the rest of the running DST code.
         }
         else
         {
@@ -1603,7 +1603,7 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             {
                 //check if the entry is valid by checking for zeros
                 uint8_t zeros[28] = { 0 };
-                if (memcmp(zeros, &nvmeDSTLog[offset], 28))
+                if (memcmp(zeros, &nvmeDSTLog[offset], 28) && M_Nibble0(nvmeDSTLog[offset + 0]) != 0x0F)//0F in NVMe is an unused entry.
                 {
                     entries->dstEntry[entries->numberOfEntries].selfTestRun = M_Nibble1(nvmeDSTLog[offset + 0]);
                     entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus = M_Nibble0(nvmeDSTLog[offset + 0]);
@@ -1635,6 +1635,7 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                     }
                     entries->dstEntry[entries->numberOfEntries].nvmeVendorSpecificWord = M_BytesTo2ByteValue(nvmeDSTLog[offset + 27], nvmeDSTLog[offset + 26]);
                     //increment the number of entries since we found another good one!
+                    entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
                     ++(entries->numberOfEntries);
                 }
             }
