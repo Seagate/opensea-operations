@@ -1637,6 +1637,7 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                     //increment the number of entries since we found another good one!
                     entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
                     ++(entries->numberOfEntries);
+                    entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
                 }
             }
         }
@@ -1705,7 +1706,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 continue;
             }
             //#
-            printf("%2"PRIu8" ", iter + 1);
+            printf("%2" PRIu8 " ", iter + 1);
             //Test
             char selfTestRunString[22] = { 0 };
             if (entries->logType == DST_LOG_TYPE_ATA)
@@ -1780,7 +1781,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 switch (entries->dstEntry[iter].selfTestRun)
                 {
                 case 0:
-                    sprintf(selfTestRunString, "Unknown (Not in spec)");
+                    sprintf(selfTestRunString, "Reserved");
                     break;
                 case 1://short
                     sprintf(selfTestRunString, "Short");
