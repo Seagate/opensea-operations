@@ -122,6 +122,11 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
             //need to set a status value based on the most recent result data
             uint32_t newestResultOffset = 4;
             *status = M_Nibble0(nvmeSelfTestLog[newestResultOffset + 0]);//This should be fine for the rest of the running DST code.
+			//According to spec, if status bit is 0x0F, that means entry is not valid(doesn't cantain valid test results.
+			//and in that case, we have to ignore this bit, and consider this as completed/success.
+			//I have seen this issue on the drive, where DST was never run. - Nidhi
+			if (*status == 0x0F)
+				*status = 0;
         }
         else
         {
