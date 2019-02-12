@@ -126,7 +126,9 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
 			//and in that case, we have to ignore this bit, and consider this as completed/success.
 			//I have seen this issue on the drive, where DST was never run. - Nidhi
 			if (*status == 0x0F)
+            {
 				*status = 0;
+            }
         }
         else
         {
