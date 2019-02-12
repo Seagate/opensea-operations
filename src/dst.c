@@ -1637,7 +1637,6 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                     //increment the number of entries since we found another good one!
                     entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
                     ++(entries->numberOfEntries);
-                    entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
                 }
             }
         }
@@ -1698,7 +1697,15 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
         //extended
         
         //TODO: Need to change some wording or screen output for ATA & SCSI vs NVMe
-        printf(" # %-21s  %-9s  %-26s  %-14s  %-10s  %-9s\n", "Test", "Timestamp", "Execution Status", "Error LBA", "Checkpoint", "Sense Info");
+        if (entries->logType == DST_LOG_TYPE_NVME)
+        {
+            //checkpoint = segment?
+            printf(" # %-21s  %-9s  %-26s  %-14s  %-10s  %-9s\n", "Test", "Timestamp", "Execution Status", "Error LBA", "Segment#", "Status Info");
+        }
+        else
+        {
+            printf(" # %-21s  %-9s  %-26s  %-14s  %-10s  %-9s\n", "Test", "Timestamp", "Execution Status", "Error LBA", "Checkpoint", "Sense Info");
+        }
         for (uint8_t iter = 0, counter = 0; iter < entries->numberOfEntries; ++iter)
         {
             if (!entries->dstEntry[iter].descriptorValid)
@@ -1910,12 +1917,30 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             char senseInfoString[10] = { 0 };
             if (entries->logType == DST_LOG_TYPE_NVME)
             {
-                //TODO: Handle showing status code and status code types here instead of sense data!
-                sprintf(senseInfoString, "N/A");
+                //SCT - SC
+                char sctVal[10] = { 0 };
+                char scVal[10] = { 0 };
+                if (entries->dstEntry[iter].nvmeStatus.statusCodeTypeValid)
+                {
+                    sprintf(sctVal, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCodeType);
+                }
+                else
+                {
+                    sprintf(sctVal, "NA");
+                }
+                if (entries->dstEntry[iter].nvmeStatus.statusCodeValid)
+                {
+                    sprintf(sctVal, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCode);
+                }
+                else
+                {
+                    sprintf(scVal, "NA");
+                }
+                sprintf(senseInfoString, "%s/%s", sctVal, scVal);
             }
             else
             {
-                sprintf(senseInfoString, "%"PRIX8"/%"PRIX8"/%"PRIX8, entries->dstEntry[iter].scsiSenseCode.senseKey, entries->dstEntry[iter].scsiSenseCode.additionalSenseCode, entries->dstEntry[iter].scsiSenseCode.additionalSenseCodeQualifier);
+                sprintf(senseInfoString, "%02"PRIX8"/%02"PRIX8"/%02"PRIX8, entries->dstEntry[iter].scsiSenseCode.senseKey, entries->dstEntry[iter].scsiSenseCode.additionalSenseCode, entries->dstEntry[iter].scsiSenseCode.additionalSenseCodeQualifier);
             }
             printf("%-9s\n", senseInfoString);
             ++counter;
