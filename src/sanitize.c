@@ -264,6 +264,7 @@ int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
     int ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
     {
+        ret = SUCCESS;
         sanitizeOpts->sanitizeCmdEnabled = true;
         sanitizeOpts->exitFailMode = true;
         //Cntl identify bytes 331:328
