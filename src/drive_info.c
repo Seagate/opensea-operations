@@ -19,7 +19,7 @@
 #include "firmware_download.h"
 #include "usb_hacks.h"
 
-int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo)
+int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo)
 {
     int ret = SUCCESS;
     bool sctSupported = false;
@@ -2280,10 +2280,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata drive
     return ret;
 }
 
-int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo)
+int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo)
 {
     int ret = SUCCESS;
-    memset(driveInfo, 0, sizeof(driveInformation));
+    memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     //start with standard inquiry data
     uint8_t version = 0;
     uint8_t peripheralQualifier = 0;
@@ -6147,7 +6147,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     printf("\n");
 }
 
-void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
+void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 {
     double mCapacity = 0, capacity = 0;
     char mCapUnits[4] = { 0 }, capUnits[4] = { 0 };
@@ -6951,7 +6951,7 @@ void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
 }
 
 //This function ONLY exists because we need to show a mix of SCSI and ATA information on USB.
-void generate_External_Drive_Information(ptrDriveInformationSAS_Sata externalDriveInfo, ptrDriveInformationSAS_Sata scsiDriveInfo, ptrDriveInformationSAS_Sata ataDriveInfo)
+void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationSAS_SATA ataDriveInfo)
 {
     if (externalDriveInfo && scsiDriveInfo && ataDriveInfo)
     {

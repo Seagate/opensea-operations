@@ -204,7 +204,7 @@ extern "C"
         int lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
 		uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
 		bool isWriteProtected;//Not available on SATA!
-    }driveInformationSAS_SATA, *ptrDriveInformationSAS_Sata;
+    }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe
     {
@@ -309,7 +309,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo);
+    OPENSEA_OPERATIONS_API int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -325,7 +325,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo);
+    OPENSEA_OPERATIONS_API int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
     OPENSEA_OPERATIONS_API int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo);
 
@@ -344,11 +344,11 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_Sata externalDriveInfo, ptrDriveInformationSAS_Sata scsiDriveInfo, ptrDriveInformationSAS_Sata ataDriveInfo);
+    OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationSAS_SATA ataDriveInfo);
 
     //-----------------------------------------------------------------------------
     //
-    //  print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
+    //  print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     //
     //! \brief   Description:  This function is generic and prints out the data in the driveInfo structure to the screen for SAS/SATA drive information type
     //
@@ -359,7 +359,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo);
+    OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo);
 
     OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo);
 
