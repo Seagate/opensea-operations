@@ -49,9 +49,10 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, bool *saniti
         //TODO: Set namespace ID?
         if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
         {
+			result = SUCCESS;
             uint16_t sprog = M_BytesTo2ByteValue(sanitizeStatusLog[1], sanitizeStatusLog[0]);
             uint16_t sstat = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
-            if (sstat == 2)
+			if (M_GETBITRANGE(sstat, 2, 0) == 0x2)
             {
                 *sanitizeInProgress = true;
                 *percentComplete = sprog;
@@ -355,11 +356,12 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
             if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
             {
                 uint16_t sstat = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
-                if (sstat == 3)
+                if (M_GETBITRANGE(sstat, 2, 0) == 0x3)
                 {
                     sendExitFailureMode = true;
                 }
             }
+			//TODO: should we return from here, since getLogPage failed, we shouldn't be sending Sanitize command.
         }
         break;
 #endif
