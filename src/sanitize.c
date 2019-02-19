@@ -15,73 +15,172 @@
 #include "operations_Common.h"
 #include "sanitize.h"
 
-int get_Sanitize_Progress(tDevice *device, double *percentComplete, bool *sanitizeInProgress)
+int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+{
+    int result = ata_Sanitize_Status(device, false);
+    if (result == SUCCESS)
+    {
+        *percentComplete = M_BytesTo2ByteValue(device->drive_info.lastCommandRTFRs.lbaMid, device->drive_info.lastCommandRTFRs.lbaLow);
+        if (device->drive_info.lastCommandRTFRs.secCntExt & BIT7)
+        {
+            *sanitizeStatus = SANITIZE_STATUS_SUCCESS;
+        }
+        else if (device->drive_info.lastCommandRTFRs.secCntExt & BIT6)
+        {
+            *sanitizeStatus = SANITIZE_STATUS_IN_PROGRESS;
+        }
+        else if (device->drive_info.lastCommandRTFRs.secCntExt & BIT5)
+        {
+            *sanitizeStatus = SANITIZE_STATUS_FROZEN;
+        }
+        else if (device->drive_info.lastCommandRTFRs.secCntExt & BIT4)
+        {
+            *sanitizeStatus = SANITIZE_STATUS_FREEZELOCK_FAILED_DUE_TO_ANTI_FREEZE_LOCK;
+        }
+        //NOTE: If more status bits are added to the spec, then we will need to add support for detecting them here.
+        else if (M_GETBITRANGE(device->drive_info.lastCommandRTFRs.secCntExt, 4, 0) != 0)
+        {
+            //unknown status
+            *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
+        }
+        else
+        {
+            *sanitizeStatus = SANITIZE_STATUS_NEVER_SANITIZED;
+        }
+    }
+    else
+    {
+        //need to check if there was a reason reported for failing this command.
+        //first check that the abort bit was set because if that isn't there, then we won't be able to identify a reason due to a SATL issue
+        if (device->drive_info.lastCommandRTFRs.error & ATA_ERROR_BIT_ABORT)
+        {
+            //LBA Low will have the failure reason, if any
+            switch (device->drive_info.lastCommandRTFRs.lbaLow)
+            {
+            case 0:
+                *sanitizeStatus = SANITIZE_STATUS_FAILED;
+                break;
+            case 1:
+                *sanitizeStatus = SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN;
+                break;
+            case 2:
+                *sanitizeStatus = SANITIZE_STATUS_UNSUPPORTED_FEATURE;
+                break;
+            case 3:
+                *sanitizeStatus = SANITIZE_STATUS_FROZEN;
+                break;
+            case 4:
+                *sanitizeStatus = SANITIZE_STATUS_FREEZELOCK_FAILED_DUE_TO_ANTI_FREEZE_LOCK;
+                break;
+            default:
+                *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
+                break;
+            }
+        }
+        else
+        {
+            *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
+        }
+    }
+    *percentComplete *= 100.0;
+    *percentComplete /= 65536.0;
+    return result;
+}
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     int result = UNKNOWN;
-    *sanitizeInProgress = false;
+    //read the sanitize status log
+    uint8_t sanitizeStatusLog[512] = { 0 };
+    nvmeGetLogPageCmdOpts getLogOpts;
+    memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+    getLogOpts.dataLen = 512;
+    getLogOpts.lid = 0x81;
+    getLogOpts.addr = sanitizeStatusLog;
+    //TODO: Set namespace ID?
+    if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
+    {
+        result = SUCCESS;
+        uint16_t sprog = M_BytesTo2ByteValue(sanitizeStatusLog[1], sanitizeStatusLog[0]);
+        uint16_t sstat = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
+        *percentComplete = sprog;
+
+        switch(M_GETBITRANGE(sstat, 2, 0))
+        {
+        case 0:
+            *sanitizeStatus = SANITIZE_STATUS_NEVER_SANITIZED;
+            break;
+        case 1:
+            *sanitizeStatus = SANITIZE_STATUS_SUCCESS;
+            break;
+        case 2:
+            *sanitizeStatus = SANITIZE_STATUS_IN_PROGRESS;
+            break;
+        case 3:
+            *sanitizeStatus = SANITIZE_STATUS_FAILED;
+            break;
+        default:
+            *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
+            break;
+        }
+    }
+    else
+    {
+        result = NOT_SUPPORTED;
+    }
+    *percentComplete *= 100.0;
+    *percentComplete /= 65536.0;
+    return result;
+}
+#endif
+
+int get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+{
+    uint8_t req_sense_buf[SPC3_SENSE_LEN] = { 0 };
+    uint8_t acq = 0, ascq = 0, senseKey = 0, fru = 0;
+    int result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
+    get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
+    result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
+    //set this for now. It will be changed below if necessary.
+    *sanitizeStatus = SANITIZE_STATUS_NOT_IN_PROGRESS;
+    *percentComplete = 0;
+    if (result == SUCCESS || result == IN_PROGRESS)
+    {
+        if (acq == 0x04 && ascq == 0x1B) //this is making sure that a sanitize command is in progress
+        {
+            *sanitizeStatus = SANITIZE_STATUS_IN_PROGRESS;
+            *percentComplete = M_BytesTo2ByteValue(req_sense_buf[16], req_sense_buf[17]);//sense key specific information
+        }
+    }
+    else
+    {
+        if (acq == 0x31 && ascq == 0x03)
+        {
+            //sanitize command failed
+            *sanitizeStatus = SANITIZE_STATUS_FAILED;
+        }
+    }
+    *percentComplete *= 100.0;
+    *percentComplete /= 65536.0;
+    return result;
+}
+
+int get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+{
+    int result = UNKNOWN;
+    *sanitizeStatus = 0;
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
-        result = ata_Sanitize_Status(device, false);
-        if (result == SUCCESS)
-        {
-            *percentComplete = device->drive_info.lastCommandRTFRs.lbaLow | ((uint16_t)device->drive_info.lastCommandRTFRs.lbaMid << 8);
-            if (!(device->drive_info.lastCommandRTFRs.lbaLow == 0xFF && device->drive_info.lastCommandRTFRs.lbaMid == 0xFF) || device->drive_info.lastCommandRTFRs.secCntExt & BIT6)
-            {
-                *sanitizeInProgress = true;
-            }
-            else if (device->drive_info.lastCommandRTFRs.secCntExt & BIT7)//check this second in case there was a warning about not getting all the rtfrs
-            {
-                *sanitizeInProgress = false;//this means it is complete
-            }
-        }
+        result = get_ATA_Sanitize_Progress(device, percentComplete, sanitizeStatus);
         break;
     case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-    {
-        //read the sanitize status log
-        uint8_t sanitizeStatusLog[512] = { 0 };
-        nvmeGetLogPageCmdOpts getLogOpts;
-        memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-        getLogOpts.dataLen = 512;
-        getLogOpts.lid = 0x81;
-        getLogOpts.addr = sanitizeStatusLog;
-        //TODO: Set namespace ID?
-        if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
-        {
-			result = SUCCESS;
-            uint16_t sprog = M_BytesTo2ByteValue(sanitizeStatusLog[1], sanitizeStatusLog[0]);
-            uint16_t sstat = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
-			if (M_GETBITRANGE(sstat, 2, 0) == 0x2)
-            {
-                *sanitizeInProgress = true;
-                *percentComplete = sprog;
-            }
-        }
-    }
+        result = get_NVMe_Sanitize_Progress(device, percentComplete, sanitizeStatus);
         break;
 #endif
     case SCSI_DRIVE:
-    {
-        uint8_t req_sense_buf[SPC3_SENSE_LEN] = { 0 };
-        uint8_t acq = 0, ascq = 0, senseKey = 0, fru = 0;
-        result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
-        get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
-        result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
-        if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
-        {
-            printf("\n\tSense Data:\n");
-            print_Data_Buffer(&req_sense_buf[0], SPC3_SENSE_LEN, false);
-        }
-        if (result == SUCCESS || result == IN_PROGRESS)
-        {
-            if (acq == 0x04 && ascq == 0x1B) //this is making sure that a sanitize command is in progress
-            {
-                *sanitizeInProgress = true;
-                *percentComplete = ((uint16_t)req_sense_buf[16] << 8) | req_sense_buf[17];//sense key specific information
-            }
-        }
-    }
+        result = get_SCSI_Sanitize_Progress(device, percentComplete, sanitizeStatus);
     break;
     default:
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -91,8 +190,6 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, bool *saniti
         return NOT_SUPPORTED;
         break;
     }
-    *percentComplete *= 100.0;
-    *percentComplete /= 65536.0;
     return result;
 }
 
@@ -100,17 +197,46 @@ int show_Sanitize_Progress(tDevice *device)
 {
     int ret = UNKNOWN;
     double percentComplete = 0;
-    bool sanitizeInProgress = false;
+    eSanitizeStatus sanitizeInProgress = 0;
 
     ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
 
-    if ((ret == SUCCESS || ret == IN_PROGRESS) && sanitizeInProgress == true)
+    if (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS)
     {
         printf("\tSanitize Progress = %3.2f%% \n", percentComplete);
     }
-    else if (ret == SUCCESS && sanitizeInProgress == false)
+    else if (sanitizeInProgress == SANITIZE_STATUS_NOT_IN_PROGRESS)
     {
         printf("\tSanitize command is not currently in progress. It is either complete or has not been run.\n");
+    }
+    else if (sanitizeInProgress == SANITIZE_STATUS_NEVER_SANITIZED)
+    {
+        printf("\tThis device has never been sanitized.\n");
+    } 
+    else if (sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
+    {
+        printf("\tThe last sanitize operation completed successfully\n");
+    }
+    else if (sanitizeInProgress == SANITIZE_STATUS_FROZEN)
+    {
+        printf("\tSanitize is frozen on this device. It must be power cycled to clear the freeze lock.\n");
+    }
+    else if (sanitizeInProgress == SANITIZE_STATUS_UNSUPPORTED_FEATURE)
+    {
+        printf("\tThe last sanitize command specified an unsupported sanitize mode.\n");
+    }
+    else if (sanitizeInProgress == SANITIZE_STATUS_FREEZELOCK_FAILED_DUE_TO_ANTI_FREEZE_LOCK)
+    {
+        printf("\tSanitize freezelock command failed due to anti-freezelock.\n");
+    }
+    else if (sanitizeInProgress == SANITIZE_STATUS_FAILED)
+    {
+        printf("\tSanitize command failed!\n");
+    }
+    else if (sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
+    {
+        //ATA- Completed with physical sectors that are available to be allocated for user data that were not successfully sanitized
+        printf("\tSanitize command failed: completed with physical sectors that are available for user data and were not successfully sanitized!\n");
     }
     else
     {
@@ -317,80 +443,30 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
     int ret = UNKNOWN;
     uint32_t delayTime = 1;
     double percentComplete = 0;
-    bool sanitizeInProgress = false;
+    eSanitizeStatus sanitizeInProgress = 0;
+    bool sendExitFailureMode = false;
     //first check if a sanitize test is in progress (and that the drive isn't frozen or in a failure state)
     ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
-    if (sanitizeInProgress == true || ret == IN_PROGRESS)
+    if (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS || ret == IN_PROGRESS)
     {
         return IN_PROGRESS;
     }
-    if (ret != SUCCESS)
+    else if (sanitizeInProgress == SANITIZE_STATUS_FAILED || sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
     {
-        bool sendExitFailureMode = false;
-        //need to check if the drive has a sanitize failure bit set (and frozen bit set on ATA drives)
-        switch (device->drive_info.drive_type)
+        //failure mode need to be cleared
+        sendExitFailureMode = true;
+    }
+    else if (sanitizeInProgress == SANITIZE_STATUS_FROZEN)
+    {
+        //device is frozen.
+        return FROZEN;
+    }
+    if (sendExitFailureMode)
+    {
+        ret = send_Sanitize_Exit_Failure_Mode(device);
+        if (ret != SUCCESS)
         {
-        case ATA_DRIVE:
-            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x01)
-            {
-                //failure mode need to be cleared
-                sendExitFailureMode = true;
-            }
-            else if (device->drive_info.lastCommandRTFRs.lbaLow == 0x03)
-            {
-                //device is frozen.
-                return FROZEN;
-            }
-            break;
-        case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-        {
-            //read the sanitize status log
-            uint8_t sanitizeStatusLog[512] = { 0 };
-            nvmeGetLogPageCmdOpts getLogOpts;
-            memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-            getLogOpts.dataLen = 512;
-            getLogOpts.lid = 0x81;
-            getLogOpts.addr = sanitizeStatusLog;
-            //TODO: Set namespace ID?
-            if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
-            {
-                uint16_t sstat = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
-                if (M_GETBITRANGE(sstat, 2, 0) == 0x3)
-                {
-                    sendExitFailureMode = true;
-                }
-            }
-			//TODO: should we return from here, since getLogPage failed, we shouldn't be sending Sanitize command.
-        }
-        break;
-#endif
-        case SCSI_DRIVE:
-        {
-            uint8_t asc = 0, ascq = 0, senseKey = 0, fru = 0;
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-            if (asc == 0x31 && ascq == 0x03)
-            {
-                //failure mode needs to be cleared
-                sendExitFailureMode = true;
-            }
-            else//don't care what the error was, but return an error here anyways
-            {
-                return ret;
-            }
-        }
-        break;
-        default:
-            return NOT_SUPPORTED;
-            break;
-        }
-        if (sendExitFailureMode)
-        {
-            ret = send_Sanitize_Exit_Failure_Mode(device);
-            if (ret != SUCCESS)
-            {
-                return ret;
-            }
+            return ret;
         }
     }
 
@@ -455,8 +531,8 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
         printf("Sanitize progress will be updated every");
         print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
         printf("\n");
-        sanitizeInProgress = true;
-        while (sanitizeInProgress)
+        sanitizeInProgress = SANITIZE_STATUS_IN_PROGRESS;
+        while (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS)
         {
             delay_Seconds(delayTime);
             ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
@@ -464,31 +540,38 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
             {
                 if ((ret == SUCCESS || ret == IN_PROGRESS))
                 {
-                    if (sanitizeInProgress == false && percentComplete < 100.0)//if we get to the end, percent complete may not say 100%, so we need this condition to correct it
+                    if (sanitizeInProgress != SANITIZE_STATUS_IN_PROGRESS && percentComplete < 100)//if we get to the end, percent complete may not say 100%, so we need this condition to correct it
                     {
-                        printf("\tSanitize Progress = 100.0%% \n");
+                        printf("\r\tSanitize Progress = 100.00%%");
+                        fflush(stdout);
                     }
                     else
                     {
-                        printf("\tSanitize Progress = %3.2f%% \n", percentComplete);
+                        printf("\r\tSanitize Progress = %3.2f%%", percentComplete);
+                        fflush(stdout);
                     }
-                    if (sanitizeOperation == SANITIZE_OVERWRITE_ERASE && percentComplete >= 95 && sanitizeInProgress == true && progressUpdateChanged == false)
+                    if (sanitizeOperation == SANITIZE_OVERWRITE_ERASE && percentComplete >= 95 && sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS && progressUpdateChanged == false)
                     {
                         progressUpdateChanged = true;
                         delayTime = 60;//change the update time on sanitize overwrite to be once every minute when we are near the end
-                        convert_Seconds_To_Displayable_Time(delayTime, NULL, NULL, NULL, &minutes, &seconds);
-                        printf("Changing polling to every");
-                        print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
-                        printf("\n");
+//                      convert_Seconds_To_Displayable_Time(delayTime, NULL, NULL, NULL, &minutes, &seconds);
+//                      printf("Changing polling to every");
+//                      print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
+//                      printf("\n");
                     }
                 }
                 else
                 {
-                    printf("\tError occurred while retrieving sanitize progress!\n");
+                    printf("\n\tError occurred while retrieving sanitize progress!");
                     break;
                 }
             }
         }
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            printf("\n");
+        }
+        //TODO: Now that we have more detail on the sanitize status, especially ATA failure, do we want to show it here???
     }
     return ret;
 }
