@@ -196,6 +196,7 @@ extern "C"
         bool readLookAheadEnabled;
 		bool writeCacheSupported;
         bool writeCacheEnabled;
+        bool isNV_DISBitSet;//Is it available in SATA?
         uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work)
         uint8_t zonedDevice;//set to 0 for non-zoned devices (SMR). If non-zero, then this matches the latest ATA/SCSI specs for zoned devices
         lastDSTInformation dstInfo;
