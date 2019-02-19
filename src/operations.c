@@ -125,6 +125,61 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
     return ret;
 }
 
+//SBC spec. Caching Mode Page NV_DIS
+int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
+{
+    int ret = UNKNOWN;
+
+    if (device->drive_info.drive_type != SCSI_DRIVE)
+    {
+        return NOT_SUPPORTED;
+    }
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return MEMORY_FAILURE;
+    }
+    //first read the current settings
+    ret = scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage);
+    if (ret == SUCCESS)
+    {
+        //set up the mode parameter header
+        //mode data length
+        cachingModePage[0] = M_Byte1(MP_CACHING_LEN + 6);
+        cachingModePage[1] = M_Byte0(MP_CACHING_LEN + 6);
+        //medium type
+        cachingModePage[2] = 0;
+        //device specific
+        cachingModePage[3] = 0;
+        //reserved and LongLBA bit
+        cachingModePage[4] = RESERVED;
+        //reserved
+        cachingModePage[5] = RESERVED;
+        //block desciptor length
+        cachingModePage[6] = 0;
+        cachingModePage[7] = 0;
+        //now go change the bit to what we need it to, then send a mode select command
+        if (nv_disEnableDisable == true)//User wants to enable.
+        {
+            cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] |= BIT0;
+        }
+        else
+        {
+            //turn the bit off if it is already set
+            if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
+            {
+                cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] ^= BIT0;
+            }
+        }
+        //send the mode select command
+        ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    }
+    safe_Free(cachingModePage);
+    return ret;
+}
+
 int scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
 {
     int ret = UNKNOWN;
@@ -369,6 +424,16 @@ bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
 	return supported;
 }
 
+bool is_NV_DIS_Bit_Set(tDevice *device)
+{
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return scsi_is_NV_DIS_Bit_Set(device);
+    }
+    //Not sure if ATA or NVMe support this. 
+    return false;
+}
+
 bool is_Read_Look_Ahead_Enabled(tDevice *device)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -380,6 +445,33 @@ bool is_Read_Look_Ahead_Enabled(tDevice *device)
         return ata_Is_Read_Look_Ahead_Enabled(device);
     }
     return false;
+}
+
+bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
+{
+    bool enabled = false;
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return false;
+    }
+    //first read the current settings
+    if(SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
+        {
+            enabled = true;
+        }
+        else
+        {
+            enabled = false;
+        }
+    }
+    safe_Free(cachingModePage);
+    return enabled;
 }
 
 bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
