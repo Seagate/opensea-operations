@@ -3920,6 +3920,9 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     }
                     if (pageRead)
                     {
+                        //NV_DIS
+                        driveInfo->isNV_DISBitSet = cachingPage[headerLength + 13] & BIT0 ? true : false;
+
                         //WCE
                         driveInfo->writeCacheEnabled = cachingPage[headerLength + 2] & BIT2 ? true : false;
 						if (driveInfo->writeCacheEnabled)
@@ -6750,6 +6753,15 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 	{
 		printf("\tRead Look-Ahead: Not Supported\n");
 	}
+    //NV_DIS
+	if (driveInfo->isNV_DISBitSet)
+    {
+        printf("\tCaching Mode Page NV_DIS Bit: Disabled\n");
+    }
+	else
+    {
+        printf("\tCaching Mode Page NV_DIS Bit: Enabled\n");
+    }
     //Write Cache
 	if (driveInfo->writeCacheSupported)
 	{
