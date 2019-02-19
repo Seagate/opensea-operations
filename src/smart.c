@@ -1736,6 +1736,7 @@ bool is_SMART_Enabled(tDevice *device)
 #if !defined (DISABLE_NVME_PASSTHROUGH)
         //SMART/health is built in and not enable-able or disable-able - TJE
         enabled = true;
+        break;
 #endif
     case SCSI_DRIVE:
     {
