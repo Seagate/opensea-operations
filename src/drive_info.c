@@ -5941,7 +5941,11 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tComposite Temperature (K): %" PRIu16 "\n", driveInfo->smartData.compositeTemperatureKelvin);
         printf("\tPercent Used (%%): %" PRIu8 "\n", driveInfo->smartData.percentageUsed);
         printf("\tAvailable Spare (%%): %" PRIu8 "\n", driveInfo->smartData.availableSpacePercent);
-        //TODO: Power On Time (years, days, hours, minutes, seconds, etc)
+        uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+        convert_Seconds_To_Displayable_Time_Double(driveInfo->smartData.powerOnHoursD * 3600.0, &years, &days, &hours, &minutes, &seconds);
+        printf("\tPower On Time: ");
+        print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+        printf("\n");
         printf("\tPower On Hours (hours): %0.00f\n", driveInfo->smartData.powerOnHoursD);
 
         //Last DST information
