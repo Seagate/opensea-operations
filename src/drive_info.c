@@ -6366,23 +6366,23 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 		printf("\tMedium is write protected!\n");
 	}
     //Form Factor
-    printf("\tForm Factor (inch): ");
+    printf("\tForm Factor: ");
     switch (driveInfo->formFactor)
     {
     case 1:
-        printf("5.25\n");
+        printf("5.25\"\n");
         break;
     case 2:
-        printf("3.5\n");
+        printf("3.5\"\n");
         break;
     case 3:
-        printf("2.5\n");
+        printf("2.5\"\n");
         break;
     case 4:
-        printf("1.8\n");
+        printf("1.8\"\n");
         break;
     case 5:
-        printf("Less than 1.8\n");
+        printf("Less than 1.8\"\n");
         break;
     case 6:
         printf("mSATA\n");
@@ -6476,8 +6476,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                     case 1:
                         printf("1.5");
                         break;
-                    default:
+                    case 0:
                         printf("Not Reported");
+                        break;
+                    default:
+                        printf("Unknown");
                         break;
                     }
                     printf("\n");
@@ -6499,19 +6502,21 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                     case 1:
                         printf("1.5");
                         break;
-                    default:
+                    case 0:
                         printf("Not Reported");
+                        break;
+                    default:
+                        printf("Unknown");
                         break;
                     }
                     printf("\n");
                 }
                 else
                 {
-                    uint8_t portIter = 0;
-                    for (portIter = 0; portIter < driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts && portIter < MAX_PORTS; portIter++)
+                    for (uint8_t portIter = 0; portIter < driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts && portIter < MAX_PORTS; portIter++)
                     {
                         printf("\t\tPort %"PRIu8"", portIter);
-                        if (driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber == portIter && driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber != 0xFF)
+                        if (driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber == portIter && driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber != UINT8_MAX)
                         {
                             printf(" (Current Port)");
                         }
@@ -6535,12 +6540,15 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                         case 1:
                             printf("1.5");
                             break;
-                        default:
+                        case 0:
                             printf("Not Reported");
+                            break;
+                        default:
+                            printf("Unknown");
                             break;
                         }
                         printf("\n");
-                        //Negoriated speed
+                        //Negotiated speed
                         printf("\t\t\tNegotiated Speed (Gb/s): ");
                         switch (driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[portIter])
                         {
@@ -6559,8 +6567,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                         case 1:
                             printf("1.5");
                             break;
-                        default:
+                        case 0:
                             printf("Not Reported");
+                            break;
+                        default:
+                            printf("Unknown");
                             break;
                         }
                         printf("\n");
@@ -6895,7 +6906,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->numberOfSpecificationsSupported > 0)
     {
         uint8_t specificationsIter = 0;
-        for (specificationsIter = 0; specificationsIter < driveInfo->numberOfSpecificationsSupported && specificationsIter < 30; specificationsIter++)
+        for (specificationsIter = 0; specificationsIter < driveInfo->numberOfSpecificationsSupported && specificationsIter < MAX_SPECS; specificationsIter++)
         {
             printf("\t\t%s\n", driveInfo->specificationsSupported[specificationsIter]);
         }
