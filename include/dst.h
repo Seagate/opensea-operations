@@ -341,6 +341,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API bool is_Self_Test_Supported(tDevice *device);
 
+    OPENSEA_OPERATIONS_API bool is_Conveyence_Self_Test_Supported(tDevice *device);
+
 #if defined (__cplusplus)
 }
 #endif
