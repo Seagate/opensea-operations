@@ -203,6 +203,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_SMART_Enabled(tDevice *device);
 
+    OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(tDevice *device);
+
     OPENSEA_OPERATIONS_API int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount);
 
     OPENSEA_OPERATIONS_API int get_Grown_List_Count(tDevice *device, uint32_t *grownCount);

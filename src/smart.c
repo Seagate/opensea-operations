@@ -1770,6 +1770,49 @@ bool is_SMART_Enabled(tDevice *device)
     return enabled;
 }
 
+bool is_SMART_Check_Supported(tDevice *device)
+{
+    bool supported = false;
+    switch (device->drive_info.drive_type)
+    {
+    case ATA_DRIVE:
+        //On ATA, if SMART is enabled, then we can do a SMART check
+        supported = is_SMART_Enabled(device);
+        break;
+    case NVME_DRIVE:
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+        supported = true;
+        break;
+#endif
+    case SCSI_DRIVE:
+        //For SMART Check on SCSI, first look for the informational exceptions log page to be supported...then look for the mode page. At least one of these has to be available to do this.
+    {
+        uint32_t logSize = 0;
+        if (SUCCESS == get_SCSI_Log_Size(device, LP_INFORMATION_EXCEPTIONS, 0, &logSize) && logSize > 0)
+        {
+            supported = true;
+        }
+        else
+        {
+            //check if the mode page is supported...at least then we can attempt the other methods we have in this code to check for a trip.
+            uint8_t informationalExceptionsModePage[MP_INFORMATION_EXCEPTIONS_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+            if (SUCCESS == scsi_Mode_Sense_10(device, MP_INFORMATION_EXCEPTIONS_CONTROL, MP_INFORMATION_EXCEPTIONS_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, informationalExceptionsModePage))
+            {
+                //check the page code to be sure we got the right page.
+                if (M_GETBITRANGE(informationalExceptionsModePage[0], 5, 0) == 0x1C && informationalExceptionsModePage[1] >= 0x0A)
+                {
+                    supported = true;
+                }
+            }
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    return supported;
+}
+
 int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount)
 {
     int ret = SUCCESS;
