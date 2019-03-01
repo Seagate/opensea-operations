@@ -6747,7 +6747,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     //Write Amplification
     if (driveInfo->rotationRate == 0x0001 && driveInfo->totalWritesToFlash > 0)
     {
-        printf("\tWrite Amplification (%%): %0.02f\n", (double)driveInfo->totalWritesToFlash / (double)driveInfo->totalLBAsWritten);
+        if (driveInfo->totalLBAsWritten > 0)
+        {
+            printf("\tWrite Amplification (%%): %0.02f\n", (double)driveInfo->totalWritesToFlash / (double)driveInfo->totalLBAsWritten);
+        }
+        else
+        {
+            printf("\tWrite Amplification (%%): 0\n");
+        }
     }
     //Read look ahead
 	if (driveInfo->readLookAheadSupported)
