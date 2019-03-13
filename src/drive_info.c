@@ -5944,7 +5944,11 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tComposite Temperature (K): %" PRIu16 "\n", driveInfo->smartData.compositeTemperatureKelvin);
         printf("\tPercent Used (%%): %" PRIu8 "\n", driveInfo->smartData.percentageUsed);
         printf("\tAvailable Spare (%%): %" PRIu8 "\n", driveInfo->smartData.availableSpacePercent);
-        //TODO: Power On Time (years, days, hours, minutes, seconds, etc)
+        uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+        convert_Seconds_To_Displayable_Time_Double(driveInfo->smartData.powerOnHoursD * 3600.0, &years, &days, &hours, &minutes, &seconds);
+        printf("\tPower On Time: ");
+        print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+        printf("\n");
         printf("\tPower On Hours (hours): %0.00f\n", driveInfo->smartData.powerOnHoursD);
 
         //Last DST information
@@ -6365,23 +6369,23 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 		printf("\tMedium is write protected!\n");
 	}
     //Form Factor
-    printf("\tForm Factor (inch): ");
+    printf("\tForm Factor: ");
     switch (driveInfo->formFactor)
     {
     case 1:
-        printf("5.25\n");
+        printf("5.25\"\n");
         break;
     case 2:
-        printf("3.5\n");
+        printf("3.5\"\n");
         break;
     case 3:
-        printf("2.5\n");
+        printf("2.5\"\n");
         break;
     case 4:
-        printf("1.8\n");
+        printf("1.8\"\n");
         break;
     case 5:
-        printf("Less than 1.8\n");
+        printf("Less than 1.8\"\n");
         break;
     case 6:
         printf("mSATA\n");
@@ -6475,8 +6479,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                     case 1:
                         printf("1.5");
                         break;
-                    default:
+                    case 0:
                         printf("Not Reported");
+                        break;
+                    default:
+                        printf("Unknown");
                         break;
                     }
                     printf("\n");
@@ -6498,19 +6505,21 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                     case 1:
                         printf("1.5");
                         break;
-                    default:
+                    case 0:
                         printf("Not Reported");
+                        break;
+                    default:
+                        printf("Unknown");
                         break;
                     }
                     printf("\n");
                 }
                 else
                 {
-                    uint8_t portIter = 0;
-                    for (portIter = 0; portIter < driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts && portIter < MAX_PORTS; portIter++)
+                    for (uint8_t portIter = 0; portIter < driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts && portIter < MAX_PORTS; portIter++)
                     {
                         printf("\t\tPort %"PRIu8"", portIter);
-                        if (driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber == portIter && driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber != 0xFF)
+                        if (driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber == portIter && driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber != UINT8_MAX)
                         {
                             printf(" (Current Port)");
                         }
@@ -6534,12 +6543,15 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                         case 1:
                             printf("1.5");
                             break;
-                        default:
+                        case 0:
                             printf("Not Reported");
+                            break;
+                        default:
+                            printf("Unknown");
                             break;
                         }
                         printf("\n");
-                        //Negoriated speed
+                        //Negotiated speed
                         printf("\t\t\tNegotiated Speed (Gb/s): ");
                         switch (driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[portIter])
                         {
@@ -6558,8 +6570,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                         case 1:
                             printf("1.5");
                             break;
-                        default:
+                        case 0:
                             printf("Not Reported");
+                            break;
+                        default:
+                            printf("Unknown");
                             break;
                         }
                         printf("\n");
@@ -6735,7 +6750,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     //Write Amplification
     if (driveInfo->rotationRate == 0x0001 && driveInfo->totalWritesToFlash > 0)
     {
-        printf("\tWrite Amplification (%%): %0.02f\n", (double)driveInfo->totalWritesToFlash / (double)driveInfo->totalLBAsWritten);
+        if (driveInfo->totalLBAsWritten > 0)
+        {
+            printf("\tWrite Amplification (%%): %0.02f\n", (double)driveInfo->totalWritesToFlash / (double)driveInfo->totalLBAsWritten);
+        }
+        else
+        {
+            printf("\tWrite Amplification (%%): 0\n");
+        }
     }
     //Read look ahead
 	if (driveInfo->readLookAheadSupported)
@@ -6903,7 +6925,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->numberOfSpecificationsSupported > 0)
     {
         uint8_t specificationsIter = 0;
-        for (specificationsIter = 0; specificationsIter < driveInfo->numberOfSpecificationsSupported && specificationsIter < 30; specificationsIter++)
+        for (specificationsIter = 0; specificationsIter < driveInfo->numberOfSpecificationsSupported && specificationsIter < MAX_SPECS; specificationsIter++)
         {
             printf("\t\t%s\n", driveInfo->specificationsSupported[specificationsIter]);
         }

@@ -426,6 +426,23 @@ bool is_Self_Test_Supported(tDevice *device)
     return supported;
 }
 
+bool is_Conveyence_Self_Test_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
+        {
+            if (smartReadData[367] & BIT5)
+            {
+                supported = true;
+            }
+        }
+    }
+    return supported;
+}
+
 int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
 {
     int ret = NOT_SUPPORTED;
@@ -504,31 +521,21 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
             }
             break;
         case DST_TYPE_CONVEYENCE:
-        {
-            uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
+            if (is_Conveyence_Self_Test_Supported(device))
             {
-                if (smartReadData[367] & BIT5)
+                if (captiveForeground)
                 {
-                    if (captiveForeground)
-                    {
-                        ret = ata_SMART_Offline(device, 0x83, commandTimeout);
-                    }
-                    else
-                    {
-                        ret = ata_SMART_Offline(device, 0x03, commandTimeout);
-                    }
+                    ret = ata_SMART_Offline(device, 0x83, commandTimeout);
                 }
                 else
                 {
-                    ret = NOT_SUPPORTED;
+                    ret = ata_SMART_Offline(device, 0x03, commandTimeout);
                 }
             }
             else
             {
                 ret = NOT_SUPPORTED;
             }
-        }
             break;
         default:
             break;
@@ -561,14 +568,14 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
             //time to start the DST
             switch (DSTType)
             {
-            case 1: //short
+            case DST_TYPE_SHORT: //short
                 delayTime = 5;
                 if (captiveForeground)
                 {
                     commandTimeout = 120;//two minutes as per ATA and SCSI specifications
                 }
                 break;
-            case 2: //extended
+            case DST_TYPE_LONG: //extended
                 delayTime = 15;
                 if (captiveForeground)
                 {
@@ -584,7 +591,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                     }
                 }
                 break;
-            case 3: //conveyence
+            case DST_TYPE_CONVEYENCE: //conveyence
                 delayTime = 5;
                 if (captiveForeground)
                 {
@@ -623,7 +630,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                     }
                     //make the time between progress polls bigger if it isn't changing quickly to allow the drive time to finish any recovery it's doing.
                     //Only do this for Short and Conveyance DST though. Long DST should already be slow enough between polls
-                    if ((DSTType == 1 || DSTType == 3) && difftime(time(NULL), dstProgressTimer) > 30 && lastProgressIndication == percentComplete)
+                    if ((DSTType == DST_TYPE_SHORT || DSTType == DST_TYPE_CONVEYENCE) && difftime(time(NULL), dstProgressTimer) > 30 && lastProgressIndication == percentComplete)
                     {
                         //We are likely pinging the drive too quickly during the read test and error recovery isn't finishing...extend the delay time
                         delayTime *= 2;
