@@ -2614,6 +2614,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 }
                 if (SUCCESS == scsi_Inquiry(device, extendedInquiryData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
                 {
+                    //get nvCache supported
+                    driveInfo->nvCacheSupported = extendedInquiryData[6] & BIT1;
 					//get longDST time since we read this page!
 					driveInfo->longDSTTimeMinutes = M_BytesTo2ByteValue(extendedInquiryData[10], extendedInquiryData[11]);
 					//get supported protection types
@@ -3921,7 +3923,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     if (pageRead)
                     {
                         //NV_DIS
-                        driveInfo->isNV_DISBitSet = cachingPage[headerLength + 13] & BIT0 ? true : false;
+                        driveInfo->nvCacheEnabled = cachingPage[headerLength + 13] & BIT0 ? false : true;//bit being set means disabled the cache, being set to 0 means cache is enabled.
 
                         //WCE
                         driveInfo->writeCacheEnabled = cachingPage[headerLength + 2] & BIT2 ? true : false;
@@ -6775,14 +6777,18 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 	{
 		printf("\tRead Look-Ahead: Not Supported\n");
 	}
-    //NV_DIS
-	if (driveInfo->isNV_DISBitSet)
+    //NVCache (!NV_DIS bit from caching MP)
+	if (driveInfo->nvCacheSupported)
     {
-        printf("\tCaching Mode Page NV_DIS Bit: Disabled\n");
-    }
-	else
-    {
-        printf("\tCaching Mode Page NV_DIS Bit: Enabled\n");
+        printf("\tNon-Volatile Cache: ");
+        if (driveInfo->nvCacheEnabled)
+        {
+            printf("Enabled\n");
+        }
+        else
+        {
+            printf("Disabled\n");
+        }
     }
     //Write Cache
 	if (driveInfo->writeCacheSupported)
