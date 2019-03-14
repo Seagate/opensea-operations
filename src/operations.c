@@ -147,8 +147,8 @@ int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
     {
         //set up the mode parameter header
         //mode data length
-        cachingModePage[0] = M_Byte1(MP_CACHING_LEN + 6);
-        cachingModePage[1] = M_Byte0(MP_CACHING_LEN + 6);
+        cachingModePage[0] = M_Byte1(MP_CACHING_LEN + (MODE_PARAMETER_HEADER_10_LEN - 2));//add 6 to omit the length bytes
+        cachingModePage[1] = M_Byte0(MP_CACHING_LEN + (MODE_PARAMETER_HEADER_10_LEN - 2));
         //medium type
         cachingModePage[2] = 0;
         //device specific
@@ -161,12 +161,14 @@ int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
         cachingModePage[6] = 0;
         cachingModePage[7] = 0;
         //now go change the bit to what we need it to, then send a mode select command
-        if (nv_disEnableDisable == true)//User wants to enable.
+        if (!nv_disEnableDisable)
         {
+            //Disable the NV Cache (set the NV_DIS to one)
             cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] |= BIT0;
         }
         else
         {
+            //Enable the NV Cache (set the NV_DIS to zero)
             //turn the bit off if it is already set
             if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
             {
@@ -424,11 +426,11 @@ bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
 	return supported;
 }
 
-bool is_NV_DIS_Bit_Set(tDevice *device)
+bool is_NV_Cache_Enabled(tDevice *device)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        return scsi_is_NV_DIS_Bit_Set(device);
+        return !scsi_is_NV_DIS_Bit_Set(device);//since this function returns when the bit is set to 1 (meaning cache disabled), then we need to flip that bit for this use.
     }
     //Not sure if ATA or NVMe support this. 
     return false;
@@ -443,6 +445,32 @@ bool is_Read_Look_Ahead_Enabled(tDevice *device)
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
         return ata_Is_Read_Look_Ahead_Enabled(device);
+    }
+    return false;
+}
+
+//TODO: SPC3 added this page, but the NV_DIS bit is on the caching mode page.
+//      We may want to add extra logic to see if the NV_DIS bit is set to 1 on the caching mode page.
+bool scsi_Is_NV_Cache_Supported(tDevice *device)
+{
+    bool supported = false;
+    //check the extended inquiry data for the NV_SUP bit
+    uint8_t extInq[VPD_EXTENDED_INQUIRY_LEN] = { 0 };
+    if (SUCCESS == scsi_Inquiry(device, extInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+    {
+        if (extInq[6] & BIT1)
+        {
+            supported = true;
+        }
+    }
+    return supported;
+}
+
+bool is_NV_Cache_Supported(tDevice *device)
+{
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return scsi_Is_NV_Cache_Supported(device);
     }
     return false;
 }
@@ -463,6 +491,7 @@ bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
         //check the offset to see if the bit is set.
         if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
         {
+            //This means that the NV cache is disabled when this bit is set to 1
             enabled = true;
         }
         else

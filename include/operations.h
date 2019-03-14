@@ -71,17 +71,19 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_is_NV_DIS_Bit_Set(tDevice *device);
 
-    OPENSEA_OPERATIONS_API bool is_NV_DIS_Bit_Set(tDevice *device);
+    OPENSEA_OPERATIONS_API bool is_NV_Cache_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API bool is_NV_Cache_Enabled(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
     //  scsi_Set_NV_DIS( tDevice * device, bool nv_disEnableDisable)
     //
-    //! \brief   set read look-ahead to enabled or disabled using scsi commands (Caching Mode Page, SBC)
+    //! \brief   Set the SCSI NV_DIS bit using scsi commands (Caching Mode Page, SBC). setting enableDisable to true turns the NV cache ON (NV_DIS = 0), false turns the cache off (NV_DIS = 1)
     //
     //  Entry:
     //!   \param device - file descriptor
-    //!   \param nv_disEnableDisable - set to true to enable NV_DIS. Set to false to disable
+    //!   \param nv_disEnableDisable - set to true to enable the NV Cache. False to disable the NV cache
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
