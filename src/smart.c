@@ -854,6 +854,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
             print_ATA_SMART_Attribute_Raw(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName);
         }
     }
+	printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type");
     safe_Free(attributeName);
 }
 
