@@ -102,7 +102,7 @@ extern "C"
         };
     }sectorSize;
 
-    uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device);
+    OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
