@@ -75,6 +75,12 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
         }
         return scsiSectorSizesSupported;
     }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        return device->drive_info.IdentifyData.nvme.ns.nlbaf + 1;//zeros based value so add 1
+    }
+#endif
     else
     {
         return 0;
@@ -139,6 +145,26 @@ int get_Supported_Sector_Sizes(tDevice *device, sectorSize * ptrSectorSizeList, 
                 safe_Free(supportedBlockLengthsData);
             }
         }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+        else if (device->drive_info.drive_type == NVME_DRIVE)
+        {
+            //set metadata and PI location bits first
+            for (uint8_t iter = 0; iter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++iter)
+            {
+                if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
+                {
+                    ptrSectorSizeList[iter].valid = true;
+                    ptrSectorSizeList[iter].logicalBlockLength = device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS;
+                    ptrSectorSizeList[iter].nvmeSectorBits.relativePerformance = device->drive_info.IdentifyData.nvme.ns.lbaf[iter].rp;
+                    ptrSectorSizeList[iter].nvmeSectorBits.metadataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[iter].ms;
+                    ptrSectorSizeList[iter].nvmeSectorBits.metadataXLBASup = device->drive_info.IdentifyData.nvme.ns.mc & BIT0;
+                    ptrSectorSizeList[iter].nvmeSectorBits.metadataSeparateSup = device->drive_info.IdentifyData.nvme.ns.mc & BIT1;
+                    ptrSectorSizeList[iter].nvmeSectorBits.piFirst8 = device->drive_info.IdentifyData.nvme.ns.dpc & BIT3;
+                    ptrSectorSizeList[iter].nvmeSectorBits.piLast8 = device->drive_info.IdentifyData.nvme.ns.dpc & BIT4;
+                }
+            }
+        }
+#endif
     }
     return ret;
 }

@@ -90,6 +90,15 @@ extern "C"
                 bool t1ps;
                 bool t0ps;
             }scsiSectorBits;
+            struct nvmeSectorBits //these aren't directly related to a specific sector size in NVMe, but are important for formatting information.
+            {
+                bool metadataSeparateSup;
+                bool metadataXLBASup;
+                bool piFirst8;
+                bool piLast8;
+                uint8_t relativePerformance;
+                uint16_t metadataSize;
+            }nvmeSectorBits;
         };
     }sectorSize;
 

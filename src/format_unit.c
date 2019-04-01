@@ -484,80 +484,101 @@ int get_Supported_Protection_Types(tDevice *device, ptrProtectionSupport protect
     {
         return BAD_PARAMETER;
     }
-    uint8_t *inquiryData = (uint8_t*)calloc(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t));
-    if (!inquiryData)
+    protectionSupportInfo->deviceSupportsProtection = false;
+    protectionSupportInfo->protectionType1Supported = false;
+    protectionSupportInfo->protectionType2Supported = false;
+    protectionSupportInfo->protectionType3Supported = false;
+    protectionSupportInfo->seeSupportedBlockLengthsAndProtectionTypesVPDPage = false;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        return MEMORY_FAILURE;
-    }
-    if (SUCCESS == scsi_Inquiry(device, inquiryData, INQ_RETURN_DATA_LENGTH, 0, false, false))
-    {
-        if (inquiryData[5] & BIT0)
+        uint8_t *inquiryData = (uint8_t*)calloc(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t));
+        if (!inquiryData)
         {
-            protectionSupportInfo->deviceSupportsProtection = true;
-            //now read the extended inquiry data VPD page
-            if (SUCCESS == scsi_Inquiry(device, inquiryData, INQ_RETURN_DATA_LENGTH, EXTENDED_INQUIRY_DATA, true, false))
+            return MEMORY_FAILURE;
+        }
+        if (SUCCESS == scsi_Inquiry(device, inquiryData, INQ_RETURN_DATA_LENGTH, 0, false, false))
+        {
+            if (inquiryData[5] & BIT0)
             {
-                switch (inquiryData[0] & 0x1F)
+                protectionSupportInfo->deviceSupportsProtection = true;
+                //now read the extended inquiry data VPD page
+                if (SUCCESS == scsi_Inquiry(device, inquiryData, INQ_RETURN_DATA_LENGTH, EXTENDED_INQUIRY_DATA, true, false))
                 {
-                case 0://direct access block device
-                    switch ((inquiryData[4] >> 3) & 0x07)//spt field
+                    switch (inquiryData[0] & 0x1F)
                     {
-                    case 0:
-                        protectionSupportInfo->protectionType1Supported = true;
-                        protectionSupportInfo->protectionType2Supported = false;
-                        protectionSupportInfo->protectionType3Supported = false;
+                    case 0://direct access block device
+                        switch ((inquiryData[4] >> 3) & 0x07)//spt field
+                        {
+                        case 0:
+                            protectionSupportInfo->protectionType1Supported = true;
+                            protectionSupportInfo->protectionType2Supported = false;
+                            protectionSupportInfo->protectionType3Supported = false;
+                            break;
+                        case 1:
+                            protectionSupportInfo->protectionType1Supported = true;
+                            protectionSupportInfo->protectionType2Supported = true;
+                            protectionSupportInfo->protectionType3Supported = false;
+                            break;
+                        case 2:
+                            protectionSupportInfo->protectionType1Supported = false;
+                            protectionSupportInfo->protectionType2Supported = true;
+                            protectionSupportInfo->protectionType3Supported = false;
+                            break;
+                        case 3:
+                            protectionSupportInfo->protectionType1Supported = true;
+                            protectionSupportInfo->protectionType2Supported = false;
+                            protectionSupportInfo->protectionType3Supported = true;
+                            break;
+                        case 4:
+                            protectionSupportInfo->protectionType1Supported = false;
+                            protectionSupportInfo->protectionType2Supported = false;
+                            protectionSupportInfo->protectionType3Supported = true;
+                            break;
+                        case 5:
+                            protectionSupportInfo->protectionType1Supported = false;
+                            protectionSupportInfo->protectionType2Supported = true;
+                            protectionSupportInfo->protectionType3Supported = true;
+                            break;
+                        case 6:
+                            protectionSupportInfo->seeSupportedBlockLengthsAndProtectionTypesVPDPage = true;
+                            break;
+                        case 7:
+                            protectionSupportInfo->protectionType1Supported = true;
+                            protectionSupportInfo->protectionType2Supported = true;
+                            protectionSupportInfo->protectionType3Supported = true;
+                            break;
+                        }
                         break;
-                    case 1:
-                        protectionSupportInfo->protectionType1Supported = true;
-                        protectionSupportInfo->protectionType2Supported = true;
-                        protectionSupportInfo->protectionType3Supported = false;
-                        break;
-                    case 2:
-                        protectionSupportInfo->protectionType1Supported = false;
-                        protectionSupportInfo->protectionType2Supported = true;
-                        protectionSupportInfo->protectionType3Supported = false;
-                        break;
-                    case 3:
-                        protectionSupportInfo->protectionType1Supported = true;
-                        protectionSupportInfo->protectionType2Supported = false;
-                        protectionSupportInfo->protectionType3Supported = true;
-                        break;
-                    case 4:
-                        protectionSupportInfo->protectionType1Supported = false;
-                        protectionSupportInfo->protectionType2Supported = false;
-                        protectionSupportInfo->protectionType3Supported = true;
-                        break;
-                    case 5:
-                        protectionSupportInfo->protectionType1Supported = false;
-                        protectionSupportInfo->protectionType2Supported = true;
-                        protectionSupportInfo->protectionType3Supported = true;
-                        break;
-                    case 6:
-                        protectionSupportInfo->seeSupportedBlockLengthsAndProtectionTypesVPDPage = true;
-                        break;
-                    case 7:
-                        protectionSupportInfo->protectionType1Supported = true;
-                        protectionSupportInfo->protectionType2Supported = true;
-                        protectionSupportInfo->protectionType3Supported = true;
+                    case 1://sequential access block device (we don't care...it's a tape drive...)
+                    default:
                         break;
                     }
-                    break;
-                case 1://sequential access block device (we don't care...it's a tape drive...)
-                default:
-                    break;
                 }
             }
         }
+        safe_Free(inquiryData);
     }
-    else
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        protectionSupportInfo->deviceSupportsProtection = false;
-        protectionSupportInfo->protectionType1Supported = false;
-        protectionSupportInfo->protectionType2Supported = false;
-        protectionSupportInfo->protectionType3Supported = false;
-        protectionSupportInfo->seeSupportedBlockLengthsAndProtectionTypesVPDPage = false;
+        //read the PI support from identify namespace structure
+        if (device->drive_info.IdentifyData.nvme.ns.dpc > 0)
+        {
+            if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT0)
+            {
+                protectionSupportInfo->protectionType1Supported = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT1)
+            {
+                protectionSupportInfo->protectionType2Supported = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT2)
+            {
+                protectionSupportInfo->protectionType3Supported = true;
+            }
+        }
     }
-    safe_Free(inquiryData);
+#endif
     return ret;
 }
 
