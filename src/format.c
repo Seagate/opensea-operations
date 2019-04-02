@@ -477,185 +477,6 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     return ret;
 }
 
-int get_Supported_Protection_Types(tDevice *device, ptrProtectionSupport protectionSupportInfo)
-{
-    int ret = SUCCESS;
-    if (!device || !protectionSupportInfo)
-    {
-        return BAD_PARAMETER;
-    }
-    protectionSupportInfo->deviceSupportsProtection = false;
-    protectionSupportInfo->protectionType1Supported = false;
-    protectionSupportInfo->protectionType2Supported = false;
-    protectionSupportInfo->protectionType3Supported = false;
-    bool seeSupportedBlockLengthsAndProtectionTypesVPDPage = false;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
-    {
-        uint8_t *inquiryData = (uint8_t*)calloc(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t));
-        if (!inquiryData)
-        {
-            return MEMORY_FAILURE;
-        }
-        if (SUCCESS == scsi_Inquiry(device, inquiryData, INQ_RETURN_DATA_LENGTH, 0, false, false))
-        {
-            if (inquiryData[5] & BIT0)
-            {
-                protectionSupportInfo->deviceSupportsProtection = true;
-                //now read the extended inquiry data VPD page
-                if (SUCCESS == scsi_Inquiry(device, inquiryData, INQ_RETURN_DATA_LENGTH, EXTENDED_INQUIRY_DATA, true, false))
-                {
-                    switch (inquiryData[0] & 0x1F)
-                    {
-                    case 0://direct access block device
-                        switch ((inquiryData[4] >> 3) & 0x07)//spt field
-                        {
-                        case 0:
-                            protectionSupportInfo->protectionType1Supported = true;
-                            protectionSupportInfo->protectionType2Supported = false;
-                            protectionSupportInfo->protectionType3Supported = false;
-                            break;
-                        case 1:
-                            protectionSupportInfo->protectionType1Supported = true;
-                            protectionSupportInfo->protectionType2Supported = true;
-                            protectionSupportInfo->protectionType3Supported = false;
-                            break;
-                        case 2:
-                            protectionSupportInfo->protectionType1Supported = false;
-                            protectionSupportInfo->protectionType2Supported = true;
-                            protectionSupportInfo->protectionType3Supported = false;
-                            break;
-                        case 3:
-                            protectionSupportInfo->protectionType1Supported = true;
-                            protectionSupportInfo->protectionType2Supported = false;
-                            protectionSupportInfo->protectionType3Supported = true;
-                            break;
-                        case 4:
-                            protectionSupportInfo->protectionType1Supported = false;
-                            protectionSupportInfo->protectionType2Supported = false;
-                            protectionSupportInfo->protectionType3Supported = true;
-                            break;
-                        case 5:
-                            protectionSupportInfo->protectionType1Supported = false;
-                            protectionSupportInfo->protectionType2Supported = true;
-                            protectionSupportInfo->protectionType3Supported = true;
-                            break;
-                        case 6:
-                            seeSupportedBlockLengthsAndProtectionTypesVPDPage = true;
-                            break;
-                        case 7:
-                            protectionSupportInfo->protectionType1Supported = true;
-                            protectionSupportInfo->protectionType2Supported = true;
-                            protectionSupportInfo->protectionType3Supported = true;
-                            break;
-                        }
-                        break;
-                    case 1://sequential access block device (we don't care...it's a tape drive...)
-                    default:
-                        break;
-                    }
-                }
-            }
-        }
-        safe_Free(inquiryData);
-        if (seeSupportedBlockLengthsAndProtectionTypesVPDPage)
-        {
-            uint32_t supportedSectorSizesDataLength = 0;
-            if (SUCCESS == get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength))
-            {
-                uint8_t *supportedBlockLengthsData = (uint8_t*)calloc(supportedSectorSizesDataLength, sizeof(uint8_t));
-                if (!supportedBlockLengthsData)
-                {
-                    return MEMORY_FAILURE;
-                }
-                if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, supportedSectorSizesDataLength, NULL))
-                {
-                    for (uint32_t iter = 4; (iter + 8) < supportedSectorSizesDataLength; iter += 8)
-                    {
-                        if (supportedBlockLengthsData[iter + 5] & BIT1)
-                        {
-                            protectionSupportInfo->protectionType1Supported = true;
-                        }
-                        if (supportedBlockLengthsData[iter + 5] & BIT2)
-                        {
-                            protectionSupportInfo->protectionType2Supported = true;
-                        }
-                        if (supportedBlockLengthsData[iter + 5] & BIT3)
-                        {
-                            protectionSupportInfo->protectionType3Supported = true;
-                        }
-                        //supportedBlockLengthsData[iter + 5] & BIT0;
-                    }
-                    if (protectionSupportInfo->protectionType1Supported || protectionSupportInfo->protectionType2Supported || protectionSupportInfo->protectionType3Supported)
-                    {
-                        protectionSupportInfo->deviceSupportsProtection = true;
-                    }
-                    ret = SUCCESS;
-                }
-                safe_Free(supportedBlockLengthsData);
-            }
-        }
-    }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-    else if (device->drive_info.drive_type == NVME_DRIVE)
-    {
-        //read the PI support from identify namespace structure
-        if (device->drive_info.IdentifyData.nvme.ns.dpc > 0)
-        {
-            if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT0)
-            {
-                protectionSupportInfo->protectionType1Supported = true;
-            }
-            if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT1)
-            {
-                protectionSupportInfo->protectionType2Supported = true;
-            }
-            if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT2)
-            {
-                protectionSupportInfo->protectionType3Supported = true;
-            }
-            if (protectionSupportInfo->protectionType1Supported || protectionSupportInfo->protectionType2Supported || protectionSupportInfo->protectionType3Supported)
-            {
-                protectionSupportInfo->deviceSupportsProtection = true;
-            }
-            //ptrSectorSizeList[iter].nvmeSectorBits.metadataXLBASup = device->drive_info.IdentifyData.nvme.ns.mc & BIT0;
-            //ptrSectorSizeList[iter].nvmeSectorBits.metadataSeparateSup = device->drive_info.IdentifyData.nvme.ns.mc & BIT1;
-            protectionSupportInfo->nvmSpecificPI.piFirst8 = device->drive_info.IdentifyData.nvme.ns.dpc & BIT3;
-            protectionSupportInfo->nvmSpecificPI.piLast8 = device->drive_info.IdentifyData.nvme.ns.dpc & BIT4;
-        }
-    }
-#endif
-    return ret;
-}
-
-void show_Supported_Protection_Types(ptrProtectionSupport protectionSupportInfo)
-{
-    if (protectionSupportInfo)
-    {
-        printf("Supported Protection Types:\n");
-        printf("---------------------------\n");
-        if (protectionSupportInfo->deviceSupportsProtection)
-        {
-            printf("Type 0 - No protection beyond transport protocol\n");//this is always supported
-            if (protectionSupportInfo->protectionType1Supported)
-            {
-                printf("Type 1 - Logical Block Guard and Logical Block Reference Tag\n");
-            }
-            if (protectionSupportInfo->protectionType2Supported)
-            {
-                printf("Type 2 - Logical Block Guard and Logical Block Reference Tag (except first block)\n\t32byte read/write CDBs allowed\n");
-            }
-            if (protectionSupportInfo->protectionType3Supported)
-            {
-                printf("Type 3 - Logical Block Guard\n");
-            }
-        }
-        else
-        {
-            printf("Type 0 - No protection beyond transport protocol\n");
-        }
-    }
-}
-
 int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
 {
     int ret = SUCCESS;
@@ -1010,6 +831,10 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                 {
                     formats->sectorSizes[sectorSizeCounter].valid = true;
                     formats->sectorSizes[sectorSizeCounter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
+                    if (formats->sectorSizes[sectorSizeCounter].logicalBlockLength == device->drive_info.deviceBlockSize)
+                    {
+                        formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                    }
                     ++(formats->numberOfSectorSizes);
                 }
                 formats->sectorSizes[sectorSizeCounter].ataSetSectorFields.descriptorIndex = (uint8_t)(iter / 16);
@@ -1027,6 +852,7 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
         formats->numberOfSectorSizes = 1;
         formats->protectionInformationSupported.deviceSupportsProtection = false;
         formats->sectorSizes[0].valid = true;
+        formats->sectorSizes[0].currentFormat = true;
         formats->sectorSizes[0].logicalBlockLength = device->drive_info.deviceBlockSize;
         formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
         ret = SUCCESS;
@@ -1149,6 +975,39 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                         formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t3ps = true;
                         formats->protectionInformationSupported.protectionType3Supported = true;
                     }
+                    if (device->drive_info.deviceBlockSize == formats->sectorSizes[sectorSizeCounter].logicalBlockLength)
+                    {
+                        //check PI to see if this is the current format
+                        switch (device->drive_info.currentProtectionType)
+                        {
+                        case 0:
+                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps)
+                            {
+                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                            }
+                            break;
+                        case 1:
+                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t1ps)
+                            {
+                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                            }
+                            break;
+                        case 2:
+                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t2ps)
+                            {
+                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                            }
+                            break;
+                        case 3:
+                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t3ps)
+                            {
+                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
                 }
                 if (formats->protectionInformationSupported.protectionType1Supported || formats->protectionInformationSupported.protectionType2Supported || formats->protectionInformationSupported.protectionType3Supported)
                 {
@@ -1192,6 +1051,30 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                 formats->sectorSizes[5].valid = true;
                 formats->sectorSizes[5].logicalBlockLength = 4160;
                 formats->sectorSizes[5].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+
+                switch (device->drive_info.deviceBlockSize)
+                {
+                case 512:
+                    formats->sectorSizes[0].currentFormat = true;
+                    break;
+                case 520:
+                    formats->sectorSizes[1].currentFormat = true;
+                    break;
+                case 528:
+                    formats->sectorSizes[2].currentFormat = true;
+                    break;
+                case 4096:
+                    formats->sectorSizes[3].currentFormat = true;
+                    break;
+                case 4112:
+                    formats->sectorSizes[4].currentFormat = true;
+                    break;
+                case 4160:
+                    formats->sectorSizes[5].currentFormat = true;
+                    break;
+                default:
+                    break;
+                }
             }
             else
             {
@@ -1211,6 +1094,20 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                     formats->sectorSizes[2].valid = true;
                     formats->sectorSizes[2].logicalBlockLength = 528;
                     formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    switch (device->drive_info.deviceBlockSize)
+                    {
+                    case 512:
+                        formats->sectorSizes[0].currentFormat = true;
+                        break;
+                    case 520:
+                        formats->sectorSizes[1].currentFormat = true;
+                        break;
+                    case 528:
+                        formats->sectorSizes[2].currentFormat = true;
+                        break;
+                    default:
+                        break;
+                    }
                 }
                 else
                 {
@@ -1226,6 +1123,20 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                     formats->sectorSizes[2].valid = true;
                     formats->sectorSizes[2].logicalBlockLength = 4160;
                     formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    switch (device->drive_info.deviceBlockSize)
+                    {
+                    case 4096:
+                        formats->sectorSizes[0].currentFormat = true;
+                        break;
+                    case 4112:
+                        formats->sectorSizes[1].currentFormat = true;
+                        break;
+                    case 4160:
+                        formats->sectorSizes[2].currentFormat = true;
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
         }
@@ -1235,6 +1146,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
         formats->deviceSupportsOtherFormats = false;
         formats->numberOfSectorSizes = 1;
         formats->sectorSizes[0].valid = true;
+        formats->sectorSizes[0].currentFormat = true;
         formats->sectorSizes[0].logicalBlockLength = device->drive_info.deviceBlockSize;
         formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
     }
@@ -1287,6 +1199,9 @@ int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             ++formats->numberOfSectorSizes;
         }
     }
+
+    //set current format
+    formats->sectorSizes[M_Nibble0(device->drive_info.IdentifyData.nvme.ns.flbas)].currentFormat = true;
     return SUCCESS;
 }
 #endif
@@ -1322,44 +1237,7 @@ void show_Supported_Formats(ptrSupportedFormats formats)
 {
     printf("\nSupported Logical Block Sizes and Protection Types:\n");
     printf("---------------------------------------------------\n");
-    //printf("Supported protection types (End to End protection):\n");
-    //if (formats->protectionInformationSupported.deviceSupportsProtection && !formats->protectionInformationSupported.protectionReportedPerSectorSize)
-    //{
-    //    printf("\tType 0 - No protection beyond transport protocol\n");//this is always supported
-    //    if (formats->protectionInformationSupported.protectionType1Supported)
-    //    {
-    //        printf("\tType 1 - Logical Block Guard and Logical Block Reference Tag\n");
-    //    }
-    //    if (formats->protectionInformationSupported.protectionType2Supported)
-    //    {
-    //        printf("\tType 2 - Logical Block Guard and Logical Block Reference Tag (except first block)\n\t\t32byte read/write CDBs allowed\n");
-    //    }
-    //    if (formats->protectionInformationSupported.protectionType3Supported)
-    //    {
-    //        printf("\tType 3 - Logical Block Guard\n");
-    //    }
-    //    if (formats->nvmeMetadataSupport.nvmSpecificValid)
-    //    {
-    //        //bools for PI location at beginning or end
-    //    }
-    //    printf("NOTE: Not all protection types are supported on all logical block sizes.");
-    //    printf("      Please check your poduct manual before trying to format with protection information!\n");
-    //}
-    //else if (formats->protectionInformationSupported.protectionReportedPerSectorSize)
-    //{
-    //    printf("\tProtection types are supported per logical block size below.\n");
-    //}
-    //else
-    //{
-    //    printf("\tNo additional protection supported.\n");
-    //}
-
-    ////TODO: formats->nvmeMetadataSupport
-    //if (formats->nvmeMetadataSupport.nvmSpecificValid)
-    //{
-
-    //}
-
+    printf("  * - current device format\n");
     printf("PI Key:\n");
     printf("  Y - protection type supported at specified block size\n");
     printf("  N - protection type not supported at specified block size\n");
@@ -1371,13 +1249,14 @@ void show_Supported_Formats(ptrSupportedFormats formats)
     printf("  Good    \n");
     printf("  Degraded\n");
     //now print out the supported block sizes
-    printf("----------------------------------------------------------------\n");
-    printf("%18s  %4s  %4s  %4s  %4s  %20s\n", "Logical Block Size", "PI-0", "PI-1", "PI-2", "PI-3", "Relative Performance");
-    printf("----------------------------------------------------------------\n");
+    printf("-----------------------------------------------------------------\n");
+    printf(" %18s  %4s  %4s  %4s  %4s  %20s\n", "Logical Block Size", "PI-0", "PI-1", "PI-2", "PI-3", "Relative Performance");
+    printf("-----------------------------------------------------------------\n");
     for (uint32_t iter = 0; iter < formats->numberOfSectorSizes; ++iter)
     {
         if (formats->sectorSizes[iter].valid)
         {
+            char current = ' ';
             char pi0 = 0;
             char pi1 = 0;
             char pi2 = 0;
@@ -1491,10 +1370,14 @@ void show_Supported_Formats(ptrSupportedFormats formats)
             default:
                 break;
             }
-            printf("%18" PRIu32 "  %4c  %4c  %4c  %4c  %20s\n", formats->sectorSizes[iter].logicalBlockLength, pi0, pi1, pi2, pi3, perf);
+            if (formats->sectorSizes[iter].currentFormat)
+            {
+                current = '*';
+            }
+            printf("%c%18" PRIu32 "  %4c  %4c  %4c  %4c  %20s\n", current, formats->sectorSizes[iter].logicalBlockLength, pi0, pi1, pi2, pi3, perf);
         }
     }
-    printf("----------------------------------------------------------------\n");
+    printf("-----------------------------------------------------------------\n");
     if (formats->scsiInformationNotReported)
     {
         printf("NOTE: Device is not capable of showing all sizes it supports. Only common\n");
@@ -1527,326 +1410,15 @@ void show_Supported_Formats(ptrSupportedFormats formats)
     if (formats->scsiFastFormatSupported)
     {
         printf("NOTE: This device supports Fast Format. Fast format is not instantaneous and is used for\n");
-        printf("      switching between 5xx and 4xxx sector sizes. This does not necessarily mean switching\n");
-        printf("      sector sizes AND changing PI at the same time is supported. In most cases, a switch of\n");
-        printf("      PI type will require a full device format.\n");
+        printf("      switching between 5xx and 4xxx sector sizes. A fast format may take a few minutes or longer\n");
+        printf("      but may take longer depending on the size of the drive. Fast format support does not necessarily\n");
+        printf("      mean switching sector sizes AND changing PI at the same time is supported. In most cases, a\n");
+        printf("      switch of PI type will require a full device format.\n");
         printf("      Fast format mode 1 is typically used to switch from 512 to 4096 block sizes with the current\n");
         printf("          PI scheme.\n");
     }
+    //TODO: NVMe Metadata and PI location information.
     return;
-}
-
-int get_Supported_Sector_Sizes(tDevice *device, sectorSize * ptrSectorSizeList, uint32_t numberOfSectorSizeStructs)
-{
-    int ret = NOT_SUPPORTED;
-    if (!ptrSectorSizeList)
-    {
-        return BAD_PARAMETER;
-    }
-    if (device->drive_info.drive_type == ATA_DRIVE)
-    {
-        if (is_Set_Sector_Configuration_Supported(device))
-        {
-            uint8_t sectorConfigurationLog[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SECTOR_CONFIGURATION_LOG, 0, sectorConfigurationLog, LEGACY_DRIVE_SEC_SIZE, 0))
-            {
-                for (uint16_t iter = 0, sectorSizeCounter = 0; iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < numberOfSectorSizeStructs; iter += 16, ++sectorSizeCounter)
-                {
-                    ptrSectorSizeList[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(sectorConfigurationLog[7 + iter], sectorConfigurationLog[6 + iter], sectorConfigurationLog[5 + iter], sectorConfigurationLog[4 + iter]) * 2;
-                    ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorCheck = M_BytesTo2ByteValue(sectorConfigurationLog[3 + iter], sectorConfigurationLog[2 + iter]);
-                    if (ptrSectorSizeList[sectorSizeCounter].logicalBlockLength > 0 && ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorCheck != 0)
-                    {
-                        ptrSectorSizeList[sectorSizeCounter].valid = true;
-                    }
-                    ptrSectorSizeList[sectorSizeCounter].ataSetSectorFields.descriptorIndex = (uint8_t)(iter / 16);
-                }
-                ret = SUCCESS;
-            }
-        }
-    }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
-    {
-        uint32_t supportedSectorSizesDataLength = 0;
-        if (SUCCESS == get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength))
-        {
-            uint8_t *supportedBlockLengthsData = (uint8_t*)calloc(supportedSectorSizesDataLength, sizeof(uint8_t));
-            if (!supportedBlockLengthsData)
-            {
-                return MEMORY_FAILURE;
-            }
-            if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, supportedSectorSizesDataLength, NULL))
-            {
-                for (uint32_t iter = 4, sectorSizeCounter = 0; (iter + 8) < supportedSectorSizesDataLength && sectorSizeCounter < numberOfSectorSizeStructs; iter += 8, ++sectorSizeCounter)
-                {
-                    ptrSectorSizeList[sectorSizeCounter].valid = true;
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.piSupportBitsValid = true;
-                    ptrSectorSizeList[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(supportedBlockLengthsData[iter + 0], supportedBlockLengthsData[iter + 1], supportedBlockLengthsData[iter + 2], supportedBlockLengthsData[iter + 3]);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.p_i_i_sup = (bool)(supportedBlockLengthsData[iter + 4] & BIT6);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.no_pi_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT3);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.grd_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT2);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.app_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT1);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.ref_chk = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.t3ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT3);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.t2ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT2);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.t1ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT1);
-                    ptrSectorSizeList[sectorSizeCounter].scsiSectorBits.t0ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
-                }
-                ret = SUCCESS;
-            }
-            safe_Free(supportedBlockLengthsData);
-        }
-        else
-        {
-            ret = SUCCESS;
-            //dummy up the support based on what is known from traditional formatting support - don't include any PI stuff here for now. Need more refactoring
-            bool fastFormatSup = false;
-            if (is_Format_Unit_Supported(device, &fastFormatSup))
-            {
-                ptrSectorSizeList[0].valid = true;
-                ptrSectorSizeList[0].logicalBlockLength = 512;
-                ptrSectorSizeList[0].scsiSectorBits.p_i_i_sup = false;
-                ptrSectorSizeList[0].scsiSectorBits.no_pi_chk = false;
-                ptrSectorSizeList[0].scsiSectorBits.grd_chk = false;
-                ptrSectorSizeList[0].scsiSectorBits.app_chk = false;
-                ptrSectorSizeList[0].scsiSectorBits.ref_chk = false;
-                ptrSectorSizeList[0].scsiSectorBits.t3ps = false;
-                ptrSectorSizeList[0].scsiSectorBits.t2ps = false;
-                ptrSectorSizeList[0].scsiSectorBits.t1ps = false;
-                ptrSectorSizeList[0].scsiSectorBits.t0ps = false;
-
-                ptrSectorSizeList[1].valid = true;
-                ptrSectorSizeList[1].logicalBlockLength = 520;
-                ptrSectorSizeList[1].scsiSectorBits.p_i_i_sup = false;
-                ptrSectorSizeList[1].scsiSectorBits.no_pi_chk = false;
-                ptrSectorSizeList[1].scsiSectorBits.grd_chk = false;
-                ptrSectorSizeList[1].scsiSectorBits.app_chk = false;
-                ptrSectorSizeList[1].scsiSectorBits.ref_chk = false;
-                ptrSectorSizeList[1].scsiSectorBits.t3ps = false;
-                ptrSectorSizeList[1].scsiSectorBits.t2ps = false;
-                ptrSectorSizeList[1].scsiSectorBits.t1ps = false;
-                ptrSectorSizeList[1].scsiSectorBits.t0ps = false;
-
-                ptrSectorSizeList[2].valid = true;
-                ptrSectorSizeList[2].logicalBlockLength = 528;
-                ptrSectorSizeList[2].scsiSectorBits.p_i_i_sup = false;
-                ptrSectorSizeList[2].scsiSectorBits.no_pi_chk = false;
-                ptrSectorSizeList[2].scsiSectorBits.grd_chk = false;
-                ptrSectorSizeList[2].scsiSectorBits.app_chk = false;
-                ptrSectorSizeList[2].scsiSectorBits.ref_chk = false;
-                ptrSectorSizeList[2].scsiSectorBits.t3ps = false;
-                ptrSectorSizeList[2].scsiSectorBits.t2ps = false;
-                ptrSectorSizeList[2].scsiSectorBits.t1ps = false;
-                ptrSectorSizeList[2].scsiSectorBits.t0ps = false;
-
-                ptrSectorSizeList[3].valid = true;
-                ptrSectorSizeList[3].logicalBlockLength = 4096;
-                ptrSectorSizeList[3].scsiSectorBits.p_i_i_sup = false;
-                ptrSectorSizeList[3].scsiSectorBits.no_pi_chk = false;
-                ptrSectorSizeList[3].scsiSectorBits.grd_chk = false;
-                ptrSectorSizeList[3].scsiSectorBits.app_chk = false;
-                ptrSectorSizeList[3].scsiSectorBits.ref_chk = false;
-                ptrSectorSizeList[3].scsiSectorBits.t3ps = false;
-                ptrSectorSizeList[3].scsiSectorBits.t2ps = false;
-                ptrSectorSizeList[3].scsiSectorBits.t1ps = false;
-                ptrSectorSizeList[3].scsiSectorBits.t0ps = false;
-
-                ptrSectorSizeList[4].valid = true;
-                ptrSectorSizeList[4].logicalBlockLength = 4112;
-                ptrSectorSizeList[4].scsiSectorBits.p_i_i_sup = false;
-                ptrSectorSizeList[4].scsiSectorBits.no_pi_chk = false;
-                ptrSectorSizeList[4].scsiSectorBits.grd_chk = false;
-                ptrSectorSizeList[4].scsiSectorBits.app_chk = false;
-                ptrSectorSizeList[4].scsiSectorBits.ref_chk = false;
-                ptrSectorSizeList[4].scsiSectorBits.t3ps = false;
-                ptrSectorSizeList[4].scsiSectorBits.t2ps = false;
-                ptrSectorSizeList[4].scsiSectorBits.t1ps = false;
-                ptrSectorSizeList[4].scsiSectorBits.t0ps = false;
-
-                ptrSectorSizeList[5].valid = true;
-                ptrSectorSizeList[5].logicalBlockLength = 4160;
-                ptrSectorSizeList[5].scsiSectorBits.p_i_i_sup = false;
-                ptrSectorSizeList[5].scsiSectorBits.no_pi_chk = false;
-                ptrSectorSizeList[5].scsiSectorBits.grd_chk = false;
-                ptrSectorSizeList[5].scsiSectorBits.app_chk = false;
-                ptrSectorSizeList[5].scsiSectorBits.ref_chk = false;
-                ptrSectorSizeList[5].scsiSectorBits.t3ps = false;
-                ptrSectorSizeList[5].scsiSectorBits.t2ps = false;
-                ptrSectorSizeList[5].scsiSectorBits.t1ps = false;
-                ptrSectorSizeList[5].scsiSectorBits.t0ps = false;
-            }
-            else
-            {
-                //dummy up based on current sector size
-                if (device->drive_info.deviceBlockSize < 4096)
-                {
-                    //512, 520, 528
-                    ptrSectorSizeList[0].valid = true;
-                    ptrSectorSizeList[0].logicalBlockLength = 512;
-                    ptrSectorSizeList[0].scsiSectorBits.p_i_i_sup = false;
-                    ptrSectorSizeList[0].scsiSectorBits.no_pi_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.grd_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.app_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.ref_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t3ps = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t2ps = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t1ps = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t0ps = false;
-
-                    ptrSectorSizeList[1].valid = true;
-                    ptrSectorSizeList[1].logicalBlockLength = 520;
-                    ptrSectorSizeList[1].scsiSectorBits.p_i_i_sup = false;
-                    ptrSectorSizeList[1].scsiSectorBits.no_pi_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.grd_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.app_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.ref_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t3ps = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t2ps = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t1ps = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t0ps = false;
-
-                    ptrSectorSizeList[2].valid = true;
-                    ptrSectorSizeList[2].logicalBlockLength = 528;
-                    ptrSectorSizeList[2].scsiSectorBits.p_i_i_sup = false;
-                    ptrSectorSizeList[2].scsiSectorBits.no_pi_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.grd_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.app_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.ref_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t3ps = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t2ps = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t1ps = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t0ps = false;
-                }
-                else
-                {
-                    //4096, 4112, 4160
-                    ptrSectorSizeList[0].valid = true;
-                    ptrSectorSizeList[0].logicalBlockLength = 4096;
-                    ptrSectorSizeList[0].scsiSectorBits.p_i_i_sup = false;
-                    ptrSectorSizeList[0].scsiSectorBits.no_pi_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.grd_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.app_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.ref_chk = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t3ps = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t2ps = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t1ps = false;
-                    ptrSectorSizeList[0].scsiSectorBits.t0ps = false;
-
-                    ptrSectorSizeList[1].valid = true;
-                    ptrSectorSizeList[1].logicalBlockLength = 4112;
-                    ptrSectorSizeList[1].scsiSectorBits.p_i_i_sup = false;
-                    ptrSectorSizeList[1].scsiSectorBits.no_pi_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.grd_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.app_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.ref_chk = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t3ps = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t2ps = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t1ps = false;
-                    ptrSectorSizeList[1].scsiSectorBits.t0ps = false;
-
-                    ptrSectorSizeList[2].valid = true;
-                    ptrSectorSizeList[2].logicalBlockLength = 4160;
-                    ptrSectorSizeList[2].scsiSectorBits.p_i_i_sup = false;
-                    ptrSectorSizeList[2].scsiSectorBits.no_pi_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.grd_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.app_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.ref_chk = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t3ps = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t2ps = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t1ps = false;
-                    ptrSectorSizeList[2].scsiSectorBits.t0ps = false;
-                }
-            }
-        }
-    }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-    else if (device->drive_info.drive_type == NVME_DRIVE)
-    {
-        //set metadata and PI location bits first
-        for (uint8_t iter = 0; iter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++iter)
-        {
-            if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
-            {
-                ptrSectorSizeList[iter].valid = true;
-                ptrSectorSizeList[iter].logicalBlockLength = device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS;
-                ptrSectorSizeList[iter].nvmeSectorBits.relativePerformance = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].rp, 1, 0);
-                ptrSectorSizeList[iter].nvmeSectorBits.metadataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[iter].ms;
-            }
-        }
-    }
-#endif
-    return ret;
-}
-
-int show_Supported_Sector_Sizes(tDevice *device)
-{
-    int ret = NOT_SUPPORTED;
-    uint32_t numberOfSectorSizes = get_Number_Of_Supported_Sector_Sizes(device);
-    if (numberOfSectorSizes == 0)
-    {
-        printf("Device does not support changing sector size or does not report available sector sizes\n");
-        return ret;
-    }
-    sectorSize *sectorSizes = (sectorSize*)calloc(numberOfSectorSizes * sizeof(sectorSize), sizeof(sectorSize));
-    ret = get_Supported_Sector_Sizes(device, sectorSizes, numberOfSectorSizes);
-    if (SUCCESS == ret)
-    {
-        printf("Supported Logical Block Lengths:\n");
-        for (uint8_t sectorSizeIter = 0; sectorSizeIter < numberOfSectorSizes; ++sectorSizeIter)
-        {
-            if (!sectorSizes[sectorSizeIter].valid)
-            {
-                break;
-            }
-            printf("\tLogical Block Size = %"PRIu32"\n", sectorSizes[sectorSizeIter].logicalBlockLength);
-            if (device->drive_info.drive_type == SCSI_DRIVE)
-            {
-                printf("\t\tProtection Types: ");
-                bool printed = false;
-                if (sectorSizes[sectorSizeIter].scsiSectorBits.t3ps)
-                {
-                    printed = true;
-                    printf("3");
-                }
-                if (printed)
-                {
-                    printf(", ");
-                    printed = false;
-                }
-                if (sectorSizes[sectorSizeIter].scsiSectorBits.t2ps)
-                {
-                    printed = true;
-                    printf("2");
-                }
-                if (printed)
-                {
-                    printf(", ");
-                    printed = false;
-                }
-                if (sectorSizes[sectorSizeIter].scsiSectorBits.t1ps)
-                {
-                    printed = true;
-                    printf("1");
-                }
-                if (printed)
-                {
-                    printf(", ");
-                    printed = false;
-                }
-                if (sectorSizes[sectorSizeIter].scsiSectorBits.t0ps)
-                {
-                    printf("0");
-                }
-            }
-            printf("\n");
-        }
-        ret = SUCCESS;
-    }
-    else
-    {
-        printf("Device does not support changing sector size or does not report available sector sizes\n");
-    }
-    safe_Free(sectorSizes);
-    return ret;
 }
 
 //this function takes a sector size and maps it to the descriptor check code to use in the set sector configuration command

@@ -163,8 +163,33 @@ extern "C"
         uint32_t powerOnMinutesSinceFormat;//param code 4
     }formatStatus, *ptrFormatStatus;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
+    //
+    //! \brief   Description:  Gets a SCSI device's format status log information.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[out] formatStatus = pointer to structure to hold all the information about the last format command that was run and logged by the device.
+    //  Exit:
+    //!   \return true = changing sector size supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  show_Format_Status_Log(ptrFormatStatus formatStatus);
+    //
+    //! \brief   Description:  Shows a SCSI device's format status log information.
+    //
+    //  Entry:
+    //!   \param[int] formatStatus = pointer to structure that holds all the information about the last format command that was run and logged by the device.
+    //  Exit:
+    //!   \return void
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Format_Status_Log(ptrFormatStatus formatStatus);
 
     //-----------------------------------------------------------------------------
@@ -198,19 +223,18 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_Sector_Configuration(tDevice *device, uint32_t sectorSize);
 
-    //Refactor begin:
     typedef struct protectionSupport
     {
         //from inquiry
         bool deviceSupportsProtection;//Must be true for remaining data to be valid. If false, all below this are to be considered false
-        bool protectionReportedPerSectorSize;//Set to true if a SCSI device supports the supported logical block lengths and protection types VPD page.
         //from extended inquiry VPD page
+        bool protectionReportedPerSectorSize;//Set to true if a SCSI device supports the supported logical block lengths and protection types VPD page.
         bool protectionType1Supported;
         bool protectionType2Supported;
         bool protectionType3Supported;
         struct _nvmSpecific
         {
-            bool nvmSpecificValid;
+            bool nvmSpecificValid;//if true, next fields are valid
             bool piFirst8;
             bool piLast8;
         }nvmSpecificPI;
@@ -227,6 +251,7 @@ extern "C"
     typedef struct _sectorSize
     {
         bool valid;
+        bool currentFormat;//This is the sector size the drive is currently formatted with
         uint32_t logicalBlockLength;
         eSectorSizeAddInfoType additionalInformationType;
         union
@@ -273,54 +298,53 @@ extern "C"
         sectorSize sectorSizes[1];//ANYSIZE ARRAY. This means that you should over-allocate this function based on the number of supported sector sizes from the drive.
     }supportedFormats, *ptrSupportedFormats;
 
-    OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device);
-    //allocate supportedFormats: formats = malloc(sizeof(ptrSupportedFormats) + numberOfSectorSizes * sizeof(supportedFormats));
-    //formats->numberOfSectorSizes = numberOfSectorSizes;
-    OPENSEA_OPERATIONS_API int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats);
-
-    OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFormats formats);
-
-    //This call is obsolete. It is recommended to no longer be used.
-    OPENSEA_OPERATIONS_API int  get_Supported_Protection_Types(tDevice *device, ptrProtectionSupport protectionSupportInfo);
-    OPENSEA_OPERATIONS_API void show_Supported_Protection_Types(ptrProtectionSupport protectionSupportInfo);
-
     //-----------------------------------------------------------------------------
     //
-    //  show_Supported_Sector_Sizes(tDevice *device)
+    //  get_Number_Of_Supported_Sector_Sizes(tDevice *device)
     //
-    //! \brief   Description: Shows the sector sizes a device reports that is supports (if it supports telling you what is available)
-    //
+    //! \brief   Description: Gets the number of supported sector sizes on a device. Needed to help allocate memory to read the supported formats.
     //  Entry:
     //!   \param[in] device = file descriptor
+    //!   \param[out] formats = pointer to a list of sectorSize structs to fill and some other protection/formatting information
     //!
     //  Exit:
-    //!   \return SUCCESS = success showing sector sizes, !SUCCESS = check error code.
+    //!   \return uint32_t count of the number of supported sector sizes. If 0, then the device doesn't report any way to change sector size or an error occured while trying to determine supported sizes.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int show_Supported_Sector_Sizes(tDevice *device);
-
-
-
-
+    OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device);
     
-
-
     //-----------------------------------------------------------------------------
     //
-    //  get_Supported_Sector_Sizes(tDevice *device, sectorSize * ptrSectorSizeList, uint8_t numberOfSectorSizeStructs)
+    //  get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     //
-    //! \brief   Description: Gets the sector sizes a device reports it supports changing to.
-    //
+    //! \brief   Description: Gets the devices supported sector sizes and supported protection types that can it can be formatted with.
+    //!          //allocate supportedFormats: 
+    //!                          formats = malloc(sizeof(ptrSupportedFormats) + numberOfSectorSizes * sizeof(supportedFormats));
+    //!                          formats->numberOfSectorSizes = numberOfSectorSizes;
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[out] ptrSectorSizeList = pointer to a list of sectorSize structs to fill
-    //!   \param[in] numberOfSectorSizeStructs = number of sectorSize structs in list pointed to by ptrSectorSizeList. Recommend this is MAX_NUMBER_SUPPORTED_SECTOR_SIZES
+    //!   \param[out] formats = pointer to a list of sectorSize structs to fill and some other protection/formatting information
     //!
     //  Exit:
     //!   \return SUCCESS = successfully got the reported sector sizes, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Supported_Sector_Sizes(tDevice *device, sectorSize *ptrSectorSizeList, uint32_t numberOfSectorSizeStructs);
+    OPENSEA_OPERATIONS_API int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  show_Supported_Formats(ptrSupportedFormats formats)
+    //
+    //! \brief   Description: Shows the sector sizes and protection types available on a device.
+    //
+    //  Entry:
+    //!   \param[in] formats = pointer to the formats that were read already.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = success showing sector sizes, !SUCCESS = check error code.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFormats formats);
 
     //-----------------------------------------------------------------------------
     //
