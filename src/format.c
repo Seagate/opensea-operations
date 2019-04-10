@@ -1546,66 +1546,188 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
 }
 
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-int run_NVMe_Format(tDevice * device, uint32_t newLBASize, uint64_t flags)
+int get_NVM_Format_Progress(tDevice *device, double *percentComplete)
+{
+	int ret = SUCCESS;
+	if (!percentComplete)
+	{
+		return BAD_PARAMETER;
+	}
+	*percentComplete = 0.0;
+	if (device->drive_info.drive_type == NVME_DRIVE)
+	{
+		ret = nvme_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.nvme.ns, NVME_ALL_NAMESPACES, NVME_IDENTIFY_NS);
+		if (ret == SUCCESS)
+		{
+			if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
+			{
+				*percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
+				ret = IN_PROGRESS;
+			}
+		}
+	}
+	else
+	{
+		ret = NOT_SUPPORTED;
+	}
+	return ret;
+}
+
+int show_NVM_Format_Progress(tDevice *device)
+{
+	int ret = UNKNOWN;
+	double percentComplete = 0;
+
+	ret = get_NVM_Format_Progress(device, &percentComplete);
+
+	if (ret == IN_PROGRESS)
+	{
+		printf("\tFormat Progress = %3.2f%% \n", percentComplete);
+	}
+	else if (ret == SUCCESS)
+	{
+		printf("\tA format is not detected as running. Either it is complete or the device does not report its progress\n");
+	}
+	else
+	{
+		printf("\tError occurred while retrieving format progress!\n");
+	}
+	return ret;
+}
+
+int map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
+{
+	int fmtNum = 16;//invalid value to catch errors!
+	for (uint8_t fmtIter = 0; fmtIter < device->drive_info.IdentifyData.nvme.ns.nlbaf; ++fmtIter)
+	{
+		if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
+		{
+			//lba size matches, now check the metadata!
+			if (metadataSize == device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].ms)
+			{
+				fmtNum = fmtIter;
+				break;
+			}
+		}
+	}
+	return fmtNum;
+}
+
+int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
 {
     int ret = SUCCESS;
-    uint8_t c = 0;
-    uint8_t sizeSupported = 0;
     nvmeFormatCmdOpts formatCmdOptions;
-    nvmeIDCtrl * ctrlData = &device->drive_info.IdentifyData.nvme.ctrl; //Controller information data structure
-    nvmeIDNameSpaces * nsData = &device->drive_info.IdentifyData.nvme.ns; //Name Space Data structure 
+	memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
+	//Set metadata, PI, PIL settings to current device settings to start
+	formatCmdOptions.ms = device->drive_info.IdentifyData.nvme.ns.mc & BIT0 ? 1 : 0;
+	formatCmdOptions.pil = device->drive_info.IdentifyData.nvme.ns.dps & BIT3 ? 1 : 0;
+	formatCmdOptions.pi = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
 
-#ifdef _DEBUG
-    printf("-->%s\n", __FUNCTION__);
-#endif
-    //Check if the newLBASize is supported by the device. 
-    for (c = 0; c <= nsData->nlbaf; c++)
-    {
-        if ((2 << (nsData->lbaf[c].lbaDS - 1)) == newLBASize)
-        {
-            //printf("Formatting LBA Size %d Supported\n",newLBASize);
-            sizeSupported = 1;
-            break;
-        }
-    }
-    if (!sizeSupported)
+	if (nvmParams.metadataSettings.valid)
+	{
+		formatCmdOptions.ms = nvmParams.metadataSettings.metadataAsExtendedLBA ? 1 : 0;
+	}
+
+	if (nvmParams.protectionLocation.valid)
+	{
+		formatCmdOptions.pil = nvmParams.protectionLocation.first8Bytes ? 1 : 0;
+	}
+
+	if (nvmParams.changeProtectionType)
+	{
+		formatCmdOptions.pi = nvmParams.protectionType;
+	}
+	
+	if (nvmParams.formatNumberProvided)
+	{
+		formatCmdOptions.lbaf = nvmParams.formatNumber;
+	}
+	else
+	{
+		//need to figure out what format we want to run!
+		uint32_t fmtBlockSize = device->drive_info.deviceBlockSize;
+		uint32_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0)].ms;
+
+		if (!nvmParams.newSize.currentBlockSize)
+		{
+			fmtBlockSize = nvmParams.newSize.newBlockSize;
+		}
+
+		if (!nvmParams.newSize.changeMetadataSize)
+		{
+			fmtMetaDataSize = nvmParams.newSize.metadataSize;
+		}
+
+		formatCmdOptions.lbaf = map_NVM_Format_To_Format_Number(device, fmtBlockSize, fmtMetaDataSize);
+	}
+	//invalid format requested.
+	if (formatCmdOptions.lbaf > 15)
+	{
+		if (device->deviceVerbosity > VERBOSITY_QUIET)
+		{
+			printf("ERROR: Invalid format requested\n");
+		}
+		return NOT_SUPPORTED;
+	}
+
+    if (nvmParams.secureEraseSettings == NVM_FMT_SE_CRYPTO && (!(device->drive_info.IdentifyData.nvme.ctrl.fna & BIT2)))
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("ERROR: UnSupported LBA Size %d\n", newLBASize);
+            printf("ERROR: Crypto Erase not supported by the device\n");
         }
-        ret = NOT_SUPPORTED;
+        return NOT_SUPPORTED;
     }
 
-    if ((flags & FORMAT_NVME_CRYPTO_ERASE) && (!(ctrlData->fna & BIT2)))
-    {
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
-        {
-            printf("ERROR: Crypto Erase not supported %d\n", newLBASize);
-        }
-        ret = NOT_SUPPORTED;
-    }
-
-    //If everything checks out perform the Format. 
-    if (ret == SUCCESS)
-    {
-        memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
-        formatCmdOptions.lbaf = c;
-        formatCmdOptions.nsid = device->drive_info.namespaceID;
-
-        if (flags & FORMAT_NVME_CRYPTO_ERASE)
-        {
-            formatCmdOptions.ses = FORMAT_NVME_CRYPTO_ERASE;
-        }
-        else if (flags & FORMAT_NVME_ERASE_USER_DATA)
-        {
-            formatCmdOptions.ses = FORMAT_NVME_ERASE_USER_DATA;
-        }
-        ret = nvme_Format(device, &formatCmdOptions);
-    }
-#ifdef _DEBUG
-    printf("<--%s (%d)\n", __FUNCTION__, ret);
-#endif
+	switch (nvmParams.secureEraseSettings)
+	{
+	case NVM_FMT_SE_USER_DATA:
+		formatCmdOptions.ses = FORMAT_NVME_ERASE_USER_DATA;
+		break;
+	case NVM_FMT_SE_CRYPTO:
+		formatCmdOptions.ses = FORMAT_NVME_CRYPTO_ERASE;
+		break;
+	case NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED:
+	default:
+		formatCmdOptions.ses = FORMAT_NVME_NO_SECURE_ERASE;
+		break;
+	}
+	if (nvmParams.currentNamespace)
+	{
+		formatCmdOptions.nsid = device->drive_info.namespaceID;
+	}
+	else
+	{
+		formatCmdOptions.nsid = NVME_ALL_NAMESPACES;
+	}
+    ret = nvme_Format(device, &formatCmdOptions);
+	if (pollForProgress && ret == SUCCESS)
+	{
+		uint32_t delayTimeSeconds = 5;
+		double progress = 0.0;
+		delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
+		if (VERBOSITY_QUIET < device->deviceVerbosity)
+		{
+			uint8_t seconds = 0, minutes = 0, hours = 0;
+			convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
+			printf("Progress will be updated every ");
+			print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+			printf("\n");
+		}
+		while (IN_PROGRESS == get_NVM_Format_Progress(device, &progress) && progress < 100.0)
+		{
+			if (VERBOSITY_QUIET < device->deviceVerbosity)
+			{
+				printf("\r\tPercent Complete: %0.02f%%", progress);
+				fflush(stdout);
+			}
+			delay_Seconds(delayTimeSeconds); //time set above
+		}
+		if (VERBOSITY_QUIET < device->deviceVerbosity)
+		{
+			printf("\n");
+		}
+	}
     return ret;
 }
 #endif

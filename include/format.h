@@ -365,22 +365,72 @@ extern "C"
     OPENSEA_OPERATIONS_API int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex);
 
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-    //-----------------------------------------------------------------------------
-    //
-    //  run_NVMe_Format
-    //
-    //! \brief   Description:  Function to help send NVMe Format command. 
-    //
-    //  Entry:
-    //!   \param[in] device = pointer to tDevice structure
-    //!   \param[in] newLBASize = size of the new LBA. 
-    //!   \param[in] flags = flags for MetaData, PI, Secure Erase etc. 
-    //!
-    //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_NVMe_Format(tDevice * device, uint32_t newLBASize, uint64_t flags);
+
+	typedef enum _nvmFmtSecureErase
+	{
+		NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED,
+		NVM_FMT_SE_USER_DATA, //may perform cryptographic erase if the controller supports it.
+		NVM_FMT_SE_CRYPTO //requires the controller to support cryptographic erase.
+	}nvmFmtSecureErase;
+
+	typedef struct _nvmFmtPILocation
+	{
+		bool valid;//if this is not set, then it is assumed to use the last 8 bytes of metadata (PIL bit cleared to zero) or whatever the device supports
+		bool first8Bytes;//set to true for PI data in first 8 bytes of metadata, false for last 8 bytes.
+	}nvmFmtPILocation;
+
+	typedef struct _nvmFmtMetadataSettings
+	{
+		bool valid;//if this is not set, then it is assumed to use a separate metadata buffer. (or whatever the device supports)
+		bool metadataAsExtendedLBA;//Set to true for metadata to be transferred as part of an extended data LBA. False to transfer it as a separate buffer.
+	}nvmFmtMetadataSettings;
+
+	typedef struct _nvmFmtSize
+	{
+		bool currentBlockSize;//will reuse the same LBA format that it is already formatted as.
+		uint32_t newBlockSize;
+		bool changeMetadataSize;//if true, then the next parameter will be analyzed, otherwise a compatible sector size with the specified metadata size will be chosen
+		uint16_t metadataSize;
+	}nvmFmtSize;
+
+	typedef struct _runNVMFormatParameters
+	{
+		bool currentNamespace;//This will only work if the controller supports formatting only the current namespace. Check FNA bits
+		bool formatNumberProvided;//set tot true when specifying one of the 16 formats a NVMe device reports in it's identify namespace data. If false, then the sector size will be mapped as best it can with other inputs
+		union {
+			nvmFmtSize newSize;//NOTE: NVMe can report the same sector size with differing metadata sizes so need to map incoming size to 
+			uint8_t formatNumber;//0-15
+		};
+		nvmFmtSecureErase secureEraseSettings;
+		nvmFmtPILocation protectionLocation;
+		bool changeProtectionType;//set to true if switching PI type from current format
+		uint8_t protectionType;//if unsure, use 0. This will set the proper bit combinations for each protection type
+		nvmFmtMetadataSettings metadataSettings;
+	}runNVMFormatParameters;
+
+	//--nvmFormat [0 - 16 = LBA format number, >=512 = blocksize to map to a format...try to look for same metadata length otherwise???]
+
+	//-----------------------------------------------------------------------------
+	//
+	//  run_NVMe_Format
+	//
+	//! \brief   Description:  Function to help send NVMe Format command. 
+	//
+	//  Entry:
+	//!   \param[in] device = pointer to tDevice structure
+	//!   \param[in] newLBASize = size of the new LBA. 
+	//!   \param[in] flags = flags for MetaData, PI, Secure Erase etc. 
+	//!
+	//  Exit:
+	//!   \return SUCCESS = pass, !SUCCESS = something when wrong
+	//
+	//-----------------------------------------------------------------------------
+	OPENSEA_OPERATIONS_API int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress);
+
+	OPENSEA_OPERATIONS_API int get_NVM_Format_Progress(tDevice *device, double *percentComplete);
+
+	OPENSEA_OPERATIONS_API int show_NVM_Format_Progress(tDevice *device);
+
 #endif
 
 #if defined (__cplusplus)
