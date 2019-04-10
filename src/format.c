@@ -1249,9 +1249,9 @@ void show_Supported_Formats(ptrSupportedFormats formats)
     printf("  Good    \n");
     printf("  Degraded\n");
     //now print out the supported block sizes
-    printf("-----------------------------------------------------------------\n");
-    printf(" %18s  %4s  %4s  %4s  %4s  %20s\n", "Logical Block Size", "PI-0", "PI-1", "PI-2", "PI-3", "Relative Performance");
-    printf("-----------------------------------------------------------------\n");
+	printf("--------------------------------------------------------------------------------\n");
+    printf(" %18s  %4s  %4s  %4s  %4s  %20s  %13s\n", "Logical Block Size", "PI-0", "PI-1", "PI-2", "PI-3", "Relative Performance", "Metadata Size");
+	printf("--------------------------------------------------------------------------------\n");
     for (uint32_t iter = 0; iter < formats->numberOfSectorSizes; ++iter)
     {
         if (formats->sectorSizes[iter].valid)
@@ -1262,7 +1262,9 @@ void show_Supported_Formats(ptrSupportedFormats formats)
             char pi2 = 0;
             char pi3 = 0;
             char perf[10] = { 0 };
+            char metaSize[10] = { 0 };
             sprintf(perf, "N/A");
+            sprintf(metaSize, "N/A");
             if (formats->protectionInformationSupported.deviceSupportsProtection)
             {
                 pi0 = 'Y';
@@ -1366,6 +1368,8 @@ void show_Supported_Formats(ptrSupportedFormats formats)
                     sprintf(perf, "N/A");
                     break;
                 }
+                memset(metaSize, 0, 10);
+                sprintf(metaSize, "%" PRIu16, formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
                 break;
             default:
                 break;
@@ -1374,10 +1378,10 @@ void show_Supported_Formats(ptrSupportedFormats formats)
             {
                 current = '*';
             }
-            printf("%c%18" PRIu32 "  %4c  %4c  %4c  %4c  %20s\n", current, formats->sectorSizes[iter].logicalBlockLength, pi0, pi1, pi2, pi3, perf);
+            printf("%c%18" PRIu32 "  %4c  %4c  %4c  %4c  %20s  %13s\n", current, formats->sectorSizes[iter].logicalBlockLength, pi0, pi1, pi2, pi3, perf, metaSize);
         }
     }
-    printf("-----------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------------------\n");
     if (formats->scsiInformationNotReported)
     {
         printf("NOTE: Device is not capable of showing all sizes it supports. Only common\n");
@@ -1435,24 +1439,28 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        sectorSize *sectorSizes = (sectorSize*)calloc(MAX_NUMBER_SUPPORTED_SECTOR_SIZES * sizeof(sectorSize), sizeof(sectorSize));
-        if (!sectorSizes)
+		uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
+        uint32_t formatsDataSize = sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats);
+        ptrSupportedFormats formats = (ptrSupportedFormats)malloc(formatsDataSize);
+        if (!formats)
         {
             return MEMORY_FAILURE;
         }
-        ret = get_Supported_Sector_Sizes(device, sectorSizes, MAX_NUMBER_SUPPORTED_SECTOR_SIZES);
+        memset(formats, 0, formatsDataSize);
+        formats->numberOfSectorSizes = numberOfSupportedFormats;
+        ret = get_Supported_Formats(device, formats);
         if (SUCCESS == ret)
         {
-            for (uint8_t sectorSizeIter = 0; sectorSizeIter < MAX_NUMBER_SUPPORTED_SECTOR_SIZES; ++sectorSizeIter)
+            for (uint8_t sectorSizeIter = 0; sectorSizeIter < formats->numberOfSectorSizes && sectorSizeIter < numberOfSupportedFormats; ++sectorSizeIter)
             {
-                if (!sectorSizes[sectorSizeIter].valid)
+                if (!formats->sectorSizes[sectorSizeIter].valid)
                 {
                     break;
                 }
-                if (sectorSizes[sectorSizeIter].logicalBlockLength == logicalBlockLength)
+                if (formats->sectorSizes[sectorSizeIter].logicalBlockLength == logicalBlockLength)
                 {
-                    *descriptorCheckCode = sectorSizes[sectorSizeIter].ataSetSectorFields.descriptorCheck;
-                    *descriptorIndex = sectorSizes[sectorSizeIter].ataSetSectorFields.descriptorIndex;
+                    *descriptorCheckCode = formats->sectorSizes[sectorSizeIter].ataSetSectorFields.descriptorCheck;
+                    *descriptorIndex = formats->sectorSizes[sectorSizeIter].ataSetSectorFields.descriptorIndex;
                     break;
                 }
             }
