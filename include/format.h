@@ -408,18 +408,16 @@ extern "C"
 		nvmFmtMetadataSettings metadataSettings;
 	}runNVMFormatParameters;
 
-	//--nvmFormat [0 - 16 = LBA format number, >=512 = blocksize to map to a format...try to look for same metadata length otherwise???]
-
 	//-----------------------------------------------------------------------------
 	//
-	//  run_NVMe_Format
+	//  run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
 	//
 	//! \brief   Description:  Function to help send NVMe Format command. 
 	//
 	//  Entry:
 	//!   \param[in] device = pointer to tDevice structure
-	//!   \param[in] newLBASize = size of the new LBA. 
-	//!   \param[in] flags = flags for MetaData, PI, Secure Erase etc. 
+	//!   \param[in] nvmParams = parameters to control how to send the format and what format to switch to
+	//!   \param[in] pollForProgress = set to true for this function to poll for progress until complete, false to exit after sending the format command
 	//!
 	//  Exit:
 	//!   \return SUCCESS = pass, !SUCCESS = something when wrong
@@ -427,8 +425,35 @@ extern "C"
 	//-----------------------------------------------------------------------------
 	OPENSEA_OPERATIONS_API int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress);
 
-	OPENSEA_OPERATIONS_API int get_NVM_Format_Progress(tDevice *device, double *percentComplete);
+	//-----------------------------------------------------------------------------
+	//
+	//  get_NVM_Format_Progress(tDevice *device, double *percentComplete)
+	//
+	//! \brief   Description: Gets the percent complete of a NVM Format operation 
+	//
+	//  Entry:
+	//!   \param[in] device = pointer to tDevice structure
+	//!   \param[out] percentComplete = value that holds the percentage that a format is complete.
+	//!
+	//  Exit:
+	//!   \return SUCCESS = pass, !SUCCESS = something when wrong
+	//
+	//-----------------------------------------------------------------------------
+	OPENSEA_OPERATIONS_API int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete);
 
+	//-----------------------------------------------------------------------------
+	//
+	//  show_NVM_Format_Progress(tDevice *device)
+	//
+	//! \brief   Description:  Gets and shows the progress of an NVM format to the screen
+	//
+	//  Entry:
+	//!   \param[in] device = pointer to tDevice structure
+	//!
+	//  Exit:
+	//!   \return SUCCESS = pass, !SUCCESS = something when wrong
+	//
+	//-----------------------------------------------------------------------------
 	OPENSEA_OPERATIONS_API int show_NVM_Format_Progress(tDevice *device);
 
 #endif

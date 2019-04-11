@@ -1546,7 +1546,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
 }
 
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-int get_NVM_Format_Progress(tDevice *device, double *percentComplete)
+int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
 {
 	int ret = SUCCESS;
 	if (!percentComplete)
@@ -1576,13 +1576,13 @@ int get_NVM_Format_Progress(tDevice *device, double *percentComplete)
 int show_NVM_Format_Progress(tDevice *device)
 {
 	int ret = UNKNOWN;
-	double percentComplete = 0;
+	uint8_t percentComplete = 0;
 
 	ret = get_NVM_Format_Progress(device, &percentComplete);
 
 	if (ret == IN_PROGRESS)
 	{
-		printf("\tFormat Progress = %3.2f%% \n", percentComplete);
+		printf("\tFormat Progress = %" PRIu8 "%% \n", percentComplete);
 	}
 	else if (ret == SUCCESS)
 	{
@@ -1704,7 +1704,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
 	if (pollForProgress && ret == SUCCESS)
 	{
 		uint32_t delayTimeSeconds = 5;
-		double progress = 0.0;
+		uint8_t progress = 0;
 		delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
 		if (VERBOSITY_QUIET < device->deviceVerbosity)
 		{
@@ -1718,7 +1718,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
 		{
 			if (VERBOSITY_QUIET < device->deviceVerbosity)
 			{
-				printf("\r\tPercent Complete: %0.02f%%", progress);
+				printf("\r\tPercent Complete: %" PRIu8 "%%", progress);
 				fflush(stdout);
 			}
 			delay_Seconds(delayTimeSeconds); //time set above
