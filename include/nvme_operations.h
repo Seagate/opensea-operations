@@ -134,23 +134,6 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeaturesSelectValue selectType);
 
-    //-----------------------------------------------------------------------------
-    //
-    //  run_NVMe_Format
-    //
-    //! \brief   Description:  Function to help send NVMe Format command. 
-    //
-    //  Entry:
-    //!   \param[in] device = pointer to tDevice structure
-    //!   \param[in] newLBASize = size of the new LBA. 
-    //!   \param[in] flags = flags for MetaData, PI, Secure Erase etc. 
-    //!
-    //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_NVMe_Format(tDevice * device, uint32_t newLBASize, uint64_t flags);
-
     // \fn print_Nvme_Ctrl_Regs(tDevice * device)
     // \brief Prints the controller registers. 
     // \param[in] device struture

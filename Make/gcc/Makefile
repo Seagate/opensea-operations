@@ -47,8 +47,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)sector_repair.c \
 	$(SRC_DIR)trim_unmap.c\
 	$(SRC_DIR)drive_info.c\
-	$(SRC_DIR)format_unit.c\
-	$(SRC_DIR)set_sector_size.c\
+	$(SRC_DIR)format.c\
 	$(SRC_DIR)device_statistics.c\
 	$(SRC_DIR)sas_phy.c\
 	$(SRC_DIR)depopulate.c\
