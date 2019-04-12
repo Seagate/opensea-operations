@@ -64,7 +64,6 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)seagate_operations.c \
 	$(SRC_DIR)sector_repair.c \
 	$(SRC_DIR)set_max_lba.c \
-	$(SRC_DIR)set_sector_size.c\
 	$(SRC_DIR)smart.c \
 	$(SRC_DIR)trim_unmap.c\
 	$(SRC_DIR)writesame.c \
