@@ -1553,7 +1553,7 @@ int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
 	{
 		return BAD_PARAMETER;
 	}
-	*percentComplete = 0.0;
+	*percentComplete = 0;
 	if (device->drive_info.drive_type == NVME_DRIVE)
 	{
 		ret = nvme_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.nvme.ns, NVME_ALL_NAMESPACES, NVME_IDENTIFY_NS);
