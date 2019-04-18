@@ -800,6 +800,44 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
 		}
 		break;
     default:
+		switch (attributeNumber)
+		{
+		case 1://Read Error Rate
+			sprintf(*attributeName, "Read Error Rate");
+			break;
+		case 3://Spin Up Time
+			sprintf(*attributeName, "Spin Up Time");
+			break;
+		case 4://Start/Stop Count
+			sprintf(*attributeName, "Start/Stop Count");
+			break;
+		case 5://Retired Sectors Count
+			sprintf(*attributeName, "Retired Sectors Count");
+			break;
+		case 7://Seek Error Rate
+			sprintf(*attributeName, "Seek Error Rate");
+			break;
+		case 9: //Power On Hours
+			sprintf(*attributeName, "Power On Hours");
+			break;
+		case 10: //Spin Retry Count 
+			sprintf(*attributeName, "Spin Retry Count ");
+			break;
+		case 12: //Drive Power Cycle Count
+			sprintf(*attributeName, "Drive Power Cycle Count");
+			break;
+		case 187://Reported Un-correctable
+			sprintf(*attributeName, "Reported Un-correctable");
+			break;
+		case 194://Temperature
+			sprintf(*attributeName, "Temperature");
+			break;
+		case 197://Pending-Sparing Count
+			sprintf(*attributeName, "Pending-Sparing Count");
+			break;
+		default:
+			break;
+		}
         break;
     }
 }
