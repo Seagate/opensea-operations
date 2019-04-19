@@ -111,6 +111,7 @@ extern "C"
         bool securityInitialize;//Not supported on Seagate products. Recommended to use sanitize instead. This ignores a lot of other fields to perform a secure overwrite of all sectors including reallocated sectors
         bool stopOnListError;//Only used if cmplst is zero and dpry is zero. If the previous condition is met and this is true, the device will stop the format if it cannot access a list, otherwise it will continue processing the command. If unsure, leave false
         bool disableImmediate;//Only set this is you want to wait for the device to completely format itself before returning status! You cannot poll while this is happening. It is recommended that this is left false!
+        bool changeProtectionType;//When this is set to true, the protection type below will be used to set parameters going to the drive, otherwise the current settings in the device structure will be used.
         uint8_t protectionType;//if unsure, use 0. This will set the proper bit combinations for each protection type
         uint8_t protectionIntervalExponent;//Only used on protection types 2 or 3. Ignored and unused otherwise since other types require this to be zero. If unsure, leave as zero
     }runFormatUnitParameters;

@@ -215,6 +215,11 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             dataBuf[1] |= BIT3;//ip bit
         }
     }
+    if (!formatParameters.changeProtectionType)
+    {
+        formatParameters.protectionType = device->drive_info.currentProtectionType;
+        formatParameters.protectionIntervalExponent = device->drive_info.piExponent;
+    }
     if (!(formatParameters.defaultFormat && formatParameters.disableImmediate))//Only set the fmtpInfo bit if we are sending data to the drive via parameter list...otherwise this is an illegal combination
     {
         //set up protection fields
