@@ -55,6 +55,42 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
 
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_is_NV_DIS_Bit_Set( tDevice * device )
+    //
+    //! \brief   get whether NV_DIS bit in the SCSI Caching mode page is set or not
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!
+    //  Exit:
+    //!   \return true = enabled, false = disabled
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool scsi_is_NV_DIS_Bit_Set(tDevice *device);
+
+    OPENSEA_OPERATIONS_API bool is_NV_Cache_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API bool is_NV_Cache_Enabled(tDevice *device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_Set_NV_DIS( tDevice * device, bool nv_disEnableDisable)
+    //
+    //! \brief   Set the SCSI NV_DIS bit using scsi commands (Caching Mode Page, SBC). setting enableDisable to true turns the NV cache ON (NV_DIS = 0), false turns the cache off (NV_DIS = 1)
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param nv_disEnableDisable - set to true to enable the NV Cache. False to disable the NV cache
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable);
+
     //-----------------------------------------------------------------------------
     //
     //  set_Read_Look_Ahead( tDevice * device )
