@@ -19,7 +19,7 @@ MAJOR=1
 #Change the Minor version when new features are added. 
 MINOR=20
 #Change the patch version when only bug fixes are made.
-PATCH=1
+PATCH=8
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
@@ -47,8 +47,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)sector_repair.c \
 	$(SRC_DIR)trim_unmap.c\
 	$(SRC_DIR)drive_info.c\
-	$(SRC_DIR)format_unit.c\
-	$(SRC_DIR)set_sector_size.c\
+	$(SRC_DIR)format.c\
 	$(SRC_DIR)device_statistics.c\
 	$(SRC_DIR)sas_phy.c\
 	$(SRC_DIR)depopulate.c\

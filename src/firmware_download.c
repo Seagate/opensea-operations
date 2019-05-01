@@ -114,6 +114,10 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
             }
+            else
+            {
+                device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
+            }
             if (currentDownloadBlock == 0)
             {
                 device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = true;

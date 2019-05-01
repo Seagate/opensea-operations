@@ -1023,7 +1023,7 @@ bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
     return isValidLBA;
 }
 
-int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList)
+int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList, bool *repaired)
 {
     int ret = SUCCESS;//assume this works successfully
     errorLBA *errorList = NULL;
@@ -1136,6 +1136,10 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     }
                     //we got a valid LBA, so time to fix it
                     int repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
+					if (repaired)
+					{
+						*repaired = true;
+					}
                     (*errorIndex)++;
                     if (FAILURE == repairRet)
                     {

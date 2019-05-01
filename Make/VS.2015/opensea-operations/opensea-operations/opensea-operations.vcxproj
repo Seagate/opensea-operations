@@ -346,7 +346,7 @@
     <ClInclude Include="..\..\..\..\include\drive_info.h" />
     <ClInclude Include="..\..\..\..\include\dst.h" />
     <ClInclude Include="..\..\..\..\include\firmware_download.h" />
-    <ClInclude Include="..\..\..\..\include\format_unit.h" />
+    <ClInclude Include="..\..\..\..\include\format.h" />
     <ClInclude Include="..\..\..\..\include\generic_tests.h" />
     <ClInclude Include="..\..\..\..\include\host_erase.h" />
     <ClInclude Include="..\..\..\..\include\logs.h" />
@@ -360,7 +360,6 @@
     <ClInclude Include="..\..\..\..\include\seagate_operations.h" />
     <ClInclude Include="..\..\..\..\include\sector_repair.h" />
     <ClInclude Include="..\..\..\..\include\set_max_lba.h" />
-    <ClInclude Include="..\..\..\..\include\set_sector_size.h" />
     <ClInclude Include="..\..\..\..\include\smart.h" />
     <ClInclude Include="..\..\..\..\include\trim_unmap.h" />
     <ClInclude Include="..\..\..\..\include\writesame.h" />
@@ -375,7 +374,7 @@
     <ClCompile Include="..\..\..\..\src\drive_info.c" />
     <ClCompile Include="..\..\..\..\src\dst.c" />
     <ClCompile Include="..\..\..\..\src\firmware_download.c" />
-    <ClCompile Include="..\..\..\..\src\format_unit.c" />
+    <ClCompile Include="..\..\..\..\src\format.c" />
     <ClCompile Include="..\..\..\..\src\generic_tests.c" />
     <ClCompile Include="..\..\..\..\src\host_erase.c" />
     <ClCompile Include="..\..\..\..\src\logs.c" />
@@ -387,7 +386,6 @@
     <ClCompile Include="..\..\..\..\src\seagate_operations.c" />
     <ClCompile Include="..\..\..\..\src\sector_repair.c" />
     <ClCompile Include="..\..\..\..\src\set_max_lba.c" />
-    <ClCompile Include="..\..\..\..\src\set_sector_size.c" />
     <ClCompile Include="..\..\..\..\src\smart.c" />
     <ClCompile Include="..\..\..\..\src\trim_unmap.c" />
     <ClCompile Include="..\..\..\..\src\writesame.c" />
