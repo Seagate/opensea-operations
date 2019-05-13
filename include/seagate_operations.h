@@ -189,84 +189,84 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int seagate_Set_Power_Balance(tDevice *device, bool enable);//SATA only. SAS should use the set power consumption options in power_control.h
 
-	typedef enum _eIDDTests
-	{
-		SEAGATE_IDD_SHORT,
-		SEAGATE_IDD_LONG,
-	}eIDDTests;
+    typedef enum _eIDDTests
+    {
+        SEAGATE_IDD_SHORT,
+        SEAGATE_IDD_LONG,
+    }eIDDTests;
 
-	typedef struct _iddSupportedFeatures
-	{
-		bool iddShort;//reset and recalibrate
-		bool iddLong;//testPendingAndReallocationLists
-	}iddSupportedFeatures, *ptrIDDSupportedFeatures;
+    typedef struct _iddSupportedFeatures
+    {
+        bool iddShort;//reset and recalibrate
+        bool iddLong;//testPendingAndReallocationLists
+    }iddSupportedFeatures, *ptrIDDSupportedFeatures;
 
-	//-----------------------------------------------------------------------------
-	//
-	//  get_IDD_Support()
-	//
-	//! \brief   Description:  Gets which IDD features/operations are supported by the device
-	//
-	//  Entry:
-	//!   \param[in] device = file descriptor
-	//!   \param[in] iddSupport = pointer to a iddSupportedFeatures structure that will hold which features are supported
-	//!
-	//  Exit:
-	//!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport);
+    //-----------------------------------------------------------------------------
+    //
+    //  get_IDD_Support()
+    //
+    //! \brief   Description:  Gets which IDD features/operations are supported by the device
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] iddSupport = pointer to a iddSupportedFeatures structure that will hold which features are supported
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  get_Approximate_IDD_Time()
-	//
-	//! \brief   Description:  Gets an approximate time for how long a specific IDD operation may take
-	//
-	//  Entry:
-	//!   \param[in] device = file descriptor
-	//!   \param[in] iddTest = enum value describing the IDD test to get the time for
-	//!   \param[in] timeInSeconds = pointer to a uint64_t that will hold the amount of time in seconds that IDD is estimated to take
-	//!
-	//  Exit:
-	//!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeInSeconds);
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Approximate_IDD_Time()
+    //
+    //! \brief   Description:  Gets an approximate time for how long a specific IDD operation may take
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] iddTest = enum value describing the IDD test to get the time for
+    //!   \param[in] timeInSeconds = pointer to a uint64_t that will hold the amount of time in seconds that IDD is estimated to take
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeInSeconds);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  run_IDD()
-	//
-	//! \brief   Description:  Function to send a Seagate IDD test to a device
-	//
-	//  Entry:
-	//!   \param[in] device = file descriptor
-	//!   \param[in] IDDtest = enum value describing the IDD test to run (CAPTIVE not supported right now)
-	//!   \param[in] pollForProgress = 0 = don't poll, just start the test. 1 = poll for progress and display the progress on the screen.
-	//!   \param[in] captive = set to true to force running the test in captive mode. Long test only!
-	//!
-	//  Exit:
-	//!   \return SUCCESS on successful completion, FAILURE = fail
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool captive);
+    //-----------------------------------------------------------------------------
+    //
+    //  run_IDD()
+    //
+    //! \brief   Description:  Function to send a Seagate IDD test to a device
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] IDDtest = enum value describing the IDD test to run (CAPTIVE not supported right now)
+    //!   \param[in] pollForProgress = 0 = don't poll, just start the test. 1 = poll for progress and display the progress on the screen.
+    //!   \param[in] captive = set to true to force running the test in captive mode. Long test only!
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool captive);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  get_IDD_Status(tDevice *device, uint8_t *status)
-	//
-	//! \brief   Description:  Gets the status of an ongoing IDD operation
-	//
-	//  Entry:
-	//!   \param[in] device = file descriptor
-	//!   \param[out] status = returns a status value for an ongoing IDD operation. This is similar to a DST status code value.
-	//!
-	//  Exit:
-	//!   \return SUCCESS on successful completion, FAILURE = fail
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int get_IDD_Status(tDevice *device, uint8_t *status);
+    //-----------------------------------------------------------------------------
+    //
+    //  get_IDD_Status(tDevice *device, uint8_t *status)
+    //
+    //! \brief   Description:  Gets the status of an ongoing IDD operation
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[out] status = returns a status value for an ongoing IDD operation. This is similar to a DST status code value.
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_IDD_Status(tDevice *device, uint8_t *status);
 
 #if defined (__cplusplus)
 }

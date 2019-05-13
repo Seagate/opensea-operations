@@ -202,7 +202,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -219,7 +219,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -236,7 +236,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -253,7 +253,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Write_Cache_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -270,7 +270,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -394,7 +394,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
 
-	OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
+    OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
 
     OPENSEA_OPERATIONS_API int enable_Disable_AAM_Feature(tDevice *device, bool enable);
 

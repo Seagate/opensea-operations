@@ -99,7 +99,7 @@ extern "C"
         bool defaultFormat;//default device format. FOV = 0. If combined with disableImmediat, then no data sent to the device. AKA fmtdata bit is zero. Only defect list format, cmplst, and format type will be used.
         bool currentBlockSize;
         uint16_t newBlockSize;
-		uint64_t newMaxLBA;//will be ignored if this is set to zero
+        uint64_t newMaxLBA;//will be ignored if this is set to zero
         uint8_t *gList;
         uint32_t glistSize;
         bool completeList;
@@ -367,95 +367,95 @@ extern "C"
 
 #if !defined (DISABLE_NVME_PASSTHROUGH)
 
-	typedef enum _nvmFmtSecureErase
-	{
-		NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED,
-		NVM_FMT_SE_USER_DATA, //may perform cryptographic erase if the controller supports it.
-		NVM_FMT_SE_CRYPTO //requires the controller to support cryptographic erase.
-	}nvmFmtSecureErase;
+    typedef enum _nvmFmtSecureErase
+    {
+        NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED,
+        NVM_FMT_SE_USER_DATA, //may perform cryptographic erase if the controller supports it.
+        NVM_FMT_SE_CRYPTO //requires the controller to support cryptographic erase.
+    }nvmFmtSecureErase;
 
-	typedef struct _nvmFmtPILocation
-	{
-		bool valid;//if this is not set, then it is assumed to use the last 8 bytes of metadata (PIL bit cleared to zero) or whatever the device supports
-		bool first8Bytes;//set to true for PI data in first 8 bytes of metadata, false for last 8 bytes.
-	}nvmFmtPILocation;
+    typedef struct _nvmFmtPILocation
+    {
+        bool valid;//if this is not set, then it is assumed to use the last 8 bytes of metadata (PIL bit cleared to zero) or whatever the device supports
+        bool first8Bytes;//set to true for PI data in first 8 bytes of metadata, false for last 8 bytes.
+    }nvmFmtPILocation;
 
-	typedef struct _nvmFmtMetadataSettings
-	{
-		bool valid;//if this is not set, then it is assumed to use a separate metadata buffer. (or whatever the device supports)
-		bool metadataAsExtendedLBA;//Set to true for metadata to be transferred as part of an extended data LBA. False to transfer it as a separate buffer.
-	}nvmFmtMetadataSettings;
+    typedef struct _nvmFmtMetadataSettings
+    {
+        bool valid;//if this is not set, then it is assumed to use a separate metadata buffer. (or whatever the device supports)
+        bool metadataAsExtendedLBA;//Set to true for metadata to be transferred as part of an extended data LBA. False to transfer it as a separate buffer.
+    }nvmFmtMetadataSettings;
 
-	typedef struct _nvmFmtSize
-	{
-		bool currentBlockSize;//will reuse the same LBA format that it is already formatted as.
-		uint32_t newBlockSize;
-		bool changeMetadataSize;//if true, then the next parameter will be analyzed, otherwise a compatible sector size with the specified metadata size will be chosen
-		uint16_t metadataSize;
-	}nvmFmtSize;
+    typedef struct _nvmFmtSize
+    {
+        bool currentBlockSize;//will reuse the same LBA format that it is already formatted as.
+        uint32_t newBlockSize;
+        bool changeMetadataSize;//if true, then the next parameter will be analyzed, otherwise a compatible sector size with the specified metadata size will be chosen
+        uint16_t metadataSize;
+    }nvmFmtSize;
 
-	typedef struct _runNVMFormatParameters
-	{
-		bool currentNamespace;//This will only work if the controller supports formatting only the current namespace. Check FNA bits
-		bool formatNumberProvided;//set tot true when specifying one of the 16 formats a NVMe device reports in it's identify namespace data. If false, then the sector size will be mapped as best it can with other inputs
-		union {
-			nvmFmtSize newSize;//NOTE: NVMe can report the same sector size with differing metadata sizes so need to map incoming size to 
-			uint8_t formatNumber;//0-15
-		};
-		nvmFmtSecureErase secureEraseSettings;
-		nvmFmtPILocation protectionLocation;
-		bool changeProtectionType;//set to true if switching PI type from current format
-		uint8_t protectionType;//if unsure, use 0. This will set the proper bit combinations for each protection type
-		nvmFmtMetadataSettings metadataSettings;
-	}runNVMFormatParameters;
+    typedef struct _runNVMFormatParameters
+    {
+        bool currentNamespace;//This will only work if the controller supports formatting only the current namespace. Check FNA bits
+        bool formatNumberProvided;//set tot true when specifying one of the 16 formats a NVMe device reports in it's identify namespace data. If false, then the sector size will be mapped as best it can with other inputs
+        union {
+            nvmFmtSize newSize;//NOTE: NVMe can report the same sector size with differing metadata sizes so need to map incoming size to 
+            uint8_t formatNumber;//0-15
+        };
+        nvmFmtSecureErase secureEraseSettings;
+        nvmFmtPILocation protectionLocation;
+        bool changeProtectionType;//set to true if switching PI type from current format
+        uint8_t protectionType;//if unsure, use 0. This will set the proper bit combinations for each protection type
+        nvmFmtMetadataSettings metadataSettings;
+    }runNVMFormatParameters;
 
-	//-----------------------------------------------------------------------------
-	//
-	//  run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
-	//
-	//! \brief   Description:  Function to help send NVMe Format command. 
-	//
-	//  Entry:
-	//!   \param[in] device = pointer to tDevice structure
-	//!   \param[in] nvmParams = parameters to control how to send the format and what format to switch to
-	//!   \param[in] pollForProgress = set to true for this function to poll for progress until complete, false to exit after sending the format command
-	//!
-	//  Exit:
-	//!   \return SUCCESS = pass, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress);
+    //-----------------------------------------------------------------------------
+    //
+    //  run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
+    //
+    //! \brief   Description:  Function to help send NVMe Format command. 
+    //
+    //  Entry:
+    //!   \param[in] device = pointer to tDevice structure
+    //!   \param[in] nvmParams = parameters to control how to send the format and what format to switch to
+    //!   \param[in] pollForProgress = set to true for this function to poll for progress until complete, false to exit after sending the format command
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  get_NVM_Format_Progress(tDevice *device, double *percentComplete)
-	//
-	//! \brief   Description: Gets the percent complete of a NVM Format operation 
-	//
-	//  Entry:
-	//!   \param[in] device = pointer to tDevice structure
-	//!   \param[out] percentComplete = value that holds the percentage that a format is complete.
-	//!
-	//  Exit:
-	//!   \return SUCCESS = pass, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete);
+    //-----------------------------------------------------------------------------
+    //
+    //  get_NVM_Format_Progress(tDevice *device, double *percentComplete)
+    //
+    //! \brief   Description: Gets the percent complete of a NVM Format operation 
+    //
+    //  Entry:
+    //!   \param[in] device = pointer to tDevice structure
+    //!   \param[out] percentComplete = value that holds the percentage that a format is complete.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  show_NVM_Format_Progress(tDevice *device)
-	//
-	//! \brief   Description:  Gets and shows the progress of an NVM format to the screen
-	//
-	//  Entry:
-	//!   \param[in] device = pointer to tDevice structure
-	//!
-	//  Exit:
-	//!   \return SUCCESS = pass, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int show_NVM_Format_Progress(tDevice *device);
+    //-----------------------------------------------------------------------------
+    //
+    //  show_NVM_Format_Progress(tDevice *device)
+    //
+    //! \brief   Description:  Gets and shows the progress of an NVM format to the screen
+    //
+    //  Entry:
+    //!   \param[in] device = pointer to tDevice structure
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int show_NVM_Format_Progress(tDevice *device);
 
 #endif
 

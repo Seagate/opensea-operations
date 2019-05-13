@@ -474,100 +474,100 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             break;
                         }
                         break;
-					case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
-						switch (statisticByteOffset)
-						{
-						case 8://maximum open zones
-							deviceStats->sataStatistics.maximumOpenZones.isThresholdValid = true;
-							deviceStats->sataStatistics.maximumOpenZones.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.maximumOpenZones.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.maximumOpenZones.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.maximumOpenZones.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.maximumOpenZones.threshold = thresholdValue;
-							break;
-						case 16://maximum explicitly open zones
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.isThresholdValid = true;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshold = thresholdValue;
-							break;
-						case 24://maximum implicitly open zones
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.isThresholdValid = true;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshold = thresholdValue;
-							break;
-						case 32://minimum empty zones
-							deviceStats->sataStatistics.minimumEmptyZones.isThresholdValid = true;
-							deviceStats->sataStatistics.minimumEmptyZones.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.minimumEmptyZones.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.minimumEmptyZones.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.minimumEmptyZones.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.minimumEmptyZones.threshold = thresholdValue;
-							break;
-						case 40://maximum non-sequential zones
-							deviceStats->sataStatistics.maximumNonSequentialZones.isThresholdValid = true;
-							deviceStats->sataStatistics.maximumNonSequentialZones.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.maximumNonSequentialZones.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.maximumNonSequentialZones.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.maximumNonSequentialZones.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.maximumNonSequentialZones.threshold = thresholdValue;
-							break;
-						case 48://zones emptied
-							deviceStats->sataStatistics.zonesEmptied.isThresholdValid = true;
-							deviceStats->sataStatistics.zonesEmptied.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.zonesEmptied.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.zonesEmptied.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.zonesEmptied.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.zonesEmptied.threshold = thresholdValue;
-							break;
-						case 56://suboptimal write commands
-							deviceStats->sataStatistics.suboptimalWriteCommands.isThresholdValid = true;
-							deviceStats->sataStatistics.suboptimalWriteCommands.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.suboptimalWriteCommands.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.suboptimalWriteCommands.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.suboptimalWriteCommands.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.suboptimalWriteCommands.threshold = thresholdValue;
-							break;
-						case 64://commands exceeding optimal limit
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.isThresholdValid = true;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshold = thresholdValue;
-							break;
-						case 72://failed explicit opens
-							deviceStats->sataStatistics.failedExplicitOpens.isThresholdValid = true;
-							deviceStats->sataStatistics.failedExplicitOpens.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.failedExplicitOpens.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.failedExplicitOpens.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.failedExplicitOpens.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.failedExplicitOpens.threshold = thresholdValue;
-							break;
-						case 80://read rule violations
-							deviceStats->sataStatistics.readRuleViolations.isThresholdValid = true;
-							deviceStats->sataStatistics.readRuleViolations.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.readRuleViolations.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.readRuleViolations.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.readRuleViolations.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.readRuleViolations.threshold = thresholdValue;
-							break;
-						case 88://write rule violations
-							deviceStats->sataStatistics.writeRuleViolations.isThresholdValid = true;
-							deviceStats->sataStatistics.writeRuleViolations.thresholdNotificationEnabled = notificationEnabled;
-							deviceStats->sataStatistics.writeRuleViolations.threshType = (eThresholdType)comparisonType;
-							deviceStats->sataStatistics.writeRuleViolations.nonValidityTrigger = nonValidityTrigger;
-							deviceStats->sataStatistics.writeRuleViolations.validityTrigger = validityTrigger;
-							deviceStats->sataStatistics.writeRuleViolations.threshold = thresholdValue;
-							break;
-						default:
-							break;
-						}
+                    case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
+                        switch (statisticByteOffset)
+                        {
+                        case 8://maximum open zones
+                            deviceStats->sataStatistics.maximumOpenZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumOpenZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumOpenZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumOpenZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumOpenZones.threshold = thresholdValue;
+                            break;
+                        case 16://maximum explicitly open zones
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshold = thresholdValue;
+                            break;
+                        case 24://maximum implicitly open zones
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshold = thresholdValue;
+                            break;
+                        case 32://minimum empty zones
+                            deviceStats->sataStatistics.minimumEmptyZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.minimumEmptyZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.minimumEmptyZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.minimumEmptyZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.minimumEmptyZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.minimumEmptyZones.threshold = thresholdValue;
+                            break;
+                        case 40://maximum non-sequential zones
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.threshold = thresholdValue;
+                            break;
+                        case 48://zones emptied
+                            deviceStats->sataStatistics.zonesEmptied.isThresholdValid = true;
+                            deviceStats->sataStatistics.zonesEmptied.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.zonesEmptied.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.zonesEmptied.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.zonesEmptied.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.zonesEmptied.threshold = thresholdValue;
+                            break;
+                        case 56://suboptimal write commands
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isThresholdValid = true;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.threshold = thresholdValue;
+                            break;
+                        case 64://commands exceeding optimal limit
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isThresholdValid = true;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshold = thresholdValue;
+                            break;
+                        case 72://failed explicit opens
+                            deviceStats->sataStatistics.failedExplicitOpens.isThresholdValid = true;
+                            deviceStats->sataStatistics.failedExplicitOpens.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.failedExplicitOpens.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.failedExplicitOpens.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.failedExplicitOpens.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.failedExplicitOpens.threshold = thresholdValue;
+                            break;
+                        case 80://read rule violations
+                            deviceStats->sataStatistics.readRuleViolations.isThresholdValid = true;
+                            deviceStats->sataStatistics.readRuleViolations.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.readRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.readRuleViolations.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.readRuleViolations.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.readRuleViolations.threshold = thresholdValue;
+                            break;
+                        case 88://write rule violations
+                            deviceStats->sataStatistics.writeRuleViolations.isThresholdValid = true;
+                            deviceStats->sataStatistics.writeRuleViolations.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.writeRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.writeRuleViolations.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.writeRuleViolations.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.writeRuleViolations.threshold = thresholdValue;
+                            break;
+                        default:
+                            break;
+                        }
                     default:
                         //unknown page, break
                         break;
@@ -1064,121 +1064,121 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     }
                     break;
                 case 8://ZAC statistics
-					if (0x08 == M_Byte2(qwordPtrDeviceStatsLog[0]))
-					{
-						deviceStats->sataStatistics.zonedDeviceStatisticsSupported = true;
-						if (qwordPtrDeviceStatsLog[1] & BIT63)
-						{
-							deviceStats->sataStatistics.maximumOpenZones.isSupported = true;
-							deviceStats->sataStatistics.maximumOpenZones.isValueValid = qwordPtrDeviceStatsLog[1] & BIT62;
-							deviceStats->sataStatistics.maximumOpenZones.isNormalized = qwordPtrDeviceStatsLog[1] & BIT61;
-							deviceStats->sataStatistics.maximumOpenZones.supportsNotification = qwordPtrDeviceStatsLog[1] & BIT60;
-							deviceStats->sataStatistics.maximumOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[1] & BIT59;
-							deviceStats->sataStatistics.maximumOpenZones.statisticValue = qwordPtrDeviceStatsLog[1] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[2] & BIT63)
-						{
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.isSupported = true;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[2] & BIT62;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[2] & BIT61;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[2] & BIT60;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[2] & BIT59;
-							deviceStats->sataStatistics.maximumExplicitlyOpenZones.statisticValue = qwordPtrDeviceStatsLog[2] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[3] & BIT63)
-						{
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.isSupported = true;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[3] & BIT62;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[3] & BIT61;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[3] & BIT60;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[3] & BIT59;
-							deviceStats->sataStatistics.maximumImplicitlyOpenZones.statisticValue = qwordPtrDeviceStatsLog[3] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[4] & BIT63)
-						{
-							deviceStats->sataStatistics.minimumEmptyZones.isSupported = true;
-							deviceStats->sataStatistics.minimumEmptyZones.isValueValid = qwordPtrDeviceStatsLog[4] & BIT62;
-							deviceStats->sataStatistics.minimumEmptyZones.isNormalized = qwordPtrDeviceStatsLog[4] & BIT61;
-							deviceStats->sataStatistics.minimumEmptyZones.supportsNotification = qwordPtrDeviceStatsLog[4] & BIT60;
-							deviceStats->sataStatistics.minimumEmptyZones.monitoredConditionMet = qwordPtrDeviceStatsLog[4] & BIT59;
-							deviceStats->sataStatistics.minimumEmptyZones.statisticValue = qwordPtrDeviceStatsLog[4] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[5] & BIT63)
-						{
-							deviceStats->sataStatistics.maximumNonSequentialZones.isSupported = true;
-							deviceStats->sataStatistics.maximumNonSequentialZones.isValueValid = qwordPtrDeviceStatsLog[5] & BIT62;
-							deviceStats->sataStatistics.maximumNonSequentialZones.isNormalized = qwordPtrDeviceStatsLog[5] & BIT61;
-							deviceStats->sataStatistics.maximumNonSequentialZones.supportsNotification = qwordPtrDeviceStatsLog[5] & BIT60;
-							deviceStats->sataStatistics.maximumNonSequentialZones.monitoredConditionMet = qwordPtrDeviceStatsLog[5] & BIT59;
-							deviceStats->sataStatistics.maximumNonSequentialZones.statisticValue = qwordPtrDeviceStatsLog[5] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[6] & BIT63)
-						{
-							deviceStats->sataStatistics.zonesEmptied.isSupported = true;
-							deviceStats->sataStatistics.zonesEmptied.isValueValid = qwordPtrDeviceStatsLog[6] & BIT62;
-							deviceStats->sataStatistics.zonesEmptied.isNormalized = qwordPtrDeviceStatsLog[6] & BIT61;
-							deviceStats->sataStatistics.zonesEmptied.supportsNotification = qwordPtrDeviceStatsLog[6] & BIT60;
-							deviceStats->sataStatistics.zonesEmptied.monitoredConditionMet = qwordPtrDeviceStatsLog[6] & BIT59;
-							deviceStats->sataStatistics.zonesEmptied.statisticValue = qwordPtrDeviceStatsLog[6] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[7] & BIT63)
-						{
-							deviceStats->sataStatistics.suboptimalWriteCommands.isSupported = true;
-							deviceStats->sataStatistics.suboptimalWriteCommands.isValueValid = qwordPtrDeviceStatsLog[7] & BIT62;
-							deviceStats->sataStatistics.suboptimalWriteCommands.isNormalized = qwordPtrDeviceStatsLog[7] & BIT61;
-							deviceStats->sataStatistics.suboptimalWriteCommands.supportsNotification = qwordPtrDeviceStatsLog[7] & BIT60;
-							deviceStats->sataStatistics.suboptimalWriteCommands.monitoredConditionMet = qwordPtrDeviceStatsLog[7] & BIT59;
-							deviceStats->sataStatistics.suboptimalWriteCommands.statisticValue = qwordPtrDeviceStatsLog[7] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[8] & BIT63)
-						{
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.isSupported = true;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.isValueValid = qwordPtrDeviceStatsLog[8] & BIT62;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.isNormalized = qwordPtrDeviceStatsLog[8] & BIT61;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.supportsNotification = qwordPtrDeviceStatsLog[8] & BIT60;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.monitoredConditionMet = qwordPtrDeviceStatsLog[8] & BIT59;
-							deviceStats->sataStatistics.commandsExceedingOptimalLimit.statisticValue = qwordPtrDeviceStatsLog[8] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[9] & BIT63)
-						{
-							deviceStats->sataStatistics.failedExplicitOpens.isSupported = true;
-							deviceStats->sataStatistics.failedExplicitOpens.isValueValid = qwordPtrDeviceStatsLog[9] & BIT62;
-							deviceStats->sataStatistics.failedExplicitOpens.isNormalized = qwordPtrDeviceStatsLog[9] & BIT61;
-							deviceStats->sataStatistics.failedExplicitOpens.supportsNotification = qwordPtrDeviceStatsLog[9] & BIT60;
-							deviceStats->sataStatistics.failedExplicitOpens.monitoredConditionMet = qwordPtrDeviceStatsLog[9] & BIT59;
-							deviceStats->sataStatistics.failedExplicitOpens.statisticValue = qwordPtrDeviceStatsLog[9] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[10] & BIT63)
-						{
-							deviceStats->sataStatistics.readRuleViolations.isSupported = true;
-							deviceStats->sataStatistics.readRuleViolations.isValueValid = qwordPtrDeviceStatsLog[10] & BIT62;
-							deviceStats->sataStatistics.readRuleViolations.isNormalized = qwordPtrDeviceStatsLog[10] & BIT61;
-							deviceStats->sataStatistics.readRuleViolations.supportsNotification = qwordPtrDeviceStatsLog[10] & BIT60;
-							deviceStats->sataStatistics.readRuleViolations.monitoredConditionMet = qwordPtrDeviceStatsLog[10] & BIT59;
-							deviceStats->sataStatistics.readRuleViolations.statisticValue = qwordPtrDeviceStatsLog[10] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-						if (qwordPtrDeviceStatsLog[11] & BIT63)
-						{
-							deviceStats->sataStatistics.writeRuleViolations.isSupported = true;
-							deviceStats->sataStatistics.writeRuleViolations.isValueValid = qwordPtrDeviceStatsLog[11] & BIT62;
-							deviceStats->sataStatistics.writeRuleViolations.isNormalized = qwordPtrDeviceStatsLog[11] & BIT61;
-							deviceStats->sataStatistics.writeRuleViolations.supportsNotification = qwordPtrDeviceStatsLog[11] & BIT60;
-							deviceStats->sataStatistics.writeRuleViolations.monitoredConditionMet = qwordPtrDeviceStatsLog[11] & BIT59;
-							deviceStats->sataStatistics.writeRuleViolations.statisticValue = qwordPtrDeviceStatsLog[11] & MAX_48_BIT_LBA;
-							++deviceStats->sataStatistics.statisticsPopulated;
-						}
-					}
-					break;
+                    if (0x08 == M_Byte2(qwordPtrDeviceStatsLog[0]))
+                    {
+                        deviceStats->sataStatistics.zonedDeviceStatisticsSupported = true;
+                        if (qwordPtrDeviceStatsLog[1] & BIT63)
+                        {
+                            deviceStats->sataStatistics.maximumOpenZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumOpenZones.isValueValid = qwordPtrDeviceStatsLog[1] & BIT62;
+                            deviceStats->sataStatistics.maximumOpenZones.isNormalized = qwordPtrDeviceStatsLog[1] & BIT61;
+                            deviceStats->sataStatistics.maximumOpenZones.supportsNotification = qwordPtrDeviceStatsLog[1] & BIT60;
+                            deviceStats->sataStatistics.maximumOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[1] & BIT59;
+                            deviceStats->sataStatistics.maximumOpenZones.statisticValue = qwordPtrDeviceStatsLog[1] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[2] & BIT63)
+                        {
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[2] & BIT62;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[2] & BIT61;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[2] & BIT60;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[2] & BIT59;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.statisticValue = qwordPtrDeviceStatsLog[2] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[3] & BIT63)
+                        {
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[3] & BIT62;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[3] & BIT61;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[3] & BIT60;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[3] & BIT59;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.statisticValue = qwordPtrDeviceStatsLog[3] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[4] & BIT63)
+                        {
+                            deviceStats->sataStatistics.minimumEmptyZones.isSupported = true;
+                            deviceStats->sataStatistics.minimumEmptyZones.isValueValid = qwordPtrDeviceStatsLog[4] & BIT62;
+                            deviceStats->sataStatistics.minimumEmptyZones.isNormalized = qwordPtrDeviceStatsLog[4] & BIT61;
+                            deviceStats->sataStatistics.minimumEmptyZones.supportsNotification = qwordPtrDeviceStatsLog[4] & BIT60;
+                            deviceStats->sataStatistics.minimumEmptyZones.monitoredConditionMet = qwordPtrDeviceStatsLog[4] & BIT59;
+                            deviceStats->sataStatistics.minimumEmptyZones.statisticValue = qwordPtrDeviceStatsLog[4] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[5] & BIT63)
+                        {
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isValueValid = qwordPtrDeviceStatsLog[5] & BIT62;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isNormalized = qwordPtrDeviceStatsLog[5] & BIT61;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.supportsNotification = qwordPtrDeviceStatsLog[5] & BIT60;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.monitoredConditionMet = qwordPtrDeviceStatsLog[5] & BIT59;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.statisticValue = qwordPtrDeviceStatsLog[5] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[6] & BIT63)
+                        {
+                            deviceStats->sataStatistics.zonesEmptied.isSupported = true;
+                            deviceStats->sataStatistics.zonesEmptied.isValueValid = qwordPtrDeviceStatsLog[6] & BIT62;
+                            deviceStats->sataStatistics.zonesEmptied.isNormalized = qwordPtrDeviceStatsLog[6] & BIT61;
+                            deviceStats->sataStatistics.zonesEmptied.supportsNotification = qwordPtrDeviceStatsLog[6] & BIT60;
+                            deviceStats->sataStatistics.zonesEmptied.monitoredConditionMet = qwordPtrDeviceStatsLog[6] & BIT59;
+                            deviceStats->sataStatistics.zonesEmptied.statisticValue = qwordPtrDeviceStatsLog[6] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[7] & BIT63)
+                        {
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isSupported = true;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isValueValid = qwordPtrDeviceStatsLog[7] & BIT62;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isNormalized = qwordPtrDeviceStatsLog[7] & BIT61;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.supportsNotification = qwordPtrDeviceStatsLog[7] & BIT60;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.monitoredConditionMet = qwordPtrDeviceStatsLog[7] & BIT59;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.statisticValue = qwordPtrDeviceStatsLog[7] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[8] & BIT63)
+                        {
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isSupported = true;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isValueValid = qwordPtrDeviceStatsLog[8] & BIT62;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isNormalized = qwordPtrDeviceStatsLog[8] & BIT61;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.supportsNotification = qwordPtrDeviceStatsLog[8] & BIT60;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.monitoredConditionMet = qwordPtrDeviceStatsLog[8] & BIT59;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.statisticValue = qwordPtrDeviceStatsLog[8] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[9] & BIT63)
+                        {
+                            deviceStats->sataStatistics.failedExplicitOpens.isSupported = true;
+                            deviceStats->sataStatistics.failedExplicitOpens.isValueValid = qwordPtrDeviceStatsLog[9] & BIT62;
+                            deviceStats->sataStatistics.failedExplicitOpens.isNormalized = qwordPtrDeviceStatsLog[9] & BIT61;
+                            deviceStats->sataStatistics.failedExplicitOpens.supportsNotification = qwordPtrDeviceStatsLog[9] & BIT60;
+                            deviceStats->sataStatistics.failedExplicitOpens.monitoredConditionMet = qwordPtrDeviceStatsLog[9] & BIT59;
+                            deviceStats->sataStatistics.failedExplicitOpens.statisticValue = qwordPtrDeviceStatsLog[9] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[10] & BIT63)
+                        {
+                            deviceStats->sataStatistics.readRuleViolations.isSupported = true;
+                            deviceStats->sataStatistics.readRuleViolations.isValueValid = qwordPtrDeviceStatsLog[10] & BIT62;
+                            deviceStats->sataStatistics.readRuleViolations.isNormalized = qwordPtrDeviceStatsLog[10] & BIT61;
+                            deviceStats->sataStatistics.readRuleViolations.supportsNotification = qwordPtrDeviceStatsLog[10] & BIT60;
+                            deviceStats->sataStatistics.readRuleViolations.monitoredConditionMet = qwordPtrDeviceStatsLog[10] & BIT59;
+                            deviceStats->sataStatistics.readRuleViolations.statisticValue = qwordPtrDeviceStatsLog[10] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                        if (qwordPtrDeviceStatsLog[11] & BIT63)
+                        {
+                            deviceStats->sataStatistics.writeRuleViolations.isSupported = true;
+                            deviceStats->sataStatistics.writeRuleViolations.isValueValid = qwordPtrDeviceStatsLog[11] & BIT62;
+                            deviceStats->sataStatistics.writeRuleViolations.isNormalized = qwordPtrDeviceStatsLog[11] & BIT61;
+                            deviceStats->sataStatistics.writeRuleViolations.supportsNotification = qwordPtrDeviceStatsLog[11] & BIT60;
+                            deviceStats->sataStatistics.writeRuleViolations.monitoredConditionMet = qwordPtrDeviceStatsLog[11] & BIT59;
+                            deviceStats->sataStatistics.writeRuleViolations.statisticValue = qwordPtrDeviceStatsLog[11] & MAX_48_BIT_LBA;
+                            ++deviceStats->sataStatistics.statisticsPopulated;
+                        }
+                    }
+                    break;
                 case 0xFF://vendor specific
                     if (is_Seagate_Family(device) == SEAGATE && 0xFF == M_Byte2(qwordPtrDeviceStatsLog[0]))
                     {
@@ -6134,106 +6134,106 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                 break;
             }
             break;
-		case LP_ZONED_DEVICE_STATISTICS://subpage 1
-			switch (subpageCode)
-			{
-			case 0x01://ZBD statistics
-			{
-				memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-				if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
-				{
-					deviceStats->sasStatistics.cacheMemoryStatisticsSupported = true;
-					uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-					uint8_t parameterLength = 0;
-					//loop through the data and gather the data from each parameter we care about getting.
-					for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
-					{
-						uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
-						parameterLength = tempLogBuf[iter + 3];
-						switch (parameterCode)
-						{
-						case 0://maximum open zones
-							deviceStats->sasStatistics.maximumOpenZones.isSupported = true;
-							deviceStats->sasStatistics.maximumOpenZones.isValueValid = true;
-							deviceStats->sasStatistics.maximumOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 1://maximum explicitly open zones
-							deviceStats->sasStatistics.maximumExplicitlyOpenZones.isSupported = true;
-							deviceStats->sasStatistics.maximumExplicitlyOpenZones.isValueValid = true;
-							deviceStats->sasStatistics.maximumExplicitlyOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 2://maximum implicitly open zones
-							deviceStats->sasStatistics.maximumImplicitlyOpenZones.isSupported = true;
-							deviceStats->sasStatistics.maximumImplicitlyOpenZones.isValueValid = true;
-							deviceStats->sasStatistics.maximumImplicitlyOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 3://minimum empty zones
-							deviceStats->sasStatistics.minimumEmptyZones.isSupported = true;
-							deviceStats->sasStatistics.minimumEmptyZones.isValueValid = true;
-							deviceStats->sasStatistics.minimumEmptyZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 4://maximum non-sequential zones
-							deviceStats->sasStatistics.maximumNonSequentialZones.isSupported = true;
-							deviceStats->sasStatistics.maximumNonSequentialZones.isValueValid = true;
-							deviceStats->sasStatistics.maximumNonSequentialZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 5://zones emptied
-							deviceStats->sasStatistics.zonesEmptied.isSupported = true;
-							deviceStats->sasStatistics.zonesEmptied.isValueValid = true;
-							deviceStats->sasStatistics.zonesEmptied.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 6://suboptimal write commands
-							deviceStats->sasStatistics.suboptimalWriteCommands.isSupported = true;
-							deviceStats->sasStatistics.suboptimalWriteCommands.isValueValid = true;
-							deviceStats->sasStatistics.suboptimalWriteCommands.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 7://commands exceeding optimal limit
-							deviceStats->sasStatistics.commandsExceedingOptimalLimit.isSupported = true;
-							deviceStats->sasStatistics.commandsExceedingOptimalLimit.isValueValid = true;
-							deviceStats->sasStatistics.commandsExceedingOptimalLimit.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 8://failed explicit opens
-							deviceStats->sasStatistics.failedExplicitOpens.isSupported = true;
-							deviceStats->sasStatistics.failedExplicitOpens.isValueValid = true;
-							deviceStats->sasStatistics.failedExplicitOpens.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 9://read rule violations
-							deviceStats->sasStatistics.readRuleViolations.isSupported = true;
-							deviceStats->sasStatistics.readRuleViolations.isValueValid = true;
-							deviceStats->sasStatistics.readRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						case 10://write rule violations
-							deviceStats->sasStatistics.writeRuleViolations.isSupported = true;
-							deviceStats->sasStatistics.writeRuleViolations.isValueValid = true;
-							deviceStats->sasStatistics.writeRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-							++deviceStats->sasStatistics.statisticsPopulated;
-							break;
-						default:
-							break;
-						}
-						if (parameterLength == 0)
-						{
-							break;
-						}
-					}
-				}
-				//Thresholds are not defined/obsolete so no need to read them or attempt to read them.
-			}
-				break;
-			default:
-				break;
-			}
-			break;
+        case LP_ZONED_DEVICE_STATISTICS://subpage 1
+            switch (subpageCode)
+            {
+            case 0x01://ZBD statistics
+            {
+                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    deviceStats->sasStatistics.cacheMemoryStatisticsSupported = true;
+                    uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                    uint8_t parameterLength = 0;
+                    //loop through the data and gather the data from each parameter we care about getting.
+                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    {
+                        uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
+                        parameterLength = tempLogBuf[iter + 3];
+                        switch (parameterCode)
+                        {
+                        case 0://maximum open zones
+                            deviceStats->sasStatistics.maximumOpenZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumOpenZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 1://maximum explicitly open zones
+                            deviceStats->sasStatistics.maximumExplicitlyOpenZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumExplicitlyOpenZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumExplicitlyOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 2://maximum implicitly open zones
+                            deviceStats->sasStatistics.maximumImplicitlyOpenZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumImplicitlyOpenZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumImplicitlyOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 3://minimum empty zones
+                            deviceStats->sasStatistics.minimumEmptyZones.isSupported = true;
+                            deviceStats->sasStatistics.minimumEmptyZones.isValueValid = true;
+                            deviceStats->sasStatistics.minimumEmptyZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 4://maximum non-sequential zones
+                            deviceStats->sasStatistics.maximumNonSequentialZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumNonSequentialZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumNonSequentialZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 5://zones emptied
+                            deviceStats->sasStatistics.zonesEmptied.isSupported = true;
+                            deviceStats->sasStatistics.zonesEmptied.isValueValid = true;
+                            deviceStats->sasStatistics.zonesEmptied.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 6://suboptimal write commands
+                            deviceStats->sasStatistics.suboptimalWriteCommands.isSupported = true;
+                            deviceStats->sasStatistics.suboptimalWriteCommands.isValueValid = true;
+                            deviceStats->sasStatistics.suboptimalWriteCommands.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 7://commands exceeding optimal limit
+                            deviceStats->sasStatistics.commandsExceedingOptimalLimit.isSupported = true;
+                            deviceStats->sasStatistics.commandsExceedingOptimalLimit.isValueValid = true;
+                            deviceStats->sasStatistics.commandsExceedingOptimalLimit.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 8://failed explicit opens
+                            deviceStats->sasStatistics.failedExplicitOpens.isSupported = true;
+                            deviceStats->sasStatistics.failedExplicitOpens.isValueValid = true;
+                            deviceStats->sasStatistics.failedExplicitOpens.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 9://read rule violations
+                            deviceStats->sasStatistics.readRuleViolations.isSupported = true;
+                            deviceStats->sasStatistics.readRuleViolations.isValueValid = true;
+                            deviceStats->sasStatistics.readRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 10://write rule violations
+                            deviceStats->sasStatistics.writeRuleViolations.isSupported = true;
+                            deviceStats->sasStatistics.writeRuleViolations.isValueValid = true;
+                            deviceStats->sasStatistics.writeRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        default:
+                            break;
+                        }
+                        if (parameterLength == 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+                //Thresholds are not defined/obsolete so no need to read them or attempt to read them.
+            }
+                break;
+            default:
+                break;
+            }
+            break;
         default:
             break;
         }
@@ -7301,21 +7301,21 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         printf("\n---Solid State Device Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.percentageUsedIndicator, "Percent Used Indicator", "%");
     }
-	if (deviceStats->sataStatistics.zonedDeviceStatisticsSupported)
-	{
-		printf("\n---Zoned Device Statistics---\n");
-		print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.zonesEmptied, "Zones Emptied", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", NULL);
-		print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", NULL);
-	}
+    if (deviceStats->sataStatistics.zonedDeviceStatisticsSupported)
+    {
+        printf("\n---Zoned Device Statistics---\n");
+        print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.zonesEmptied, "Zones Emptied", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", NULL);
+    }
     if (deviceStats->sataStatistics.vendorSpecificStatisticsSupported)
     {
         if (SEAGATE == is_Seagate_Family(device))
@@ -7555,21 +7555,21 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
         printf("\n---Timestamp---\n");
         print_Date_And_Time_Timestamp_Statistic(deviceStats->sasStatistics.dateAndTimeTimestamp, "Date And Time Timestamp");
     }
-	if (deviceStats->sasStatistics.zonedDeviceStatisticsSupported)
-	{
-		printf("\n---Zoned Device Statistics---\n");
-		print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.zonesEmptied, "Zones Emptied", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
-		print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
-	}
+    if (deviceStats->sasStatistics.zonedDeviceStatisticsSupported)
+    {
+        printf("\n---Zoned Device Statistics---\n");
+        print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.zonesEmptied, "Zones Emptied", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
+    }
     return ret;
 }
 

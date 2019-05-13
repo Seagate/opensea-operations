@@ -324,64 +324,64 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         {
             //short block descriptor
             //set the LBA to all Fs to reset to maximum LBA of the drive
-			if (formatParameters.newMaxLBA)
-			{
-				modeParameterData[blockDescriptorOffset + 0] = M_Byte3(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 1] = M_Byte2(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 2] = M_Byte1(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 3] = M_Byte0(formatParameters.newMaxLBA);
-			}
-			else
-			{
-				modeParameterData[blockDescriptorOffset + 0] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 1] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 2] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 3] = 0xFF;
-			}
+            if (formatParameters.newMaxLBA)
+            {
+                modeParameterData[blockDescriptorOffset + 0] = M_Byte3(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 1] = M_Byte2(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 2] = M_Byte1(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 3] = M_Byte0(formatParameters.newMaxLBA);
+            }
+            else
+            {
+                modeParameterData[blockDescriptorOffset + 0] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 1] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 2] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 3] = 0xFF;
+            }
             //1 reserved byte (don't touch it)
             //set logical block length in bytes 5 to 7
-			if (!formatParameters.currentBlockSize)
-			{
-				modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newBlockSize);
-				modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newBlockSize);
-				modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newBlockSize);
-			}
+            if (!formatParameters.currentBlockSize)
+            {
+                modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newBlockSize);
+                modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newBlockSize);
+                modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newBlockSize);
+            }
         }
         else if (blockDescriptorLength == 16)
         {
             //long block descriptor
             //set the LBA to all Fs to reset to maximum LBA of the drive
-			if (formatParameters.newMaxLBA)
-			{
-				modeParameterData[blockDescriptorOffset + 0] = M_Byte7(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 1] = M_Byte6(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 2] = M_Byte5(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 3] = M_Byte4(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 4] = M_Byte3(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newMaxLBA);
-				modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newMaxLBA);
-			}
-			else
-			{
-				modeParameterData[blockDescriptorOffset + 0] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 1] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 2] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 3] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 4] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 5] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 6] = 0xFF;
-				modeParameterData[blockDescriptorOffset + 7] = 0xFF;
-			}
+            if (formatParameters.newMaxLBA)
+            {
+                modeParameterData[blockDescriptorOffset + 0] = M_Byte7(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 1] = M_Byte6(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 2] = M_Byte5(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 3] = M_Byte4(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 4] = M_Byte3(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newMaxLBA);
+                modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newMaxLBA);
+            }
+            else
+            {
+                modeParameterData[blockDescriptorOffset + 0] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 1] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 2] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 3] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 4] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 5] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 6] = 0xFF;
+                modeParameterData[blockDescriptorOffset + 7] = 0xFF;
+            }
             //8 reserved bytes (don't touch them)
             //set logical block length in bytes 12 to 15
-			if (!formatParameters.currentBlockSize)
-			{
-				modeParameterData[blockDescriptorOffset + 12] = M_Byte3(formatParameters.newBlockSize);
-				modeParameterData[blockDescriptorOffset + 13] = M_Byte2(formatParameters.newBlockSize);
-				modeParameterData[blockDescriptorOffset + 14] = M_Byte1(formatParameters.newBlockSize);
-				modeParameterData[blockDescriptorOffset + 15] = M_Byte0(formatParameters.newBlockSize);
-			}
+            if (!formatParameters.currentBlockSize)
+            {
+                modeParameterData[blockDescriptorOffset + 12] = M_Byte3(formatParameters.newBlockSize);
+                modeParameterData[blockDescriptorOffset + 13] = M_Byte2(formatParameters.newBlockSize);
+                modeParameterData[blockDescriptorOffset + 14] = M_Byte1(formatParameters.newBlockSize);
+                modeParameterData[blockDescriptorOffset + 15] = M_Byte0(formatParameters.newBlockSize);
+            }
         }
         else
         {
@@ -1254,9 +1254,9 @@ void show_Supported_Formats(ptrSupportedFormats formats)
     printf("  Good    \n");
     printf("  Degraded\n");
     //now print out the supported block sizes
-	printf("--------------------------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------------------\n");
     printf(" %18s  %4s  %4s  %4s  %4s  %20s  %13s\n", "Logical Block Size", "PI-0", "PI-1", "PI-2", "PI-3", "Relative Performance", "Metadata Size");
-	printf("--------------------------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------------------\n");
     for (uint32_t iter = 0; iter < formats->numberOfSectorSizes; ++iter)
     {
         if (formats->sectorSizes[iter].valid)
@@ -1444,7 +1444,7 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-		uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
+        uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
         uint32_t formatsDataSize = sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats);
         ptrSupportedFormats formats = (ptrSupportedFormats)malloc(formatsDataSize);
         if (!formats)
@@ -1553,127 +1553,127 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
 #if !defined (DISABLE_NVME_PASSTHROUGH)
 int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
 {
-	int ret = SUCCESS;
-	if (!percentComplete)
-	{
-		return BAD_PARAMETER;
-	}
-	*percentComplete = 0;
-	if (device->drive_info.drive_type == NVME_DRIVE)
-	{
-		ret = nvme_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.nvme.ns, NVME_ALL_NAMESPACES, NVME_IDENTIFY_NS);
-		if (ret == SUCCESS)
-		{
-			if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
-			{
-				*percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
-				ret = IN_PROGRESS;
-			}
-		}
-	}
-	else
-	{
-		ret = NOT_SUPPORTED;
-	}
-	return ret;
+    int ret = SUCCESS;
+    if (!percentComplete)
+    {
+        return BAD_PARAMETER;
+    }
+    *percentComplete = 0;
+    if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        ret = nvme_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.nvme.ns, NVME_ALL_NAMESPACES, NVME_IDENTIFY_NS);
+        if (ret == SUCCESS)
+        {
+            if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
+            {
+                *percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
+                ret = IN_PROGRESS;
+            }
+        }
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
 }
 
 int show_NVM_Format_Progress(tDevice *device)
 {
-	int ret = UNKNOWN;
-	uint8_t percentComplete = 0;
+    int ret = UNKNOWN;
+    uint8_t percentComplete = 0;
 
-	ret = get_NVM_Format_Progress(device, &percentComplete);
+    ret = get_NVM_Format_Progress(device, &percentComplete);
 
-	if (ret == IN_PROGRESS)
-	{
-		printf("\tFormat Progress = %" PRIu8 "%% \n", percentComplete);
-	}
-	else if (ret == SUCCESS)
-	{
-		printf("\tA format is not detected as running. Either it is complete or the device does not report its progress\n");
-	}
-	else
-	{
-		printf("\tError occurred while retrieving format progress!\n");
-	}
-	return ret;
+    if (ret == IN_PROGRESS)
+    {
+        printf("\tFormat Progress = %" PRIu8 "%% \n", percentComplete);
+    }
+    else if (ret == SUCCESS)
+    {
+        printf("\tA format is not detected as running. Either it is complete or the device does not report its progress\n");
+    }
+    else
+    {
+        printf("\tError occurred while retrieving format progress!\n");
+    }
+    return ret;
 }
 
 int map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
 {
-	int fmtNum = 16;//invalid value to catch errors!
-	for (uint8_t fmtIter = 0; fmtIter < device->drive_info.IdentifyData.nvme.ns.nlbaf; ++fmtIter)
-	{
-		if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
-		{
-			//lba size matches, now check the metadata!
-			if (metadataSize == device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].ms)
-			{
-				fmtNum = fmtIter;
-				break;
-			}
-		}
-	}
-	return fmtNum;
+    int fmtNum = 16;//invalid value to catch errors!
+    for (uint8_t fmtIter = 0; fmtIter < device->drive_info.IdentifyData.nvme.ns.nlbaf; ++fmtIter)
+    {
+        if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
+        {
+            //lba size matches, now check the metadata!
+            if (metadataSize == device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].ms)
+            {
+                fmtNum = fmtIter;
+                break;
+            }
+        }
+    }
+    return fmtNum;
 }
 
 int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
 {
     int ret = SUCCESS;
     nvmeFormatCmdOpts formatCmdOptions;
-	memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
-	//Set metadata, PI, PIL settings to current device settings to start
-	formatCmdOptions.ms = device->drive_info.IdentifyData.nvme.ns.mc & BIT0 ? 1 : 0;
-	formatCmdOptions.pil = device->drive_info.IdentifyData.nvme.ns.dps & BIT3 ? 1 : 0;
-	formatCmdOptions.pi = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
+    memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
+    //Set metadata, PI, PIL settings to current device settings to start
+    formatCmdOptions.ms = device->drive_info.IdentifyData.nvme.ns.mc & BIT0 ? 1 : 0;
+    formatCmdOptions.pil = device->drive_info.IdentifyData.nvme.ns.dps & BIT3 ? 1 : 0;
+    formatCmdOptions.pi = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
 
-	if (nvmParams.metadataSettings.valid)
-	{
-		formatCmdOptions.ms = nvmParams.metadataSettings.metadataAsExtendedLBA ? 1 : 0;
-	}
+    if (nvmParams.metadataSettings.valid)
+    {
+        formatCmdOptions.ms = nvmParams.metadataSettings.metadataAsExtendedLBA ? 1 : 0;
+    }
 
-	if (nvmParams.protectionLocation.valid)
-	{
-		formatCmdOptions.pil = nvmParams.protectionLocation.first8Bytes ? 1 : 0;
-	}
+    if (nvmParams.protectionLocation.valid)
+    {
+        formatCmdOptions.pil = nvmParams.protectionLocation.first8Bytes ? 1 : 0;
+    }
 
-	if (nvmParams.changeProtectionType)
-	{
-		formatCmdOptions.pi = nvmParams.protectionType;
-	}
-	
-	if (nvmParams.formatNumberProvided)
-	{
-		formatCmdOptions.lbaf = nvmParams.formatNumber;
-	}
-	else
-	{
-		//need to figure out what format we want to run!
-		uint32_t fmtBlockSize = device->drive_info.deviceBlockSize;
-		uint32_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0)].ms;
+    if (nvmParams.changeProtectionType)
+    {
+        formatCmdOptions.pi = nvmParams.protectionType;
+    }
+    
+    if (nvmParams.formatNumberProvided)
+    {
+        formatCmdOptions.lbaf = nvmParams.formatNumber;
+    }
+    else
+    {
+        //need to figure out what format we want to run!
+        uint32_t fmtBlockSize = device->drive_info.deviceBlockSize;
+        uint32_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0)].ms;
 
-		if (!nvmParams.newSize.currentBlockSize)
-		{
-			fmtBlockSize = nvmParams.newSize.newBlockSize;
-		}
+        if (!nvmParams.newSize.currentBlockSize)
+        {
+            fmtBlockSize = nvmParams.newSize.newBlockSize;
+        }
 
-		if (!nvmParams.newSize.changeMetadataSize)
-		{
-			fmtMetaDataSize = nvmParams.newSize.metadataSize;
-		}
+        if (!nvmParams.newSize.changeMetadataSize)
+        {
+            fmtMetaDataSize = nvmParams.newSize.metadataSize;
+        }
 
-		formatCmdOptions.lbaf = map_NVM_Format_To_Format_Number(device, fmtBlockSize, fmtMetaDataSize);
-	}
-	//invalid format requested.
-	if (formatCmdOptions.lbaf > 15)
-	{
-		if (device->deviceVerbosity > VERBOSITY_QUIET)
-		{
-			printf("ERROR: Invalid format requested\n");
-		}
-		return NOT_SUPPORTED;
-	}
+        formatCmdOptions.lbaf = map_NVM_Format_To_Format_Number(device, fmtBlockSize, fmtMetaDataSize);
+    }
+    //invalid format requested.
+    if (formatCmdOptions.lbaf > 15)
+    {
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            printf("ERROR: Invalid format requested\n");
+        }
+        return NOT_SUPPORTED;
+    }
 
     if (nvmParams.secureEraseSettings == NVM_FMT_SE_CRYPTO && (!(device->drive_info.IdentifyData.nvme.ctrl.fna & BIT2)))
     {
@@ -1684,55 +1684,55 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
         return NOT_SUPPORTED;
     }
 
-	switch (nvmParams.secureEraseSettings)
-	{
-	case NVM_FMT_SE_USER_DATA:
-		formatCmdOptions.ses = FORMAT_NVME_ERASE_USER_DATA;
-		break;
-	case NVM_FMT_SE_CRYPTO:
-		formatCmdOptions.ses = FORMAT_NVME_CRYPTO_ERASE;
-		break;
-	case NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED:
-	default:
-		formatCmdOptions.ses = FORMAT_NVME_NO_SECURE_ERASE;
-		break;
-	}
-	if (nvmParams.currentNamespace)
-	{
-		formatCmdOptions.nsid = device->drive_info.namespaceID;
-	}
-	else
-	{
-		formatCmdOptions.nsid = NVME_ALL_NAMESPACES;
-	}
+    switch (nvmParams.secureEraseSettings)
+    {
+    case NVM_FMT_SE_USER_DATA:
+        formatCmdOptions.ses = FORMAT_NVME_ERASE_USER_DATA;
+        break;
+    case NVM_FMT_SE_CRYPTO:
+        formatCmdOptions.ses = FORMAT_NVME_CRYPTO_ERASE;
+        break;
+    case NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED:
+    default:
+        formatCmdOptions.ses = FORMAT_NVME_NO_SECURE_ERASE;
+        break;
+    }
+    if (nvmParams.currentNamespace)
+    {
+        formatCmdOptions.nsid = device->drive_info.namespaceID;
+    }
+    else
+    {
+        formatCmdOptions.nsid = NVME_ALL_NAMESPACES;
+    }
     ret = nvme_Format(device, &formatCmdOptions);
-	if (pollForProgress && ret == SUCCESS)
-	{
-		uint32_t delayTimeSeconds = 5;
-		uint8_t progress = 0;
-		delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
-		if (VERBOSITY_QUIET < device->deviceVerbosity)
-		{
-			uint8_t seconds = 0, minutes = 0, hours = 0;
-			convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
-			printf("Progress will be updated every ");
-			print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
-			printf("\n");
-		}
-		while (IN_PROGRESS == get_NVM_Format_Progress(device, &progress) && progress < 100.0)
-		{
-			if (VERBOSITY_QUIET < device->deviceVerbosity)
-			{
-				printf("\r\tPercent Complete: %" PRIu8 "%%", progress);
-				fflush(stdout);
-			}
-			delay_Seconds(delayTimeSeconds); //time set above
-		}
-		if (VERBOSITY_QUIET < device->deviceVerbosity)
-		{
-			printf("\n");
-		}
-	}
+    if (pollForProgress && ret == SUCCESS)
+    {
+        uint32_t delayTimeSeconds = 5;
+        uint8_t progress = 0;
+        delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            uint8_t seconds = 0, minutes = 0, hours = 0;
+            convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
+            printf("Progress will be updated every ");
+            print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+            printf("\n");
+        }
+        while (IN_PROGRESS == get_NVM_Format_Progress(device, &progress) && progress < 100.0)
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("\r\tPercent Complete: %" PRIu8 "%%", progress);
+                fflush(stdout);
+            }
+            delay_Seconds(delayTimeSeconds); //time set above
+        }
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            printf("\n");
+        }
+    }
     return ret;
 }
 #endif

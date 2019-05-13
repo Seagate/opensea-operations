@@ -120,10 +120,10 @@ extern "C"
     {
         uint8_t numberOfPCIdentifiers;
         powerConsumptionIdentifier identifiers[0xFF];//Maximum number of power consumption identifiers...probably won't get this many, but might as well make this possible to do.
-		bool currentIdentifierValid;
+        bool currentIdentifierValid;
         uint8_t currentIdentifier;
-		bool activeLevelChangable;//this may be changable or not depending on what the drive reports
-		uint8_t activeLevel;//From power consumption mode page. This is a high/medium/low value. Only use this if non-zero
+        bool activeLevelChangable;//this may be changable or not depending on what the drive reports
+        uint8_t activeLevel;//From power consumption mode page. This is a high/medium/low value. Only use this if non-zero
     }powerConsumptionIdentifiers, *ptrPowerConsumptionIdentifiers;
 
     //-----------------------------------------------------------------------------

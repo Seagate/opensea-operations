@@ -56,7 +56,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs);
 
-	OPENSEA_OPERATIONS_API void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attributeName);
+    OPENSEA_OPERATIONS_API void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attributeName);
 
     typedef enum _eSMARTAttrOutMode
     {
@@ -581,7 +581,7 @@ extern "C"
         uint8_t version;
         uint8_t numberOfEntries;
         bool extLog;
-		//TODO: This union isn't really needed...Can remove this sometime
+        //TODO: This union isn't really needed...Can remove this sometime
         union
         {
             SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest

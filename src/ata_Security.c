@@ -29,7 +29,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
         {
             uint16_t length = M_BytesTo2ByteValue(securityBuf[6], securityBuf[7]);
             uint16_t bufIter = 8;
-			for (; (bufIter - 8) < length && bufIter < LEGACY_DRIVE_SEC_SIZE; ++bufIter)
+            for (; (bufIter - 8) < length && bufIter < LEGACY_DRIVE_SEC_SIZE; ++bufIter)
             {
                 switch (securityBuf[bufIter])
                 {
@@ -39,10 +39,10 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
                     uint8_t ataSecurityInfo[SAT_SECURITY_INFO_LEN] = { 0 };
                     if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_READ_INFO, false, SAT_SECURITY_INFO_LEN, ataSecurityInfo))
                     {
-						if (ataSecurityInfo[1] == 0x0E)//Checking that the length matches to make sure we got a good response
-						{
-							supported = true;
-						}
+                        if (ataSecurityInfo[1] == 0x0E)//Checking that the length matches to make sure we got a good response
+                        {
+                            supported = true;
+                        }
                     }
                 }
                 break;

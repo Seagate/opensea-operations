@@ -122,12 +122,12 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
             //need to set a status value based on the most recent result data
             uint32_t newestResultOffset = 4;
             *status = M_Nibble0(nvmeSelfTestLog[newestResultOffset + 0]);//This should be fine for the rest of the running DST code.
-			//According to spec, if status bit is 0x0F, that means entry is not valid(doesn't cantain valid test results.
-			//and in that case, we have to ignore this bit, and consider this as completed/success.
-			//I have seen this issue on the drive, where DST was never run. - Nidhi
-			if (*status == 0x0F)
+            //According to spec, if status bit is 0x0F, that means entry is not valid(doesn't cantain valid test results.
+            //and in that case, we have to ignore this bit, and consider this as completed/success.
+            //I have seen this issue on the drive, where DST was never run. - Nidhi
+            if (*status == 0x0F)
             {
-				*status = 0;
+                *status = 0;
             }
         }
         else
@@ -306,7 +306,7 @@ void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool
             sprintf(translatedString, "Self-test in progress.");
             break;
         default:
-			sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
+            sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
         }
     }
 }
@@ -1136,10 +1136,10 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     }
                     //we got a valid LBA, so time to fix it
                     int repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
-					if (repaired)
-					{
-						*repaired = true;
-					}
+                    if (repaired)
+                    {
+                        *repaired = true;
+                    }
                     (*errorIndex)++;
                     if (FAILURE == repairRet)
                     {
