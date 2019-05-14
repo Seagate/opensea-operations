@@ -15,7 +15,7 @@
 #pragma once
 
 #include "operations_Common.h"
-#include "seagate/seagate_ata_types.h"
+#include "vendor/seagate/seagate_ata_types.h"
 
 #if defined (__cplusplus)
 extern "C"
