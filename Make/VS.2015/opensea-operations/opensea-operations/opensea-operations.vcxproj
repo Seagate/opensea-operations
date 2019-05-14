@@ -181,7 +181,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static-Debug|Win32'">
@@ -201,7 +201,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -220,7 +220,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static-Debug|x64'">
@@ -240,7 +240,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -263,7 +263,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static-Release|Win32'">
@@ -287,7 +287,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -310,7 +310,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Static-Release|x64'">
@@ -334,7 +334,7 @@
       <AdditionalDependencies>opensea-common.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2017\opensea-common\$(Platform)\$(Configuration);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\opensea-common\Make\VS.2015\opensea-common\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
