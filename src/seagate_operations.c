@@ -320,7 +320,7 @@ int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state)
             {
                 return NOT_SUPPORTED;
             }
-            if (SUCCESS == ata_Set_Features(device, SEAGATE_SF_LOW_CURRENT_SPINUP, 0, secCnt, LOW_CURRENT_SPINUP_LBA_MID_SIG, LOW_CURRENT_SPINUP_LBA_HI_SIG))
+            if (SUCCESS == ata_Set_Features(device, (eATASetFeaturesSubcommands)SEAGATE_SF_LOW_CURRENT_SPINUP, 0, secCnt, LOW_CURRENT_SPINUP_LBA_MID_SIG, LOW_CURRENT_SPINUP_LBA_HI_SIG))
             {
                 ret = SUCCESS;
             }

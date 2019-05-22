@@ -198,7 +198,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                     if (pageNumber == (uint8_t)ATA_ID_DATA_LOG_SUPPORTED_PAGES && revision >= 0x0001)
                     {
                         uint8_t listLen = securityPage[8];
-                        for (uint8_t iter = 9; iter < (listLen + 8) && iter < 512; ++iter)
+                        for (uint16_t iter = 9; iter < (uint16_t)(listLen + 8) && iter < UINT16_C(512); ++iter)
                         {
                             bool foundSecurityPage = false;
                             switch (securityPage[iter])
