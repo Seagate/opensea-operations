@@ -23,7 +23,7 @@
 #include "writesame.h"
 #include "ata_Security.h"
 #include "trim_unmap.h"
-#include "format_unit.h"
+#include "format.h"
 #include "dst.h"
 #include "logs.h"//for SCSI mode pages
 
@@ -81,7 +81,7 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
             {
                 if (modeSelect[2 + MODE_PARAMETER_HEADER_10_LEN] & BIT4)
                 {
-					readyLEDOnOff = true;//set to true so that we turn the bit on
+                    readyLEDOnOff = true;//set to true so that we turn the bit on
                 }
             }
             memset(modeSelect, 0, 24);
@@ -122,6 +122,63 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
     {
         ret = NOT_SUPPORTED;
     }
+    return ret;
+}
+
+//SBC spec. Caching Mode Page NV_DIS
+int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
+{
+    int ret = UNKNOWN;
+
+    if (device->drive_info.drive_type != SCSI_DRIVE)
+    {
+        return NOT_SUPPORTED;
+    }
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return MEMORY_FAILURE;
+    }
+    //first read the current settings
+    ret = scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage);
+    if (ret == SUCCESS)
+    {
+        //set up the mode parameter header
+        //mode data length
+        cachingModePage[0] = M_Byte1(MP_CACHING_LEN + (MODE_PARAMETER_HEADER_10_LEN - 2));//add 6 to omit the length bytes
+        cachingModePage[1] = M_Byte0(MP_CACHING_LEN + (MODE_PARAMETER_HEADER_10_LEN - 2));
+        //medium type
+        cachingModePage[2] = 0;
+        //device specific
+        cachingModePage[3] = 0;
+        //reserved and LongLBA bit
+        cachingModePage[4] = RESERVED;
+        //reserved
+        cachingModePage[5] = RESERVED;
+        //block desciptor length
+        cachingModePage[6] = 0;
+        cachingModePage[7] = 0;
+        //now go change the bit to what we need it to, then send a mode select command
+        if (!nv_disEnableDisable)
+        {
+            //Disable the NV Cache (set the NV_DIS to one)
+            cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] |= BIT0;
+        }
+        else
+        {
+            //Enable the NV Cache (set the NV_DIS to zero)
+            //turn the bit off if it is already set
+            if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
+            {
+                cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] ^= BIT0;
+            }
+        }
+        //send the mode select command
+        ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    }
+    safe_Free(cachingModePage);
     return ret;
 }
 
@@ -315,58 +372,68 @@ int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 
 bool is_Read_Look_Ahead_Supported(tDevice *device)
 {
-	if (device->drive_info.drive_type == SCSI_DRIVE)
-	{
-		return scsi_Is_Read_Look_Ahead_Supported(device);
-	}
-	else if (device->drive_info.drive_type == ATA_DRIVE)
-	{
-		return ata_Is_Read_Look_Ahead_Supported(device);
-	}
-	return false;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return scsi_Is_Read_Look_Ahead_Supported(device);
+    }
+    else if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        return ata_Is_Read_Look_Ahead_Supported(device);
+    }
+    return false;
 }
 //TODO: this uses the RCD bit. Old drives don't have this. Do something to detect this on legacy products later
 bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
 {
-	bool supported = false;
-	//on SAS we change this through a mode page
-	uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
-	if (cachingModePage == NULL)
-	{
-		perror("calloc failure!");
-		return false;
-	}
-	//if changable, then it is supported
-	if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5)
-		{
-			supported = true;
-		}
-	}
-	memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
-	//check default to see if it is enabled and just cannot be disabled (unlikely)
-	if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (!(cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5))
-		{
-			supported = true;//if it is enabled by default, then it's supported
-		}
-	}
-	safe_Free(cachingModePage);
-	return supported;
+    bool supported = false;
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return false;
+    }
+    //if changable, then it is supported
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5)
+        {
+            supported = true;
+        }
+    }
+    memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    //check default to see if it is enabled and just cannot be disabled (unlikely)
+    if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (!(cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5))
+        {
+            supported = true;//if it is enabled by default, then it's supported
+        }
+    }
+    safe_Free(cachingModePage);
+    return supported;
 }
 
 bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
 {
-	bool supported = false;
-	if (device->drive_info.IdentifyData.ata.Word082 & BIT6)
-	{
-		supported = true;
-	}
-	return supported;
+    bool supported = false;
+    if (device->drive_info.IdentifyData.ata.Word082 & BIT6)
+    {
+        supported = true;
+    }
+    return supported;
+}
+
+bool is_NV_Cache_Enabled(tDevice *device)
+{
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return !scsi_is_NV_DIS_Bit_Set(device);//since this function returns when the bit is set to 1 (meaning cache disabled), then we need to flip that bit for this use.
+    }
+    //Not sure if ATA or NVMe support this. 
+    return false;
 }
 
 bool is_Read_Look_Ahead_Enabled(tDevice *device)
@@ -380,6 +447,60 @@ bool is_Read_Look_Ahead_Enabled(tDevice *device)
         return ata_Is_Read_Look_Ahead_Enabled(device);
     }
     return false;
+}
+
+//TODO: SPC3 added this page, but the NV_DIS bit is on the caching mode page.
+//      We may want to add extra logic to see if the NV_DIS bit is set to 1 on the caching mode page.
+bool scsi_Is_NV_Cache_Supported(tDevice *device)
+{
+    bool supported = false;
+    //check the extended inquiry data for the NV_SUP bit
+    uint8_t extInq[VPD_EXTENDED_INQUIRY_LEN] = { 0 };
+    if (SUCCESS == scsi_Inquiry(device, extInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+    {
+        if (extInq[6] & BIT1)
+        {
+            supported = true;
+        }
+    }
+    return supported;
+}
+
+bool is_NV_Cache_Supported(tDevice *device)
+{
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return scsi_Is_NV_Cache_Supported(device);
+    }
+    return false;
+}
+
+bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
+{
+    bool enabled = false;
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return false;
+    }
+    //first read the current settings
+    if(SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
+        {
+            //This means that the NV cache is disabled when this bit is set to 1
+            enabled = true;
+        }
+        else
+        {
+            enabled = false;
+        }
+    }
+    safe_Free(cachingModePage);
+    return enabled;
 }
 
 bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
@@ -422,77 +543,77 @@ bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device)
 #if !defined (DISABLE_NVME_PASSTHROUGH)
 bool nvme_Is_Write_Cache_Supported(tDevice *device)
 {
-	bool supported = false;
-	if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
-	{
-		supported = true;
-	}
-	return supported;
+    bool supported = false;
+    if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
+    {
+        supported = true;
+    }
+    return supported;
 }
 #endif
 
 bool is_Write_Cache_Supported(tDevice *device)
 {
-	switch (device->drive_info.drive_type)
-	{
-	case NVME_DRIVE:
+    switch (device->drive_info.drive_type)
+    {
+    case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-		return nvme_Is_Write_Cache_Supported(device);
-		break;
+        return nvme_Is_Write_Cache_Supported(device);
+        break;
 #endif
-	case SCSI_DRIVE:
-		return scsi_Is_Write_Cache_Supported(device);
-		break;
-	case ATA_DRIVE:
-		return ata_Is_Write_Cache_Supported(device);
-		break;
-	default:
-		break;
-	}
-	return false;
+    case SCSI_DRIVE:
+        return scsi_Is_Write_Cache_Supported(device);
+        break;
+    case ATA_DRIVE:
+        return ata_Is_Write_Cache_Supported(device);
+        break;
+    default:
+        break;
+    }
+    return false;
 }
 
 bool scsi_Is_Write_Cache_Supported(tDevice *device)
 {
-	bool supported = false;
-	//on SAS we change this through a mode page
-	uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
-	if (cachingModePage == NULL)
-	{
-		perror("calloc failure!");
-		return false;
-	}
-	//if changable, then it is supported
-	if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
-		{
-			supported = true;
-		}
-	}
-	memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
-	//check default to see if it is enabled and just cannot be disabled (unlikely)
-	if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
-		{
-			supported = true;//if it is enabled by default, then it's supported
-		}
-	}
-	safe_Free(cachingModePage);
-	return supported;
+    bool supported = false;
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return false;
+    }
+    //if changable, then it is supported
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
+        {
+            supported = true;
+        }
+    }
+    memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    //check default to see if it is enabled and just cannot be disabled (unlikely)
+    if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
+        {
+            supported = true;//if it is enabled by default, then it's supported
+        }
+    }
+    safe_Free(cachingModePage);
+    return supported;
 }
 
 bool ata_Is_Write_Cache_Supported(tDevice *device)
 {
-	bool supported = false;
-	if (device->drive_info.IdentifyData.ata.Word082 & BIT5)
-	{
-		supported = true;
-	}
-	return supported;
+    bool supported = false;
+    if (device->drive_info.IdentifyData.ata.Word082 & BIT5)
+    {
+        supported = true;
+    }
+    return supported;
 }
 
 #if !defined (DISABLE_NVME_PASSTHROUGH)
@@ -988,20 +1109,20 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
 
 void show_Test_Unit_Ready_Status(tDevice *device)
 {
-	scsiStatus returnedStatus = { 0 };
-	int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
-	if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
-	{
-		printf("READY\n");
-	}
-	else
-	{
-		eVerbosityLevels tempVerbosity = device->deviceVerbosity;
-		printf("NOT READY\n");
-		device->deviceVerbosity = VERBOSITY_COMMAND_NAMES;//the function below will print out a sense data translation, but only it we are at this verbosity or higher which is why it's set before this call.
-		check_Sense_Key_ASC_ASCQ_And_FRU(device, returnedStatus.senseKey, returnedStatus.asc, returnedStatus.ascq, returnedStatus.fru);
-		device->deviceVerbosity = tempVerbosity;//restore it back to what it was now that this is done.
-	}
+    scsiStatus returnedStatus = { 0 };
+    int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
+    if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
+    {
+        printf("READY\n");
+    }
+    else
+    {
+        eVerbosityLevels tempVerbosity = device->deviceVerbosity;
+        printf("NOT READY\n");
+        device->deviceVerbosity = VERBOSITY_COMMAND_NAMES;//the function below will print out a sense data translation, but only it we are at this verbosity or higher which is why it's set before this call.
+        check_Sense_Key_ASC_ASCQ_And_FRU(device, returnedStatus.senseKey, returnedStatus.asc, returnedStatus.ascq, returnedStatus.fru);
+        device->deviceVerbosity = tempVerbosity;//restore it back to what it was now that this is done.
+    }
 }
 
 int enable_Disable_AAM_Feature(tDevice *device, bool enable)

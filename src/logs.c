@@ -203,7 +203,7 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
     if (gpl && device->drive_info.ata_Options.generalPurposeLoggingSupported) //greater than one means check for it in the GPL directory
     {
         //first, check to see if the log is in the GPL directory.
-		if (send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0) == SUCCESS)
+        if (send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0) == SUCCESS)
         {
             *logFileSize = M_BytesTo2ByteValue(logBuffer[(logAddress * 2) + 1], logBuffer[(logAddress * 2)]) * LEGACY_DRIVE_SEC_SIZE;
             if (*logFileSize > 0)
@@ -1179,7 +1179,7 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
         {
             uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + LOG_PAGE_HEADER_LENGTH;
             ret = SUCCESS;
-			memset(&name[0], 0, OPENSEA_PATH_MAX);
+            memset(&name[0], 0, OPENSEA_PATH_MAX);
             if (logName && fileExtension) //Because you can also get a log file & get it in buffer. 
             {
                 if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
@@ -1280,7 +1280,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
         return MEMORY_FAILURE;
     }
     //check the GPL directory to make sure that the internal status log is supported by the drive
-	if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, dataBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, dataBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
     {
         uint8_t islLogToPull = 0;
         if (currentOrSaved == true)
@@ -1698,80 +1698,80 @@ int pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t islDa
 
 int print_Supported_Logs(tDevice *device, uint64_t flags)
 {
-	int retStatus = NOT_SUPPORTED;
+    int retStatus = NOT_SUPPORTED;
 
-	switch(device->drive_info.drive_type)
-	{ 
-	case ATA_DRIVE:
-		retStatus = print_Supported_ATA_Logs(device, flags);
-		break;
-	case SCSI_DRIVE:
-		retStatus = print_Supported_SCSI_Logs(device, flags);
-		break;
-	case NVME_DRIVE:
-		retStatus = print_Supported_NVMe_Logs(device, flags);
-		break;
-	default:		
-		break;
-	}
+    switch(device->drive_info.drive_type)
+    { 
+    case ATA_DRIVE:
+        retStatus = print_Supported_ATA_Logs(device, flags);
+        break;
+    case SCSI_DRIVE:
+        retStatus = print_Supported_SCSI_Logs(device, flags);
+        break;
+    case NVME_DRIVE:
+        retStatus = print_Supported_NVMe_Logs(device, flags);
+        break;
+    default:        
+        break;
+    }
 
-	return retStatus;
+    return retStatus;
 }
 
 
 int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
 { 
-	int retStatus = NOT_SUPPORTED;
+    int retStatus = NOT_SUPPORTED;
     uint8_t *logBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
     bool subpagesSupported = true;
     bool gotListOfPages = true;
-	if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+    if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE))
     {
-		//either device doesn't support logs, or it just doesn't support subpages, so let's try reading the list of supported pages (no subpages) before saying we need to dummy up the list
-		if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE))
-		{
-			gotListOfPages = false;
-		}
-		else
-		{
-			subpagesSupported = false;
-		}
+        //either device doesn't support logs, or it just doesn't support subpages, so let's try reading the list of supported pages (no subpages) before saying we need to dummy up the list
+        if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+        {
+            gotListOfPages = false;
+        }
+        else
+        {
+            subpagesSupported = false;
+        }
     }
     if (gotListOfPages)
     {
         retStatus = SUCCESS;
         uint16_t logPageIter = LOG_PAGE_HEADER_LENGTH;//log page descriptors start on offset 4 and are 2 bytes long each
         uint16_t supportedPagesLength = M_BytesTo2ByteValue(logBuffer[2],logBuffer[3]);
-    	uint8_t incrementAmount = subpagesSupported ? 2 : 1;
+        uint8_t incrementAmount = subpagesSupported ? 2 : 1;
         uint16_t pageLength = 0;//for each page in the supported buffer so we can report the size
         uint8_t logPage[4] = { 0 };
         bool vsHeaderPrinted = false;
         bool reservedHeaderPrinted = false;
         printf("\n  Page Code  :  Subpage Code  :  Size (Bytes)\n");
-    	for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE); logPageIter += incrementAmount)
+        for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE); logPageIter += incrementAmount)
         {
             uint8_t pageCode = logBuffer[logPageIter] & 0x3F;
-    		uint8_t subpageCode = 0;
+            uint8_t subpageCode = 0;
             pageLength = 0;
-    		if (subpagesSupported)
-    		{
-    			subpageCode = logBuffer[logPageIter + 1];
-    		}
+            if (subpagesSupported)
+            {
+                subpageCode = logBuffer[logPageIter + 1];
+            }
             //page codes 30h to 3Eh are vendor specific
             if (pageCode >= 0x30 && pageCode <= 0x3E && !vsHeaderPrinted)
             {
                 //vendor specific log page
                 printf("\t\t------------------\n");
-    			printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-    			printf("\t\t------------------\n");
+                printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
+                printf("\t\t------------------\n");
                 vsHeaderPrinted = true;
             }
             else if (pageCode > 0x3E && !reservedHeaderPrinted)
             {
                 //this page and subpages are marked as reserved!
                 printf("\t\t------------------\n");
-    			printf("\tRESERVED LOGS\n");
-    			printf("\t\t------------------\n");
+                printf("\tRESERVED LOGS\n");
+                printf("\t\t------------------\n");
                 reservedHeaderPrinted = true;
             }
             if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, logPage, 4))
@@ -1803,70 +1803,70 @@ void format_print_logs_info(uint16_t log, uint32_t logSize)
 
 int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
-	int retStatus = NOT_SUPPORTED;
-	uint8_t *logBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
-	if (logBuffer)
-	{
-		retStatus = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0);
-		if (retStatus == SUCCESS)
-		{
-			uint16_t log = 0;
-			uint32_t logSize = 0; 			
-			printf("\n  Log Address  :   # of Pages   :  Size (Bytes)\n");
-			printf("---------------:----------------:--------------\n");
-			for (log = 0; log < 0x80; log++)
-			{
-				logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-				if (logSize)
-				{
-					format_print_logs_info(log, logSize);
-				}
-			}
-			printf("\t\t------------------\n");
-			printf("\t\tHOST SPECIFIC LOGS\n");
-			printf("\t\t------------------\n");
-			for (log = 0x80; log < 0xA0; log++)
-			{
-				logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-				if (logSize)
-				{
-					format_print_logs_info(log, logSize);
-				}
-			}
-			printf("\t\t------------------\n");
-			printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-			printf("\t\t------------------\n");
-			for (log = 0xA0; log < 0xE0; log++)
-			{
-				logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-				if (logSize)
-				{
-					format_print_logs_info(log, logSize);
-				}
-			}
-			printf("\t\t------------------\n");
-			for (log = 0xE0; log <= 0xE1; log++)
-			{
-				logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-				if (logSize)
-				{
-					format_print_logs_info(log, logSize);
-				}
-			}
-		}
-	}
-	else
-	{
-		retStatus =  MEMORY_FAILURE;
-	}
+    int retStatus = NOT_SUPPORTED;
+    uint8_t *logBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    if (logBuffer)
+    {
+        retStatus = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0);
+        if (retStatus == SUCCESS)
+        {
+            uint16_t log = 0;
+            uint32_t logSize = 0;           
+            printf("\n  Log Address  :   # of Pages   :  Size (Bytes)\n");
+            printf("---------------:----------------:--------------\n");
+            for (log = 0; log < 0x80; log++)
+            {
+                logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+                if (logSize)
+                {
+                    format_print_logs_info(log, logSize);
+                }
+            }
+            printf("\t\t------------------\n");
+            printf("\t\tHOST SPECIFIC LOGS\n");
+            printf("\t\t------------------\n");
+            for (log = 0x80; log < 0xA0; log++)
+            {
+                logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+                if (logSize)
+                {
+                    format_print_logs_info(log, logSize);
+                }
+            }
+            printf("\t\t------------------\n");
+            printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
+            printf("\t\t------------------\n");
+            for (log = 0xA0; log < 0xE0; log++)
+            {
+                logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+                if (logSize)
+                {
+                    format_print_logs_info(log, logSize);
+                }
+            }
+            printf("\t\t------------------\n");
+            for (log = 0xE0; log <= 0xE1; log++)
+            {
+                logSize = M_BytesTo2ByteValue(logBuffer[(log * 2) + 1], logBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+                if (logSize)
+                {
+                    format_print_logs_info(log, logSize);
+                }
+            }
+        }
+    }
+    else
+    {
+        retStatus =  MEMORY_FAILURE;
+    }
 
-	safe_Free(logBuffer);
-	return retStatus;
+    safe_Free(logBuffer);
+    return retStatus;
 }
 
 int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
-	int retStatus = NOT_SUPPORTED;
+    int retStatus = NOT_SUPPORTED;
 
     if (!is_Seagate(device, false)) 
     {
@@ -1887,7 +1887,7 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
     {
         retStatus = SUCCESS;
         uint32_t numPage = suptLogPage.numLogPages;
-        uint32_t page = 0; 			
+        uint32_t page = 0;          
         printf("\n  Log Pages  :   Signature    :    Version\n");
         printf("-------------:----------------:--------------\n");
         for (page = 0; page < numPage; page++)
@@ -1913,7 +1913,7 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
         }
     }
 #endif
-	return retStatus;
+    return retStatus;
 }
 
 int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags)
@@ -1989,11 +1989,11 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
 
 int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes)
 {
-	int retStatus = NOT_SUPPORTED;
-	uint32_t logSize = 0;
-	uint8_t *genericLogBuf = NULL;
-	char logFileName[20] = "GENERIC_LOG-";
-	char logNumPostfix[10] = { 0 };
+    int retStatus = NOT_SUPPORTED;
+    uint32_t logSize = 0;
+    uint8_t *genericLogBuf = NULL;
+    char logFileName[20] = "GENERIC_LOG-";
+    char logNumPostfix[10] = { 0 };
     if (device->drive_info.drive_type == SCSI_DRIVE && subpage != 0)
     {
         sprintf(logNumPostfix, "%u-%u", logNum, subpage);
@@ -2002,43 +2002,43 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
     {
         sprintf(logNumPostfix, "%u", logNum);
     }
-	strcat(logFileName, logNumPostfix);
+    strcat(logFileName, logNumPostfix);
 
     #ifdef _DEBUG
     printf("%s: Log to Pull %d, mode %d, device type %d\n",__FUNCTION__, logNum, (uint8_t)mode, device->drive_info.drive_type);
     #endif
 
-	switch (device->drive_info.drive_type)
-	{
-	case ATA_DRIVE:
-		switch (mode)
-		{
-		case PULL_LOG_BIN_FILE_MODE:
-			retStatus = get_ATA_Log(device, logNum, logFileName, "bin", true, false, false, NULL, 0, filePath, transferSizeBytes);
-			break;
-		case PULL_LOG_RAW_MODE:
-			if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
-			{
-				genericLogBuf = (uint8_t*)calloc(logSize * sizeof(uint8_t), sizeof(uint8_t));
-				if (genericLogBuf)
-				{
-					retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes);
-					if (SUCCESS == retStatus)
-					{
-						print_Data_Buffer(genericLogBuf, logSize, true);
-					}
-				}
-				else
-				{
-					retStatus = MEMORY_FAILURE;
-				}
-			}			
-			break;
-		default:
-			break;
-		}
-		break;
-	case SCSI_DRIVE:
+    switch (device->drive_info.drive_type)
+    {
+    case ATA_DRIVE:
+        switch (mode)
+        {
+        case PULL_LOG_BIN_FILE_MODE:
+            retStatus = get_ATA_Log(device, logNum, logFileName, "bin", true, false, false, NULL, 0, filePath, transferSizeBytes);
+            break;
+        case PULL_LOG_RAW_MODE:
+            if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
+            {
+                genericLogBuf = (uint8_t*)calloc(logSize * sizeof(uint8_t), sizeof(uint8_t));
+                if (genericLogBuf)
+                {
+                    retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes);
+                    if (SUCCESS == retStatus)
+                    {
+                        print_Data_Buffer(genericLogBuf, logSize, true);
+                    }
+                }
+                else
+                {
+                    retStatus = MEMORY_FAILURE;
+                }
+            }           
+            break;
+        default:
+            break;
+        }
+        break;
+    case SCSI_DRIVE:
         switch (mode)
         {
         case PULL_LOG_BIN_FILE_MODE:
@@ -2048,42 +2048,42 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
             if (SUCCESS == get_SCSI_Log_Size(device, logNum, subpage, &logSize))
             {
                 genericLogBuf = (uint8_t*)calloc(logSize * sizeof(uint8_t), sizeof(uint8_t));
-				if (genericLogBuf)
-				{
-					retStatus = get_SCSI_Log(device, logNum, subpage, NULL, NULL, true, genericLogBuf, logSize, NULL);
-					if (SUCCESS == retStatus)
-					{
-						print_Data_Buffer(genericLogBuf, logSize, true);
-					}
-				}
-				else
-				{
-					retStatus = MEMORY_FAILURE;
-				}
+                if (genericLogBuf)
+                {
+                    retStatus = get_SCSI_Log(device, logNum, subpage, NULL, NULL, true, genericLogBuf, logSize, NULL);
+                    if (SUCCESS == retStatus)
+                    {
+                        print_Data_Buffer(genericLogBuf, logSize, true);
+                    }
+                }
+                else
+                {
+                    retStatus = MEMORY_FAILURE;
+                }
             }
         default:
             break;
         }
         break;
-	case NVME_DRIVE:
-		retStatus = print_Supported_NVMe_Logs(device, 0);
-		break;
-	default:
-		break;
-	}
+    case NVME_DRIVE:
+        retStatus = print_Supported_NVMe_Logs(device, 0);
+        break;
+    default:
+        break;
+    }
     safe_Free(genericLogBuf);
-	return retStatus;
+    return retStatus;
 }
 
 int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes)
 {
     int retStatus = NOT_SUPPORTED;
-	uint32_t logSize = 0;
-	uint8_t *genericLogBuf = NULL;
-	char logFileName[30] = "GENERIC_ERROR_HISTORY-";
-	char logNumPostfix[10] = { 0 };
-	sprintf(logNumPostfix, "%u", bufferID);
-	strcat(logFileName, logNumPostfix);
+    uint32_t logSize = 0;
+    uint8_t *genericLogBuf = NULL;
+    char logFileName[30] = "GENERIC_ERROR_HISTORY-";
+    char logNumPostfix[10] = { 0 };
+    sprintf(logNumPostfix, "%u", bufferID);
+    strcat(logFileName, logNumPostfix);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
@@ -2112,7 +2112,7 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
         break;
     }
     safe_Free(genericLogBuf);
-	return retStatus;
+    return retStatus;
 }
 
 int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes)

@@ -111,8 +111,8 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
                 dataBuf[2] = M_Byte1(logicalPerPhysical * increment);
                 dataBuf[3] = M_Byte0(logicalPerPhysical * increment);
                 uint64_t reassignLBA = LBA->errorAddress;
-				uint32_t offset = 4;
-				uint32_t iter = 0;
+                uint32_t offset = 4;
+                uint32_t iter = 0;
                 //create the list of LBAs. 1 for 1 logical per physical, 8 for 8 logical per physical
                 for (iter = 0, offset = 4; iter < logicalPerPhysical; ++iter, offset += increment, ++reassignLBA)
                 {
@@ -135,178 +135,178 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
                         dataBuf[offset + 3] = M_Byte3(reassignLBA);
                     }
                 }
-				bool done = false;
-				uint8_t counter = 0;
-				do
-				{
-					//always using short list since we are doing single reallocations at a time...not using enough data to need a long list.
-					ret = scsi_Reassign_Blocks(device, longLBA, false, reassignListLength, dataBuf);
-					//Need to check and make sure that we didn't get a check condition
-					senseDataFields senseFields;
-					memset(&senseFields, 0, sizeof(senseDataFields));
-					get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
-					if (senseFields.validStructure)
-					{
-						bool updateList = false;
-						uint64_t commandSpecificLba = UINT64_MAX;
-						uint64_t informationLba = UINT64_MAX;
-						if (senseFields.scsiStatusCodes.format != 0 && senseFields.scsiStatusCodes.senseKey != SENSE_KEY_ILLEGAL_REQUEST && 
-							senseFields.scsiStatusCodes.senseKey != SENSE_KEY_HARDWARE_ERROR)
-						{
-							done = false;
-							// check the command-specific information for a valid LBA.
-							
-							if (senseFields.fixedFormat)
-							{
-								commandSpecificLba = senseFields.fixedCommandSpecificInformation;
-							}
-							else
-							{
-								commandSpecificLba = senseFields.descriptorCommandSpecificInformation;
-							}
-							// if we have a valid LBA, then we need to remove all LBAs prior to that one and reissue the command.
-							if (commandSpecificLba < device->drive_info.deviceMaxLba)
-							{
-								updateList = true;
-							}
-							else
-							{
-								commandSpecificLba = UINT64_MAX;
-								done = true;
-							}
-						}
-						else
-						{
-							done = true;
-						}
-						if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR)
-						{
-							done = false;
-							//check information field for a valid LBA.
-							if (senseFields.fixedFormat)
-							{
-								informationLba = senseFields.fixedInformation;
-							}
-							else
-							{
-								informationLba = senseFields.descriptorInformation;
-							}
-							//if valid, add it to the list and reissue the command
-							if (informationLba < device->drive_info.deviceMaxLba)
-							{
-								updateList = true;
-							}
-							else
-							{
-								informationLba = UINT64_MAX;
-								done = true;
-							}
-						}
-						else
-						{
-							done = true;
-						}
-						if (updateList)
-						{
-							//we got at least one update to do to the list. 
-							//Check both the LBAs we saved above since it's not clear if both conditions can happen at the same time or not. 
-							//Most likely only one or the other though...
-							//TODO: update the list based on what we got above.
-							if (commandSpecificLba != UINT64_MAX)
-							{
-								//update the list to remove LBAs before this one
-								reassignLBA = LBA->errorAddress;
-								for (iter = 0, offset = 4; iter < (uint32_t)logicalPerPhysical; ++iter, ++reassignLBA)
-								{
-									if (commandSpecificLba <= reassignLBA)
-									{
-										if (longLBA)
-										{
-											dataBuf[offset + 0] = M_Byte0(reassignLBA);
-											dataBuf[offset + 1] = M_Byte1(reassignLBA);
-											dataBuf[offset + 2] = M_Byte2(reassignLBA);
-											dataBuf[offset + 3] = M_Byte3(reassignLBA);
-											dataBuf[offset + 4] = M_Byte4(reassignLBA);
-											dataBuf[offset + 5] = M_Byte5(reassignLBA);
-											dataBuf[offset + 6] = M_Byte6(reassignLBA);
-											dataBuf[offset + 7] = M_Byte7(reassignLBA);
-										}
-										else
-										{
-											dataBuf[offset + 0] = M_Byte0(reassignLBA);
-											dataBuf[offset + 1] = M_Byte1(reassignLBA);
-											dataBuf[offset + 2] = M_Byte2(reassignLBA);
-											dataBuf[offset + 3] = M_Byte3(reassignLBA);
-										}
-										offset += increment;
-									}
-								}
-								//update list length
-								reassignListLength = offset - 4;//minus 4 to get just length of list minus the parameter header
-								if (longLBA)
-								{
-									dataBuf[0] = M_Byte3(reassignListLength);
-									dataBuf[1] = M_Byte2(reassignListLength);
-								}
-								dataBuf[2] = M_Byte1(reassignListLength);
-								dataBuf[3] = M_Byte0(reassignListLength);
-								reassignListLength += 4;//add the 4 back in now before we come back around and reissue the command
-							}
-							if (informationLba != UINT64_MAX)
-							{
-								//add this LBA to the list to be reassigned
-								reassignLBA = LBA->errorAddress;
-								bool infoLBAAdded = false;
-								for (iter = 0, offset = 4; iter < ((uint32_t)logicalPerPhysical + 1); ++iter, offset += increment)
-								{
-									uint64_t listLBA = reassignLBA;
-									if (!infoLBAAdded && informationLba < reassignLBA)
-									{
-										listLBA = informationLba;
-										infoLBAAdded = true;
-									}
-									else
-									{
-										++reassignLBA;
-									}
-									if (longLBA)
-									{
-										dataBuf[offset + 0] = M_Byte0(listLBA);
-										dataBuf[offset + 1] = M_Byte1(listLBA);
-										dataBuf[offset + 2] = M_Byte2(listLBA);
-										dataBuf[offset + 3] = M_Byte3(listLBA);
-										dataBuf[offset + 4] = M_Byte4(listLBA);
-										dataBuf[offset + 5] = M_Byte5(listLBA);
-										dataBuf[offset + 6] = M_Byte6(listLBA);
-										dataBuf[offset + 7] = M_Byte7(listLBA);
-									}
-									else
-									{
-										dataBuf[offset + 0] = M_Byte0(listLBA);
-										dataBuf[offset + 1] = M_Byte1(listLBA);
-										dataBuf[offset + 2] = M_Byte2(listLBA);
-										dataBuf[offset + 3] = M_Byte3(listLBA);
-									}
-								}
-								//update list length
-								reassignListLength = offset - 4;//minus 4 to get just length of list minus the parameter header
-								if (longLBA)
-								{
-									dataBuf[0] = M_Byte3(reassignListLength);
-									dataBuf[1] = M_Byte2(reassignListLength);
-								}
-								dataBuf[2] = M_Byte1(reassignListLength);
-								dataBuf[3] = M_Byte0(reassignListLength);
-								reassignListLength += 4;//add the 4 back in now before we come back around and reissue the command
-							}
-						}
-					}
-					else
-					{
-						done = true;
-					}
-					++counter;
-				} while (!done && counter < 5);
+                bool done = false;
+                uint8_t counter = 0;
+                do
+                {
+                    //always using short list since we are doing single reallocations at a time...not using enough data to need a long list.
+                    ret = scsi_Reassign_Blocks(device, longLBA, false, reassignListLength, dataBuf);
+                    //Need to check and make sure that we didn't get a check condition
+                    senseDataFields senseFields;
+                    memset(&senseFields, 0, sizeof(senseDataFields));
+                    get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
+                    if (senseFields.validStructure)
+                    {
+                        bool updateList = false;
+                        uint64_t commandSpecificLba = UINT64_MAX;
+                        uint64_t informationLba = UINT64_MAX;
+                        if (senseFields.scsiStatusCodes.format != 0 && senseFields.scsiStatusCodes.senseKey != SENSE_KEY_ILLEGAL_REQUEST && 
+                            senseFields.scsiStatusCodes.senseKey != SENSE_KEY_HARDWARE_ERROR)
+                        {
+                            done = false;
+                            // check the command-specific information for a valid LBA.
+                            
+                            if (senseFields.fixedFormat)
+                            {
+                                commandSpecificLba = senseFields.fixedCommandSpecificInformation;
+                            }
+                            else
+                            {
+                                commandSpecificLba = senseFields.descriptorCommandSpecificInformation;
+                            }
+                            // if we have a valid LBA, then we need to remove all LBAs prior to that one and reissue the command.
+                            if (commandSpecificLba < device->drive_info.deviceMaxLba)
+                            {
+                                updateList = true;
+                            }
+                            else
+                            {
+                                commandSpecificLba = UINT64_MAX;
+                                done = true;
+                            }
+                        }
+                        else
+                        {
+                            done = true;
+                        }
+                        if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR)
+                        {
+                            done = false;
+                            //check information field for a valid LBA.
+                            if (senseFields.fixedFormat)
+                            {
+                                informationLba = senseFields.fixedInformation;
+                            }
+                            else
+                            {
+                                informationLba = senseFields.descriptorInformation;
+                            }
+                            //if valid, add it to the list and reissue the command
+                            if (informationLba < device->drive_info.deviceMaxLba)
+                            {
+                                updateList = true;
+                            }
+                            else
+                            {
+                                informationLba = UINT64_MAX;
+                                done = true;
+                            }
+                        }
+                        else
+                        {
+                            done = true;
+                        }
+                        if (updateList)
+                        {
+                            //we got at least one update to do to the list. 
+                            //Check both the LBAs we saved above since it's not clear if both conditions can happen at the same time or not. 
+                            //Most likely only one or the other though...
+                            //TODO: update the list based on what we got above.
+                            if (commandSpecificLba != UINT64_MAX)
+                            {
+                                //update the list to remove LBAs before this one
+                                reassignLBA = LBA->errorAddress;
+                                for (iter = 0, offset = 4; iter < (uint32_t)logicalPerPhysical; ++iter, ++reassignLBA)
+                                {
+                                    if (commandSpecificLba <= reassignLBA)
+                                    {
+                                        if (longLBA)
+                                        {
+                                            dataBuf[offset + 0] = M_Byte0(reassignLBA);
+                                            dataBuf[offset + 1] = M_Byte1(reassignLBA);
+                                            dataBuf[offset + 2] = M_Byte2(reassignLBA);
+                                            dataBuf[offset + 3] = M_Byte3(reassignLBA);
+                                            dataBuf[offset + 4] = M_Byte4(reassignLBA);
+                                            dataBuf[offset + 5] = M_Byte5(reassignLBA);
+                                            dataBuf[offset + 6] = M_Byte6(reassignLBA);
+                                            dataBuf[offset + 7] = M_Byte7(reassignLBA);
+                                        }
+                                        else
+                                        {
+                                            dataBuf[offset + 0] = M_Byte0(reassignLBA);
+                                            dataBuf[offset + 1] = M_Byte1(reassignLBA);
+                                            dataBuf[offset + 2] = M_Byte2(reassignLBA);
+                                            dataBuf[offset + 3] = M_Byte3(reassignLBA);
+                                        }
+                                        offset += increment;
+                                    }
+                                }
+                                //update list length
+                                reassignListLength = offset - 4;//minus 4 to get just length of list minus the parameter header
+                                if (longLBA)
+                                {
+                                    dataBuf[0] = M_Byte3(reassignListLength);
+                                    dataBuf[1] = M_Byte2(reassignListLength);
+                                }
+                                dataBuf[2] = M_Byte1(reassignListLength);
+                                dataBuf[3] = M_Byte0(reassignListLength);
+                                reassignListLength += 4;//add the 4 back in now before we come back around and reissue the command
+                            }
+                            if (informationLba != UINT64_MAX)
+                            {
+                                //add this LBA to the list to be reassigned
+                                reassignLBA = LBA->errorAddress;
+                                bool infoLBAAdded = false;
+                                for (iter = 0, offset = 4; iter < ((uint32_t)logicalPerPhysical + 1); ++iter, offset += increment)
+                                {
+                                    uint64_t listLBA = reassignLBA;
+                                    if (!infoLBAAdded && informationLba < reassignLBA)
+                                    {
+                                        listLBA = informationLba;
+                                        infoLBAAdded = true;
+                                    }
+                                    else
+                                    {
+                                        ++reassignLBA;
+                                    }
+                                    if (longLBA)
+                                    {
+                                        dataBuf[offset + 0] = M_Byte0(listLBA);
+                                        dataBuf[offset + 1] = M_Byte1(listLBA);
+                                        dataBuf[offset + 2] = M_Byte2(listLBA);
+                                        dataBuf[offset + 3] = M_Byte3(listLBA);
+                                        dataBuf[offset + 4] = M_Byte4(listLBA);
+                                        dataBuf[offset + 5] = M_Byte5(listLBA);
+                                        dataBuf[offset + 6] = M_Byte6(listLBA);
+                                        dataBuf[offset + 7] = M_Byte7(listLBA);
+                                    }
+                                    else
+                                    {
+                                        dataBuf[offset + 0] = M_Byte0(listLBA);
+                                        dataBuf[offset + 1] = M_Byte1(listLBA);
+                                        dataBuf[offset + 2] = M_Byte2(listLBA);
+                                        dataBuf[offset + 3] = M_Byte3(listLBA);
+                                    }
+                                }
+                                //update list length
+                                reassignListLength = offset - 4;//minus 4 to get just length of list minus the parameter header
+                                if (longLBA)
+                                {
+                                    dataBuf[0] = M_Byte3(reassignListLength);
+                                    dataBuf[1] = M_Byte2(reassignListLength);
+                                }
+                                dataBuf[2] = M_Byte1(reassignListLength);
+                                dataBuf[3] = M_Byte0(reassignListLength);
+                                reassignListLength += 4;//add the 4 back in now before we come back around and reissue the command
+                            }
+                        }
+                    }
+                    else
+                    {
+                        done = true;
+                    }
+                    ++counter;
+                } while (!done && counter < 5);
                 if (ret == SUCCESS)
                 {
                     ret = verify_LBA(device, LBA->errorAddress, logicalPerPhysical);

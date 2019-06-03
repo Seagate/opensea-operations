@@ -67,12 +67,12 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
         }
         free(ATAdataBuffer);
     }
-	#if !defined(DISABLE_NVME_PASSTHROUGH)
+    #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
     {
         ret = nvme_Get_SMART_Log_Page(device,NVME_ALL_NAMESPACES,(uint8_t *)&smartAttrs->attributes,NVME_SMART_HEALTH_LOG_LEN) ;
     }
-	#endif
+    #endif
     else
     {
         ret = NOT_SUPPORTED;
@@ -641,165 +641,203 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             break;
         }
         break;
-	case SEAGATE_VENDOR_F:
-		switch (attributeNumber)
-		{
-		case 1://UECC error count
-			sprintf(*attributeName, "UECC Error count");
-			break;
-		case 9: //Power on Hours
-			sprintf(*attributeName, "Power On Hours");
-			break;
-		case 12: //Drive Power Cycle Count
-			sprintf(*attributeName, "Drive Power Cycle Count");
-			break;
-		case 16: //Spare Blocks Available
-			sprintf(*attributeName, "Spare Blocks Available");
-			break;
-		case 17: //Remaining Spare Blocks
-			sprintf(*attributeName, "Remaining Spare Blocks");
-			break;
-		case 168: //Sata Phy Error Count
-			sprintf(*attributeName, "Sata Phy Error Count");
-			break;
-		case 170: //Bad Block Count
-			sprintf(*attributeName, "Bad Block Count");
-			break;
-		case 173: //Erase Count
-			sprintf(*attributeName, "Erase Count");
-			break;
-		case 174: //Unexpected Power Loss Count
-			sprintf(*attributeName, "Unexpected Power Loss Count");
-			break;
-		case 177: //Wear Range Delta
-			sprintf(*attributeName, "Wear Range Delta");
-			break;
-		case 192: //Unexpected power loss count
-			sprintf(*attributeName, "Unexpected Power loss Count");
-			break;
-		case 194: //Primary Temperature
-			sprintf(*attributeName, "Primary Temperature");
-			break;
-		case 218: //CRC Error Count
-			sprintf(*attributeName, "CRC Error Count");
-			break;
-		case 231: //SSD Life Left
-			sprintf(*attributeName, "SSD Life Left");
-			break;
-		case 232: //Read failure block count
-			sprintf(*attributeName, "Read Failure Block Count");
-			break;
-		case 233: //NAND GiB written
-			sprintf(*attributeName, "NAND GiB Written");
-			break;
-		case 235: //NAND sectors written
-			sprintf(*attributeName, "NAND sectors Written");
-			break;
-		case 241: //Lifetime Writes from Host
-			sprintf(*attributeName, "Lifetime Writes From Host");
-			break;
-		case 242: //Lifetime Reads from Host
-			sprintf(*attributeName, "Lifetime Reads From Host");
-			break;
-		default:
-			break;
-		}
-		break;
-	case SEAGATE_VENDOR_G:
-		switch (attributeNumber)
-		{
-		case 1://Raw Read Error Rate
-			sprintf(*attributeName, "Raw Read Error Rate");
-			break;
-		case 5://Reallocated Sector Count
-			sprintf(*attributeName, "Reallocated Sector Count");
-			break;
-		case 9: //Power on Hours
-			sprintf(*attributeName, "Power On Hours");
-			break;
-		case 11: //Power Fail Event Count
-			sprintf(*attributeName, "Power Fail Event Count");
-			break;
-		case 12: //Drive Power Cycle Count
-			sprintf(*attributeName, "Drive Power Cycle Count");
-			break;
-		case 100: //Flash Gigabytes Erased
-			sprintf(*attributeName, "Flash Gigabytes Erased");
-			break;
-		case 101: //Lifetime DevSleep Exit Count
-			sprintf(*attributeName, "Lifetime DevSleep Exit Count");
-			break;
-		case 102: //Lifetime PS4 Entry Count
-			sprintf(*attributeName, "Lifetime PS4 Entry Count");
-			break;
-		case 103: //Lifetime PS3 Exit Count
-			sprintf(*attributeName, "Lifetime PS3 Exit Count");
-			break;
-		case 170: //Grown Bad Block Count
-			sprintf(*attributeName, "Grown Bad Block Count");
-			break;
-		case 171: //Program Fail Count
-			sprintf(*attributeName, "Program Fail Count");
-			break;
-		case 172: //Erase Fail Count
-			sprintf(*attributeName, "Erase Fail Count");
-			break;
-		case 173: //Average Program/Erase Count
-			sprintf(*attributeName, "Average Program/Erase Count");
-			break;
-		case 174: //Unexpected Power Loss Count
-			sprintf(*attributeName, "Unexpected Power Loss Count");
-			break;
-		case 177: //Wear Range Delta
-			sprintf(*attributeName, "Wear Range Delta");
-			break;
-		case 183: //SATA/PCIe Interface Downshift Count
-			sprintf(*attributeName, "SATA/PCIe Interface Downshift Count");
-			break;
-		case 184: //End-To-End CRC Error Count
-			sprintf(*attributeName, "End-To-End CRC Error Count");
-			break;
-		case 187: //Uncorrectable ECC Count
-			sprintf(*attributeName, "Uncorrectable ECC Count");
-			break;
-		case 194: //Primary Temperature
-			sprintf(*attributeName, "Primary Temperature");
-			break;
-		case 195: //RAISE ECC Correctable Count
-			sprintf(*attributeName, "RAISE ECC Correctable Count");
-			break;
-		case 198: //Uncorrectable Read Error Count
-			sprintf(*attributeName, "Uncorrectable Read Error Count");
-			break;
-		case 199: //SATA R-Error (CRC) Error Count
-			sprintf(*attributeName, "SATA R-Error (CRC) Error Count");
-			break;
-		case 230: //Drive Life Protection Status
-			sprintf(*attributeName, "Drive Life Protection Status");
-			break;
-		case 231: //SSD Life Left
-			sprintf(*attributeName, "SSD Life Left");
-			break;
-		case 232: //Available Reserved Space
-			sprintf(*attributeName, "Available Reserved Space");
-			break;
-		case 233: //Lifetime Writes to Flash
-			sprintf(*attributeName, "Lifetime Writes to Flash");
-			break;
-		case 241: //Lifetime Writes from Host
-			sprintf(*attributeName, "Lifetime Writes From Host");
-			break;
-		case 242: //Lifetime Reads from Host
-			sprintf(*attributeName, "Lifetime Reads From Host");
-			break;
-		case 243: //Free Space
-			sprintf(*attributeName, "Free Space");
-			break;
-		default:
-			break;
-		}
-		break;
+    case SEAGATE_VENDOR_F:
+        switch (attributeNumber)
+        {
+        case 1://UECC error count
+            sprintf(*attributeName, "UECC Error count");
+            break;
+        case 9: //Power on Hours
+            sprintf(*attributeName, "Power On Hours");
+            break;
+        case 12: //Drive Power Cycle Count
+            sprintf(*attributeName, "Drive Power Cycle Count");
+            break;
+        case 16: //Spare Blocks Available
+            sprintf(*attributeName, "Spare Blocks Available");
+            break;
+        case 17: //Remaining Spare Blocks
+            sprintf(*attributeName, "Remaining Spare Blocks");
+            break;
+        case 168: //Sata Phy Error Count
+            sprintf(*attributeName, "Sata Phy Error Count");
+            break;
+        case 170: //Bad Block Count
+            sprintf(*attributeName, "Bad Block Count");
+            break;
+        case 173: //Erase Count
+            sprintf(*attributeName, "Erase Count");
+            break;
+        case 174: //Unexpected Power Loss Count
+            sprintf(*attributeName, "Unexpected Power Loss Count");
+            break;
+        case 177: //Wear Range Delta
+            sprintf(*attributeName, "Wear Range Delta");
+            break;
+        case 192: //Unexpected power loss count
+            sprintf(*attributeName, "Unexpected Power loss Count");
+            break;
+        case 194: //Primary Temperature
+            sprintf(*attributeName, "Primary Temperature");
+            break;
+        case 218: //CRC Error Count
+            sprintf(*attributeName, "CRC Error Count");
+            break;
+        case 231: //SSD Life Left
+            sprintf(*attributeName, "SSD Life Left");
+            break;
+        case 232: //Read failure block count
+            sprintf(*attributeName, "Read Failure Block Count");
+            break;
+        case 233: //NAND GiB written
+            sprintf(*attributeName, "NAND GiB Written");
+            break;
+        case 235: //NAND sectors written
+            sprintf(*attributeName, "NAND sectors Written");
+            break;
+        case 241: //Lifetime Writes from Host
+            sprintf(*attributeName, "Lifetime Writes From Host");
+            break;
+        case 242: //Lifetime Reads from Host
+            sprintf(*attributeName, "Lifetime Reads From Host");
+            break;
+        default:
+            break;
+        }
+        break;
+    case SEAGATE_VENDOR_G:
+        switch (attributeNumber)
+        {
+        case 1://Raw Read Error Rate
+            sprintf(*attributeName, "Raw Read Error Rate");
+            break;
+        case 5://Reallocated Sector Count
+            sprintf(*attributeName, "Reallocated Sector Count");
+            break;
+        case 9: //Power on Hours
+            sprintf(*attributeName, "Power On Hours");
+            break;
+        case 11: //Power Fail Event Count
+            sprintf(*attributeName, "Power Fail Event Count");
+            break;
+        case 12: //Drive Power Cycle Count
+            sprintf(*attributeName, "Drive Power Cycle Count");
+            break;
+        case 100: //Flash Gigabytes Erased
+            sprintf(*attributeName, "Flash Gigabytes Erased");
+            break;
+        case 101: //Lifetime DevSleep Exit Count
+            sprintf(*attributeName, "Lifetime DevSleep Exit Count");
+            break;
+        case 102: //Lifetime PS4 Entry Count
+            sprintf(*attributeName, "Lifetime PS4 Entry Count");
+            break;
+        case 103: //Lifetime PS3 Exit Count
+            sprintf(*attributeName, "Lifetime PS3 Exit Count");
+            break;
+        case 170: //Grown Bad Block Count
+            sprintf(*attributeName, "Grown Bad Block Count");
+            break;
+        case 171: //Program Fail Count
+            sprintf(*attributeName, "Program Fail Count");
+            break;
+        case 172: //Erase Fail Count
+            sprintf(*attributeName, "Erase Fail Count");
+            break;
+        case 173: //Average Program/Erase Count
+            sprintf(*attributeName, "Average Program/Erase Count");
+            break;
+        case 174: //Unexpected Power Loss Count
+            sprintf(*attributeName, "Unexpected Power Loss Count");
+            break;
+        case 177: //Wear Range Delta
+            sprintf(*attributeName, "Wear Range Delta");
+            break;
+        case 183: //SATA/PCIe Interface Downshift Count
+            sprintf(*attributeName, "SATA/PCIe Interface Downshift Count");
+            break;
+        case 184: //End-To-End CRC Error Count
+            sprintf(*attributeName, "End-To-End CRC Error Count");
+            break;
+        case 187: //Uncorrectable ECC Count
+            sprintf(*attributeName, "Uncorrectable ECC Count");
+            break;
+        case 194: //Primary Temperature
+            sprintf(*attributeName, "Primary Temperature");
+            break;
+        case 195: //RAISE ECC Correctable Count
+            sprintf(*attributeName, "RAISE ECC Correctable Count");
+            break;
+        case 198: //Uncorrectable Read Error Count
+            sprintf(*attributeName, "Uncorrectable Read Error Count");
+            break;
+        case 199: //SATA R-Error (CRC) Error Count
+            sprintf(*attributeName, "SATA R-Error (CRC) Error Count");
+            break;
+        case 230: //Drive Life Protection Status
+            sprintf(*attributeName, "Drive Life Protection Status");
+            break;
+        case 231: //SSD Life Left
+            sprintf(*attributeName, "SSD Life Left");
+            break;
+        case 232: //Available Reserved Space
+            sprintf(*attributeName, "Available Reserved Space");
+            break;
+        case 233: //Lifetime Writes to Flash
+            sprintf(*attributeName, "Lifetime Writes to Flash");
+            break;
+        case 241: //Lifetime Writes from Host
+            sprintf(*attributeName, "Lifetime Writes From Host");
+            break;
+        case 242: //Lifetime Reads from Host
+            sprintf(*attributeName, "Lifetime Reads From Host");
+            break;
+        case 243: //Free Space
+            sprintf(*attributeName, "Free Space");
+            break;
+        default:
+            break;
+        }
+        break;
     default:
+        switch (attributeNumber)
+        {
+        case 1://Read Error Rate
+            sprintf(*attributeName, "Read Error Rate");
+            break;
+        case 3://Spin Up Time
+            sprintf(*attributeName, "Spin Up Time");
+            break;
+        case 4://Start/Stop Count
+            sprintf(*attributeName, "Start/Stop Count");
+            break;
+        case 5://Retired Sectors Count
+            sprintf(*attributeName, "Retired Sectors Count");
+            break;
+        case 7://Seek Error Rate
+            sprintf(*attributeName, "Seek Error Rate");
+            break;
+        case 9: //Power On Hours
+            sprintf(*attributeName, "Power On Hours");
+            break;
+        case 10: //Spin Retry Count 
+            sprintf(*attributeName, "Spin Retry Count ");
+            break;
+        case 12: //Drive Power Cycle Count
+            sprintf(*attributeName, "Drive Power Cycle Count");
+            break;
+        case 187://Reported Un-correctable
+            sprintf(*attributeName, "Reported Un-correctable");
+            break;
+        case 194://Temperature
+            sprintf(*attributeName, "Temperature");
+            break;
+        case 197://Pending-Sparing Count
+            sprintf(*attributeName, "Pending-Sparing Count");
+            break;
+        default:
+            break;
+        }
         break;
     }
 }
@@ -854,7 +892,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
             print_ATA_SMART_Attribute_Raw(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName);
         }
     }
-	printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type");
+    printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type");
     safe_Free(attributeName);
 }
 
@@ -972,7 +1010,7 @@ int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
                 ret = BAD_PARAMETER;
             }
         }
-		#if !defined(DISABLE_NVME_PASSTHROUGH)
+        #if !defined(DISABLE_NVME_PASSTHROUGH)
         else if (device->drive_info.drive_type == NVME_DRIVE) 
         {
                 uint32_t temperature = ((smartData.attributes.nvmeSMARTAttr.temperature[1] << 8) |
@@ -993,20 +1031,20 @@ int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
                 printf("Unsafe Shutdowns                    : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.unsafeShutdowns));
                 printf("Media Errors                        : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.mediaErrors));
                 printf("Num. Of Error Info. Log             : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.numErrLogEntries));
-				printf("Warning Composite Temperature Time  : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.warningTempTime);
-				printf("Critical Composite Temperature Time : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.criticalCompTime);
-				for (uint8_t temperatureSensorCount = 0; temperatureSensorCount < 8; temperatureSensorCount++) {
-					if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0) {
-						uint16_t temperatureSensor = smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] - 273;
-						printf("Temperature Sensor %"PRIu8"                : %"PRIu16" C\n", (temperatureSensorCount + 1), temperatureSensor);
-					}
-				}
-				printf("Thermal Management T1 Trans Count   : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp1TransCount);
-				printf("Thermal Management T2 Trans Count   : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp2TransCount);
-				printf("Thermal Management T1 Total Time    : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp1);
-				printf("Thermal Management T2 Total Time    : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp2);
+                printf("Warning Composite Temperature Time  : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.warningTempTime);
+                printf("Critical Composite Temperature Time : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.criticalCompTime);
+                for (uint8_t temperatureSensorCount = 0; temperatureSensorCount < 8; temperatureSensorCount++) {
+                    if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0) {
+                        uint16_t temperatureSensor = smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] - 273;
+                        printf("Temperature Sensor %"PRIu8"                : %"PRIu16" C\n", (temperatureSensorCount + 1), temperatureSensor);
+                    }
+                }
+                printf("Thermal Management T1 Trans Count   : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp1TransCount);
+                printf("Thermal Management T2 Trans Count   : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp2TransCount);
+                printf("Thermal Management T1 Total Time    : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp1);
+                printf("Thermal Management T2 Total Time    : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp2);
         }
-		#endif
+        #endif
         else
         {
             //shouldn't get here.
@@ -2774,7 +2812,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
 
                     printf("%-20s : %" PRIu32 " C\n", "Max SOC Temperature", (unsigned int)maxSocTemp);
                 }
-    		}
+            }
         }
 
         // STEP-3 : Get Max temperature form SuperCap DRAM temperature
@@ -2791,7 +2829,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         {
             scCurrentTemp = scDramSmart.attrScSmart.superCapCurrentTemperature;
             scCurrentTemp = scCurrentTemp ? scCurrentTemp - 273 : 0;
-            printf("%-20s : %" PRIu32 " C\n", "Super-cap Current Temperature", scCurrentTemp);		
+            printf("%-20s : %" PRIu32 " C\n", "Super-cap Current Temperature", scCurrentTemp);      
     
             scMaxTemp = scDramSmart.attrScSmart.superCapMaximumTemperature;
             scMaxTemp = scMaxTemp ? scMaxTemp - 273 : 0;
@@ -2836,40 +2874,40 @@ int nvme_Print_PCI_Statistics(tDevice *device)
 
         if(ret == SUCCESS)
         {
-        	correctPcieEc = pcieErrorLog.badDllpErrCnt + pcieErrorLog.badTlpErrCnt 
-        			+ pcieErrorLog.rcvrErrCnt + pcieErrorLog.replayTOErrCnt 
-        			+ pcieErrorLog.replayNumRolloverErrCnt;
+            correctPcieEc = pcieErrorLog.badDllpErrCnt + pcieErrorLog.badTlpErrCnt 
+                    + pcieErrorLog.rcvrErrCnt + pcieErrorLog.replayTOErrCnt 
+                    + pcieErrorLog.replayNumRolloverErrCnt;
         
-        	uncorrectPcieEc = pcieErrorLog.fcProtocolErrCnt + pcieErrorLog.dllpProtocolErrCnt 
-        			+ pcieErrorLog.cmpltnTOErrCnt + pcieErrorLog.rcvrQOverflowErrCnt 
-        			+ pcieErrorLog.unexpectedCplTlpErrCnt + pcieErrorLog.cplTlpURErrCnt 
-        			+ pcieErrorLog.cplTlpCAErrCnt + pcieErrorLog.reqCAErrCnt  
-        			+ pcieErrorLog.reqURErrCnt + pcieErrorLog.ecrcErrCnt 
-        			+ pcieErrorLog.malformedTlpErrCnt + pcieErrorLog.cplTlpPoisonedErrCnt 
-        			+ pcieErrorLog.memRdTlpPoisonedErrCnt;
+            uncorrectPcieEc = pcieErrorLog.fcProtocolErrCnt + pcieErrorLog.dllpProtocolErrCnt 
+                    + pcieErrorLog.cmpltnTOErrCnt + pcieErrorLog.rcvrQOverflowErrCnt 
+                    + pcieErrorLog.unexpectedCplTlpErrCnt + pcieErrorLog.cplTlpURErrCnt 
+                    + pcieErrorLog.cplTlpCAErrCnt + pcieErrorLog.reqCAErrCnt  
+                    + pcieErrorLog.reqURErrCnt + pcieErrorLog.ecrcErrCnt 
+                    + pcieErrorLog.malformedTlpErrCnt + pcieErrorLog.cplTlpPoisonedErrCnt 
+                    + pcieErrorLog.memRdTlpPoisonedErrCnt;
         
-        	printf("%-45s : %u\n", "PCIe Correctable Error Count", correctPcieEc);
-        	printf("%-45s : %u\n", "PCIe Un-Correctable Error Count", uncorrectPcieEc); 
-        	printf("%-45s : %u\n", "Unsupported Request Error Status (URES)", pcieErrorLog.reqURErrCnt);
-        	printf("%-45s : %u\n", "ECRC Error Status (ECRCES)", pcieErrorLog.ecrcErrCnt);
-        	printf("%-45s : %u\n", "Malformed TLP Status (MTS)", pcieErrorLog.malformedTlpErrCnt);
-        	printf("%-45s : %u\n", "Receiver Overflow Status (ROS)", pcieErrorLog.rcvrQOverflowErrCnt);
-        	printf("%-45s : %u\n", "Unexpected Completion Status(UCS)", pcieErrorLog.unexpectedCplTlpErrCnt);
-        	printf("%-45s : %u\n", "Completion Timeout Status (CTS)", pcieErrorLog.cmpltnTOErrCnt);
-        	printf("%-45s : %u\n", "Flow Control Protocol Error Status (FCPES)", pcieErrorLog.fcProtocolErrCnt);
-        	printf("%-45s : %u\n", "Poisoned TLP Status (PTS)", pcieErrorLog.memRdTlpPoisonedErrCnt);
-        	printf("%-45s : %u\n", "Data Link Protocol Error Status(DLPES)", pcieErrorLog.dllpProtocolErrCnt);
-        	printf("%-45s : %u\n", "Replay Timer Timeout Status(RTS)", pcieErrorLog.replayTOErrCnt);
-        	printf("%-45s : %u\n", "Replay_NUM Rollover Status(RRS)", pcieErrorLog.replayNumRolloverErrCnt);
-        	printf("%-45s : %u\n", "Bad DLLP Status (BDS)", pcieErrorLog.badDllpErrCnt);
-        	printf("%-45s : %u\n", "Bad TLP Status (BTS)", pcieErrorLog.badTlpErrCnt);
-        	printf("%-45s : %u\n", "Receiver Error Status (RES)", pcieErrorLog.rcvrErrCnt);
-        	printf("%-45s : %u\n", "Cpl TLP Unsupported Request Error Count", pcieErrorLog.cplTlpURErrCnt);
-        	printf("%-45s : %u\n", "Cpl TLP Completion Abort Error Count", pcieErrorLog.cplTlpCAErrCnt);
-        	printf("%-45s : %u\n", "Cpl TLP Poisoned Error Count", pcieErrorLog.cplTlpPoisonedErrCnt);
-        	printf("%-45s : %u\n", "Request Completion Abort Error Count", pcieErrorLog.reqCAErrCnt);
-        	printf("%-45s : %s\n", "Advisory Non-Fatal Error Status(ANFES)", "Not Supported");
-        	printf("%-45s : %s\n", "Completer Abort Status (CAS)", "Not Supported");
+            printf("%-45s : %u\n", "PCIe Correctable Error Count", correctPcieEc);
+            printf("%-45s : %u\n", "PCIe Un-Correctable Error Count", uncorrectPcieEc); 
+            printf("%-45s : %u\n", "Unsupported Request Error Status (URES)", pcieErrorLog.reqURErrCnt);
+            printf("%-45s : %u\n", "ECRC Error Status (ECRCES)", pcieErrorLog.ecrcErrCnt);
+            printf("%-45s : %u\n", "Malformed TLP Status (MTS)", pcieErrorLog.malformedTlpErrCnt);
+            printf("%-45s : %u\n", "Receiver Overflow Status (ROS)", pcieErrorLog.rcvrQOverflowErrCnt);
+            printf("%-45s : %u\n", "Unexpected Completion Status(UCS)", pcieErrorLog.unexpectedCplTlpErrCnt);
+            printf("%-45s : %u\n", "Completion Timeout Status (CTS)", pcieErrorLog.cmpltnTOErrCnt);
+            printf("%-45s : %u\n", "Flow Control Protocol Error Status (FCPES)", pcieErrorLog.fcProtocolErrCnt);
+            printf("%-45s : %u\n", "Poisoned TLP Status (PTS)", pcieErrorLog.memRdTlpPoisonedErrCnt);
+            printf("%-45s : %u\n", "Data Link Protocol Error Status(DLPES)", pcieErrorLog.dllpProtocolErrCnt);
+            printf("%-45s : %u\n", "Replay Timer Timeout Status(RTS)", pcieErrorLog.replayTOErrCnt);
+            printf("%-45s : %u\n", "Replay_NUM Rollover Status(RRS)", pcieErrorLog.replayNumRolloverErrCnt);
+            printf("%-45s : %u\n", "Bad DLLP Status (BDS)", pcieErrorLog.badDllpErrCnt);
+            printf("%-45s : %u\n", "Bad TLP Status (BTS)", pcieErrorLog.badTlpErrCnt);
+            printf("%-45s : %u\n", "Receiver Error Status (RES)", pcieErrorLog.rcvrErrCnt);
+            printf("%-45s : %u\n", "Cpl TLP Unsupported Request Error Count", pcieErrorLog.cplTlpURErrCnt);
+            printf("%-45s : %u\n", "Cpl TLP Completion Abort Error Count", pcieErrorLog.cplTlpCAErrCnt);
+            printf("%-45s : %u\n", "Cpl TLP Poisoned Error Count", pcieErrorLog.cplTlpPoisonedErrCnt);
+            printf("%-45s : %u\n", "Request Completion Abort Error Count", pcieErrorLog.reqCAErrCnt);
+            printf("%-45s : %s\n", "Advisory Non-Fatal Error Status(ANFES)", "Not Supported");
+            printf("%-45s : %s\n", "Completer Abort Status (CAS)", "Not Supported");
 
         }
         else
@@ -5272,29 +5310,29 @@ void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode,
 void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     //TODO: some commands leave some registers reserved. Add handling when some of these reserved registers are set to non-zero values
-	switch (commandOpCode)
-	{
-	case ATA_NOP_CMD:
-		switch (features)
-		{
-		case 0:
-			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP");
-			break;
-		case 1:
-			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (Auto Poll)");
-			break;
-		default:
-			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (subcommand %02" PRIx8 "h", (uint8_t)features);
-			break;
-		}
-		break;
-	case ATA_DATA_SET_MANAGEMENT_CMD:
-		if (features & BIT0)
-		{
-			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - TRIM");
-		}
-		else
-		{
+    switch (commandOpCode)
+    {
+    case ATA_NOP_CMD:
+        switch (features)
+        {
+        case 0:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP");
+            break;
+        case 1:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (Auto Poll)");
+            break;
+        default:
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (subcommand %02" PRIx8 "h", (uint8_t)features);
+            break;
+        }
+        break;
+    case ATA_DATA_SET_MANAGEMENT_CMD:
+        if (features & BIT0)
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - TRIM");
+        }
+        else
+        {
             uint8_t dsmFunction = M_Byte1(features);
             switch (dsmFunction)
             {
@@ -5308,9 +5346,9 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
                 snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - Unknown DSM function - %" PRIu8 "", dsmFunction);
                 break;
             }
-		}
-		break;
-	case ATA_DATA_SET_MANAGEMENT_XL_CMD:
+        }
+        break;
+    case ATA_DATA_SET_MANAGEMENT_XL_CMD:
         if (features & BIT0)
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management XL - TRIM");
@@ -5331,140 +5369,140 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
                 break;
             }
         }
-		break;
-	case ATA_DEV_RESET:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Device Reset");
-		break;
-	case ATA_REQUEST_SENSE_DATA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Request Sense Data");
-		break;
-	case ATA_RECALIBRATE://this can have various values for the lower nibble which conflict with new command standards
-	case 0x11:
-	//case ATA_GET_PHYSICAL_ELEMENT_STATUS://or recalibrate? check the count register...it should be non-zero
-	case 0x12:
-	case 0x13:
-	case 0x14:
-	case 0x15:
-	case 0x16:
-	case 0x17:
-	case 0x18:
-	case 0x19:
-	case 0x1A:
-	case 0x1B:
-	case 0x1C:
-	case 0x1D:
-	case 0x1E:
-	case 0x1F:
-		if (commandOpCode == ATA_GET_PHYSICAL_ELEMENT_STATUS && count != 0)
-		{
+        break;
+    case ATA_DEV_RESET:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Device Reset");
+        break;
+    case ATA_REQUEST_SENSE_DATA:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Request Sense Data");
+        break;
+    case ATA_RECALIBRATE://this can have various values for the lower nibble which conflict with new command standards
+    case 0x11:
+    //case ATA_GET_PHYSICAL_ELEMENT_STATUS://or recalibrate? check the count register...it should be non-zero
+    case 0x12:
+    case 0x13:
+    case 0x14:
+    case 0x15:
+    case 0x16:
+    case 0x17:
+    case 0x18:
+    case 0x19:
+    case 0x1A:
+    case 0x1B:
+    case 0x1C:
+    case 0x1D:
+    case 0x1E:
+    case 0x1F:
+        if (commandOpCode == ATA_GET_PHYSICAL_ELEMENT_STATUS && count != 0)
+        {
             uint8_t filter = M_GETBITRANGE(features, 15, 14);
             uint8_t reportType = M_GETBITRANGE(features, 11, 8);
-			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8" Report Type: %" PRIu8 "", lba, filter, reportType);
-		}
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8" Report Type: %" PRIu8 "", lba, filter, reportType);
+        }
         else if (count != 0)
         {
             //TODO: features, lba, etc
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command (%02" PRIX8 "h)", commandOpCode);
         }
-		else
-		{
-			snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Recalibrate (%02" PRIX8 "h)", commandOpCode);
-		}
-		break;
-	case ATA_READ_SECT:
+        else
+        {
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Recalibrate (%02" PRIX8 "h)", commandOpCode);
+        }
+        break;
+    case ATA_READ_SECT:
         get_Read_Write_Command_Info("Read Sectors", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_SECT_NORETRY:
+        break;
+    case ATA_READ_SECT_NORETRY:
         get_Read_Write_Command_Info("Read Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_LONG_RETRY:
+        break;
+    case ATA_READ_LONG_RETRY:
         get_Read_Write_Command_Info("Read Long", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_LONG_NORETRY:
+        break;
+    case ATA_READ_LONG_NORETRY:
         get_Read_Write_Command_Info("Read Long (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_SECT_EXT:
+        break;
+    case ATA_READ_SECT_EXT:
         get_Read_Write_Command_Info("Read Sectors Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_DMA_EXT:
+        break;
+    case ATA_READ_DMA_EXT:
         get_Read_Write_Command_Info("Read DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_DMA_QUE_EXT:
+        break;
+    case ATA_READ_DMA_QUE_EXT:
         get_Read_Write_Command_Info("Read DMA Queued Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_MAX_ADDRESS_EXT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address Ext");//no other worthwhile inputs to this command to report...every other register is N/A
-		break;
-	case ATA_READ_READ_MULTIPLE_EXT:
+        break;
+    case ATA_READ_MAX_ADDRESS_EXT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address Ext");//no other worthwhile inputs to this command to report...every other register is N/A
+        break;
+    case ATA_READ_READ_MULTIPLE_EXT:
         get_Read_Write_Command_Info("Read Multiple Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_STREAM_DMA_EXT:
+        break;
+    case ATA_READ_STREAM_DMA_EXT:
         get_Read_Write_Command_Info("Read Stream DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_STREAM_EXT:
+        break;
+    case ATA_READ_STREAM_EXT:
         get_Read_Write_Command_Info("Read Stream Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_LOG_EXT:
+        break;
+    case ATA_READ_LOG_EXT:
         get_GPL_Log_Command_Info("Read Log Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_SECT:
+        break;
+    case ATA_WRITE_SECT:
         get_Read_Write_Command_Info("Write Sectors", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_SECT_NORETRY:
+        break;
+    case ATA_WRITE_SECT_NORETRY:
         get_Read_Write_Command_Info("Write Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_LONG_RETRY:
+        break;
+    case ATA_WRITE_LONG_RETRY:
         get_Read_Write_Command_Info("Write Long", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_LONG_NORETRY:
+        break;
+    case ATA_WRITE_LONG_NORETRY:
         get_Read_Write_Command_Info("Write Long (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_SECT_EXT:
+        break;
+    case ATA_WRITE_SECT_EXT:
         get_Read_Write_Command_Info("Write Sectors Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_DMA_EXT:
+        break;
+    case ATA_WRITE_DMA_EXT:
         get_Read_Write_Command_Info("Write DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_DMA_QUE_EXT:
+        break;
+    case ATA_WRITE_DMA_QUE_EXT:
         get_Read_Write_Command_Info("Write DMA Queued Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_SET_MAX_EXT:
+        break;
+    case ATA_SET_MAX_EXT:
         get_Set_Max_Address_Command_Info("Set Max Address Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_MULTIPLE_EXT:
+        break;
+    case ATA_WRITE_MULTIPLE_EXT:
         get_Read_Write_Command_Info("Write Multiple Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_STREAM_DMA_EXT:
+        break;
+    case ATA_WRITE_STREAM_DMA_EXT:
         get_Read_Write_Command_Info("Write Stream DMA Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_STREAM_EXT:
+        break;
+    case ATA_WRITE_STREAM_EXT:
         get_Read_Write_Command_Info("Write Stream Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_SECTV_RETRY:
+        break;
+    case ATA_WRITE_SECTV_RETRY:
         get_Read_Write_Command_Info("Write Verify", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_DMA_FUA_EXT:
+        break;
+    case ATA_WRITE_DMA_FUA_EXT:
         get_Read_Write_Command_Info("Write DMA FUA Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_DMA_QUE_FUA_EXT:
+        break;
+    case ATA_WRITE_DMA_QUE_FUA_EXT:
         get_Read_Write_Command_Info("Write DMA Queued FUA Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_LOG_EXT_CMD:
+        break;
+    case ATA_WRITE_LOG_EXT_CMD:
         get_GPL_Log_Command_Info("Write Log Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_VERIFY_RETRY:
+        break;
+    case ATA_READ_VERIFY_RETRY:
         get_Read_Write_Command_Info("Read Verify", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_VERIFY_NORETRY:
+        break;
+    case ATA_READ_VERIFY_NORETRY:
         get_Read_Write_Command_Info("Read Verify (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_VERIFY_EXT:
+        break;
+    case ATA_READ_VERIFY_EXT:
         get_Read_Write_Command_Info("Read Verify Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_ZEROS_EXT:
+        break;
+    case ATA_ZEROS_EXT:
         get_Zeros_Ext_Command_Info("Zeros Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_UNCORRECTABLE_EXT:
+        break;
+    case ATA_WRITE_UNCORRECTABLE_EXT:
     {
         uint8_t uncorrectableOption = M_Byte0(features);
         uint32_t numberOfSectors = count;
@@ -5491,17 +5529,17 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Uncorrectable Ext - %s  LBA: %" PRIu64 "  Count: %" PRIu32 "", uncorrectableOptionString, lba, numberOfSectors);
     }
-		break;
-	case ATA_READ_LOG_EXT_DMA:
+        break;
+    case ATA_READ_LOG_EXT_DMA:
         get_GPL_Log_Command_Info("Read Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_ZONE_MANAGEMENT_IN:
+        break;
+    case ATA_ZONE_MANAGEMENT_IN:
         get_ZAC_Management_In_Command_Info("ZAC Management In", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_FORMAT_TRACK:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
-		break;
-	case ATA_CONFIGURE_STREAM:
+        break;
+    case ATA_FORMAT_TRACK:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
+        break;
+    case ATA_CONFIGURE_STREAM:
     {
         uint8_t defaultCCTL = M_Byte1(features);
         bool addRemoveStream = features & BIT7;
@@ -5509,41 +5547,41 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         uint8_t streamID = M_GETBITRANGE(features, 2, 0);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Configure Stream, Default CCTL: %" PRIu8 ", Add/Remove Stream: %d, readWriteStream: %d, Stream ID: %" PRIu8 "", defaultCCTL, addRemoveStream, readWriteStream, streamID);
     }
-		break;
-	case ATA_WRITE_LOG_EXT_DMA:
+        break;
+    case ATA_WRITE_LOG_EXT_DMA:
         get_GPL_Log_Command_Info("Write Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_TRUSTED_NON_DATA:
+        break;
+    case ATA_TRUSTED_NON_DATA:
         get_Trusted_Command_Info("Trusted Non-Data", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_TRUSTED_RECEIVE:
+        break;
+    case ATA_TRUSTED_RECEIVE:
         get_Trusted_Command_Info("Trusted Receive", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_TRUSTED_RECEIVE_DMA:
+        break;
+    case ATA_TRUSTED_RECEIVE_DMA:
         get_Trusted_Command_Info("Trusted Receive DMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_TRUSTED_SEND:
+        break;
+    case ATA_TRUSTED_SEND:
         get_Trusted_Command_Info("Trusted Send", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_TRUSTED_SEND_DMA:
+        break;
+    case ATA_TRUSTED_SEND_DMA:
         get_Trusted_Command_Info("Trusted Send DMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_FPDMA_QUEUED_CMD:
+        break;
+    case ATA_READ_FPDMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Read FPDMA Queued", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_FPDMA_QUEUED_CMD:
+        break;
+    case ATA_WRITE_FPDMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Write FPDMA Queued", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_FPDMA_NON_DATA:
+        break;
+    case ATA_FPDMA_NON_DATA:
         get_NCQ_Non_Data_Command_Info("NCQ Non-Data", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_SEND_FPDMA:
+        break;
+    case ATA_SEND_FPDMA:
         get_Send_FPDMA_Command_Info("Send FPDMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_RECEIVE_FPDMA:
+        break;
+    case ATA_RECEIVE_FPDMA:
         get_Receive_FPDMA_Command_Info("Receive FPDMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_SEEK_CMD://TODO: seek can be 7xh....but that also conflicts with new command definitions
+        break;
+    case ATA_SEEK_CMD://TODO: seek can be 7xh....but that also conflicts with new command definitions
     case 0x71:
     case 0x72:
     case 0x73:
@@ -5652,120 +5690,120 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
             }
         }
     }
-		break;
-	case ATA_EXEC_DRV_DIAG:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
-		break;
-	case ATA_INIT_DRV_PARAM:
+        break;
+    case ATA_EXEC_DRV_DIAG:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
+        break;
+    case ATA_INIT_DRV_PARAM:
     {
         uint8_t sectorsPerTrack = M_Byte0(count);
         uint8_t maxHead = M_Nibble0(device);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters. Logical Sectors Per Track: %" PRIu8 "  Max Head: %" PRIu8 "", sectorsPerTrack, maxHead);
     }
-		break;
-	case ATA_DOWNLOAD_MICROCODE:
+        break;
+    case ATA_DOWNLOAD_MICROCODE:
         get_Download_Command_Info("Download Microcode", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_DOWNLOAD_MICROCODE_DMA:
+        break;
+    case ATA_DOWNLOAD_MICROCODE_DMA:
         get_Download_Command_Info("Download Microcode DMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_LEGACY_ALT_STANDBY_IMMEDIATE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (94h)");
-		break;
-	case ATA_LEGACY_ALT_IDLE_IMMEDIATE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle Immediate (95h)");
-		break;
-	case ATA_LEGACY_ALT_STANDBY:
+        break;
+    case ATA_LEGACY_ALT_STANDBY_IMMEDIATE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (94h)");
+        break;
+    case ATA_LEGACY_ALT_IDLE_IMMEDIATE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle Immediate (95h)");
+        break;
+    case ATA_LEGACY_ALT_STANDBY:
         get_Idle_Or_Standby_Command_Info("Alternate Standby (96h)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_LEGACY_ALT_IDLE:
+        break;
+    case ATA_LEGACY_ALT_IDLE:
         get_Idle_Or_Standby_Command_Info("Alternate Standby (97h)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_LEGACY_ALT_CHECK_POWER_MODE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Check Power Mode (98h)");
-		break;
-	case ATA_LEGACY_ALT_SLEEP:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (99h)");
-		break;
-	case ATA_ZONE_MANAGEMENT_OUT:
+        break;
+    case ATA_LEGACY_ALT_CHECK_POWER_MODE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Check Power Mode (98h)");
+        break;
+    case ATA_LEGACY_ALT_SLEEP:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (99h)");
+        break;
+    case ATA_ZONE_MANAGEMENT_OUT:
         get_ZAC_Management_Out_Command_Info("ZAC Management Out", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATAPI_COMMAND:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "ATA Packet Command");
-		break;
-	case ATAPI_IDENTIFY:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
-		break;
-	case ATA_SMART:
+        break;
+    case ATAPI_COMMAND:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "ATA Packet Command");
+        break;
+    case ATAPI_IDENTIFY:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
+        break;
+    case ATA_SMART:
         get_SMART_Command_Info("SMART", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_DCO:
+        break;
+    case ATA_DCO:
         get_DCO_Command_Info("DCO", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_SET_SECTOR_CONFIG_EXT:
+        break;
+    case ATA_SET_SECTOR_CONFIG_EXT:
     {
         uint8_t descriptorIndex = M_GETBITRANGE(count, 2, 0);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Sector Configuration Ext - Descriptor: %" PRIu8 ", Command Check: %" PRIX16 "h", descriptorIndex, features);
     }
-		break;
-	case ATA_SANITIZE:
+        break;
+    case ATA_SANITIZE:
         get_Sanitize_Command_Info("Sanitize", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_NV_CACHE:
+        break;
+    case ATA_NV_CACHE:
         get_NV_Cache_Command_Info("NV Cache", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_MULTIPLE:
+        break;
+    case ATA_READ_MULTIPLE:
         get_Read_Write_Command_Info("Read Multiple", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_MULTIPLE:
+        break;
+    case ATA_WRITE_MULTIPLE:
         get_Read_Write_Command_Info("Write Multiple", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_SET_MULTIPLE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Multiple - DRQ Data Block Count: %" PRIu8 "", M_Byte0(count));
-		break;
-	case ATA_READ_DMA_QUEUED_CMD:
+        break;
+    case ATA_SET_MULTIPLE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Multiple - DRQ Data Block Count: %" PRIu8 "", M_Byte0(count));
+        break;
+    case ATA_READ_DMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Read DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_DMA_RETRY:
+        break;
+    case ATA_READ_DMA_RETRY:
         get_Read_Write_Command_Info("Read DMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_DMA_NORETRY:
+        break;
+    case ATA_READ_DMA_NORETRY:
         get_Read_Write_Command_Info("Read DMA (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_DMA_RETRY:
+        break;
+    case ATA_WRITE_DMA_RETRY:
         get_Read_Write_Command_Info("Write DMA", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_DMA_NORETRY:
+        break;
+    case ATA_WRITE_DMA_NORETRY:
         get_Read_Write_Command_Info("Write DMA (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_DMA_QUEUED_CMD:
+        break;
+    case ATA_WRITE_DMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Write DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_WRITE_MULTIPLE_FUA_EXT:
+        break;
+    case ATA_WRITE_MULTIPLE_FUA_EXT:
         get_Read_Write_Command_Info("Write Multiple FUA Ext", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_GET_MEDIA_STATUS:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Media Status");
-		break;
-	case ATA_ACK_MEDIA_CHANGE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Acknowledge Media Change");
-		break;
-	case ATA_POST_BOOT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Post Boot");
-		break;
-	case ATA_PRE_BOOT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Pre Boot");
-		break;
-	case ATA_DOOR_LOCK:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Lock");
-		break;
-	case ATA_DOOR_UNLOCK:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Unlock");
-		break;
-	case ATA_STANDBY_IMMD:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby Immediate");
-		break;
-	case ATA_IDLE_IMMEDIATE_CMD:
+        break;
+    case ATA_GET_MEDIA_STATUS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Media Status");
+        break;
+    case ATA_ACK_MEDIA_CHANGE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Acknowledge Media Change");
+        break;
+    case ATA_POST_BOOT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Post Boot");
+        break;
+    case ATA_PRE_BOOT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Pre Boot");
+        break;
+    case ATA_DOOR_LOCK:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Lock");
+        break;
+    case ATA_DOOR_UNLOCK:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Unlock");
+        break;
+    case ATA_STANDBY_IMMD:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby Immediate");
+        break;
+    case ATA_IDLE_IMMEDIATE_CMD:
         if (M_Byte0(features) == IDLE_IMMEDIATE_UNLOAD_FEATURE)
         {
             uint32_t idleImmdLBA = (lba & 0x00FFFFFFFF) | (M_Nibble0(device) << 24);
@@ -5782,29 +5820,29 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
         }
-		break;
-	case ATA_STANDBY:
+        break;
+    case ATA_STANDBY:
         get_Idle_Or_Standby_Command_Info("Standby", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_IDLE:
+        break;
+    case ATA_IDLE:
         get_Idle_Or_Standby_Command_Info("Idle", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_READ_BUF:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
-		break;
-	case ATA_CHECK_POWER_MODE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Check Power Mode");
-		break;
-	case ATA_SLEEP_CMD:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sleep");
-		break;
-	case ATA_FLUSH_CACHE:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache");
-		break;
-	case ATA_WRITE_BUF:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer");
-		break;
-	case ATA_READ_BUF_DMA:
+        break;
+    case ATA_READ_BUF:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
+        break;
+    case ATA_CHECK_POWER_MODE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Check Power Mode");
+        break;
+    case ATA_SLEEP_CMD:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sleep");
+        break;
+    case ATA_FLUSH_CACHE:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache");
+        break;
+    case ATA_WRITE_BUF:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer");
+        break;
+    case ATA_READ_BUF_DMA:
         //case ATA_LEGACY_WRITE_SAME:
         if (M_Byte0(features) == LEGACY_WRITE_SAME_INITIALIZE_SPECIFIED_SECTORS || M_Byte0(features) == LEGACY_WRITE_SAME_INITIALIZE_ALL_SECTORS)
         {
@@ -5833,50 +5871,50 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer DMA");
         }
-		break;
-	case ATA_FLUSH_CACHE_EXT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache Ext");
-		break;
-	case ATA_WRITE_BUF_DMA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer DMA");
-		break;
-	case ATA_IDENTIFY:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify");
-		break;
-	case ATA_MEDIA_EJECT:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Media Eject");
-		break;
-	case ATA_IDENTIFY_DMA:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify DMA");
-		break;
-	case ATA_SET_FEATURE:
+        break;
+    case ATA_FLUSH_CACHE_EXT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache Ext");
+        break;
+    case ATA_WRITE_BUF_DMA:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer DMA");
+        break;
+    case ATA_IDENTIFY:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify");
+        break;
+    case ATA_MEDIA_EJECT:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Media Eject");
+        break;
+    case ATA_IDENTIFY_DMA:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify DMA");
+        break;
+    case ATA_SET_FEATURE:
         get_Set_Features_Command_Info("Set Features", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	case ATA_SECURITY_SET_PASS:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Set Password");
-		break;
-	case ATA_SECURITY_UNLOCK_CMD:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Unlock");
-		break;
-	case ATA_SECURITY_ERASE_PREP:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Prepare");
-		break;
-	case ATA_SECURITY_ERASE_UNIT_CMD:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Unit");
-		break;
-	case ATA_SECURITY_FREEZE_LOCK_CMD:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Freeze Lock");
-		break;
-	case ATA_SECURITY_DISABLE_PASS:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Disable Password");
-		break;
-	case ATA_READ_MAX_ADDRESS:
-		snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address");
-		break;
-	case ATA_SET_MAX:
+        break;
+    case ATA_SECURITY_SET_PASS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Set Password");
+        break;
+    case ATA_SECURITY_UNLOCK_CMD:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Unlock");
+        break;
+    case ATA_SECURITY_ERASE_PREP:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Prepare");
+        break;
+    case ATA_SECURITY_ERASE_UNIT_CMD:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Unit");
+        break;
+    case ATA_SECURITY_FREEZE_LOCK_CMD:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Freeze Lock");
+        break;
+    case ATA_SECURITY_DISABLE_PASS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Disable Password");
+        break;
+    case ATA_READ_MAX_ADDRESS:
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address");
+        break;
+    case ATA_SET_MAX:
         get_Set_Max_Address_Command_Info("Set Max Address", commandOpCode, features, count, lba, device, commandInfo);
-		break;
-	default:
+        break;
+    default:
         if ((commandOpCode >= 0x80 && commandOpCode <= 0x8F)
             || commandOpCode == 0x9A
             || (commandOpCode >= 0xC0 && commandOpCode <= 0xC3)
@@ -5893,8 +5931,8 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command %02" PRIx8 "h", commandOpCode);
         }
-		break;
-	}
+        break;
+    }
 }
 
 #define TIMESTRING_MAX_LEN 30

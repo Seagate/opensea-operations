@@ -106,19 +106,19 @@ extern "C"
         //solid state device statistics
         bool ssdStatisticsSupported;
         statistic percentageUsedIndicator;
-		//Zoned device statistics (ZAC2)
-		bool zonedDeviceStatisticsSupported;
-		statistic maximumOpenZones;
-		statistic maximumExplicitlyOpenZones;
-		statistic maximumImplicitlyOpenZones;
-		statistic minimumEmptyZones;
-		statistic maximumNonSequentialZones;
-		statistic zonesEmptied;
-		statistic suboptimalWriteCommands;
-		statistic commandsExceedingOptimalLimit;
-		statistic failedExplicitOpens;
-		statistic readRuleViolations;
-		statistic writeRuleViolations;
+        //Zoned device statistics (ZAC2)
+        bool zonedDeviceStatisticsSupported;
+        statistic maximumOpenZones;
+        statistic maximumExplicitlyOpenZones;
+        statistic maximumImplicitlyOpenZones;
+        statistic minimumEmptyZones;
+        statistic maximumNonSequentialZones;
+        statistic zonesEmptied;
+        statistic suboptimalWriteCommands;
+        statistic commandsExceedingOptimalLimit;
+        statistic failedExplicitOpens;
+        statistic readRuleViolations;
+        statistic writeRuleViolations;
         //vendor specific
         bool vendorSpecificStatisticsSupported;
         uint8_t vendorSpecificStatisticsPopulated;
@@ -277,19 +277,19 @@ extern "C"
         //timestamp
         bool timeStampSupported;
         statistic dateAndTimeTimestamp;
-		//ZBC Statistics (ZBC2)
-		bool zonedDeviceStatisticsSupported;
-		statistic maximumOpenZones;
-		statistic maximumExplicitlyOpenZones;
-		statistic maximumImplicitlyOpenZones;
-		statistic minimumEmptyZones;
-		statistic maximumNonSequentialZones;
-		statistic zonesEmptied;
-		statistic suboptimalWriteCommands;
-		statistic commandsExceedingOptimalLimit;
-		statistic failedExplicitOpens;
-		statistic readRuleViolations;
-		statistic writeRuleViolations;
+        //ZBC Statistics (ZBC2)
+        bool zonedDeviceStatisticsSupported;
+        statistic maximumOpenZones;
+        statistic maximumExplicitlyOpenZones;
+        statistic maximumImplicitlyOpenZones;
+        statistic minimumEmptyZones;
+        statistic maximumNonSequentialZones;
+        statistic zonesEmptied;
+        statistic suboptimalWriteCommands;
+        statistic commandsExceedingOptimalLimit;
+        statistic failedExplicitOpens;
+        statistic readRuleViolations;
+        statistic writeRuleViolations;
     }sasDeviceStatitics;
 
     //access the proper stats in the union based on device->drive_info.drive_type

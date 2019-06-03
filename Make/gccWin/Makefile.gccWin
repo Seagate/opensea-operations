@@ -64,7 +64,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)drive_info.c\
 	$(SRC_DIR)dst.c \
 	$(SRC_DIR)firmware_download.c \
-	$(SRC_DIR)format_unit.c\
+	$(SRC_DIR)format.c\
 	$(SRC_DIR)generic_tests.c \
 	$(SRC_DIR)host_erase.c \
 	$(SRC_DIR)logs.c \
@@ -75,7 +75,6 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)seagate_operations.c \
 	$(SRC_DIR)sector_repair.c \
 	$(SRC_DIR)set_max_lba.c \
-	$(SRC_DIR)set_sector_size.c\
 	$(SRC_DIR)smart.c \
 	$(SRC_DIR)trim_unmap.c\
 	$(SRC_DIR)writesame.c \

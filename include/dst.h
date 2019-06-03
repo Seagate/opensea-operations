@@ -266,12 +266,13 @@ extern "C"
     //!   \param[in] updateFunction - 
     //!   \param[in] updateData - 
     //!   \param[in] externalErrorList - optional. Only use if you intend to do other things before or after DST & Clean. With this parameter, the ending result error list will not print.
+    //!   \param[in] repaired - flag for Tattoo log for when the drive has been repaired.
     //!
     //  Exit:
     //!   \return SUCCESS = completed DST and clean successfully, !SUCCESS = error limit reached, or unrepairable DST condition
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList);
+    OPENSEA_OPERATIONS_API int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList, bool *repaired);
 
     typedef struct _dstDescriptor
     {

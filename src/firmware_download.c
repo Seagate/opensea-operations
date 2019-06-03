@@ -25,7 +25,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 #ifdef _DEBUG
     printf("--> %s\n",__FUNCTION__);
 #endif
-	if (options->dlMode == DL_FW_ACTIVATE)
+    if (options->dlMode == DL_FW_ACTIVATE)
     {
         if (device->drive_info.drive_type == NVME_DRIVE && options->existingFirmwareImage && options->firmwareSlot == 0)
         {
@@ -34,7 +34,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             return NOT_SUPPORTED;
         }
         ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage);
-		options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+        options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
         if (device->drive_info.drive_type != NVME_DRIVE && ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
         {
@@ -48,9 +48,9 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             device->os_info.fwdlIOsupport.fwdlIOSupported = true;
         }
 #endif
-		return ret; 
+        return ret; 
     }
-	if (options->firmwareMemoryLength == 0)
+    if (options->firmwareMemoryLength == 0)
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
@@ -58,28 +58,28 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         }
         return FAILURE;
     }
-	if (options->dlMode == DL_FW_FULL || options->dlMode == DL_FW_TEMP)
+    if (options->dlMode == DL_FW_FULL || options->dlMode == DL_FW_TEMP)
     {
         //single command to do the whole download
         ret = firmware_Download_Command(device, options->dlMode, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID, false);
-		options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+        options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
     }
     else
     {
-		eDownloadMode specifiedDLMode = options->dlMode;
-		if (device->drive_info.drive_type == NVME_DRIVE)
-		{
-			//switch to deferred and we'll send the activate at the end
-			options->dlMode = DL_FW_DEFERRED;
-		}
-        //multiple commands needed to do the download (segmented)
-		if (options->segmentSize == 0)
+        eDownloadMode specifiedDLMode = options->dlMode;
+        if (device->drive_info.drive_type == NVME_DRIVE)
         {
-			options->segmentSize = 64;
+            //switch to deferred and we'll send the activate at the end
+            options->dlMode = DL_FW_DEFERRED;
         }
-		uint32_t downloadSize = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
-		uint32_t downloadBlocks = options->firmwareMemoryLength / downloadSize;
-		uint32_t downloadRemainder = options->firmwareMemoryLength % downloadSize;
+        //multiple commands needed to do the download (segmented)
+        if (options->segmentSize == 0)
+        {
+            options->segmentSize = 64;
+        }
+        uint32_t downloadSize = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
+        uint32_t downloadBlocks = options->firmwareMemoryLength / downloadSize;
+        uint32_t downloadRemainder = options->firmwareMemoryLength % downloadSize;
         uint32_t downloadOffset = 0;
         uint32_t currentDownloadBlock = 0;
 
@@ -128,8 +128,8 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
 #endif
 #endif
-			ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
-			options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
+            ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
+            options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
 
 #if defined(DISABLE_NVME_PASSTHROUGH)//Remove it later if someone wants to. -X
             if (currentDownloadBlock % 20 == 0)
@@ -147,10 +147,10 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
         }
 
-		if (!downloadRemainder)
-		{
-			options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
-		}
+        if (!downloadRemainder)
+        {
+            options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
+        }
 
         //check to make sure we haven't had a failure yet
         if (ret != SUCCESS)
@@ -158,17 +158,17 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             if (options->dlMode == DL_FW_SEGMENTED && downloadRemainder == 0 && (currentDownloadBlock + 1) == downloadBlocks)
             {
                 //this means that we had an error on the last sector, which is a drive bug in old products.
-				//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
-				//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
-				if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
-				{
-					uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-					get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-					if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
-					{
-						ret = SUCCESS;
-					}
-				}
+                //Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
+                //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
+                if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+                {
+                    uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                    get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                    if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
+                    {
+                        ret = SUCCESS;
+                    }
+                }
             }
         }
 
@@ -189,7 +189,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             //So now we are going to check if this meets those requirements...if not, we need to allocate a different buffer that meets the requirements, copy the data to it, then send the command. - TJE
             if (device->drive_info.drive_type != NVME_DRIVE && device->os_info.fwdlIOsupport.fwdlIOSupported && options->dlMode == DL_FW_DEFERRED)//checking to see if Windows says the FWDL API is supported
             {
-				//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
+                //device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;
                 //ret = firmware_Download_Command(device, options->dlMode, options->useDMA, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset]);
                 if (downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize && (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment == 0))
@@ -213,15 +213,15 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 device->os_info.fwdlIOsupport.isLastSegmentOfDownload = true;//set anyways, just in case.
                 ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
             }
-			//device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
-			device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
+            //device->os_info.fwdlIOsupport.isFirstSegmentOfDownload = false;
+            device->os_info.fwdlIOsupport.isLastSegmentOfDownload = false;
 #else
             //not windows 10 API, so just issue the command
             ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
 #endif
 #else
             //not windows 10 API, so just issue the command
-			ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
+            ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false);
 #endif
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
@@ -230,37 +230,37 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
             if (ret != SUCCESS)
             {
-				if (options->dlMode == DL_FW_SEGMENTED)
-				{
-					//this means that we had an error on the last sector, which is a drive bug in old products.
-					//Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
-					//We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
-					if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
-					{
-						uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-						get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-						if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
-						{
-							ret = SUCCESS;
-						}
-					}
-				}
+                if (options->dlMode == DL_FW_SEGMENTED)
+                {
+                    //this means that we had an error on the last sector, which is a drive bug in old products.
+                    //Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
+                    //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
+                    if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+                    {
+                        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                        if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
+                        {
+                            ret = SUCCESS;
+                        }
+                    }
+                }
             }
-			options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
-			options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
+            options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
+            options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
         }
-		if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
-		{
-			//send an activate command (not an existing slot, this is a new image activation)
-			ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false);
-			options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-		}
+        if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
+        {
+            //send an activate command (not an existing slot, this is a new image activation)
+            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false);
+            options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+        }
 
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("\n");
         }
-		options->avgSegmentDlTime /= (currentDownloadBlock + 1);
+        options->avgSegmentDlTime /= (currentDownloadBlock + 1);
 #if defined (_WIN32) && defined(WINVER)
 #if WINVER >= SEA_WIN32_WINNT_WIN10
         //restore this value back to what it was (if it was ever even changed)
