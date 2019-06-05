@@ -47,7 +47,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
 {
     int ret = SUCCESS;
     uint8_t *reportZones = NULL;
-    uint32_t sectorCount = 64;
+    uint32_t sectorCount = get_Sector_Count_For_512B_Based_XFers(device);
     uint32_t dataBytesToRequest = (((numberOfZoneDescriptors * 64 + 64) + 511) / LEGACY_DRIVE_SEC_SIZE) * LEGACY_DRIVE_SEC_SIZE;//rounds to nearest 512B
     if (!zoneDescriptors || numberOfZoneDescriptors == 0)
     {
