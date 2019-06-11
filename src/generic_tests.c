@@ -883,7 +883,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     bool errorLimitReached = false;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     //only one of these flags should be set. If they are both set, this makes no sense
-    if (repairAtEnd && repairOnTheFly)
+    if ((repairAtEnd && repairOnTheFly) || (repairAtEnd && (errorLimit == 0)))
     {
         return BAD_PARAMETER;
     }
@@ -896,9 +896,12 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     if (errorLimit < 1)
     {
         //need to be able to store at least 1 error
-        errorLimit = 1;
+        errorList = (errorLBA*)calloc(1 * sizeof(errorLBA), sizeof(errorLBA));
     }
-    errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    else
+    {
+        errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    }
     if (!errorList)
     {
         perror("calloc failure\n");
@@ -919,12 +922,14 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\nError Found at LBA %"PRIu64"\n", errorList[errorIndex].errorAddress);
+                printf("\nError Found at LBA %"PRIu64"", errorList[errorIndex].errorAddress);
+                if (errorLimit != 0)
+                    printf("\n");
             }
             //set a new start for next time through the loop to 1 lba past the last error LBA
             startingLBA = errorList[errorIndex].errorAddress + 1;
             range = endingLBA - startingLBA;
-            if (stopOnError || errorIndex >= errorLimit)
+            if (stopOnError || ((errorLimit != 0) && (errorIndex >= errorLimit)))
             {
                 errorLimitReached = true;
                 ret = FAILURE;
@@ -933,7 +938,8 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
             {
                 repair_LBA(device, &errorList[errorIndex], false, autoWriteReassign, autoReadReassign);//This function will set the repair status for us. - TJE
             }
-            errorIndex++;
+            if (errorLimit != 0)
+                errorIndex++;
         }
         else
         {
@@ -981,7 +987,13 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
         {
             if (errorList[0].errorAddress != UINT64_MAX)
             {
-                print_LBA_Error_List(errorList, (uint16_t)errorIndex);
+                if (errorLimit != 0)
+                    print_LBA_Error_List(errorList, (uint16_t)errorIndex);
+                else
+                {
+                    printf("One or more bad LBAs detected during read scan of device.\n");
+                    ret = FAILURE;
+                }
             }
             else
             {
