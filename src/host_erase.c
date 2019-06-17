@@ -30,7 +30,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
         perror("calloc failure! Write Buffer - erase range");
         return MEMORY_FAILURE;
     }
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
@@ -55,7 +55,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
             {
                 memset(&writeBuffer[adjustmentBytes], 0, dataLength - adjustmentBytes);
             }
-            if (VERBOSITY_QUIET < g_verbosity && !hideLBACounter)
+            if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {
                 printf("\rWriting LBA: %-20"PRIu64" (aligned write)", alignedLBA);
                 fflush(stdout);
@@ -96,7 +96,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                     }
                 }
             }
-            if (VERBOSITY_QUIET < g_verbosity &&!hideLBACounter)
+            if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
             {
                 printf("\rWriting LBA: %-40"PRIu64"", iter);
                 fflush(stdout);
@@ -108,7 +108,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                 break;
             }
         }
-        if (VERBOSITY_QUIET < g_verbosity && FAILURE != ret && !hideLBACounter)
+        if (VERBOSITY_QUIET < device->deviceVerbosity && FAILURE != ret && !hideLBACounter)
         {
             if (eraseRangeEnd > device->drive_info.deviceMaxLba)
             {
@@ -122,7 +122,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
         }
     }
     flush_Cache(device);
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
@@ -150,7 +150,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
         safe_Free(writeBuffer);
         return NOT_SUPPORTED;
     }
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
@@ -177,7 +177,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             {
                 memset(&writeBuffer[adjustmentBytes], 0, dataLength - adjustmentBytes);
             }
-            if (VERBOSITY_QUIET < g_verbosity && !hideLBACounter)
+            if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {
                 printf("\rWriting LBA: %-20"PRIu64" (aligned write)", alignedLBA);
                 fflush(stdout);
@@ -198,7 +198,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             sectors = (uint16_t)(device->drive_info.deviceMaxLba - iter);
             dataLength = sectors * device->drive_info.deviceBlockSize;
         }
-        if (VERBOSITY_QUIET < g_verbosity &&!hideLBACounter)
+        if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
         {
             printf("\rWriting LBA: %-40"PRIu64"", iter);
             fflush(stdout);
@@ -216,7 +216,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             sectors = get_Sector_Count_For_Read_Write(device);
         }
     }
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }

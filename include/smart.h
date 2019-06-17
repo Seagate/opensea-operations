@@ -15,6 +15,7 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "ata_helper.h"
 
 #if defined (__cplusplus)
 extern "C"
@@ -54,6 +55,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs);
+
+    OPENSEA_OPERATIONS_API void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attributeName);
 
     typedef enum _eSMARTAttrOutMode
     {
@@ -200,17 +203,11 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_SMART_Enabled(tDevice *device);
 
+    OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(tDevice *device);
+
     OPENSEA_OPERATIONS_API int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount);
 
     OPENSEA_OPERATIONS_API int get_Grown_List_Count(tDevice *device, uint32_t *grownCount);
-
-    typedef enum _eSCTFeature
-    {
-        SCT_FEATURE_CONTROL_WRITE_CACHE_STATE = 1,
-        SCT_FEATURE_CONTROL_WRITE_CACHE_REORDERING = 2,
-        SCT_FEATURE_CONTROL_SET_HDA_TEMPERATURE_INTERVAL = 3,
-        SCT_FEATURE_CONTROL_RESERVED
-    }eSCTFeature;
 
     //-----------------------------------------------------------------------------
     //
@@ -584,7 +581,7 @@ extern "C"
         uint8_t version;
         uint8_t numberOfEntries;
         bool extLog;
-		//TODO: This union isn't really needed...Can remove this sometime
+        //TODO: This union isn't really needed...Can remove this sometime
         union
         {
             SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest

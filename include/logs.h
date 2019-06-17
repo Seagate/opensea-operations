@@ -30,12 +30,12 @@ extern "C" {
         NAMING_BYUSER,   // a way for the command line user to name the file
     }eLogFileNamingConvention;
 
-	typedef enum _eLogPullMode
-	{
-		PULL_LOG_RAW_MODE,			// Dump it to stdout. 
-		PULL_LOG_BIN_FILE_MODE,		// Create a binary file 
-		PULL_LOG_ANALYZE_MODE,		// Humanize the log
-	} eLogPullMode;
+    typedef enum _eLogPullMode
+    {
+        PULL_LOG_RAW_MODE,          // Dump it to stdout. 
+        PULL_LOG_BIN_FILE_MODE,     // Create a binary file 
+        PULL_LOG_ANALYZE_MODE,      // Humanize the log
+    } eLogPullMode;
 
     OPENSEA_OPERATIONS_API int generate_Logfile_Name(tDevice *device,\
                                                   const char * const logName,\
@@ -75,9 +75,9 @@ extern "C" {
     //  get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
     //
     //! \brief   Description: This function will check for the size of an ATA log as reported in the GPL or SMART directory. 
-	//			 The size returned is in bytes. 
-	//			 If a log is not supported, this function will return NOT_SUPPORTED and logfilesize will be set to zero.
-	//			 TIP: Use this function to see if an ATA log is supported or not. 
+    //           The size returned is in bytes. 
+    //           If a log is not supported, this function will return NOT_SUPPORTED and logfilesize will be set to zero.
+    //           TIP: Use this function to see if an ATA log is supported or not. 
     //
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle
@@ -178,9 +178,9 @@ extern "C" {
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,\
-										char *logName, char *fileExtension, bool toBuffer,\
-										uint8_t *myBuf, uint32_t bufSize,\
-										const char * const filePath);
+                                        char *logName, char *fileExtension, bool toBuffer,\
+                                        uint8_t *myBuf, uint32_t bufSize,\
+                                        const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -203,8 +203,8 @@ extern "C" {
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName,\
-										char *fileExtension, bool toBuffer, uint8_t *myBuf,\
-										uint32_t bufSize, const char * const filePath);
+                                        char *fileExtension, bool toBuffer, uint8_t *myBuf,\
+                                        uint32_t bufSize, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -368,7 +368,7 @@ extern "C" {
     //  pull_SCSI_G_List(tDevice *device)
     //
     //! \brief   Description: This function pulls the G-List from SAS drives using the read defect data 12 command. 
-	//						  Pulled with log block address descriptors (LBAs)
+    //                        Pulled with log block address descriptors (LBAs)
     //
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle
@@ -396,99 +396,99 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const filePath);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  print_Supported_Logs()
-	//
-	//! \brief   Description:  This function prints the supported logs to stdout
-	//  Entry:
-	//!   \param device - pointer to the device structure
-	//!   \param flags -  to filter the logs. 
-	//!   
-	//  Exit:
-	//!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int print_Supported_Logs(tDevice *device, uint64_t flags);
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Supported_Logs()
+    //
+    //! \brief   Description:  This function prints the supported logs to stdout
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param flags -  to filter the logs. 
+    //!   
+    //  Exit:
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int print_Supported_Logs(tDevice *device, uint64_t flags);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  print_Supported_SCSI_Logs()
-	//
-	//! \brief   Description:  This function prints the supported SCSI logs to stdout
-	//  Entry:
-	//!   \param device - pointer to the device structure
-	//!   \param flags -  to filter the logs. 
-	//!   
-	//  Exit:
-	//!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags);
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Supported_SCSI_Logs()
+    //
+    //! \brief   Description:  This function prints the supported SCSI logs to stdout
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param flags -  to filter the logs. 
+    //!   
+    //  Exit:
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  print_Supported_ATA_Logs()
-	//
-	//! \brief   Description:  This function prints the supported ATA logs to stdout
-	//  Entry:
-	//!   \param device - pointer to the device structure
-	//!   \param flags -  to filter the logs. 
-	//!   
-	//  Exit:
-	//!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int print_Supported_ATA_Logs(tDevice *device, uint64_t flags);
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Supported_ATA_Logs()
+    //
+    //! \brief   Description:  This function prints the supported ATA logs to stdout
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param flags -  to filter the logs. 
+    //!   
+    //  Exit:
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int print_Supported_ATA_Logs(tDevice *device, uint64_t flags);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  print_Supported_NVMe_Logs()
-	//
-	//! \brief   Description:  This function prints the supported NVMe logs to stdout
-	//  Entry:
-	//!   \param device - pointer to the device structure
-	//!   \param flags -  to filter the logs. 
-	//!   
-	//  Exit:
-	//!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags);
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Supported_NVMe_Logs()
+    //
+    //! \brief   Description:  This function prints the supported NVMe logs to stdout
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param flags -  to filter the logs. 
+    //!   
+    //  Exit:
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags);
 
-	//-----------------------------------------------------------------------------
-	//
-	//  pull_Generic_Log()
-	//
-	//! \brief   Description:  This function prints the supported NVMe logs to stdout
-	//  Entry:
-	//!   \param device - pointer to the device structure
-	//!   \param logNum - log # to pull 
+    //-----------------------------------------------------------------------------
+    //
+    //  pull_Generic_Log()
+    //
+    //! \brief   Description:  This function prints the supported NVMe logs to stdout
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param logNum - log # to pull 
     //!   \param subpage - subpage of the log # to pull (for SCSI)
-	//!	  \param mode   - what mode to pull the log
-	//!	  \param filePath	- path for log file creation (if needed, otherwise set to NULL)
-	//  Exit:
-	//!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage,\
+    //!   \param mode   - what mode to pull the log
+    //!   \param filePath   - path for log file creation (if needed, otherwise set to NULL)
+    //  Exit:
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage,\
         eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
 
     OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
 
     //-----------------------------------------------------------------------------
-	//
-	//  print_Supported_SCSI_Logs()
-	//
-	//! \brief   Description:  This function prints the supported SCSI error history buffer IDs to stdout
-	//  Entry:
-	//!   \param device - pointer to the device structure
-	//!   \param flags -  to filter the logs. 
-	//!   
-	//  Exit:
-	//!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
-	//
-	//-----------------------------------------------------------------------------
+    //
+    //  print_Supported_SCSI_Logs()
+    //
+    //! \brief   Description:  This function prints the supported SCSI error history buffer IDs to stdout
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param flags -  to filter the logs. 
+    //!   
+    //  Exit:
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags);
 
     OPENSEA_OPERATIONS_API bool is_SCSI_Read_Buffer_16_Supported(tDevice *device);//use for determining how to use this command to pull error history
@@ -551,12 +551,31 @@ extern "C" {
     //  Entry:
     //!   \param[in] device = poiner to a valid device structure with a device handle
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
+    //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
+    //!                Any other value will specify a transfer size to use to pull SM2. On ATA, this must be a multiple of 512Bytes
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  is_FARM_Log_Supported(tDevice *device);
+    //
+    //! \brief   Description: This function check's if the Seagate FARM log is supported
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
+
+    OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
 
 #if defined(__cplusplus)
 }

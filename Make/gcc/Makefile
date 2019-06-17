@@ -1,7 +1,7 @@
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012 - 2019 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,19 +17,19 @@ FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
 MAJOR=1
 #Change the Minor version when new features are added. 
-MINOR=19
+MINOR=20
 #Change the patch version when only bug fixes are made.
-PATCH=3
+PATCH=16
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
-INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-common/include -I../../../SeaCTCG/include
-CC=gcc
-AR=ar
+INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
+CC ?= gcc
+AR ?= ar
 #override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
 CFLAGS ?= -Wall 
 CFLAGS += -c -fPIC -I. -std=gnu99
 
-LFLAGS = -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
+LFLAGS ?= -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
 LIB_SRC_FILES = \
 	$(SRC_DIR)ata_Security.c \
 	$(SRC_DIR)dst.c \
@@ -47,14 +47,14 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)sector_repair.c \
 	$(SRC_DIR)trim_unmap.c\
 	$(SRC_DIR)drive_info.c\
-	$(SRC_DIR)format_unit.c\
-	$(SRC_DIR)set_sector_size.c\
+	$(SRC_DIR)format.c\
 	$(SRC_DIR)device_statistics.c\
 	$(SRC_DIR)sas_phy.c\
 	$(SRC_DIR)depopulate.c\
 	$(SRC_DIR)zoned_operations.c\
 	$(SRC_DIR)buffer_test.c\
-	$(SRC_DIR)defect.c
+	$(SRC_DIR)defect.c\
+	$(SRC_DIR)nvme_operations.c
 
 #Only define public stuff 
 PROJECT_DEFINES += #-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG

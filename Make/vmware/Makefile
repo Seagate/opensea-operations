@@ -10,13 +10,13 @@
 # ******************************************************************************************
 
 # Hand Written Makefile (Edit with caution) -Debabrata
-# 
+#
 
 NAME=opensea-operations
 FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
 MAJOR=1
-#Change the Minor version when new features are added. 
+#Change the Minor version when new features are added.
 MINOR=17
 #Change the patch version when only bug fixes are made.
 PATCH=5
@@ -111,7 +111,7 @@ DEV_OBJDIR = beta
 # the following assignment.  The value needs to be empty or non-
 # empty.  If the latter, any content may be used.
 #DEV_APP = 1
-DEV_APP = 
+DEV_APP =
 
 ################
 # Extra compiler and preprocessor flags based on kind of build
@@ -404,11 +404,11 @@ STRIP = strip
 
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
-INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-common/include -I../../../SeaCTCG/include
+INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include -I../../../SeaCTCG/include
 CC=$(VMW_$(VMW_TARGET)_CCBIN)
 AR=ar
 #override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
-CFLAGS ?= -Wall 
+CFLAGS ?= -Wall
 CFLAGS += -c -fPIC -I. $(VMW_$(VMW_TARGET)_COMPILEFLAGS) -std=gnu99
 CFLAGS += -DVMK_CROSS_COMP
 
@@ -430,16 +430,16 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)sector_repair.c \
 	$(SRC_DIR)trim_unmap.c\
 	$(SRC_DIR)drive_info.c\
-	$(SRC_DIR)format_unit.c\
-	$(SRC_DIR)set_sector_size.c\
+	$(SRC_DIR)format.c\
 	$(SRC_DIR)device_statistics.c\
 	$(SRC_DIR)sas_phy.c\
 	$(SRC_DIR)depopulate.c\
 	$(SRC_DIR)zoned_operations.c\
 	$(SRC_DIR)buffer_test.c\
-	$(SRC_DIR)defect.c
+	$(SRC_DIR)defect.c \
+	$(SRC_DIR)nvme_operations.c
 
-#Only define public stuff 
+#Only define public stuff
 PROJECT_DEFINES += $(VMW_EXTRA_DEFS)#-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
 #PROJECT_DEFINES += $(VMW_EXTRA_DEFS) -DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
 
@@ -451,7 +451,7 @@ LIBS = lib$(NAME).a
 
 #-include $(DEPFILES)
 
-.PHONY: all 
+.PHONY: all
 
 all: clean mkoutputdir $(LIBS)
 
@@ -467,7 +467,7 @@ $(LIBS): $(LIB_OBJ_FILES) opensea-libs
 	$(AR) cq $(FILE_OUTPUT_DIR)/$@ $(LIB_OBJ_FILES)
 	#$(CC) -shared $(LIB_OBJ_FILES) $(DEV_$(DEV_OBJDIR)_OBJECTS) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
 	$(CC) $(VMW_$(VMW_TARGET)_COMPILEFLAGS) -shared $(LIB_OBJ_FILES) $(DEV_$(DEV_OBJDIR)_OBJECTS) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
-	cd $(FILE_OUTPUT_DIR) 
+	cd $(FILE_OUTPUT_DIR)
 	ln -s lib$(NAME).so* lib$(NAME).so
 
 clean:
@@ -476,4 +476,3 @@ clean:
 
 mkoutputdir:
 	mkdir -p $(FILE_OUTPUT_DIR)
-

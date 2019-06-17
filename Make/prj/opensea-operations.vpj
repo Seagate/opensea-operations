@@ -75,6 +75,11 @@
                 N="../gcc/Makefile"
                 Type="Makefile"/>
         </Folder>
+        <Folder Name="../gccWin">
+            <F
+                N="../gccWin/Makefile.gccWin"
+                Type="Makefile"/>
+        </Folder>
         <Folder Name="../../include">
             <F N="../../include/ata_Security.h"/>
             <F N="../../include/buffer_test.h"/>
@@ -84,10 +89,11 @@
             <F N="../../include/drive_info.h"/>
             <F N="../../include/dst.h"/>
             <F N="../../include/firmware_download.h"/>
-            <F N="../../include/format_unit.h"/>
+            <F N="../../include/format.h"/>
             <F N="../../include/generic_tests.h"/>
             <F N="../../include/host_erase.h"/>
             <F N="../../include/logs.h"/>
+            <F N="../../include/nvme_operations.h"/>
             <F N="../../include/opensea_operation_version.h"/>
             <F N="../../include/operations.h"/>
             <F N="../../include/operations_Common.h"/>
@@ -97,7 +103,6 @@
             <F N="../../include/seagate_operations.h"/>
             <F N="../../include/sector_repair.h"/>
             <F N="../../include/set_max_lba.h"/>
-            <F N="../../include/set_sector_size.h"/>
             <F N="../../include/smart.h"/>
             <F N="../../include/trim_unmap.h"/>
             <F N="../../include/writesame.h"/>
@@ -112,10 +117,11 @@
             <F N="../../src/drive_info.c"/>
             <F N="../../src/dst.c"/>
             <F N="../../src/firmware_download.c"/>
-            <F N="../../src/format_unit.c"/>
+            <F N="../../src/format.c"/>
             <F N="../../src/generic_tests.c"/>
             <F N="../../src/host_erase.c"/>
             <F N="../../src/logs.c"/>
+            <F N="../../src/nvme_operations.c"/>
             <F N="../../src/operations.c"/>
             <F N="../../src/power_control.c"/>
             <F N="../../src/sanitize.c"/>
@@ -123,11 +129,15 @@
             <F N="../../src/seagate_operations.c"/>
             <F N="../../src/sector_repair.c"/>
             <F N="../../src/set_max_lba.c"/>
-            <F N="../../src/set_sector_size.c"/>
             <F N="../../src/smart.c"/>
             <F N="../../src/trim_unmap.c"/>
             <F N="../../src/writesame.c"/>
             <F N="../../src/zoned_operations.c"/>
+        </Folder>
+        <Folder Name="../vmware">
+            <F
+                N="../vmware/Makefile"
+                Type="Makefile"/>
         </Folder>
     </Files>
 </Project>

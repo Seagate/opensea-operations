@@ -55,6 +55,42 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
 
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_is_NV_DIS_Bit_Set( tDevice * device )
+    //
+    //! \brief   get whether NV_DIS bit in the SCSI Caching mode page is set or not
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!
+    //  Exit:
+    //!   \return true = enabled, false = disabled
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool scsi_is_NV_DIS_Bit_Set(tDevice *device);
+
+    OPENSEA_OPERATIONS_API bool is_NV_Cache_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API bool is_NV_Cache_Enabled(tDevice *device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_Set_NV_DIS( tDevice * device, bool nv_disEnableDisable)
+    //
+    //! \brief   Set the SCSI NV_DIS bit using scsi commands (Caching Mode Page, SBC). setting enableDisable to true turns the NV cache ON (NV_DIS = 0), false turns the cache off (NV_DIS = 1)
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param nv_disEnableDisable - set to true to enable the NV Cache. False to disable the NV cache
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable);
+
     //-----------------------------------------------------------------------------
     //
     //  set_Read_Look_Ahead( tDevice * device )
@@ -166,7 +202,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -183,7 +219,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -200,7 +236,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -217,7 +253,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Write_Cache_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -234,7 +270,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Enabled(tDevice *device);
 
-	OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -253,12 +289,6 @@ extern "C"
 
     OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(tDevice *device);
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-    OPENSEA_OPERATIONS_API int clr_Pcie_Correctable_Errs(tDevice *device);
-    
-    int nvme_set_feature(tDevice *device, uint32_t  nsid, uint8_t  fid, uint32_t  value, bool save, uint32_t  data_len, void *data);
-#endif
-	
     typedef enum _eEraseMethod
     {
         ERASE_NOT_SUPPORTED,
@@ -364,13 +394,33 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
 
-	OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
+    OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
 
     OPENSEA_OPERATIONS_API int enable_Disable_AAM_Feature(tDevice *device, bool enable);
 
     OPENSEA_OPERATIONS_API int set_AAM_Level(tDevice *device, uint8_t apmLevel);
 
     OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
+
+    typedef enum _eSCSI_MP_UPDATE_MODE
+    {
+        UPDATE_SCSI_MP_RESET_TO_DEFAULT,
+        UPDATE_SCSI_MP_RESTORE_TO_SAVED,
+        UPDATE_SCSI_MP_SAVE_CURRENT
+    }eSCSI_MP_UPDATE_MODE;
+
+    OPENSEA_OPERATIONS_API int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode);
+
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput);
+
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput);
+
+    //Should this go into a different file???
+    OPENSEA_OPERATIONS_API int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.
+
+    //NOTE: SPC4 and higher is required to reset only a specific page. Prior to that, all pages will be reset (logpage and logSubPage both set to zero)
+    //This function will return BAD_PARAMETER if the device does not support resetting a specific page (logpage or subpage not equal to zero)
+    OPENSEA_OPERATIONS_API int reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
 
     #if defined (__cplusplus)
 }

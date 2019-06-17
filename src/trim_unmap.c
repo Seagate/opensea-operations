@@ -13,6 +13,69 @@
 
 #include "trim_unmap.h"
 
+bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
+{
+    bool supported = false;
+    if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
+    {
+        uint8_t logBuffer[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+        {
+            bool supportedCapabilities = false;
+            //find the supported capabilities page in the list, then read it
+            uint8_t pageNumber = logBuffer[2];
+            uint16_t revision = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
+            if (pageNumber == (uint8_t)ATA_ID_DATA_LOG_SUPPORTED_PAGES && revision >= 0x0001)
+            {
+                //data is valid, so figure out supported pages
+                uint8_t listLen = logBuffer[8];
+                for (uint16_t iter = 9; iter < (uint16_t)(listLen + 8) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
+                {
+                    switch (logBuffer[iter])
+                    {
+                    case ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES:
+                        supportedCapabilities = true;
+                        break;
+                    case ATA_ID_DATA_LOG_SUPPORTED_PAGES:
+                    case ATA_ID_DATA_LOG_COPY_OF_IDENTIFY_DATA:
+                    case ATA_ID_DATA_LOG_CAPACITY:
+                    case ATA_ID_DATA_LOG_CURRENT_SETTINGS:
+                    case ATA_ID_DATA_LOG_ATA_STRINGS:
+                    case ATA_ID_DATA_LOG_SECURITY:
+                    case ATA_ID_DATA_LOG_PARALLEL_ATA:
+                    case ATA_ID_DATA_LOG_SERIAL_ATA:
+                    case ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION:
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+            if (supportedCapabilities)
+            {
+                memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                {
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= 0x0001)
+                    {
+                        uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        if (supportedCapabilities & BIT63)
+                        {
+                            if (supportedCapabilities & BIT50)
+                            {
+                                supported = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //NOTE: we can add reading the ID Data log through SMART read log, but there is no point. Everything should have it in GPL that would support this command.
+    return supported;
+}
+
 bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDescriptors, uint32_t *maxLBACount)
 {
     bool supported = false;
@@ -181,16 +244,20 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     uint32_t maxTrimOrUnmapBlockDescriptors = 0, maxLBACount = 0;
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {
-    	uint64_t finalLBA = startLBA + range;
-    	uint32_t numberOfLBAsToTrim = (uint32_t)((startLBA + range) - startLBA);
-        uint16_t trimRange = (uint16_t)M_Min(numberOfLBAsToTrim, UINT16_MAX);//range must be FFFFh or less, so take the minimum of these two
+        bool xlCommand = is_ATA_Data_Set_Management_XL_Supported(device);
+        uint64_t maxRange = xlCommand ? UINT64_MAX : UINT16_MAX;//xl = uint64_max, regular = uint16_max
+        uint16_t maxEntriesPerPage = xlCommand ? 32 : 64;//regular cmd = 64, regular = 32
+        uint8_t entryLengthBytes = xlCommand ? 16 : 8;
+        uint64_t finalLBA = startLBA + range;
+        uint64_t numberOfLBAsToTrim = ((startLBA + range) - startLBA);
+        uint64_t trimRange = (uint16_t)M_Min(numberOfLBAsToTrim, maxRange);//range must be FFFFh or less, so take the minimum of these two
         uint64_t trimDescriptors = ((numberOfLBAsToTrim + trimRange) - 1) / trimRange;//need to make sure this division rounds up as necessary so the whole range gets TRIMed
-        uint64_t trimBufferLen = (uint64_t)((((trimDescriptors + 64) - 1) / 64) * LEGACY_DRIVE_SEC_SIZE);//maximum of 64 TRIM entries per sector
+        uint64_t trimBufferLen = (uint64_t)((((trimDescriptors + maxEntriesPerPage) - 1) / maxEntriesPerPage) * LEGACY_DRIVE_SEC_SIZE);//maximum of 64 TRIM entries per sector
         uint8_t *trimBuffer = (uint8_t*)calloc((size_t)trimBufferLen, sizeof(uint8_t));
         uint64_t trimLBA = 0;
         uint64_t bufferIter = 0;
         uint16_t trimCommands = 0;
-        uint16_t maxTRIMdataBlocks = (uint16_t)(maxTrimOrUnmapBlockDescriptors / 64);
+        uint16_t maxTRIMdataBlocks = (uint16_t)(maxTrimOrUnmapBlockDescriptors / maxEntriesPerPage);
         uint16_t numberOfTRIMCommandsRequired = (uint16_t)((((trimBufferLen / LEGACY_DRIVE_SEC_SIZE) + maxTRIMdataBlocks) - 1) / maxTRIMdataBlocks);
         uint32_t trimCommandLen = (uint32_t)(M_Min(maxTRIMdataBlocks * LEGACY_DRIVE_SEC_SIZE, trimBufferLen));
         if (!trimBuffer)
@@ -199,12 +266,12 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             return MEMORY_FAILURE;
         }
         //fill in the data buffer for a TRIM command
-        for (trimLBA = startLBA; trimLBA < finalLBA && (bufferIter + 7) < trimBufferLen; trimLBA += trimRange, bufferIter += 8)
+        for (trimLBA = startLBA; trimLBA < finalLBA && (bufferIter + (xlCommand - 1)) < trimBufferLen; trimLBA += trimRange, bufferIter += entryLengthBytes)
         {
             //make sure we don't go beyond the ending LBA for our TRIM, so adjust the range to fit
             if ((trimLBA + trimRange) > finalLBA)
             {
-                trimRange = (uint16_t)(finalLBA - trimLBA);
+                trimRange = (finalLBA - trimLBA);
             }
             //set the LBA
             trimBuffer[bufferIter] = M_Byte0(trimLBA);
@@ -214,8 +281,24 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             trimBuffer[bufferIter + 4] = M_Byte4(trimLBA);
             trimBuffer[bufferIter + 5] = M_Byte5(trimLBA);
             //set the range
-            trimBuffer[bufferIter + 6] = M_Byte0(trimRange);
-            trimBuffer[bufferIter + 7] = M_Byte1(trimRange);
+            if (xlCommand)
+            {
+                trimBuffer[bufferIter + 6] = RESERVED;
+                trimBuffer[bufferIter + 7] = RESERVED;
+                trimBuffer[bufferIter + 8] = M_Byte0(trimRange);
+                trimBuffer[bufferIter + 9] = M_Byte1(trimRange);
+                trimBuffer[bufferIter + 10] = M_Byte2(trimRange);
+                trimBuffer[bufferIter + 11] = M_Byte3(trimRange);
+                trimBuffer[bufferIter + 12] = M_Byte4(trimRange);
+                trimBuffer[bufferIter + 13] = M_Byte5(trimRange);
+                trimBuffer[bufferIter + 14] = M_Byte6(trimRange);
+                trimBuffer[bufferIter + 15] = M_Byte7(trimRange);
+            }
+            else
+            {
+                trimBuffer[bufferIter + 6] = M_Byte0(trimRange);
+                trimBuffer[bufferIter + 7] = M_Byte1(trimRange);
+            }
         }
         //send the command(s)
 #if defined(_DEBUG)
@@ -231,7 +314,7 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             {
                 trimCommandLen = (uint32_t)(trimBufferLen - (trimCommandLen * trimCommands));
             }
-            if (ata_Data_Set_Management(device, true, &trimBuffer[trimOffset], trimCommandLen) != SUCCESS)
+            if (ata_Data_Set_Management(device, true, &trimBuffer[trimOffset], trimCommandLen, xlCommand) != SUCCESS)
             {
                 ret = FAILURE;
                 break;

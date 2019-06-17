@@ -23,8 +23,9 @@
 #include "writesame.h"
 #include "ata_Security.h"
 #include "trim_unmap.h"
-#include "format_unit.h"
+#include "format.h"
 #include "dst.h"
+#include "logs.h"//for SCSI mode pages
 
 int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
 {
@@ -80,7 +81,7 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
             {
                 if (modeSelect[2 + MODE_PARAMETER_HEADER_10_LEN] & BIT4)
                 {
-					readyLEDOnOff = true;//set to true so that we turn the bit on
+                    readyLEDOnOff = true;//set to true so that we turn the bit on
                 }
             }
             memset(modeSelect, 0, 24);
@@ -113,7 +114,7 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
             modeSelect[6] = 0;
             modeSelect[7] = 0;
             //send the mode select command
-            ret = scsi_Mode_Select_10(device, 24, true, true, modeSelect, 24);
+            ret = scsi_Mode_Select_10(device, 24, true, true, false, modeSelect, 24);
         }
         safe_Free(modeSelect);
     }
@@ -121,6 +122,63 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
     {
         ret = NOT_SUPPORTED;
     }
+    return ret;
+}
+
+//SBC spec. Caching Mode Page NV_DIS
+int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
+{
+    int ret = UNKNOWN;
+
+    if (device->drive_info.drive_type != SCSI_DRIVE)
+    {
+        return NOT_SUPPORTED;
+    }
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return MEMORY_FAILURE;
+    }
+    //first read the current settings
+    ret = scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage);
+    if (ret == SUCCESS)
+    {
+        //set up the mode parameter header
+        //mode data length
+        cachingModePage[0] = M_Byte1(MP_CACHING_LEN + (MODE_PARAMETER_HEADER_10_LEN - 2));//add 6 to omit the length bytes
+        cachingModePage[1] = M_Byte0(MP_CACHING_LEN + (MODE_PARAMETER_HEADER_10_LEN - 2));
+        //medium type
+        cachingModePage[2] = 0;
+        //device specific
+        cachingModePage[3] = 0;
+        //reserved and LongLBA bit
+        cachingModePage[4] = RESERVED;
+        //reserved
+        cachingModePage[5] = RESERVED;
+        //block desciptor length
+        cachingModePage[6] = 0;
+        cachingModePage[7] = 0;
+        //now go change the bit to what we need it to, then send a mode select command
+        if (!nv_disEnableDisable)
+        {
+            //Disable the NV Cache (set the NV_DIS to one)
+            cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] |= BIT0;
+        }
+        else
+        {
+            //Enable the NV Cache (set the NV_DIS to zero)
+            //turn the bit off if it is already set
+            if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
+            {
+                cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] ^= BIT0;
+            }
+        }
+        //send the mode select command
+        ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    }
+    safe_Free(cachingModePage);
     return ret;
 }
 
@@ -167,7 +225,7 @@ int scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
             }
         }
         //send the mode select command
-        ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+        ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
     }
     safe_Free(cachingModePage);
     return ret;
@@ -249,7 +307,7 @@ int scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
             }
         }
         //send the mode select command
-        ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+        ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
     }
     safe_Free(cachingModePage);
     return ret;
@@ -314,58 +372,68 @@ int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 
 bool is_Read_Look_Ahead_Supported(tDevice *device)
 {
-	if (device->drive_info.drive_type == SCSI_DRIVE)
-	{
-		return scsi_Is_Read_Look_Ahead_Supported(device);
-	}
-	else if (device->drive_info.drive_type == ATA_DRIVE)
-	{
-		return ata_Is_Read_Look_Ahead_Supported(device);
-	}
-	return false;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return scsi_Is_Read_Look_Ahead_Supported(device);
+    }
+    else if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        return ata_Is_Read_Look_Ahead_Supported(device);
+    }
+    return false;
 }
 //TODO: this uses the RCD bit. Old drives don't have this. Do something to detect this on legacy products later
 bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
 {
-	bool supported = false;
-	//on SAS we change this through a mode page
-	uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
-	if (cachingModePage == NULL)
-	{
-		perror("calloc failure!");
-		return false;
-	}
-	//if changable, then it is supported
-	if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5)
-		{
-			supported = true;
-		}
-	}
-	memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
-	//check default to see if it is enabled and just cannot be disabled (unlikely)
-	if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (!(cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5))
-		{
-			supported = true;//if it is enabled by default, then it's supported
-		}
-	}
-	safe_Free(cachingModePage);
-	return supported;
+    bool supported = false;
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return false;
+    }
+    //if changable, then it is supported
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5)
+        {
+            supported = true;
+        }
+    }
+    memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    //check default to see if it is enabled and just cannot be disabled (unlikely)
+    if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (!(cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5))
+        {
+            supported = true;//if it is enabled by default, then it's supported
+        }
+    }
+    safe_Free(cachingModePage);
+    return supported;
 }
 
 bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
 {
-	bool supported = false;
-	if (device->drive_info.IdentifyData.ata.Word082 & BIT6)
-	{
-		supported = true;
-	}
-	return supported;
+    bool supported = false;
+    if (device->drive_info.IdentifyData.ata.Word082 & BIT6)
+    {
+        supported = true;
+    }
+    return supported;
+}
+
+bool is_NV_Cache_Enabled(tDevice *device)
+{
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return !scsi_is_NV_DIS_Bit_Set(device);//since this function returns when the bit is set to 1 (meaning cache disabled), then we need to flip that bit for this use.
+    }
+    //Not sure if ATA or NVMe support this. 
+    return false;
 }
 
 bool is_Read_Look_Ahead_Enabled(tDevice *device)
@@ -379,6 +447,60 @@ bool is_Read_Look_Ahead_Enabled(tDevice *device)
         return ata_Is_Read_Look_Ahead_Enabled(device);
     }
     return false;
+}
+
+//TODO: SPC3 added this page, but the NV_DIS bit is on the caching mode page.
+//      We may want to add extra logic to see if the NV_DIS bit is set to 1 on the caching mode page.
+bool scsi_Is_NV_Cache_Supported(tDevice *device)
+{
+    bool supported = false;
+    //check the extended inquiry data for the NV_SUP bit
+    uint8_t extInq[VPD_EXTENDED_INQUIRY_LEN] = { 0 };
+    if (SUCCESS == scsi_Inquiry(device, extInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+    {
+        if (extInq[6] & BIT1)
+        {
+            supported = true;
+        }
+    }
+    return supported;
+}
+
+bool is_NV_Cache_Supported(tDevice *device)
+{
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return scsi_Is_NV_Cache_Supported(device);
+    }
+    return false;
+}
+
+bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
+{
+    bool enabled = false;
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return false;
+    }
+    //first read the current settings
+    if(SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
+        {
+            //This means that the NV cache is disabled when this bit is set to 1
+            enabled = true;
+        }
+        else
+        {
+            enabled = false;
+        }
+    }
+    safe_Free(cachingModePage);
+    return enabled;
 }
 
 bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
@@ -421,77 +543,77 @@ bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device)
 #if !defined (DISABLE_NVME_PASSTHROUGH)
 bool nvme_Is_Write_Cache_Supported(tDevice *device)
 {
-	bool supported = false;
-	if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
-	{
-		supported = true;
-	}
-	return supported;
+    bool supported = false;
+    if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
+    {
+        supported = true;
+    }
+    return supported;
 }
 #endif
 
 bool is_Write_Cache_Supported(tDevice *device)
 {
-	switch (device->drive_info.drive_type)
-	{
-	case NVME_DRIVE:
+    switch (device->drive_info.drive_type)
+    {
+    case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-		return nvme_Is_Write_Cache_Supported(device);
-		break;
+        return nvme_Is_Write_Cache_Supported(device);
+        break;
 #endif
-	case SCSI_DRIVE:
-		return scsi_Is_Write_Cache_Supported(device);
-		break;
-	case ATA_DRIVE:
-		return ata_Is_Write_Cache_Supported(device);
-		break;
-	default:
-		break;
-	}
-	return false;
+    case SCSI_DRIVE:
+        return scsi_Is_Write_Cache_Supported(device);
+        break;
+    case ATA_DRIVE:
+        return ata_Is_Write_Cache_Supported(device);
+        break;
+    default:
+        break;
+    }
+    return false;
 }
 
 bool scsi_Is_Write_Cache_Supported(tDevice *device)
 {
-	bool supported = false;
-	//on SAS we change this through a mode page
-	uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
-	if (cachingModePage == NULL)
-	{
-		perror("calloc failure!");
-		return false;
-	}
-	//if changable, then it is supported
-	if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
-		{
-			supported = true;
-		}
-	}
-	memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
-	//check default to see if it is enabled and just cannot be disabled (unlikely)
-	if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
-	{
-		//check the offset to see if the bit is set.
-		if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
-		{
-			supported = true;//if it is enabled by default, then it's supported
-		}
-	}
-	safe_Free(cachingModePage);
-	return supported;
+    bool supported = false;
+    //on SAS we change this through a mode page
+    uint8_t *cachingModePage = (uint8_t*)calloc(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+    if (cachingModePage == NULL)
+    {
+        perror("calloc failure!");
+        return false;
+    }
+    //if changable, then it is supported
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CHANGABLE_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
+        {
+            supported = true;
+        }
+    }
+    memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    //check default to see if it is enabled and just cannot be disabled (unlikely)
+    if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
+    {
+        //check the offset to see if the bit is set.
+        if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT2)
+        {
+            supported = true;//if it is enabled by default, then it's supported
+        }
+    }
+    safe_Free(cachingModePage);
+    return supported;
 }
 
 bool ata_Is_Write_Cache_Supported(tDevice *device)
 {
-	bool supported = false;
-	if (device->drive_info.IdentifyData.ata.Word082 & BIT5)
-	{
-		supported = true;
-	}
-	return supported;
+    bool supported = false;
+    if (device->drive_info.IdentifyData.ata.Word082 & BIT5)
+    {
+        supported = true;
+    }
+    return supported;
 }
 
 #if !defined (DISABLE_NVME_PASSTHROUGH)
@@ -928,11 +1050,11 @@ int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorF
     //write the change to the drive
     if (mode6ByteCmd)
     {
-        ret = scsi_Mode_Select_6(device, MODE_PARAMETER_HEADER_6_LEN + 12, true, saveParameters, controlModePage, MODE_PARAMETER_HEADER_6_LEN + 12);
+        ret = scsi_Mode_Select_6(device, MODE_PARAMETER_HEADER_6_LEN + 12, true, saveParameters, false, controlModePage, MODE_PARAMETER_HEADER_6_LEN + 12);
     }
     else
     {
-        ret = scsi_Mode_Select_10(device, MODE_PARAMETER_HEADER_10_LEN + 12, true, saveParameters, controlModePage, MODE_PARAMETER_HEADER_10_LEN + 12);
+        ret = scsi_Mode_Select_10(device, MODE_PARAMETER_HEADER_10_LEN + 12, true, saveParameters, false, controlModePage, MODE_PARAMETER_HEADER_10_LEN + 12);
     }
     return ret;
 }
@@ -987,20 +1109,20 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
 
 void show_Test_Unit_Ready_Status(tDevice *device)
 {
-	scsiStatus returnedStatus = { 0 };
-	int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
-	if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
-	{
-		printf("READY\n");
-	}
-	else
-	{
-		eVerbosityLevels tempVerbosity = g_verbosity;
-		printf("NOT READY\n");
-		g_verbosity = VERBOSITY_COMMAND_NAMES;//the function below will print out a sense data translation, but only it we are at this verbosity or higher which is why it's set before this call.
-		check_Sense_Key_ASC_ASCQ_And_FRU(device, returnedStatus.senseKey, returnedStatus.asc, returnedStatus.ascq, returnedStatus.fru);
-		g_verbosity = tempVerbosity;//restore it back to what it was now that this is done.
-	}
+    scsiStatus returnedStatus = { 0 };
+    int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
+    if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
+    {
+        printf("READY\n");
+    }
+    else
+    {
+        eVerbosityLevels tempVerbosity = device->deviceVerbosity;
+        printf("NOT READY\n");
+        device->deviceVerbosity = VERBOSITY_COMMAND_NAMES;//the function below will print out a sense data translation, but only it we are at this verbosity or higher which is why it's set before this call.
+        check_Sense_Key_ASC_ASCQ_And_FRU(device, returnedStatus.senseKey, returnedStatus.asc, returnedStatus.ascq, returnedStatus.fru);
+        device->deviceVerbosity = tempVerbosity;//restore it back to what it was now that this is done.
+    }
 }
 
 int enable_Disable_AAM_Feature(tDevice *device, bool enable)
@@ -1069,38 +1191,1129 @@ int get_AAM_Level(tDevice *device, uint8_t *aamLevel)
 }
 
 
-
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-
-int clr_Pcie_Correctable_Errs(tDevice *device)
+bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device)
 {
-    const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
-    const char *save = "specifies that the controller shall save the attribute";
-    int err;
-    void *buf = NULL;
-
-    struct config {
-        int   save;
-    };
-
-    struct config cfg = {
-        .save         = 0,
-    };
-    err = nvme_set_feature( device, 0, 0xE1, 0xCB, cfg.save, 0, buf);
-	if (err < 0) {
-        perror("set-feature");
-        return errno;
+    bool supported = false;
+    if (device->drive_info.scsiVersion >= SCSI_VERSION_SCSI2)//VPD added in SCSI2
+    {
+        uint8_t extendedInquiryData[VPD_EXTENDED_INQUIRY_LEN] = { 0 };
+        if (SUCCESS == scsi_Inquiry(device, extendedInquiryData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+        {
+            if (extendedInquiryData[1] == EXTENDED_INQUIRY_DATA)
+            {
+                supported = extendedInquiryData[8] & BIT3;
+            }
+        }
     }
-
-    return err;
-
+    return supported;
 }
 
-int nvme_set_feature(tDevice *device, unsigned int nsid,unsigned char fid, unsigned int value, bool save, unsigned int  data_len, void *data)
+
+int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode)
 {
-	unsigned int cdw10 = fid | (save ? 1 << 31 : 0);
-
-	return pci_Correctble_Err( device, 0x09, nsid, cdw10, value, data_len, data);
+    int ret = NOT_SUPPORTED;
+    uint32_t modePageLength = 0;
+    eScsiModePageControl mpc = MPC_DEFAULT_VALUES;
+    switch (updateMode)
+    {
+    case UPDATE_SCSI_MP_RESTORE_TO_SAVED:
+        mpc = MPC_SAVED_VALUES;
+        break;
+    case UPDATE_SCSI_MP_SAVE_CURRENT:
+        mpc = MPC_CURRENT_VALUES;
+        break;
+    case UPDATE_SCSI_MP_RESET_TO_DEFAULT:
+    default:
+        mpc = MPC_DEFAULT_VALUES;
+        break;
+    }
+    if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)//if asking for all mode pages, all mode pages and subpages, or all subpages of a specific page, we need to handle it in here.
+    {
+        //if resetting all pages, check if the RTD bit is supported to simplify the process...-TJE
+        if (mpc == MPC_DEFAULT_VALUES && modePage == MP_RETURN_ALL_PAGES && subpage == MP_SP_ALL_SUBPAGES && scsi_MP_Reset_To_Defaults_Supported(device))
+        {
+            //requesting to reset all mode pages. Send the mode select command with the RTD bit set.
+            ret = scsi_Mode_Select_10(device, 0, true, true, true, NULL, 0);
+            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)//checking for invalid operation code
+            {
+                //retry with 6 byte command since 10 byte op code was not recognizd.
+                ret = scsi_Mode_Select_6(device, 0, true, true, true, NULL, 0);
+            }
+        }
+        else
+        {
+            if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
+            {
+                uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+                if (!modeData)
+                {
+                    return MEMORY_FAILURE;
+                }
+                //now read all the data
+                bool used6ByteCmd = false;
+                if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+                {
+                    //now we need to loop through each page, and send it to the drive as a new mode select command.
+                    uint32_t offset = 0;
+                    uint16_t blockDescriptorLength = 0;
+                    if (!used6ByteCmd)
+                    {
+                        //got 10 byte command data
+                        blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                        offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                    }
+                    else
+                    {
+                        //got 6 byte command data.
+                        blockDescriptorLength = modeData[3];
+                        offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                    }
+                    uint16_t currentPageLength = 0;
+                    uint16_t counter = 0, failedModeSelects = 0;
+                    for (; offset < modePageLength; offset += currentPageLength, ++counter)
+                    {
+                        uint8_t* currentPageToSet = NULL;
+                        uint32_t currentPageToSetLength = used6ByteCmd ? MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength : MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                        uint8_t currentPage = M_GETBITRANGE(modeData[offset + 0], 5, 0);
+                        uint8_t currentSubPage = 0;
+                        uint16_t currentPageOffset = 0;
+                        if (modeData[offset] & BIT6)
+                        {
+                            //subpage format
+                            currentSubPage = modeData[offset + 1];
+                            currentPageLength = M_BytesTo2ByteValue(modeData[offset + 2], modeData[offset + 3]) + 4;//add 4 bytes for page code, subpage code, & page length bytes
+                        }
+                        else
+                        {
+                            currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
+                        }
+                        currentPageToSetLength += currentPageLength;
+                        currentPageToSet = (uint8_t*)calloc(currentPageToSetLength, sizeof(uint8_t));
+                        if (!currentPageToSet)
+                        {
+                            safe_Free(modeData);
+                            return MEMORY_FAILURE;
+                        }
+                        if (used6ByteCmd)
+                        {
+                            //copy header and block descriptors (if any)
+                            currentPageOffset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                            memcpy(currentPageToSet, &modeData[0], MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength);
+                            //now zero out the reserved bytes for the mode select command
+                            currentPageToSet[0] = 0;//mode data length is reserved for mode select commands
+                            //leave medium type alone
+                            //leave device specific parameter alone???
+                            //leave block descriptor length alone in case we got some.
+                        }
+                        else
+                        {
+                            //copy header and block descriptors (if any)
+                            currentPageOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                            memcpy(currentPageToSet, &modeData[0], MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength);
+                            //now zero out the reserved bytes for the mode select command
+                            currentPageToSet[0] = 0;//mode data length is reserved for mode select commands
+                            currentPageToSet[1] = 0;
+                            //leave medium type alone
+                            //leave device specific parameter alone???
+                            //leave block descriptor length alone in case we got some.
+                        }
+                        //now we need to copy the default data over now, then send it to the drive.
+                        memcpy(&currentPageToSet[currentPageOffset], &modeData[offset], currentPageLength);
+                        bool pageFormat = currentPage == 0 ? false : true;//set to false when reading vendor unique page zero
+                        bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
+                        if (used6ByteCmd)
+                        {
+                            if (SUCCESS != scsi_Mode_Select_6(device, currentPageToSetLength, pageFormat, savable, false, currentPageToSet, currentPageToSetLength))
+                            {
+                                ++failedModeSelects;
+                                printf("WARNING! Unable to reset page %" PRIX8 "h", currentPage);
+                                if (currentSubPage != 0)
+                                {
+                                    printf(" - %" PRIX8 "h", currentSubPage);
+                                }
+                                else
+                                {
+                                    printf("\n");
+                                }
+                            }
+                            else
+                            {
+                                ret = SUCCESS;
+                            }
+                        }
+                        else
+                        {
+                            if (SUCCESS != scsi_Mode_Select_10(device, currentPageToSetLength, pageFormat, savable, false, currentPageToSet, currentPageToSetLength))
+                            {
+                                ++failedModeSelects;
+                                printf("WARNING! Unable to reset page %" PRIX8 "h", currentPage);
+                                if (currentSubPage != 0)
+                                {
+                                    printf(" - %" PRIX8 "h", currentSubPage);
+                                }
+                                else
+                                {
+                                    printf("\n");
+                                }
+                            }
+                            else
+                            {
+                                ret = SUCCESS;
+                            }
+                        }
+                        safe_Free(currentPageToSet);
+                    }
+                    if (counter > 0 && counter == failedModeSelects)
+                    {
+                        ret = FAILURE;
+                    }
+                }
+                else
+                {
+                    ret = FAILURE;
+                }
+                safe_Free(modeData);
+            }
+            else
+            {
+                //mode page not supported most likely
+            }
+        }
+    }
+    else
+    {
+        //individual page...easy peasy
+        if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
+        {
+            uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+            if (!modeData)
+            {
+                return MEMORY_FAILURE;
+            }
+            //now read all the data
+            bool used6ByteCmd = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            {
+                uint16_t offset = 0;
+                uint16_t blockDescriptorLength = 0;
+                if (used6ByteCmd)
+                {
+                    blockDescriptorLength = modeData[3];
+                    offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                    //now zero out the reserved bytes for the mode select command
+                    modeData[0] = 0;//mode data length is reserved for mode select commands
+                    //leave medium type alone
+                    //leave device specific parameter alone???
+                    //leave block descriptor length alone in case we got some.
+                }
+                else
+                {
+                    blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                    offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                    //now zero out the reserved bytes for the mode select command
+                    modeData[0] = 0;//mode data length is reserved for mode select commands
+                    modeData[1] = 0;
+                    //leave medium type alone
+                    //leave device specific parameter alone???
+                    //leave block descriptor length alone in case we got some.
+                }
+                //now send the mode select command
+                bool pageFormat = modePage == 0 ? false : true;//set to false when reading vendor unique page zero
+                bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
+                if (used6ByteCmd)
+                {
+                    if (SUCCESS != scsi_Mode_Select_6(device, modePageLength, pageFormat, savable, false, modeData, modePageLength))
+                    {
+                        ret = FAILURE;
+                    }
+                    else
+                    {
+                        ret = SUCCESS;
+                    }
+                }
+                else
+                {
+                    if (SUCCESS != scsi_Mode_Select_10(device, modePageLength, pageFormat, savable, false, modeData, modePageLength))
+                    {
+                        ret = FAILURE;
+                    }
+                    else
+                    {
+                        ret = SUCCESS;
+                    }
+                }
+            }
+            safe_Free(modeData);
+        }
+        else
+        {
+            //most likely not a supported page
+        }
+    }
+    return ret;
 }
 
-#endif
+//TODO: should we have another parameter to disable saving the page if they just want to make a temporary change?
+//If this is done. Do we want to just send the command, or do we want to turn off saving if the page isn't savable?
+int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
+{
+    int ret = NOT_SUPPORTED;
+    if (!modePageData || modeDataLength == 0)
+    {
+        return BAD_PARAMETER;
+    }
+    uint32_t modePageLength = 0;
+    uint8_t modePage = M_GETBITRANGE(modePageData[0], 5, 0);
+    uint8_t subpage = 0;
+    if (modePageData[0] & BIT6)
+    {
+        //subpage format
+        subpage = modePageData[1];
+    }
+    //even though we have the data we want to send, we must ALWAYS request the page first, then modify the data and send it back.
+    if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
+    {
+        uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+        if (!modeData)
+        {
+            return MEMORY_FAILURE;
+        }
+        //now read all the data
+        bool used6ByteCmd = false;
+        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+        {
+            uint16_t offset = 0;
+            uint16_t blockDescriptorLength = 0;
+            if (used6ByteCmd)
+            {
+                blockDescriptorLength = modeData[3];
+                offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                //now zero out the reserved bytes for the mode select command
+                modeData[0] = 0;//mode data length is reserved for mode select commands
+                //leave medium type alone
+                //leave device specific parameter alone???
+                //leave block descriptor length alone in case we got some.
+            }
+            else
+            {
+                blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                //now zero out the reserved bytes for the mode select command
+                modeData[0] = 0;//mode data length is reserved for mode select commands
+                modeData[1] = 0;
+                //leave medium type alone
+                //leave device specific parameter alone???
+                //leave block descriptor length alone in case we got some.
+            }
+            //copy the incoming buffer (which is ONLY mode page data)
+            memcpy(&modeData[offset], modePageData, M_Min(modeDataLength, modePageLength));
+            //now send the mode select command
+            bool pageFormat = modePage == 0 ? false : true;//set to false when reading vendor unique page zero
+            //bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
+            if (used6ByteCmd)
+            {
+                if (SUCCESS != scsi_Mode_Select_6(device, modePageLength, pageFormat, saveChanges, false, modeData, modePageLength))
+                {
+                    ret = FAILURE;
+                }
+                else
+                {
+                    ret = SUCCESS;
+                }
+            }
+            else
+            {
+                if (SUCCESS != scsi_Mode_Select_10(device, modePageLength, pageFormat, saveChanges, false, modeData, modePageLength))
+                {
+                    ret = FAILURE;
+                }
+                else
+                {
+                    ret = SUCCESS;
+                }
+            }
+        }
+        safe_Free(modeData);
+    }
+    else
+    {
+        //most likely not a supported page
+    }
+    return ret;
+}
+
+#define SCSI_MODE_PAGE_NAME_MAX_LENGTH 40
+//TODO: this doesn't take into account some pages being device type specific. It does try for page 1Ch an 1Dh
+void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char *mpName)
+{
+    scsiDeviceType = M_GETBITRANGE(scsiDeviceType, 4, 0);//strip off the qualifier if it was passed
+    switch (modePage)
+    {
+    case 0x00://vendor unique
+        break;
+    case 0x01:
+        switch (subpage)
+        {
+        case 0x00://read-write error recovery
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Read-Write Error Recovery");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x02:
+        switch (subpage)
+        {
+        case 0x00://disconnect-reconnect
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Disconnect-Reconnect");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x03:
+        switch (subpage)
+        {
+        case 0x00://Format Device (block devie) or MRW CD-RW (cd/dvd)
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Format Device");
+                break;
+            case PERIPHERAL_CD_DVD_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "MRW CD-RW");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x04:
+        switch (subpage)
+        {
+        case 0x00://Rigid Disk Geometry
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Rigid Disk Geometry");
+            break;
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x05:
+        switch (subpage)
+        {
+        case 0x00://flexible disk
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Flexible Disk");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x06:
+        switch (subpage)
+        {
+        case 0x00://optical memory (SBC) OR RBC device parameters
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_OPTICAL_MEMORY_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Optical Memory");
+                break;
+            case PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "RBC Device Parameters");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x07:
+        switch (subpage)
+        {
+        case 0x00://verify error recovery
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Verify Error Recovery");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x08:
+        switch (subpage)
+        {
+        case 0x00://Caching
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Caching");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x09:
+        switch (subpage)
+        {
+        case 0x00://peripheral device
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Peripheral Device");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0A:
+        switch (subpage)
+        {
+        case 0x00://control
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control");
+            break;
+        case 0x01://control extension
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Extension");
+            break;
+        case 0x02://application tag
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Application Tag");
+            break;
+        case 0x03://command duration limit A
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit A");
+            break;
+        case 0x04://command duration limit B
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit B");
+            break;
+        case 0x05://IO Advice Hints Grouping
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "IO Advice Hints Grouping");
+            break;
+        case 0x06://Background Operation Control
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Operation Control");
+            break;
+        case 0xF0://Control Data Protection
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Data Protection");
+            break;
+        case 0xF1://PATA Control
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "PATA Control");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0B:
+        switch (subpage)
+        {
+        case 0x00://Medium Types Supported
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Types Supported");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0C:
+        switch (subpage)
+        {
+        case 0x00://notch and partition
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Notch And Partition");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0D:
+        switch (subpage)
+        {
+        case 0x00://Power Condition (direct accessblock device) or CD Device Parameters
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
+                break;
+            case PERIPHERAL_CD_DVD_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Device Parameters");
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0E:
+        switch (subpage)
+        {
+        case 0x00://CD Audio Control
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Audio Control");
+            break;
+        case 0x01://Target Device
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device");
+            break;
+        case 0x02://DT Device Primary Port
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "DT Devuce Primary Port");
+            break;
+        case 0x03://Logical Unit
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Unit");
+            break;
+        case 0x04://Target Device Serial Number
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device Serial Number");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x0F:
+        switch (subpage)
+        {
+        case 0x00://Data Compression
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Data Compression");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x10:
+        switch (subpage)
+        {
+        case 0x00://XOR Control (direct access) OR Device configuration (tape)
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "XOR Control");
+                break;
+            case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration");
+                break;
+            default:
+                break;
+            }
+        case 0x01://Device Configuration Extension
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration Extension");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x11:
+        switch (subpage)
+        {
+        case 0x00://Medium Partition (1)
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Partition (1)");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+        //12h and 13h are in the SPC5 annex, but not named...skipping
+    case 0x14:
+        switch (subpage)
+        {
+        case 0x00://enclosure services management
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Enclosure Services Management");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x15://Extended
+        //all subpages
+        snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Extended - %" PRIu8, subpage);
+        break;
+    case 0x16://Extended Device-Type specific
+        //all subpages
+        snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Extended Device Type Specific - %" PRIu8, subpage);
+        break;
+        //17h is in spec, but not named
+    case 0x18://protocol specific logical unit
+        snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Logical Unit - %" PRIu8, subpage); 
+        break;
+    case 0x19://protocol specific port
+        snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Port - %" PRIu8, subpage);
+        break;
+    case 0x1A:
+        switch (subpage)
+        {
+        case 0x00://Power Condition
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
+            break;
+        case 0x01://Power Consumption
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Consumption");
+            break;
+        case 0xF1://ATA Power Condition
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "ATA Power Condition");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1B:
+        switch (subpage)
+        {
+        case 0x00://LUN Mapping
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "LUN Mapping");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1C:
+        switch (subpage)
+        {
+        case 0x00://Varies on name depending on device type. All related to failure reporting though!!!
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+            case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+            case PERIPHERAL_OPTICAL_MEMORY_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control");
+                break;
+            case PERIPHERAL_CD_DVD_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Fault/Failure Reporting");
+                break;
+            case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
+            case PERIPHERAL_AUTOMATION_DRIVE_INTERFACE:
+            case PERIPHERAL_MEDIUM_CHANGER_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control (Tape)");
+                break;
+            default:
+                break;
+            }
+            break;
+        case 0x01://background control
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Control");
+            break;
+        case 0x02://logical block provisioning
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Block Provisioning");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1D:
+        switch (subpage)
+        {
+        case 0x00://varies depending on device type
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_CD_DVD_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "C/DVD Time-Out And Protect");
+                break;
+            case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Configuration");
+                break;
+            case PERIPHERAL_MEDIUM_CHANGER_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Element Address Assignments");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1E:
+        switch (subpage)
+        {
+        case 0x00://transport geometry parameters
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Transport Geometry Parameters");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x1F:
+        switch (subpage)
+        {
+        case 0x00://device capabilities
+            snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Capabilities");
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    case 0x2A:
+        switch (subpage)
+        {
+        case 0x00://CD Capabilities and Mechanical Status - CD-DVD
+            switch (scsiDeviceType)
+            {
+            case PERIPHERAL_CD_DVD_DEVICE:
+                snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Capabilities and Mechanical Status");
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            //unknown
+            break;
+        }
+        break;
+    default:
+        //unknown
+        break;
+    }
+}
+
+//this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
+void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
+{
+    if (modeData && modeDataLen > 2)
+    {
+        uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
+        uint8_t subpage = 0;
+        uint16_t pageLength = modeData[1] + 2;//page 0 format
+        if (modeData[0] & BIT6)
+        {
+            subpage = modeData[1];
+            pageLength = M_BytesTo2ByteValue(modeData[2], modeData[3]) + 4;
+        }
+        int equalsLengthToPrint = (M_Min(pageLength, modeDataLen) * 3) - 1;
+        //print the header
+        if (outputWithPrintDataBuffer)
+        {
+            equalsLengthToPrint = 1;
+            switch (mpc)
+            {
+            case MPC_CURRENT_VALUES:
+                equalsLengthToPrint += (int)strlen(" Current Values");
+                break;
+            case MPC_CHANGABLE_VALUES:
+                equalsLengthToPrint += (int)strlen(" Changable Values");
+                break;
+            case MPC_DEFAULT_VALUES:
+                equalsLengthToPrint += (int)strlen(" Default Values");
+                break;
+            case MPC_SAVED_VALUES:
+                equalsLengthToPrint += (int)strlen(" Saved Values");
+                if (subpage > 0)
+                {
+                    ++equalsLengthToPrint;
+                }
+                break;
+            default://this shouldn't happen...
+                equalsLengthToPrint = 16;
+                break;
+            }
+        }
+        //before going further, check if we have a page name to lookup and printout to adjust the size for
+        char pageName[SCSI_MODE_PAGE_NAME_MAX_LENGTH] = { 0 };
+        get_SCSI_MP_Name(scsiPeripheralDeviceType, pageNumber, subpage, pageName);
+        if (equalsLengthToPrint < (int)strlen(pageName) + 6) //name will go too far over the end, need to enlarge
+        {
+            //the equals length should be enlarged for this!!!
+            equalsLengthToPrint = (int)strlen(pageName) + 6;
+            if (pageNumber >= 0x10)
+            {
+                equalsLengthToPrint += 3;
+            }
+            else
+            {
+                equalsLengthToPrint += 2;
+            }
+            if (subpage > 0)
+            {
+                equalsLengthToPrint += 3;
+                if (subpage >= 0x10)
+                {
+                    equalsLengthToPrint += 3;
+                }
+                else
+                {
+                    equalsLengthToPrint += 2;
+                }
+            }
+            equalsLengthToPrint += 2;//for space at beginning and end
+        }
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
+        printf(" Page %" PRIX8 "h", pageNumber);
+        if (subpage != 0)
+        {
+            printf(" - %" PRIX8 "h", subpage);
+        }
+        if (strlen(pageName) > 0)
+        {
+            printf(" %s", pageName);
+        }
+        printf("\n");
+        switch (mpc)
+        {
+        case MPC_CURRENT_VALUES:
+            printf(" Current Values");
+            break;
+        case MPC_CHANGABLE_VALUES:
+            printf(" Changable Values");
+            break;
+        case MPC_DEFAULT_VALUES:
+            printf(" Default Values");
+            break;
+        case MPC_SAVED_VALUES:
+            printf(" Saved Values");
+            break;
+        default://this shouldn't happen...
+            break;
+        }
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
+        //print out the raw data bytes sent to this function
+        if (outputWithPrintDataBuffer)
+        {
+            print_Data_Buffer(modeData, M_Min(pageLength, modeDataLen), false);
+        }
+        else
+        {
+            //TODO: Do we want another variable to track when we get to 80 characters wide and print a newline and indent the next line??? - Not needed yet since we don't have a mode page that large
+            for (uint16_t iter = 0; iter < M_Min(pageLength, modeDataLen); ++iter)
+            {
+                printf("%02" PRIX8, modeData[iter]);
+                if ((uint32_t)(iter + UINT16_C(1)) < M_Min(pageLength, modeDataLen))
+                {
+                    printf(" ");
+                }
+            }
+        }
+        printf("\n");
+    }
+    else if(modeData)
+    {
+        //page not supported
+        uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
+        uint8_t subpage = 0;
+        if (modeData[0] & BIT6)
+        {
+            subpage = modeData[1];
+        }
+        int equalsLengthToPrint = 1;
+        //print the header
+        switch (mpc)
+        {
+        case MPC_CURRENT_VALUES:
+            equalsLengthToPrint += (int)strlen(" Current Values");
+            break;
+        case MPC_CHANGABLE_VALUES:
+            equalsLengthToPrint += (int)strlen(" Changable Values");
+            break;
+        case MPC_DEFAULT_VALUES:
+            equalsLengthToPrint += (int)strlen(" Default Values");
+            break;
+        case MPC_SAVED_VALUES:
+            equalsLengthToPrint += (int)strlen(" Saved Values");
+            if (subpage > 0)
+            {
+                ++equalsLengthToPrint;
+            }
+            break;
+        default://this shouldn't happen...
+            equalsLengthToPrint = 16;
+            break;
+        }
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
+        printf(" Page %" PRIX8 "h", pageNumber);
+        if (subpage != 0)
+        {
+            printf(" - %" PRIX8 "h", subpage);
+        }
+        printf("\n");
+        switch (mpc)
+        {
+        case MPC_CURRENT_VALUES:
+            printf(" Current Values");
+            break;
+        case MPC_CHANGABLE_VALUES:
+            printf(" Changable Values");
+            break;
+        case MPC_DEFAULT_VALUES:
+            printf(" Default Values");
+            break;
+        case MPC_SAVED_VALUES:
+            printf(" Saved Values");
+            break;
+        default://this shouldn't happen...
+            break;
+        }
+        printf("\n%.*s\n", equalsLengthToPrint, "==================================================================================");//80 characters max...
+        printf("Not Supported.\n");
+    }
+}
+
+//shows a single mode page for the selected control(current, saved, changable, default)
+void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput)
+{
+    uint32_t modePageLength = 0;
+    if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)//if asking for all mode pages, all mode pages and subpages, or all subpages of a specific page, we need to handle it in here.
+    {
+        if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
+        {
+            uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+            if (!modeData)
+            {
+                return;
+            }
+            //now read all the data
+            bool used6ByteCmd = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            {
+                //Loop through each page returned in the buffer and print it to the screen
+                uint32_t offset = 0;
+                uint16_t blockDescriptorLength = 0;
+                if (!used6ByteCmd)
+                {
+                    //got 10 byte command data
+                    blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                    offset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                }
+                else
+                {
+                    //got 6 byte command data.
+                    blockDescriptorLength = modeData[3];
+                    offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                }
+                uint16_t currentPageLength = 0;
+                uint16_t counter = 0;
+                for (; offset < modePageLength; offset += currentPageLength, ++counter)
+                {
+                    if (modeData[offset] & BIT6)
+                    {
+                        //subpage format
+                        currentPageLength = M_BytesTo2ByteValue(modeData[offset + 2], modeData[offset + 3]) + 4;//add 4 bytes for page code, subpage code, & page length bytes
+                    }
+                    else
+                    {
+                        currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
+                    }
+                    //now print the page out!
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[offset], currentPageLength, mpc, bufferFormatOutput);
+                }
+            }
+            safe_Free(modeData);
+        }
+        else
+        {
+            //not supported (SATL most likely)
+            uint8_t modeData[2] = { modePage , subpage };
+            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
+        }
+    }
+    else
+    {
+        //single page...easy
+        if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
+        {
+            uint8_t *modeData = (uint8_t*)calloc(modePageLength, sizeof(uint8_t));
+            if (!modeData)
+            {
+                return;
+            }
+            //now read all the data
+            bool used6ByteCmd = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            {
+                if (used6ByteCmd)
+                {
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_6_LEN + modeData[3]/*block descripto length in case one was returned*/], modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc, bufferFormatOutput);
+                }
+                else
+                {
+                    uint16_t blockDescriptorLength = M_BytesTo2ByteValue(modeData[6], modeData[7]);
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, bufferFormatOutput);
+                }
+            }
+        }
+        else
+        {
+            //not supported (SATL most likely)
+            uint8_t modeData[2] = { modePage , subpage };
+            print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
+        }
+    }
+}
+
+//shows all mpc values for a given page.
+//should we return an error when asking for all mode pages since that output will otherwise be really messy???
+void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput)
+{
+    //if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)
+    //{
+    //    //TODO: custom function or other code to handle input of modepage == 0x3F || subpage == 0xFF and keep the output clean?
+    //}
+    //else
+    {
+        //TODO: loop through and print a page out for each MPC value.
+        eScsiModePageControl mpc = MPC_CURRENT_VALUES;//will be incremented through a loop
+        for (; mpc <= MPC_SAVED_VALUES; ++mpc)
+        {
+            show_SCSI_Mode_Page(device, modePage, subpage, mpc, bufferFormatOutput);
+        }
+    }
+}
+
+//if yes, a page and subpage can be provided when doing a log page reset
+bool reset_Specific_Log_Page_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
+    {
+        uint8_t supportData[14] = { 0 };
+        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, 1, LOG_SELECT_CMD, 0, 14, supportData))
+        {
+            uint8_t support = M_GETBITRANGE(supportData[1], 2, 0);
+            uint16_t cdbSize = M_BytesTo2ByteValue(supportData[2], supportData[3]);
+            uint8_t offset = 4;
+            switch (support)
+            {
+            case 0x03://supports in conformance with a scsi standard
+                //check the CDB usage data to see if we can set a page code or subpage code
+                if (cdbSize > 0)
+                {
+                    if (M_GETBITRANGE(supportData[offset + 2], 5, 0) > 0 && supportData[offset + 3] > 0)
+                    {
+                        supported = true;
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return supported;
+}
+
+int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges)
+{
+    int ret = NOT_SUPPORTED;
+    if (logPage || logSubPage)
+    {
+        if (!reset_Specific_Log_Page_Supported(device))
+        {
+            return BAD_PARAMETER;//cannot reset a specific page on this device
+        }
+    }
+    ret = scsi_Log_Select_Cmd(device, true, saveChanges, pageControl, logPage, logSubPage, 0, NULL, 0);
+
+    return ret;
+}

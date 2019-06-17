@@ -21,6 +21,53 @@ extern "C"
 {
 #endif
 
+    //This is a password defined in this MSDN article for performing secure erase in Windows PE.
+    //https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/security-group-commands
+    //This can only be used for the user password during an erase in WinPE.
+    #define WINDOWS_PE_ATA_SECURITY_PASSWORD "AutoATAWindowsString12345678901"
+
+    typedef enum _eATASecurityPasswordType
+    {
+        ATA_PASSWORD_USER,
+        ATA_PASSWORD_MASTER
+    }eATASecurityPasswordType;
+
+    typedef enum _eATASecurityMasterPasswordCapability
+    {
+        ATA_MASTER_PASSWORD_HIGH,
+        ATA_MASTER_PASSWORD_MAXIMUM
+    }eATASecurityMasterPasswordCapability;
+
+    typedef enum _eATASecurityZacOptions
+    {
+        ATA_ZAC_ERASE_EMPTY_ZONES = 0,
+        ATA_ZAC_ERASE_FULL_ZONES = 1
+    }eATASecurityZacOptions;
+
+    typedef enum _eATASecurityEraseType
+    {
+        ATA_SECURITY_ERASE_STANDARD_ERASE,
+        ATA_SECURITY_ERASE_ENHANCED_ERASE
+    }eATASecurityEraseType;
+
+    typedef struct _ataSecurityPassword
+    {
+        //set this to true when setting/using the master password.
+        eATASecurityPasswordType passwordType;
+        //When set to true, this means setting the master password capability bit to maximum. zero is high. (Only for setting the password!!!)
+        //If this is set to high, user and master password can unlock the drive.
+        //If this is set to maximum, then the master can only be used to erase the drive
+        eATASecurityMasterPasswordCapability masterCapability;
+        //ZAC drives only and only on Secure Erase command. This is used to specify if zone conditions are set to empty (0-false) or full (1-true)
+        eATASecurityZacOptions zacSecurityOption;
+        //must be between 1 and FFFEh. zero and FFFFh will be ignored by the drive. This is only a reference used for when the master password is changed, someone could look it up.
+        uint16_t masterPWIdentifier;
+        //32 bytes. These are not required to be ASCII in the spec.
+        uint8_t password[ATA_SECURITY_MAX_PW_LENGTH];
+        //This is here in case of using an empty password so that we know when placing it in the buffer what we are setting. Max length is 32bytes. Anything larger in this value is ignored.
+        uint8_t passwordLength;
+    }ataSecurityPassword, *ptrATASecurityPassword;
+
     //-----------------------------------------------------------------------------
     //
     //  sat_ATA_Security_Protocol_Supported(tDevice *device)
@@ -49,6 +96,9 @@ extern "C"
         bool extendedTimeFormat; //this bool lets a caller know if the time was reported by the drive in extended format or normal format.
         uint16_t securityEraseUnitTimeMinutes;
         uint16_t enhancedSecurityEraseUnitTimeMinutes;
+        eATASecurityState securityState;
+        bool restrictedSanitizeOverridesSecurity;//If this is true, then a sanitize command can be run and clear the user password. (See ACS4 for more details)
+        bool encryptAll;//Set to true means the device encrypts all user data on the drive.
     }ataSecurityStatus, *ptrATASecurityStatus;
 
     //-----------------------------------------------------------------------------
@@ -60,7 +110,7 @@ extern "C"
     //  Entry:
     //!   \param[in] device = file descriptor
     //!   \param[out] securityStatus = pointer to the structure to fill in with security information
-    //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it.
+    //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it since it allows the SATL to control the erase and incomming commands.
     //!
     //  Exit:
     //!   \return VOID
@@ -68,17 +118,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus, bool useSAT);
 
-    typedef enum _eATASecurityPasswordType
-    {
-        ATA_PASSWORD_USER,
-        ATA_PASSWORD_MASTER
-    }eATASecurityPasswordType;
-
-    typedef enum _eATASecurityMasterPasswordCapability
-    {
-        ATA_MASTER_PASSWORD_HIGH,
-        ATA_MASTER_PASSWORD_MAXIMUM
-    }eATASecurityMasterPasswordCapability;
+    OPENSEA_OPERATIONS_API void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported);
 
     //-----------------------------------------------------------------------------
     //
@@ -88,22 +128,15 @@ extern "C"
     //
     //  Entry:
     //!   \param[out] ptrData = pointer to the buffer to set the password in
-    //!   \param[in] ATAPassword = null terminated string to represent the password
-    //!   \param[in] passwordType = enum type to tell this function when to set certain bits
-    //!   \param[in] masterPasswordCapability = master password capability. Only used when password type is ATA_PASSWORD_MASTER
-    //!   \param[in] masterPasswordIdentifier = master password identifier. Only used when password type is ATA_PASSWORD_MASTER
+    //!   \param[in] ataPassword = pointer to the structure that holds all the relavent information to put the password in the buffer. Allows for empty passwords and non-ascii characters
+    //!   \param[in] setPassword = Set to true when using the buffer to send the security set password command so that the master password identifier and capability fields will be set.
+    //!   \param[in] eraseUnit = set to true when using the buffer to send the security erase command so that the zac options bit can be set.
     //!
     //  Exit:
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, const char *ATAPassword, eATASecurityPasswordType passwordType, eATASecurityMasterPasswordCapability masterPasswordCapability, uint16_t masterPasswordIdentifier);
-
-    typedef enum _eATASecurityEraseType
-    {
-        ATA_SECURITY_ERASE_STANDARD_ERASE,
-        ATA_SECURITY_ERASE_ENHANCED_ERASE
-    }eATASecurityEraseType;
+    OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPassword ataPassword, bool setPassword, bool eraseUnit);
 
     //-----------------------------------------------------------------------------
     //
@@ -129,15 +162,14 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[in] ATAPassword = null terminated string to represent the password
-    //!   \param[in] master = set to true to say this is a master password
+    //!   \param[in] ataPassword = structure holding password information.
     //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it.
     //!
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, bool master, bool useSAT);
+    OPENSEA_OPERATIONS_API int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -147,17 +179,14 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[in] ATAPassword = null terminated string to represent the password
-    //!   \param[in] master = set to true to say this is a master password
-    //!   \param[in] masterPasswordCapabilityMaximum = set to true to set the bit for master password capability to maximum. only valid when master is set to true
-    //!   \param[in] masterPasswordIdentifier = the master password identifier to use when setting the master password. only valid when master is set to true
+    //!   \param[in] ataPassword = structure holding password information.
     //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it.
     //!
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_ATA_Security_Password(tDevice *device, const char *ATAPassword, bool master, bool masterPasswordCapabilityMaximum, uint16_t masterPasswordIdentifier, bool useSAT);
+    OPENSEA_OPERATIONS_API int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -167,15 +196,14 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[in] ATAPassword = null terminated string to represent the password
-    //!   \param[in] master = set to true to say this is a master password
+    //!   \param[in] ataPassword = structure holding password information.
     //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it.
     //!
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int unlock_ATA_Security(tDevice *device, const char *ATAPassword, bool master, bool useSAT);
+    OPENSEA_OPERATIONS_API int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -185,9 +213,8 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[in] ATAPassword = null terminated string to represent the password
-    //!   \param[in] master = set to true to say this is a master password
-    //!   \param[in] enhanced = set to true to set the bit for enhanced security erase
+    //!   \param[in] ataPassword = structure holding password information.
+    //!   \param[in] eraseType = set to the enum value specifying which erase to perform on the drive.
     //!   \param[in] timeout = timeout value to use for the ata security erase unit command. This should be the value returned from the ATA identify data or greater (in seconds).
     //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it.
     //!
@@ -195,20 +222,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int start_ATA_Security_Erase(tDevice *device, const char *ATAPassword, bool master, bool enhanced, uint32_t timeout, bool useSAT);
-
-    typedef enum _eATASecurityFailureReason
-    {
-        ATA_SECURITY_NO_FAILURE,
-        ATA_SECURITY_IS_FROZEN,
-        ATA_SECURITY_IS_LOCKED,
-        ATA_SECURITY_IS_ALREADY_ENABLED,
-        ATA_SECURITY_IS_NOT_ENABLED,
-        ATA_SECURITY_IS_NOT_SUPPORTED,
-        ATA_SECURITY_ENHANCED_ERASE_IS_NOT_SUPPORTED,
-        ATA_SECURITY_IS_NOT_AN_ATA_DRIVE,
-        ATA_SECURITY_UNKNOWN_ERROR
-    }eATASecurityFailureReason;
+    OPENSEA_OPERATIONS_API int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -218,16 +232,16 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[in] enhanced = 0 - standard secure erase, 1 - enhanced secure erase
-    //!   \param[in] master = 0 - user password, 1 - master password
-    //!   \param[in] password - password to use for ata security erase
-    //!   \param[in] pollForProgress = 0 - start the erase and return, 1 - start the erase and run a countdown timer until complete
+    //!   \param[in] eraseType = set to enum value for type of erase to perform
+    //!   \param[in] ataPassword - structure holding password information.
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
     //!
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_ATA_Security_Erase(tDevice *device, bool enhanced, bool master, const char *password, bool pollForProgress);
+    OPENSEA_OPERATIONS_API int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -238,15 +252,74 @@ extern "C"
     //! not work for passwords other than those set by this code base
     //
     //  Entry:
-    //!   \param device - file descriptor
-    //!   \param ATAPassword - password to use for disabling ATA Security password.
-    //!   \param userMaster - boolean flag to select user or master password
+    //!   \param[in] device = file descriptor
+    //!   \param[in] ataPassword - structure holding password information.
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_Disable_ATA_Security_Password(tDevice *device, const char *ATAPassword, bool userMaster);
+    OPENSEA_OPERATIONS_API int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+    //
+    //! \brief   Sets an ATA security password. NOTE: This is not recommended from software since some systems may not even boot with a locked drive,
+    //!          or may not encode the password the same way as this software. 
+    //!          NOTE2: Some SATLs don't seem to properly handle locked ATA security drives, so you may not be able to unlock them or remove the password without retrying multiple times from software.
+    //!          It is strongly recommended that passwords only be set from the BIOS or host controller option rom.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] ataPassword - structure holding password information.
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+    //
+    //! \brief   Unlocks ATA security with the provided password. This is useful if the ATA security erase was interrupted and a password is still set on the drive. 
+    //! Note that this takes the ASCII password sent in and uses it, but a BIOS may do a hash or something else when setting a password so this may 
+    //! not work for passwords other than those set by this code base
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] ataPassword - structure holding password information.
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
+    //
+    //! \brief   Freezes ATA security with the freezelock command. This is used to prevent other ATA security commands from being processed by the drive.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] forceSATValid = when true, the force SAT variable is checked and used to force the type of command used to do the erase.
+    //!   \param[in] forceSAT = checked when above bool is true. When this is true, use SAT security protocol commands. When false, use ata security protocol commands (may be wrapped in SAT ATA Pass-through command which is different from sending security protocol and letting the SATL translate)
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT);
 
 #if defined (__cplusplus)
 }

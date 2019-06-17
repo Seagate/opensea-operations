@@ -20,19 +20,20 @@
 extern "C"
 {
 #endif
-	typedef struct _firmwareUpdateData {
-		eDownloadMode	dlMode; //how to do the download. Full, Segmented, Deferred, etc
-		uint16_t		segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
-		uint8_t			*firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
-		uint32_t		firmwareMemoryLength; //length of the memory the firmware file was read into. This should be a multiple of 512B sizes...
-		uint64_t		avgSegmentDlTime; //stores the average segment time for the download
-		uint64_t		activateFWTime; //stores the amount of time it took to issue the last segment and activate the new code (on segmented). On deferred this is only the time to activate.
+    typedef struct _firmwareUpdateData {
+        eDownloadMode   dlMode; //how to do the download. Full, Segmented, Deferred, etc
+        uint16_t        segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
+        uint8_t         *firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
+        uint32_t        firmwareMemoryLength; //length of the memory the firmware file was read into. This should be a multiple of 512B sizes...
+        uint64_t        avgSegmentDlTime; //stores the average segment time for the download
+        uint64_t        activateFWTime; //stores the amount of time it took to issue the last segment and activate the new code (on segmented). On deferred this is only the time to activate.
         union
         {
             uint8_t firmwareSlot;//NVMe
             uint8_t bufferID;//SCSI
         };
-	} firmwareUpdateData;
+        bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
+    } firmwareUpdateData;
     //-----------------------------------------------------------------------------
     //
     //  firmware_Download()
@@ -47,7 +48,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int firmware_Download(tDevice *device, firmwareUpdateData * options);
+    OPENSEA_OPERATIONS_API int firmware_Download(tDevice *device, firmwareUpdateData * options);
 
     //See extended inquiry VPD page in SPC spec for details
     typedef enum _eSCSIMicrocodeActivation
