@@ -553,11 +553,12 @@ extern "C" {
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
     //!                Any other value will specify a transfer size to use to pull SM2. On ATA, this must be a multiple of 512Bytes
+    //!   \param[in] issueFactory = if set true issue the command with the factory feature. (SAS only for now)
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, bool issueFactory);
 
     //-----------------------------------------------------------------------------
     //
