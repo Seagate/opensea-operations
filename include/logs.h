@@ -145,6 +145,7 @@ extern "C" {
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param[in] featureRegister - this is the feature register for the command. default to zero for most commands.
     //! 
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -154,7 +155,8 @@ extern "C" {
                                         char *logName, char *fileExtension,\
                                         bool GPL, bool SMART, bool toBuffer,\
                                         uint8_t *myBuf, uint32_t bufSize,\
-                                        const char * const filePath, uint32_t transferSizeBytes);
+                                        const char * const filePath, \
+                                        uint32_t transferSizeBytes, uint16_t featureRegister);
 
     //-----------------------------------------------------------------------------
     //
@@ -553,12 +555,18 @@ extern "C" {
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
     //!                Any other value will specify a transfer size to use to pull SM2. On ATA, this must be a multiple of 512Bytes
-    //!   \param[in] issueFactory = if set true issue the command with the factory feature. (SAS only for now)
+    //!   \param[in] issueFactory = if set 0-4 issue the command with the factory feature. 
+    //!                             FARM pull Factory subpages   
+    //!                             0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+    //!                             1 – Generate and report new FARM data and save to disc(~45ms)(SATA only)
+    //!                             2 – Report previous FARM data from disc(~20ms)(SATA only)
+    //!                             3 – Report FARM factory data from disc(~20ms)(SATA only)
+    //!                             4 - factory subpage (SAS only)
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, bool issueFactory);
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory);
 
     //-----------------------------------------------------------------------------
     //
