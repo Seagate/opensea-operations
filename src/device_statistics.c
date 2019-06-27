@@ -49,7 +49,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
             uint8_t *devStatsNotificationsLog = (uint8_t*)calloc(deviceStatsNotificationsSize, sizeof(uint8_t));
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0))
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0,0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
                 //increment by 2 qwords and go through each statistic and it's condition individually
@@ -576,7 +576,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
             }
             safe_Free(devStatsNotificationsLog);
         }
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0,0))
         {
             ret = SUCCESS;
             uint32_t offset = 0;//start offset 1 sector to get to the general statistics

@@ -1293,7 +1293,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             return MEMORY_FAILURE;
         }
         //read the extended self test results log with read log ext
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, NULL, NULL, true, false, true, selfTestResults, extLogSize, NULL, 0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, NULL, NULL, true, false, true, selfTestResults, extLogSize, NULL, 0,0))
         //if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
         {
             ret = SUCCESS;

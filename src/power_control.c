@@ -1342,7 +1342,7 @@ int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     {
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, NULL, NULL, true, false, true, epcLog, epcLogSize, NULL, epcLogSize))
+    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, NULL, NULL, true, false, true, epcLog, epcLogSize, NULL, epcLogSize,0))
     {
         ret = SUCCESS;
         for (uint32_t offset = 0; offset < (LEGACY_DRIVE_SEC_SIZE * 2); offset += 64)
