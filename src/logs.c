@@ -728,7 +728,7 @@ int get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * con
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return get_ATA_Log(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, "SMART_Ext_Comp_Error_Log", "bin", true, false, false, NULL, 0, filePath, 0);
+        return get_ATA_Log(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, "SMART_Ext_Comp_Error_Log", "bin", true, false, false, NULL, 0, filePath, 0,0);
     }
     else
     {
@@ -741,12 +741,12 @@ int get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath)
     if (extLog)
     {
         //read from GPL
-        return get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, "Ext_SMART_Self_Test_Results", "bin", true, false, false, NULL, 0, filePath, 0);
+        return get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, "Ext_SMART_Self_Test_Results", "bin", true, false, false, NULL, 0, filePath, 0,0);
     }
     else
     {
         //read from SMART
-        return get_ATA_Log(device, ATA_LOG_SMART_SELF_TEST_LOG, "SMART_Self_Test_Results", "bin", false, true, false, NULL, 0, filePath, 0);
+        return get_ATA_Log(device, ATA_LOG_SMART_SELF_TEST_LOG, "SMART_Self_Test_Results", "bin", false, true, false, NULL, 0, filePath, 0,0);
     }
 }
 
@@ -771,7 +771,7 @@ int get_Pending_Defect_List(tDevice *device, const char * const filePath)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //new is ACS4. Can be read with standard read log command if the drive supports the log.
-        return get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, "Pending_Defects", "plst", true, false, false, NULL, 0, filePath, 0);
+        return get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, "Pending_Defects", "plst", true, false, false, NULL, 0, filePath, 0,0);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -788,7 +788,7 @@ int get_Identify_Device_Data_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, "Identify_Device_Data_Log", "bin", true, true, false, NULL, 0, filePath, 0);
+        return get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, "Identify_Device_Data_Log", "bin", true, true, false, NULL, 0, filePath, 0,0);
     }
     else
     {
@@ -800,7 +800,7 @@ int get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return get_ATA_Log(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, "SATA_Phy_Event_Counters", "bin", true, false, false, NULL, 0, filePath, 0);
+        return get_ATA_Log(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, "SATA_Phy_Event_Counters", "bin", true, false, false, NULL, 0, filePath, 0,0);
     }
     else
     {
@@ -812,7 +812,7 @@ int get_Device_Statistics_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, "Device_Statistics", "bin", true, true, false, NULL,0, filePath, 0);
+        return get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, "Device_Statistics", "bin", true, true, false, NULL,0, filePath, 0,0);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -831,7 +831,7 @@ int get_EPC_log(tDevice *device, const char * const filePath)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //old code was reading address 0x12, however the ACS3 spec says 0x12 is the NCQ Queue Management log and 0x08 is the Power Conditions log
-        ret = get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, "EPC", "EPC", true, false, false, NULL, 0, filePath, LEGACY_DRIVE_SEC_SIZE * 2);//sending in an override to read both pages in one command - TJE
+        ret = get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, "EPC", "EPC", true, false, false, NULL, 0, filePath, LEGACY_DRIVE_SEC_SIZE * 2,0);//sending in an override to read both pages in one command - TJE
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -909,7 +909,8 @@ int pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const f
 }
 
 int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileExtension, bool GPL,\
-    bool SMART, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, uint32_t transferSizeBytes)
+    bool SMART, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, \
+    uint32_t transferSizeBytes, uint16_t featureRegister)
 {
     int ret = UNKNOWN;
     uint32_t logSize = 0;
@@ -983,7 +984,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             {
                 ret = SUCCESS;//assume success
                 //loop and read each page or set of pages, then save to a file
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, 0))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, featureRegister))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
@@ -2014,7 +2015,7 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
         switch (mode)
         {
         case PULL_LOG_BIN_FILE_MODE:
-            retStatus = get_ATA_Log(device, logNum, logFileName, "bin", true, false, false, NULL, 0, filePath, transferSizeBytes);
+            retStatus = get_ATA_Log(device, logNum, logFileName, "bin", true, false, false, NULL, 0, filePath, transferSizeBytes,0);
             break;
         case PULL_LOG_RAW_MODE:
             if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
@@ -2022,7 +2023,7 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
                 genericLogBuf = (uint8_t*)calloc(logSize * sizeof(uint8_t), sizeof(uint8_t));
                 if (genericLogBuf)
                 {
-                    retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes);
+                    retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes,0);
                     if (SUCCESS == retStatus)
                     {
                         print_Data_Buffer(genericLogBuf, logSize, true);
@@ -2115,18 +2116,42 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     return retStatus;
 }
 
-int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, bool issueFactory)
+int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory)
 {
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = get_ATA_Log(device, 0xA6, "FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes);
+           //FARM pull Factory subpages   
+           //0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+           //1 – Generate and report new FARM data and save to disc(~45ms)(SATA only)
+           //2 – Report previous FARM data from disc(~20ms)(SATA only)
+           //3 – Report FARM factory data from disc(~20ms)(SATA only)
+        if (issueFactory == 1)
+        {
+            ret = get_ATA_Log(device, 0xA6, "P_AND_S_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, 0x01);
+        }
+        else if (issueFactory == 2)
+        {
+            ret = get_ATA_Log(device, 0xA6, "PREVIOUS_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, 0x02);
+        }
+        else if (issueFactory == 3)
+        {
+            ret = get_ATA_Log(device, 0xA6, "FACTORY_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes,0x03 );
+        }
+        else
+        {
+            ret = get_ATA_Log(device, 0xA6, "FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes,0);
+        }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        if (issueFactory)
+        //FARM pull Factory subpages   
+       //0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+       //4 - factory subpage (SAS only)
+        if (issueFactory == 4)
         {
-            ret = get_SCSI_Log(device, 0x3D, 0x04, "FARM", "bin", false, NULL, 0, filePath);
+            ret = get_SCSI_Log(device, 0x3D, 0x04, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
+            
         }
         else
         {
