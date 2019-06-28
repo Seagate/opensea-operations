@@ -42,12 +42,13 @@ extern "C"
     //!   \param[in] DSTType = see enum above
     //!   \param[in] pollForProgress = 0 = don't poll, just start the test. 1 = poll for progress and display the progress on the screen.
     //!   \param[in] captiveForeground = when set to true, the self test is run in captive/foreground mode. This is only for ATA or SCSI. When set, this will wait for the entire test to complete before returning. This is ignored on NVMe
+    //!   \param[in] ignoreMaxTime = when this is set to true, the timeout for the maximum time to wait for DST before aborting it will be ignored and will wait indefinitely to complete the DST. This is useful if a system is having high disc usage and DST is unable to progress
     //!
     //  Exit:
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground);
+    OPENSEA_OPERATIONS_API int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime);
 
     //-----------------------------------------------------------------------------
     //

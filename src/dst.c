@@ -548,15 +548,20 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
     return ret;
 }
 
-int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground)
+int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime)
 {
     int ret = NOT_SUPPORTED;
     if (is_Self_Test_Supported(device))
     {
-        uint8_t      status = 0xF0;
-        uint32_t     percentComplete = 0;
-        uint32_t     delayTime = 5;//assume 5 second delay between progress checks
-        uint32_t     commandTimeout = 15;//start with this default timeout value - TJE
+        uint8_t status = 0xF0;
+        uint32_t percentComplete = 0;
+        uint32_t delayTime = 5;//assume 5 second delay between progress checks
+        uint32_t commandTimeout = 15;//start with this default timeout value - TJE
+        uint32_t timeDiff = 30;
+        uint32_t maxTimeIncreases = 2;
+        uint32_t timeIncreaseWarningCount = 1;
+        uint32_t totalDSTTimeSeconds = 120;
+        uint32_t maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
         //check if DST is already running
         ret = get_DST_Progress(device, &percentComplete, &status);
         if (status == 0x0F)
@@ -576,18 +581,33 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 }
                 break;
             case DST_TYPE_LONG: //extended
-                delayTime = 15;
-                if (captiveForeground)
+                //Since long DST is slower in terms of when progress is achieved, we need to change some things such as how often we poll, how often we expect progress increments,
+                //and the maximum number of times to allow for increasing the polling interval.
+                //For now, I'm just multiplying everything by 3. Not sure if there is a better way to do this or not.
+                delayTime *= 3;
+                timeDiff *= 3;
+                maxTimeIncreases *= 3;
+                timeIncreaseWarningCount *= 3;
                 {
                     uint8_t hours = 0, minutes = 0;
                     if (SUCCESS == get_Long_DST_Time(device, &hours, &minutes))
                     {
-                        commandTimeout = hours * 3600 + minutes * 60;//this is a value in seconds
+                        if (captiveForeground)
+                        {
+                            commandTimeout = hours * 3600 + minutes * 60;//this is a value in seconds
+                        }
+                        totalDSTTimeSeconds = hours * 3600 + minutes * 60;
+                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
                     }
                     else
                     {
-                        //set a maximum time out value
-                        commandTimeout = UINT32_MAX;
+                        if (captiveForeground)
+                        {
+                            //set a maximum time out value
+                            commandTimeout = UINT32_MAX;
+                        }
+                        totalDSTTimeSeconds = 14400;//a fallback for drives not reporting a time, so using 4 hours for now. This likely will not ever happen
+                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
                     }
                 }
                 break;
@@ -610,15 +630,25 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 //set status to 0x08 before the loop or it will not get entered
                 status = 0x0F;
                 time_t dstProgressTimer = time(NULL);
+                time_t startTime = time(NULL);
                 uint32_t lastProgressIndication = 0;
                 uint8_t timeExtensionCount = 0;
+                char *overTimeWarningMessage = "WARNING: DST is taking longer than expected.";
+                bool showTimeWarning = false;
                 while (status == 0x0F && ret == SUCCESS)
                 {
                     lastProgressIndication = percentComplete;
                     ret = get_DST_Progress(device, &percentComplete, &status);
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("\r    Test progress: %" PRIu32"%% complete   ", percentComplete);
+                        if (showTimeWarning)
+                        {
+                            printf("\r    Test progress: %" PRIu32 "%% complete. %s", percentComplete, overTimeWarningMessage);
+                        }
+                        else
+                        {
+                            printf("\r    Test progress: %" PRIu32 "%% complete.  ", percentComplete);
+                        }
                         if (status != 0x00)
                         {
                             fflush(stdout);
@@ -629,45 +659,64 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                         break;
                     }
                     //make the time between progress polls bigger if it isn't changing quickly to allow the drive time to finish any recovery it's doing.
-                    //Only do this for Short and Conveyance DST though. Long DST should already be slow enough between polls
-                    if ((DSTType == DST_TYPE_SHORT || DSTType == DST_TYPE_CONVEYENCE) && difftime(time(NULL), dstProgressTimer) > 30 && lastProgressIndication == percentComplete)
+                    if (difftime(time(NULL), dstProgressTimer) > timeDiff && lastProgressIndication == percentComplete)
                     {
                         //We are likely pinging the drive too quickly during the read test and error recovery isn't finishing...extend the delay time
-                        delayTime *= 2;
-                        ++timeExtensionCount;
-                        dstProgressTimer = time(NULL);//reset this beginning timer since we changed the polling time
-                        if (timeExtensionCount > 2)
+                        if (timeExtensionCount <= maxTimeIncreases)
                         {
+                            delayTime *= 2;
+                            timeDiff *= 2;
+                            ++timeExtensionCount;
+                        }
+                        dstProgressTimer = time(NULL);//reset this beginning timer since we changed the polling time
+                        if (!ignoreMaxTime && timeExtensionCount > maxTimeIncreases && difftime(dstProgressTimer, startTime) > maxDSTWaitTimeSeconds)
+                        {
+                            //only abort if we are past the total DST time and have already increased the delays multiple times.
                             //we've extended the polling time too much. Something else is wrong in the drive. Just abort it and exit.
                             ret = abort_DST(device);
                             ret = ABORTED;
                             break;
+                        }
+                        else if(timeExtensionCount > timeIncreaseWarningCount && difftime(dstProgressTimer, startTime) > totalDSTTimeSeconds)
+                        {
+                            showTimeWarning = true;
                         }
                     }
                     delay_Seconds(delayTime);
                 }
                 if (status == 0 && ret == SUCCESS)
                 {
+                    //printf 35 characters + width of warning message to clear the line before printing this final status update
+                    printf("\r                                    %.*s", strlen(overTimeWarningMessage), "                                                                        ");
                     printf("\r    Test progress: 100%% complete   ");
                     fflush(stdout);
                     ret = SUCCESS; //we passed.
                 }
-                else
+                else if (ret != ABORTED)
                 {
                     ret = FAILURE; //failed the test
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    bool isNVMeDrive = false;
-                    char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-                    if (device->drive_info.drive_type == NVME_DRIVE)
+                    if (ret == ABORTED)
                     {
-                        isNVMeDrive = true;
+                        printf("\nDST was aborted for taking too long. This may happen if other disc activity\n");
+                        printf("is too high! Please check to make sure no other disk IO is occurring so that DST\n");
+                        printf("can complete as expected!\n");
                     }
+                    else
+                    {
+                        bool isNVMeDrive = false;
+                        char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+                        if (device->drive_info.drive_type == NVME_DRIVE)
+                        {
+                            isNVMeDrive = true;
+                        }
 #endif
-                    translate_DST_Status_To_String(status, statusTranslation, true, isNVMeDrive);
-                    printf("\n%s\n", statusTranslation);
+                        translate_DST_Status_To_String(status, statusTranslation, true, isNVMeDrive);
+                        printf("\n%s\n", statusTranslation);
+                    }
                 }
             }
             else if (ret == SUCCESS && captiveForeground)
@@ -1079,7 +1128,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
             printf("Running DST.\n");
         }
 
-        if (SUCCESS == run_DST(device, 1, false, false))
+        if (SUCCESS == run_DST(device, 1, false, false, true))
         {
             //poll until it finished
             delay_Seconds(1);
