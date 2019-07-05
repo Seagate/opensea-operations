@@ -257,12 +257,12 @@ extern "C"
         eSectorSizeAddInfoType additionalInformationType;
         union
         {
-            struct ataSetSectorFields
+            struct
             {
                 uint16_t descriptorCheck;//ATA
                 uint8_t descriptorIndex;
             }ataSetSectorFields;
-            struct scsiSectorBits //SCSI/SAS (Bits that describe how the device supports a logical block length)
+            struct  //SCSI/SAS (Bits that describe how the device supports a logical block length)
             {
                 bool piSupportBitsValid;//If true, the fields below are valid, otherwise they were not reported on a sector size basis.
                 bool p_i_i_sup;
@@ -275,7 +275,7 @@ extern "C"
                 bool t1ps;
                 bool t0ps;
             }scsiSectorBits;
-            struct nvmeSectorBits //these aren't directly related to a specific sector size in NVMe, but are important for formatting information.
+            struct  //these aren't directly related to a specific sector size in NVMe, but are important for formatting information.
             {
                 uint8_t relativePerformance;
                 uint16_t metadataSize;
