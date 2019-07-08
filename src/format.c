@@ -1603,7 +1603,7 @@ int show_NVM_Format_Progress(tDevice *device)
 int map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
 {
     int fmtNum = 16;//invalid value to catch errors!
-    for (uint8_t fmtIter = 0; fmtIter < device->drive_info.IdentifyData.nvme.ns.nlbaf; ++fmtIter)
+    for (uint8_t fmtIter = 0; fmtIter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++fmtIter)
     {
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
         {
