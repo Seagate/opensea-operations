@@ -1190,7 +1190,7 @@ int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     formats->nvmeMetadataSupport.metadataSeparateSup = device->drive_info.IdentifyData.nvme.ns.mc & BIT1;
 
     formats->deviceSupportsOtherFormats = true;
-
+    formats->numberOfSectorSizes = 0;//clear this out before we set it to something below
     //set metadata and PI location bits first
     for (uint8_t iter = 0; iter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++iter)
     {
