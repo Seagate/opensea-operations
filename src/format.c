@@ -14,6 +14,7 @@
 
 #include "format.h"
 #include "logs.h"
+#include "nvme_helper_func.h"
 
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
@@ -1190,7 +1191,7 @@ int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     formats->nvmeMetadataSupport.metadataSeparateSup = device->drive_info.IdentifyData.nvme.ns.mc & BIT1;
 
     formats->deviceSupportsOtherFormats = true;
-    formats->numberOfSectorSizes = 0;//clear this out before we set it to something below
+    formats->numberOfSectorSizes = 0;//clear this out before we set it below
     //set metadata and PI location bits first
     for (uint8_t iter = 0; iter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++iter)
     {
@@ -1561,7 +1562,7 @@ int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
     *percentComplete = 0;
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        ret = nvme_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.nvme.ns, NVME_ALL_NAMESPACES, NVME_IDENTIFY_NS);
+        ret = nvme_Identify(device, (uint8_t *)&device->drive_info.IdentifyData.nvme.ns, device->drive_info.namespaceID, NVME_IDENTIFY_NS);
         if (ret == SUCCESS)
         {
             if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
@@ -1719,7 +1720,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
             print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
             printf("\n");
         }
-        while (IN_PROGRESS == get_NVM_Format_Progress(device, &progress) && progress < 100.0)
+        while (IN_PROGRESS == (ret = get_NVM_Format_Progress(device, &progress)) && progress < 100.0)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
