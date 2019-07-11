@@ -19,7 +19,7 @@
 #include "dst.h"
 #include "sanitize.h"
 #include "format.h"
-#include "seagate/seagate_ata_types.h"
+#include "vendor/seagate/seagate_ata_types.h"
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
