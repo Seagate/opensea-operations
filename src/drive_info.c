@@ -5405,7 +5405,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             getHostIdentifier.fid = 0x81;
             getHostIdentifier.sel = 0;//current data
             uint8_t hostIdentifier[16] = { 0 };
-            getHostIdentifier.prp1 = (uint64_t)hostIdentifier;
+            getHostIdentifier.prp1 = (uintptr_t)hostIdentifier;
             //TODO: Need to debug why this doesn't work right now - TJE
             if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
             {
