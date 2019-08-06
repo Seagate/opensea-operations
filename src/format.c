@@ -1036,27 +1036,27 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                 formats->numberOfSectorSizes = 6;
                 formats->sectorSizes[0].valid = true;
                 formats->sectorSizes[0].logicalBlockLength = 512;
-                formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                 formats->sectorSizes[1].valid = true;
                 formats->sectorSizes[1].logicalBlockLength = 520;
-                formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                 formats->sectorSizes[2].valid = true;
                 formats->sectorSizes[2].logicalBlockLength = 528;
-                formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                 formats->sectorSizes[3].valid = true;
                 formats->sectorSizes[3].logicalBlockLength = 4096;
-                formats->sectorSizes[3].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                formats->sectorSizes[3].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                 formats->sectorSizes[4].valid = true;
                 formats->sectorSizes[4].logicalBlockLength = 4112;
-                formats->sectorSizes[4].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                formats->sectorSizes[4].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                 formats->sectorSizes[5].valid = true;
                 formats->sectorSizes[5].logicalBlockLength = 4160;
-                formats->sectorSizes[5].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                formats->sectorSizes[5].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                 switch (device->drive_info.deviceBlockSize)
                 {
@@ -1091,15 +1091,15 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                     //512, 520, 528
                     formats->sectorSizes[0].valid = true;
                     formats->sectorSizes[0].logicalBlockLength = 512;
-                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                     formats->sectorSizes[1].valid = true;
                     formats->sectorSizes[1].logicalBlockLength = 520;
-                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                     formats->sectorSizes[2].valid = true;
                     formats->sectorSizes[2].logicalBlockLength = 528;
-                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
                     switch (device->drive_info.deviceBlockSize)
                     {
                     case 512:
@@ -1120,15 +1120,15 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                     //4096, 4112, 4160
                     formats->sectorSizes[0].valid = true;
                     formats->sectorSizes[0].logicalBlockLength = 4096;
-                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                     formats->sectorSizes[1].valid = true;
                     formats->sectorSizes[1].logicalBlockLength = 4112;
-                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
                     formats->sectorSizes[2].valid = true;
                     formats->sectorSizes[2].logicalBlockLength = 4160;
-                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
                     switch (device->drive_info.deviceBlockSize)
                     {
                     case 4096:
