@@ -628,7 +628,7 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
 {
     int ret = UNKNOWN;
     uint32_t historyLen = 0;
-    char name[OPENSEA_PATH_MAX];
+    char name[OPENSEA_PATH_MAX] = { 0 };
     FILE *fp_History = NULL;
     uint8_t *historyBuffer = NULL;
     if (!fileNameUsed)
@@ -641,7 +641,9 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
     {
         //If the user wants it in a buffer...just return. 
         if ((toBuffer) && (bufSize < historyLen))
+        {
             return BAD_PARAMETER;
+        }
 
         uint32_t increment = 65536;//pulling in 64K chunks...this should be ok, but we may need to change this later!
         if (transferSizeBytes != 0)
@@ -2083,8 +2085,9 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     uint8_t *genericLogBuf = NULL;
     char logFileName[30] = "GENERIC_ERROR_HISTORY-";
     char logNumPostfix[10] = { 0 };
-    sprintf(logNumPostfix, "%u", bufferID);
+    sprintf(logNumPostfix, "%" PRIu8, bufferID);
     strcat(logFileName, logNumPostfix);
+    strcat(logFileName, "\0");
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
