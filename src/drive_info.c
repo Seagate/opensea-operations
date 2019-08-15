@@ -2521,10 +2521,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     if (devIDPageLen + 4 > INQ_RETURN_DATA_LENGTH)
                     {
                         //realloc and re-read the page with the larger pagelength
-                        uint8_t *temp = (uint8_t*)realloc(deviceIdentification, devIDPageLen + 4);
+                        uint8_t *temp = (uint8_t*)realloc_aligned(deviceIdentification, 0, devIDPageLen + 4, device->os_info.minimumAlignment);
                         if (!temp)
                         {
-                            perror("realloc failure!\n");
+                            perror("Error trying to realloc for larget device identification VPD page data!\n");
                             return 101;
                         }
                         deviceIdentification = temp;
