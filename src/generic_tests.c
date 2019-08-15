@@ -44,7 +44,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
     uint8_t *dataBuf = NULL;
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = (uint8_t*)calloc((size_t)(sectorCount * device->drive_info.deviceBlockSize) * sizeof(uint8_t), sizeof(uint8_t));
+        dataBuf = (uint8_t*)calloc_aligned((size_t)(sectorCount * device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -66,7 +66,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
             if (rwvCommand != RWV_COMMAND_VERIFY)
             {
                 //reallocate the memory to be sized appropriately for this change
-                temp = (uint8_t*)realloc(dataBuf, (size_t)(sectorCount * device->drive_info.deviceBlockSize * sizeof(uint8_t)));
+                temp = (uint8_t*)realloc_aligned(dataBuf, 0, (size_t)(sectorCount * device->drive_info.deviceBlockSize), device->os_info.minimumAlignment);
                 if (!temp)
                 {
                     perror("memory reallocation failure");
@@ -152,7 +152,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         }
         fflush(stdout);
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     return ret;
 }
 
@@ -1034,7 +1034,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
     if (rwvCommand == RWV_COMMAND_READ || rwvCommand == RWV_COMMAND_WRITE)
     {
         //allocate memory
-        dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t), sizeof(uint8_t));
+        dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
@@ -1144,7 +1144,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         printf("\n");
         fflush(stdout);
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -1935,7 +1935,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
     if (rwvCommand == RWV_COMMAND_READ || rwvCommand == RWV_COMMAND_WRITE)
     {
         //allocate memory
-        dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t), sizeof(uint8_t));
+        dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
@@ -2049,7 +2049,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
     {
         *numberOfLbasAccessed = startingLBA + sectorCount - *numberOfLbasAccessed;//subtract itself since it gets set to where we start at when we begin.
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     return ret;
 }
 

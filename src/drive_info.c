@@ -330,7 +330,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             else
             {
                 //Read supported security protocol list
-                uint8_t *protocolList = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+                uint8_t *protocolList = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (protocolList)
                 {
                     if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0, protocolList, LEGACY_DRIVE_SEC_SIZE))
@@ -1291,7 +1291,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
 
     //Read Log data
     uint32_t logBufferSize = LEGACY_DRIVE_SEC_SIZE;
-    uint8_t *logBuffer = (uint8_t*)calloc(logBufferSize, sizeof(uint8_t));
+    uint8_t *logBuffer = (uint8_t*)calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!logBuffer)
     {
         return MEMORY_FAILURE;
@@ -2408,7 +2408,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         }
     }
     //VPD pages (read list of supported pages...if we don't get anything back, we'll dummy up a list of things we are interested in trying to read...this is to work around crappy USB bridges
-    uint8_t *tempBuf = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * 2, sizeof(uint8_t));
+    uint8_t *tempBuf = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE * 2, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!tempBuf)
     {
         return MEMORY_FAILURE;
@@ -2483,7 +2483,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             case UNIT_SERIAL_NUMBER:
             {
                 uint8_t unitSerialNumberPageLength = SERIAL_NUM_LEN + 4;//adding 4 bytes extra for the header
-                uint8_t *unitSerialNumber = (uint8_t*)calloc(unitSerialNumberPageLength, sizeof(uint8_t));
+                uint8_t *unitSerialNumber = (uint8_t*)calloc_aligned(unitSerialNumberPageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!unitSerialNumber)
                 {
                     perror("Error allocating memory to read the unit serial number");
@@ -2504,12 +2504,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                safe_Free(unitSerialNumber);
+                safe_Free_aligned(unitSerialNumber);
                 break;
             }
             case DEVICE_IDENTIFICATION:
             {
-                uint8_t *deviceIdentification = (uint8_t*)calloc(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t));
+                uint8_t *deviceIdentification = (uint8_t*)calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!deviceIdentification)
                 {
                     perror("Error allocating memory to read device identification VPD page");
@@ -2601,12 +2601,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                safe_Free(deviceIdentification);
+                safe_Free_aligned(deviceIdentification);
                 break;
             }
             case EXTENDED_INQUIRY_DATA:
             {
-                uint8_t *extendedInquiryData = (uint8_t*)calloc(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t));
+                uint8_t *extendedInquiryData = (uint8_t*)calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!extendedInquiryData)
                 {
                     perror("Error allocating memory to read extended inquiry VPD page");
@@ -2646,13 +2646,13 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //read supported lengths and protection types VPD page
                     {
                         uint16_t supportedBlockSizesAndProtectionTypesLength = 4;//reallocate in a minute when we know how much to read
-                        uint8_t *supportedBlockSizesAndProtectionTypes = (uint8_t*)calloc(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t));
+                        uint8_t *supportedBlockSizesAndProtectionTypes = (uint8_t*)calloc_aligned(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t), device->os_info.minimumAlignment);
                         if (supportedBlockSizesAndProtectionTypes)
                         {
                             if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                             {
                                 supportedBlockSizesAndProtectionTypesLength = M_BytesTo2ByteValue(supportedBlockSizesAndProtectionTypes[2], supportedBlockSizesAndProtectionTypes[3]);
-                                uint8_t *temp = (uint8_t*)realloc(supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t));
+                                uint8_t *temp = (uint8_t*)realloc_aligned(supportedBlockSizesAndProtectionTypes, 0, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                                 supportedBlockSizesAndProtectionTypes = temp;
                                 if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                                 {
@@ -2679,7 +2679,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                     }
                                 }
                             }
-                            safe_Free(supportedBlockSizesAndProtectionTypes);
+                            safe_Free_aligned(supportedBlockSizesAndProtectionTypes);
                         }
                         //no else...don't care that much right now...-TJE
                     }
@@ -2696,12 +2696,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                safe_Free(extendedInquiryData);
+                safe_Free_aligned(extendedInquiryData);
                 break;
             }
             case BLOCK_DEVICE_CHARACTERISTICS:
             {
-                uint8_t *blockDeviceCharacteristics = (uint8_t*)calloc(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t));
+                uint8_t *blockDeviceCharacteristics = (uint8_t*)calloc_aligned(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!blockDeviceCharacteristics)
                 {
                     perror("Error allocating memory to read block device characteistics VPD page");
@@ -2719,7 +2719,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                safe_Free(blockDeviceCharacteristics);
+                safe_Free_aligned(blockDeviceCharacteristics);
                 break;
             }
             case POWER_CONDITION:
@@ -2733,7 +2733,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 break;
             case LOGICAL_BLOCK_PROVISIONING:
             {
-                uint8_t *logicalBlockProvisioning = (uint8_t*)calloc(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t));
+                uint8_t *logicalBlockProvisioning = (uint8_t*)calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!logicalBlockProvisioning)
                 {
                     perror("Error allocating memory to read logical block provisioning VPD page");
@@ -2752,12 +2752,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                safe_Free(logicalBlockProvisioning);
+                safe_Free_aligned(logicalBlockProvisioning);
                 break;
             }
             case BLOCK_LIMITS:
             {
-                uint8_t *blockLimits = (uint8_t*)calloc(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t));
+                uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!blockLimits)
                 {
                     perror("Error allocating memory to read logical block provisioning VPD page");
@@ -2777,12 +2777,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                safe_Free(blockLimits);
+                safe_Free_aligned(blockLimits);
                 break;
             }
             case ATA_INFORMATION:
             {
-                uint8_t *ataInformation = (uint8_t*)calloc(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t));
+                uint8_t *ataInformation = (uint8_t*)calloc_aligned(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!ataInformation)
                 {
                     perror("Error allocating memory to read ATA Information VPD page");
@@ -2801,7 +2801,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                     scsi_Test_Unit_Ready(device, NULL);
                 }
-                safe_Free(ataInformation);
+                safe_Free_aligned(ataInformation);
                 break;
             }
             default:
@@ -2818,10 +2818,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     }
     uint8_t protectionTypeEnabled = 0;//default to type 0
     //read capacity data - try read capacity 10 first, then do a read capacity 16. This is to work around some USB bridges passing the command and returning no data.
-    uint8_t *readCapBuf = (uint8_t*)calloc(READ_CAPACITY_10_LEN, sizeof(uint8_t));
+    uint8_t *readCapBuf = (uint8_t*)calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!readCapBuf)
     {
-        safe_Free(tempBuf);
+        safe_Free_aligned(tempBuf);
         return MEMORY_FAILURE;
     }
     switch (peripheralDeviceType)
@@ -2836,11 +2836,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             if (version > 3)//SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
             {
                 //try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a physical sector size whereas readcap10 data will not
-                uint8_t* temp = (uint8_t*)realloc(readCapBuf, READ_CAPACITY_16_LEN * sizeof(uint8_t));
+                uint8_t* temp = (uint8_t*)realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
-                    safe_Free(tempBuf);
-                    safe_Free(readCapBuf);
+                    safe_Free_aligned(tempBuf);
+                    safe_Free_aligned(readCapBuf);
                     return MEMORY_FAILURE;
                 }
                 readCapBuf = temp;
@@ -2903,11 +2903,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             }
 
             //try read capacity 16, if that fails we are done trying
-            uint8_t* temp = (uint8_t*)realloc(readCapBuf, READ_CAPACITY_16_LEN * sizeof(uint8_t));
+            uint8_t* temp = (uint8_t*)realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment);
             if (temp == NULL)
             {
-                safe_Free(tempBuf);
-                safe_Free(readCapBuf);
+                safe_Free_aligned(tempBuf);
+                safe_Free_aligned(readCapBuf);
                 return MEMORY_FAILURE;
             }
             readCapBuf = temp;
@@ -2950,7 +2950,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     default:
         break;
     }
-    safe_Free(readCapBuf);
+    safe_Free_aligned(readCapBuf);
     if (protectionSupported)
     {
         //set protection types supported up here.
@@ -3258,7 +3258,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                     //we need parameter code 5h (total bytes processed)
                     //assume we only need to read 16 bytes to get this value
-                    uint8_t *writeErrorData = (uint8_t*)calloc(16 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *writeErrorData = (uint8_t*)calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!writeErrorData)
                     {
                         break;
@@ -3298,7 +3298,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(writeErrorData);
+                    safe_Free_aligned(writeErrorData);
                 }
                 break;
             case LP_READ_ERROR_COUNTERS:
@@ -3306,7 +3306,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                     //we need parameter code 5h (total bytes processed)
                     //assume we only need to read 16 bytes to get this value
-                    uint8_t *readErrorData = (uint8_t*)calloc(16 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *readErrorData = (uint8_t*)calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!readErrorData)
                     {
                         break;
@@ -3346,7 +3346,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(readErrorData);
+                    safe_Free_aligned(readErrorData);
                 }
                 break;
             case LP_LOGICAL_BLOCK_PROVISIONING:
@@ -3360,7 +3360,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                 case 0://temperature
                 {
-                    uint8_t *temperatureData = (uint8_t*)calloc(10 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *temperatureData = (uint8_t*)calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!temperatureData)
                     {
                         break;
@@ -3375,12 +3375,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(temperatureData);
+                    safe_Free_aligned(temperatureData);
                 }
                 break;
                 case 1://environmental reporting
                 {
-                    uint8_t *environmentReporting = (uint8_t*)calloc(16 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *environmentReporting = (uint8_t*)calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!environmentReporting)
                     {
                         break;
@@ -3415,7 +3415,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(environmentReporting);
+                    safe_Free_aligned(environmentReporting);
                 }
                 break;
                 default:
@@ -3427,7 +3427,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                 case 0x01://utilization
                 {
-                    uint8_t *utilizationData = (uint8_t*)calloc(10 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *utilizationData = (uint8_t*)calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!utilizationData)
                     {
                         break;
@@ -3442,7 +3442,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(utilizationData);
+                    safe_Free_aligned(utilizationData);
                 }
                 break;
                 default:
@@ -3454,7 +3454,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                 case 0x00://application client
                 {
-                    uint8_t *applicationClient = (uint8_t*)calloc(4 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *applicationClient = (uint8_t*)calloc_aligned(4, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!applicationClient)
                     {
                         break;
@@ -3470,7 +3470,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(applicationClient);
+                    safe_Free_aligned(applicationClient);
                 }
                 break;
                 default:
@@ -3480,7 +3480,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             case LP_SELF_TEST_RESULTS:
                 if (subpageCode == 0)
                 {
-                    uint8_t *selfTestResults = (uint8_t*)calloc(LP_SELF_TEST_RESULTS_LEN * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *selfTestResults = (uint8_t*)calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!selfTestResults)
                     {
                         break;
@@ -3502,14 +3502,14 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(selfTestResults);
+                    safe_Free_aligned(selfTestResults);
                 }
                 break;
             case LP_SOLID_STATE_MEDIA:
                 if (subpageCode == 0)
                 {
                     //need parameter 0001h
-                    uint8_t *ssdEnduranceData = (uint8_t*)calloc(12 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *ssdEnduranceData = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!ssdEnduranceData)
                     {
                         break;
@@ -3524,14 +3524,14 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(ssdEnduranceData);
+                    safe_Free_aligned(ssdEnduranceData);
                 }
                 break;
             case LP_BACKGROUND_SCAN_RESULTS:
                 if (subpageCode == 0)
                 {
                     //reading power on minutes from here
-                    uint8_t *backgroundScanResults = (uint8_t*)calloc(19 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *backgroundScanResults = (uint8_t*)calloc_aligned(19, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!backgroundScanResults)
                     {
                         break;
@@ -3546,14 +3546,14 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(backgroundScanResults);
+                    safe_Free_aligned(backgroundScanResults);
                 }
                 break;
             case LP_GENERAL_STATISTICS_AND_PERFORMANCE:
                 if (subpageCode == 0)
                 {
                     //parameter code 1 is what we're interested in for this one
-                    uint8_t *generalStatsAndPerformance = (uint8_t*)calloc(72 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *generalStatsAndPerformance = (uint8_t*)calloc_aligned(72, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!generalStatsAndPerformance)
                     {
                         break;
@@ -3574,13 +3574,13 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(generalStatsAndPerformance);
+                    safe_Free_aligned(generalStatsAndPerformance);
                 }
                 break;
             case LP_INFORMATION_EXCEPTIONS:
                 if (subpageCode == 0)
                 {
-                    uint8_t *informationExceptions = (uint8_t*)calloc(11 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *informationExceptions = (uint8_t*)calloc_aligned(11, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!informationExceptions)
                     {
                         break;
@@ -3607,13 +3607,13 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         driveInfo->smartStatus = 2;
                     }
-                    safe_Free(informationExceptions);
+                    safe_Free_aligned(informationExceptions);
                 }
                 break;
             case 0x3C://Vendor specific page. we're checking this page on Seagate drives for an enhanced usage indicator on SSDs (PPM value)
                 if (is_Seagate_Family(device) == SEAGATE || is_Seagate_Family(device) == SEAGATE_VENDOR_A)
                 {
-                    uint8_t *ssdUsage = (uint8_t*)calloc(12 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *ssdUsage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!ssdUsage)
                     {
                         break;
@@ -3627,7 +3627,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
                         scsi_Test_Unit_Ready(device, NULL);
                     }
-                    safe_Free(ssdUsage);
+                    safe_Free_aligned(ssdUsage);
                 }
                 break;
             default:
@@ -5361,7 +5361,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         scsi_Test_Unit_Ready(device, NULL);
     }
     driveInfo->lowCurrentSpinupValid = false;
-    safe_Free(tempBuf);
+    safe_Free_aligned(tempBuf);
     return ret;
 }
 
@@ -5372,7 +5372,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
 #if !defined(DISABLE_NVME_PASSTHROUGH)
     //changing ret to success since we have passthrough available
     ret = SUCCESS;
-    uint8_t *nvmeIdentifyData = (uint8_t*)calloc(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t));
+    uint8_t *nvmeIdentifyData = (uint8_t*)calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, 0, 1))
     {
         //MN
@@ -5799,6 +5799,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         {
             driveInfo->smartData.smartStatus = 2;
         }
+        safe_Free_aligned(nvmeIdentifyData);
     }
     else
     {
@@ -7031,12 +7032,12 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
     int ret = SUCCESS;
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
-    scsiDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+    scsiDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
     scsiDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //allocate ataDriveInfo since this is an ATA drive
-        ataDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+        ataDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
         ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
         ret = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
     }
@@ -7044,7 +7045,7 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         //allocate nvmeDriveInfo since this is an NVMe drive
-        nvmeDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+        nvmeDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
         nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
         get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
     }
@@ -7071,7 +7072,7 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
             //ONLY call the external function when we are able to get some passthrough information back as well
             if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && device->drive_info.drive_type == ATA_DRIVE)
             {
-                usbDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+                usbDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
                 usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
                 generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &ataDriveInfo->sasSata);
                 print_Device_Information(usbDriveInfo);

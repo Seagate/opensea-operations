@@ -81,7 +81,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
 {
     //04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
     int     result = UNKNOWN;
-    uint8_t *temp_buf = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+    uint8_t *temp_buf = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (temp_buf == NULL)
     {
         perror("Calloc Failure!\n");
@@ -99,7 +99,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         *percentComplete *= 100;
         *percentComplete /= 65536;
     }
-    free(temp_buf);
+    safe_Free_aligned(temp_buf);
     return result;
 }
 #if !defined(DISABLE_NVME_PASSTHROUGH)
@@ -796,7 +796,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         if (is_Self_Test_Supported(device))
         {
             uint16_t longDSTTime = 0;
-            uint8_t *smartData = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+            uint8_t *smartData = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (smartData == NULL)
             {
                 perror("calloc failure\n");
@@ -814,7 +814,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 *minutes = (uint8_t)(longDSTTime % 60);
                 ret = SUCCESS;
             }
-            free(smartData);
+            safe_Free_aligned(smartData);
         }
         break;
     case NVME_DRIVE:
@@ -830,7 +830,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
     {
         uint16_t longDSTTime = 0;
         bool getTimeFromExtendedInquiryData = false;
-        uint8_t *controlMP = (uint8_t*)calloc(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+        uint8_t *controlMP = (uint8_t*)calloc_aligned(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (controlMP == NULL)
         {
             perror("calloc failure!");
@@ -875,10 +875,10 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 getTimeFromExtendedInquiryData = true;//some crappy USB bridges may not support the mode page, but will support the VPD page, so attempt to read the VPD page anyways
             }
         }
-        safe_Free(controlMP);
+        safe_Free_aligned(controlMP);
         if (getTimeFromExtendedInquiryData)
         {
-            uint8_t *extendedInqyData = (uint8_t*)calloc(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t));
+            uint8_t *extendedInqyData = (uint8_t*)calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (extendedInqyData == NULL)
             {
                 perror("calloc failure!\n");
@@ -893,7 +893,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 *minutes = (uint8_t)(longDSTTime % 60);
                 ret = SUCCESS;
             }
-            safe_Free(extendedInqyData);
+            safe_Free_aligned(extendedInqyData);
         }
     }
     break;
@@ -907,7 +907,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
 bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
-    uint8_t *selfTestResults = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *selfTestResults = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!selfTestResults)
     {
         return false;
@@ -983,14 +983,14 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
             }
         }
     }
-    safe_Free(selfTestResults);
+    safe_Free_aligned(selfTestResults);
     return isValidLBA;
 }
 
 bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
-    uint8_t *selfTestResultsLog = (uint8_t*)calloc(LP_SELF_TEST_RESULTS_LEN * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *selfTestResultsLog = (uint8_t*)calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!selfTestResultsLog)
     {
         return false;
@@ -1015,7 +1015,7 @@ bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
             }
         }
     }
-    safe_Free(selfTestResultsLog);
+    safe_Free_aligned(selfTestResultsLog);
     return isValidLBA;
 }
 
@@ -1097,7 +1097,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
         {
             errorListAllocation = errorLimit * sizeof(errorLBA);
         }
-        errorList = (errorLBA*)calloc(errorListAllocation, sizeof(errorLBA));
+        errorList = (errorLBA*)calloc_aligned(errorListAllocation, sizeof(errorLBA), device->os_info.minimumAlignment);
         if (!errorList)
         {
             perror("calloc failure\n");
@@ -1317,7 +1317,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
         {
             printf("No bad LBAs detected during DST and Clean.\n");
         }
-        safe_Free(errorList);
+        safe_Free_aligned(errorList);
     }
     return ret;
 }
@@ -1335,7 +1335,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
         {
             return NOT_SUPPORTED;
         }
-        selfTestResults = (uint8_t*)calloc(extLogSize * sizeof(uint8_t), sizeof(uint8_t));
+        selfTestResults = (uint8_t*)calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
         uint16_t lastPage = (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1;//zero indexed
         if (!selfTestResults)
         {
@@ -1495,7 +1495,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     }
     else
     {
-        selfTestResults = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+        selfTestResults = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!selfTestResults)
         {
             return MEMORY_FAILURE;
@@ -1604,7 +1604,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             }
         }
     }
-    safe_Free(selfTestResults);
+    safe_Free_aligned(selfTestResults);
     return ret;
 }
 
