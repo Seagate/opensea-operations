@@ -636,7 +636,7 @@ int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
     {
         numOfErrToPrint = 32;
     }
-    pErrLogBuf = (nvmeErrLogEntry *)calloc((size_t)numOfErrToPrint, sizeof(nvmeErrLogEntry));
+    pErrLogBuf = (nvmeErrLogEntry *)calloc_aligned((size_t)numOfErrToPrint, sizeof(nvmeErrLogEntry), device->os_info.minimumAlignment);
     if (pErrLogBuf != NULL)
     {
         ret = nvme_Get_ERROR_Log_Page(device, (uint8_t*)pErrLogBuf, (uint32_t)(numOfErrToPrint * sizeof(nvmeErrLogEntry)));
@@ -660,7 +660,7 @@ int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
             }
         }
     }
-    safe_Free(pErrLogBuf);
+    safe_Free_aligned(pErrLogBuf);
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
 #endif

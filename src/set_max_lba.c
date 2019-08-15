@@ -53,7 +53,7 @@ int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
     int ret = UNKNOWN;
-    uint8_t *scsiDataBuffer = (uint8_t*)calloc(0x18, sizeof(uint8_t));//this should be big enough to get back the block descriptor we care about
+    uint8_t *scsiDataBuffer = (uint8_t*)calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment);//this should be big enough to get back the block descriptor we care about
     if (scsiDataBuffer == NULL)
     {
         perror("calloc failure");
@@ -136,7 +136,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         ret = FAILURE;
     }
-    free(scsiDataBuffer);
+    safe_Free_aligned(scsiDataBuffer);
     return ret;
 }
 

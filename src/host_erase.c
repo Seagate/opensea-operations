@@ -24,7 +24,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseRangeStart);
-    uint8_t *writeBuffer = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
+    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase range");
@@ -126,7 +126,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     {
         printf("\n");
     }
-    safe_Free(writeBuffer);
+    safe_Free_aligned(writeBuffer);
     return ret;
 }
 
@@ -139,7 +139,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseStartLBA);
-    uint8_t *writeBuffer = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
+    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase time");
@@ -220,6 +220,6 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     {
         printf("\n");
     }
-    safe_Free(writeBuffer);
+    safe_Free_aligned(writeBuffer);
     return ret;
 }

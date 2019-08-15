@@ -24,7 +24,7 @@
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
     int ret = UNKNOWN;
-    uint8_t *sctSATAPhySpeed = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+    uint8_t *sctSATAPhySpeed = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (sctSATAPhySpeed == NULL)
     {
         perror("Calloc Failure!\n");
@@ -33,7 +33,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
     //speedGen = 1 means generation 1 (1.5Gb/s), 2 =  2nd Generation (3.0Gb/s), 3 = 3rd Generation (6.0Gb/s)
     if (speedGen > 3)
     {
-        safe_Free(sctSATAPhySpeed);
+        safe_Free_aligned(sctSATAPhySpeed);
         return BAD_PARAMETER;
     }
 
@@ -60,7 +60,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 
     ret = send_ATA_SCT_Command(device, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
 
-    safe_Free(sctSATAPhySpeed);
+    safe_Free_aligned(sctSATAPhySpeed);
     return ret;
 }
 
@@ -85,7 +85,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
         return NOT_SUPPORTED;
     }
     uint16_t phyControlLength = 104;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
-    uint8_t *sasPhyControl = (uint8_t*)calloc((MODE_PARAMETER_HEADER_10_LEN + phyControlLength) * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *sasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + phyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!sasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -104,7 +104,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
             {
                 //reread the page for the larger length
                 phyControlLength = pageLength + 8 + MODE_PARAMETER_HEADER_10_LEN;
-                uint8_t *temp = realloc(sasPhyControl, phyControlLength * sizeof(uint8_t));
+                uint8_t *temp = realloc_aligned(sasPhyControl, 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
                     return MEMORY_FAILURE;
@@ -112,7 +112,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                 sasPhyControl = temp;
                 if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), 0x01, true, true, MPC_CURRENT_VALUES, sasPhyControl))
                 {
-                    safe_Free(sasPhyControl);
+                    safe_Free_aligned(sasPhyControl);
                     return FAILURE;
                 }
             }
@@ -180,7 +180,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         ret = FAILURE;
     }
-    safe_Free(sasPhyControl);
+    safe_Free_aligned(sasPhyControl);
     return ret;
 }
 
@@ -635,7 +635,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                 *supported = false;
                 return SUCCESS;
             }
-            uint8_t *pcModePage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t));
+            uint8_t *pcModePage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
@@ -663,7 +663,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                     }
                 }
             }
-            safe_Free(pcModePage);
+            safe_Free_aligned(pcModePage);
         }
     }
     return ret;
@@ -685,7 +685,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *pcModePage = (uint8_t*)calloc(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+        uint8_t *pcModePage = (uint8_t*)calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!pcModePage)
         {
             return MEMORY_FAILURE;
@@ -704,7 +704,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             //now do mode select with the data for the mode to set
             ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
         }
-        safe_Free(pcModePage);
+        safe_Free_aligned(pcModePage);
     }
     return ret;
 }
@@ -718,7 +718,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *smartData = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+            uint8_t *smartData = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!smartData)
             {
                 return MEMORY_FAILURE;
@@ -739,7 +739,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
             {
                 ret = FAILURE;
             }
-            safe_Free(smartData);
+            safe_Free_aligned(smartData);
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -747,7 +747,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
+            uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (iddDiagPage)
             {
                 if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15))
@@ -757,6 +757,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
                     iddSupport->iddLong = true;//long
                 }
             }
+            safe_Free_aligned(iddDiagPage);
         }
     }
     return ret;
@@ -837,7 +838,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //read diagnostic page
-        uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
+        uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (iddDiagPage)
         {
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
@@ -867,6 +868,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
         {
             ret = MEMORY_FAILURE;
         }
+        safe_Free_aligned(iddDiagPage);
     }
     return ret;
 }
@@ -906,7 +908,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //send diagnostic
-        uint8_t *iddDiagPage = (uint8_t*)calloc(12, sizeof(uint8_t));
+        uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (iddDiagPage)
         {
             uint32_t commandTimeoutSeconds = 300;
@@ -936,7 +938,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             iddDiagPage[3] = 0x08;//page length
             iddDiagPage[4] = 1 << 4;//revision number 1, status of zero
             ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 12, iddDiagPage, 12, commandTimeoutSeconds);
-            safe_Free(iddDiagPage);
+            safe_Free_aligned(iddDiagPage);
         }
         else
         {

@@ -570,7 +570,7 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseTy
 int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
     int ret = SUCCESS;
-    uint8_t *securityPassword = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *securityPassword = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -584,14 +584,14 @@ int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, 
     {
         ret = ata_Security_Set_Password(device, securityPassword);
     }
-    safe_Free(securityPassword);
+    safe_Free_aligned(securityPassword);
     return ret;
 }
 
 int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
     int ret = SUCCESS;
-    uint8_t *securityPassword = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *securityPassword = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -605,14 +605,14 @@ int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     {
         ret = ata_Security_Disable_Password(device, securityPassword);
     }
-    safe_Free(securityPassword);
+    safe_Free_aligned(securityPassword);
     return ret;
 }
 
 int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
     int ret = SUCCESS;
-    uint8_t *securityPassword = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *securityPassword = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -626,14 +626,14 @@ int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool u
     {
         ret = ata_Security_Unlock(device, securityPassword);
     }
-    safe_Free(securityPassword);
+    safe_Free_aligned(securityPassword);
     return ret;
 }
 
 int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT)
 {
     int ret = SUCCESS;
-    uint8_t *securityErase = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *securityErase = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!securityErase)
     {
         return MEMORY_FAILURE;
@@ -661,7 +661,7 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
             ret = ata_Security_Erase_Unit(device, securityErase, timeout);
         }
     }
-    safe_Free(securityErase);
+    safe_Free_aligned(securityErase);
     return ret;
 }
 

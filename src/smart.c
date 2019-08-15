@@ -27,7 +27,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
     {
         ataSMARTAttribute *currentAttribute = NULL;
         uint16_t            smartIter = 0;
-        uint8_t *ATAdataBuffer = (uint8_t *)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+        uint8_t *ATAdataBuffer = (uint8_t *)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (ATAdataBuffer == NULL)
         {
             perror("Calloc Failure!\n");
@@ -65,7 +65,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                 }
             }
         }
-        free(ATAdataBuffer);
+        safe_Free_aligned(ATAdataBuffer);
     }
     #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
@@ -1600,7 +1600,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     }
     if (sendRequestSense)
     {
-        uint8_t *senseData = (uint8_t*)calloc(SPC3_SENSE_LEN, sizeof(uint8_t));
+        uint8_t *senseData = (uint8_t*)calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN);
         uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
         get_Sense_Key_ASC_ASCQ_FRU(senseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
@@ -1639,7 +1639,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 ret = UNKNOWN;
             }
         }
-        safe_Free(senseData);
+        safe_Free_aligned(senseData);
     }
     if (temporarilyEnableMRIEMode6)
     {
@@ -1780,7 +1780,7 @@ bool is_SMART_Enabled(tDevice *device)
     case SCSI_DRIVE:
     {
         //read the informational exceptions mode page and check MRIE value for something other than 0
-        uint8_t *infoExceptionsControl = (uint8_t*)calloc(12 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+        uint8_t *infoExceptionsControl = (uint8_t*)calloc_aligned(12 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!infoExceptionsControl)
         {
             perror("calloc failure for infoExceptionsControl");
@@ -1800,7 +1800,7 @@ bool is_SMART_Enabled(tDevice *device)
                 enabled = true;
             }
         }
-        safe_Free(infoExceptionsControl);
+        safe_Free_aligned(infoExceptionsControl);
     }
     break;
     default:
@@ -2321,7 +2321,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
     //if logData is non-null, read the log page...do this first in case a mode select is being performed after this function call!
     if (logData)
     {
-        uint8_t *infoLogPage = (uint8_t*)calloc(LP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t));
+        uint8_t *infoLogPage = (uint8_t*)calloc_aligned(LP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (infoLogPage)
         {
             if (SUCCESS == scsi_Log_Sense_Cmd(device, true, LPC_CUMULATIVE_VALUES, LP_INFORMATION_EXCEPTIONS, 0, 0, infoLogPage, LP_INFORMATION_EXCEPTIONS_LEN))
@@ -2337,11 +2337,11 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
                     logData->mostRecentTemperatureReading = infoLogPage[10];
                 }
             }
-            safe_Free(infoLogPage);
+            safe_Free_aligned(infoLogPage);
         }
     }
     //read the mode page
-    uint8_t *infoControlPage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t));
+    uint8_t *infoControlPage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (infoControlPage)
     {
         bool gotData = false;
@@ -2377,7 +2377,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
                 controlData->reportCount = M_BytesTo4ByteValue(infoControlPage[headerLength + 8], infoControlPage[headerLength + 9], infoControlPage[headerLength + 10], infoControlPage[headerLength + 11]);
             }
         }
-        safe_Free(infoControlPage);
+        safe_Free_aligned(infoControlPage);
     }
     return ret;
 }
@@ -2385,7 +2385,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
 int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInformationalExceptionsControl controlData)
 {
     int ret = SUCCESS;
-    uint8_t *infoControlPage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t));
+    uint8_t *infoControlPage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!infoControlPage)
     {
         return MEMORY_FAILURE;
@@ -2468,7 +2468,7 @@ int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInform
     {
         ret = scsi_Mode_Select_10(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, false, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
     }
-    safe_Free(infoControlPage);
+    safe_Free_aligned(infoControlPage);
     return ret;
 }
 
@@ -3205,7 +3205,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     if (compErrLogSize > 0)
                     {
                         ret = SUCCESS;
-                        uint8_t *errorLog = (uint8_t*)calloc(512, sizeof(uint8_t));
+                        uint8_t *errorLog = (uint8_t*)calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment);
                         if (!errorLog)
                         {
                             return MEMORY_FAILURE;
@@ -3227,10 +3227,10 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                             if (errorLogIndex > 0)
                             {
                                 //read the full log to populate all fields
-                                uint8_t *temp = (uint8_t*)realloc(errorLog, compErrLogSize * sizeof(uint8_t));
+                                uint8_t *temp = (uint8_t*)realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment);
                                 if (!temp)
                                 {
-                                    safe_Free(errorLog);
+                                    safe_Free_aligned(errorLog);
                                     return MEMORY_FAILURE;
                                 }
                                 errorLog = temp;
@@ -3337,7 +3337,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                         {
                             ret = FAILURE;
                         }
-                        safe_Free(errorLog);
+                        safe_Free_aligned(errorLog);
                     }
                 }
             }
