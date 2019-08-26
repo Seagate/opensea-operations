@@ -134,6 +134,11 @@
             <F N="../../src/writesame.c"/>
             <F N="../../src/zoned_operations.c"/>
         </Folder>
+        <Folder Name="../UEFI">
+            <F N="../UEFI/opensea-operations.dec"/>
+            <F N="../UEFI/opensea-operations.dsc"/>
+            <F N="../UEFI/opensea-operations.inf"/>
+        </Folder>
         <Folder Name="../vmware">
             <F
                 N="../vmware/Makefile"

@@ -184,7 +184,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     }
     //dataSize += 1;//adding 1 to make sure we don't go over the end of out memory
     //allocate memory
-    dataBuf = (uint8_t*)calloc(dataSize *sizeof(uint8_t), sizeof(uint8_t));
+    dataBuf = (uint8_t*)calloc_aligned(dataSize *sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -302,7 +302,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
                 //all else fails, try mode sense 6
                 if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
                 {
-                    safe_Free(dataBuf);
+                    safe_Free_aligned(dataBuf);
                     return NOT_SUPPORTED;
                 }
             }
@@ -387,7 +387,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         else
         {
             //invalid block descriptor length
-            safe_Free(dataBuf);
+            safe_Free_aligned(dataBuf);
             return NOT_SUPPORTED;
         }
         //now send a mode select command
@@ -479,7 +479,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             //check if there was an invalid parameter field specifying the security initialize bit...if so, print a message and return not supported - TJE
         }
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     return ret;
 }
 
@@ -497,7 +497,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
     //4 + 8 for param 2
     //4 + 8 for param 3
     //4 + 4 for param 4
-    uint8_t *formatStatusPage = (uint8_t*)calloc(307, sizeof(uint8_t));
+    uint8_t *formatStatusPage = (uint8_t*)calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!formatStatusPage)
     {
         return MEMORY_FAILURE;
@@ -622,7 +622,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
             formatStatus->totalNewBlocksReassignedValid = false;
             ret = NOT_SUPPORTED;
         }
-        safe_Free(formatStatusPage);
+        safe_Free_aligned(formatStatusPage);
     }
     else
     {
@@ -869,7 +869,7 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     int ret = NOT_SUPPORTED;
-    uint8_t *inquiryData = (uint8_t*)calloc(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t));
+    uint8_t *inquiryData = (uint8_t*)calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!inquiryData)
     {
         return MEMORY_FAILURE;
@@ -935,7 +935,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             }
         }
     }
-    safe_Free(inquiryData);
+    safe_Free_aligned(inquiryData);
     bool dummyUpCommonSizes = true;
     uint32_t supportedSectorSizesDataLength = 0;
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
@@ -944,7 +944,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
         uint32_t supportedSectorSizesDataLength = 0;
         if (SUCCESS == get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength))
         {
-            uint8_t *supportedBlockLengthsData = (uint8_t*)calloc(supportedSectorSizesDataLength, sizeof(uint8_t));
+            uint8_t *supportedBlockLengthsData = (uint8_t*)calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!supportedBlockLengthsData)
             {
                 return MEMORY_FAILURE;
@@ -1021,7 +1021,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                 }
                 ret = SUCCESS;
             }
-            safe_Free(supportedBlockLengthsData);
+            safe_Free_aligned(supportedBlockLengthsData);
         }
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))

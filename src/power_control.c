@@ -89,7 +89,7 @@ int print_Current_Power_Mode(tDevice *device)
         uint8_t powerMode = 0;
         //first check if EPC feature is supported and/or enabled
         uint8_t epcFeature = 0;//0 - disabled, 1 - supported, 2 - enabled.
-        uint8_t *identifyData = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+        uint8_t *identifyData = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (identifyData == NULL)
         {
             perror("Calloc Failure!\n");
@@ -116,7 +116,7 @@ int print_Current_Power_Mode(tDevice *device)
             free(identifyData);
             return FAILURE;
         }
-        free(identifyData);
+        safe_Free_aligned(identifyData);
 
         if (SUCCESS == ata_Check_Power_Mode(device, &powerMode))
         {
@@ -185,8 +185,8 @@ int print_Current_Power_Mode(tDevice *device)
         NOTE: Removed the code which was checking to see if the power mode is supported 
               mainly because it was changing the power state of the drive. -MA 
         */
-        uint8_t *senseData = (uint8_t*)calloc(SPC3_SENSE_LEN, sizeof(uint8_t));
-        if (senseData == NULL)
+        uint8_t *senseData = (uint8_t*)calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        if (!senseData)
         {
             perror("Calloc Failure!\n");
             return MEMORY_FAILURE;
@@ -257,7 +257,7 @@ int print_Current_Power_Mode(tDevice *device)
                 ret = FAILURE;
             }
         }
-        free(senseData);
+        safe_Free_aligned(senseData);
     }
     #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
@@ -391,7 +391,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
 {
     int ret = UNKNOWN;
     //first verify the device supports the EPC feature
-    uint8_t *ataDataBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+    uint8_t *ataDataBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!ataDataBuffer)
     {
         perror("calloc failure!\n");
@@ -417,10 +417,10 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
         {
             printf("Failed to check if drive supports EPC feature!!\n");
         }
-        free(ataDataBuffer);
+        safe_Free_aligned(ataDataBuffer);
         return FAILURE;
     }
-    free(ataDataBuffer);
+    safe_Free_aligned(ataDataBuffer);
     //if we go this far, then we know that we support the required EPC feature
     if (restoreDefaults)
     {
@@ -461,8 +461,8 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
     int ret = UNKNOWN;
     uint8_t *temp = NULL;
     //first we need to check that VPD page 8Ah (power condition) exists...and we can possibly use that information to return "not supported, etc"
-    uint8_t *scsiDataBuffer = (uint8_t*)calloc(VPD_POWER_CONDITION_LEN, sizeof(uint8_t));//size of 18 is defined in SPC4 for this VPD page
-    if (scsiDataBuffer == NULL)
+    uint8_t *scsiDataBuffer = (uint8_t*)calloc_aligned(VPD_POWER_CONDITION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);//size of 18 is defined in SPC4 for this VPD page
+    if (!scsiDataBuffer)
     {
         perror("calloc failure!");
         return MEMORY_FAILURE;
@@ -488,7 +488,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         free(scsiDataBuffer);
         return FAILURE;
     }
-    temp = realloc(scsiDataBuffer, (MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN) * sizeof(uint8_t));
+    temp = realloc_aligned(scsiDataBuffer, VPD_POWER_CONDITION_LEN, (MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN) * sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!temp)
     {
         perror("realloc failure!");
@@ -517,14 +517,11 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                     case PWR_CND_STANDBY_Z:
                         if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT0)
                         {
-                            currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT0;
+                            M_SET_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 0);
                         }
                         else
                         {
-                            if (currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT0)
-                            {
-                                currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT0;
-                            }
+                            M_CLEAR_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 0);
                         }
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 8] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 8];
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 9] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 9];
@@ -534,14 +531,11 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                     case PWR_CND_STANDBY_Y:
                         if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT0)
                         {
-                            currentTimers[MODE_PARAMETER_HEADER_10_LEN + 2] |= BIT0;
+                            M_SET_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 2], 0);
                         }
                         else
                         {
-                            if (currentTimers[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT0)
-                            {
-                                currentTimers[MODE_PARAMETER_HEADER_10_LEN + 2] ^= BIT0;
-                            }
+                            M_CLEAR_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 2], 0);
                         }
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 20] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 20];
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 21] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 21];
@@ -551,14 +545,11 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                     case PWR_CND_IDLE_A:
                         if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT1)
                         {
-                            currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT1;
+                            M_SET_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 1);
                         }
                         else
                         {
-                            if (currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT1)
-                            {
-                                currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT1;
-                            }
+                            M_CLEAR_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 1);
                         }
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 4] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 4];
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 5] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 5];
@@ -568,14 +559,11 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                     case PWR_CND_IDLE_B:
                         if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT2)
                         {
-                            currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT2;
+                            M_SET_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 2);
                         }
                         else
                         {
-                            if (currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT2)
-                            {
-                                currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT2;
-                            }
+                            M_CLEAR_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 2);
                         }
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 12] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 12];
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 13] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 13];
@@ -585,14 +573,11 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                     case PWR_CND_IDLE_C:
                         if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT3)
                         {
-                            currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT3;
+                            M_SET_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 3);
                         }
                         else
                         {
-                            if (currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT3)
-                            {
-                                currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT3;
-                            }
+                            M_CLEAR_BIT(currentTimers[MODE_PARAMETER_HEADER_10_LEN + 3], 3);
                         }
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 16] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 16];
                         currentTimers[MODE_PARAMETER_HEADER_10_LEN + 17] = scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 17];
@@ -609,7 +594,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 {
                     ret = FAILURE;
                 }
-                safe_Free(currentTimers);
+                safe_Free_aligned(currentTimers);
             }
         }
         else
@@ -627,8 +612,8 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         //first read the mode page so that we only make the specified change and not disable or break anything else
         if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONDTION, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, true, MPC_CURRENT_VALUES, scsiDataBuffer))
         {
-            uint8_t *modeSelectBuffer = (uint8_t*)calloc(MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
-            if (modeSelectBuffer == NULL)
+            uint8_t *modeSelectBuffer = (uint8_t*)calloc_aligned(MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (!modeSelectBuffer)
             {
                 perror("calloc failure!");
                 return MEMORY_FAILURE;
@@ -638,7 +623,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             case PWR_CND_STANDBY_Z:
                 if (enableDisable)
                 {
-                    scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT0;
+                    M_SET_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 0);
                     if (powerModeTimerValid)
                     {
                         scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 8] = (uint8_t)(powerModeTimer >> 24);
@@ -649,16 +634,13 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 }
                 else
                 {
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT0)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT0;
-                    }
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 0);
                 }
                 break;
             case PWR_CND_STANDBY_Y:
                 if (enableDisable)
                 {
-                    scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] |= BIT0;
+                    M_SET_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2], 0);
                     if (powerModeTimerValid)
                     {
                         scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 20] = (uint8_t)(powerModeTimer >> 24);
@@ -669,16 +651,13 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 }
                 else
                 {
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT0)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] ^= BIT0;
-                    }
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2], 0);
                 }
                 break;
             case PWR_CND_IDLE_A:
                 if (enableDisable)
                 {
-                    scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT1;
+                    M_SET_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 1);
                     if (powerModeTimerValid)
                     {
                         scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 4] = (uint8_t)(powerModeTimer >> 24);
@@ -689,16 +668,13 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 }
                 else
                 {
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT1)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT1;
-                    }
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 1);
                 }
                 break;
             case PWR_CND_IDLE_B:
                 if (enableDisable)
                 {
-                    scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT2;
+                    M_SET_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], BIT2);
                     if (powerModeTimerValid)
                     {
                         scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 12] = (uint8_t)(powerModeTimer >> 24);
@@ -709,16 +685,13 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 }
                 else
                 {
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT2)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT2;
-                    }
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 2);
                 }
                 break;
             case PWR_CND_IDLE_C:
                 if (enableDisable)
                 {
-                    scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] |= BIT3;
+                    M_SET_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 3);
                     if (powerModeTimerValid)
                     {
                         scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 16] = (uint8_t)(powerModeTimer >> 24);
@@ -729,10 +702,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 }
                 else
                 {
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT3)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT3;
-                    }
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 3);
                 }
                 break;
             case PWR_CND_ALL:
@@ -744,22 +714,10 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 }
                 else
                 {
-                    if ((scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT0) > 0)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] ^= BIT0;
-                    }
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT3)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT3;
-                    }
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT2)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT2;
-                    }
-                    if (scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] & BIT1)
-                    {
-                        scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] ^= BIT1;
-                    }
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2], 0);
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 3);
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 2);
+                    M_CLEAR_BIT(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3], 1);
                 }
                 //set the timers to the same thing if one was provided
                 if (powerModeTimerValid)
@@ -803,10 +761,10 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             //copy the data we were modifying to the buffer with the header
             memcpy(&modeSelectBuffer[8], &scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN], MP_POWER_CONDITION_LEN);
             ret = scsi_Mode_Select_10(device, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, modeSelectBuffer, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
-            safe_Free(modeSelectBuffer);
+            safe_Free_aligned(modeSelectBuffer);
         }
     }
-    safe_Free(scsiDataBuffer);
+    safe_Free_aligned(scsiDataBuffer);
     return ret;
 }
 
@@ -889,7 +847,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
         uint32_t powerConsumptionLength = 0;
         if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
         {
-            uint8_t *powerConsumptionPage = (uint8_t*)calloc(powerConsumptionLength, sizeof(uint8_t));
+            uint8_t *powerConsumptionPage = (uint8_t*)calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!powerConsumptionPage)
             {
                 return MEMORY_FAILURE;
@@ -911,11 +869,11 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 ret = FAILURE;
             }
-            safe_Free(powerConsumptionPage);
+            safe_Free_aligned(powerConsumptionPage);
         }
         if (ret != FAILURE)
         {
-            uint8_t *pcModePage = (uint8_t*)calloc(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t));
+            uint8_t *pcModePage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
@@ -948,7 +906,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 ret = NOT_SUPPORTED;
             }
-            safe_Free(pcModePage);
+            safe_Free_aligned(pcModePage);
         }
     }
     return ret;
@@ -1082,7 +1040,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *pcModePage = (uint8_t*)calloc(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t));
+        uint8_t *pcModePage = (uint8_t*)calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
         if (!pcModePage)
         {
@@ -1124,7 +1082,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                 ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
             }
         }
-        safe_Free(pcModePage);
+        safe_Free_aligned(pcModePage);
     }
     return ret;
 }
@@ -1337,7 +1295,7 @@ int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     }
     uint32_t epcLogSize = LEGACY_DRIVE_SEC_SIZE * 2;//from ATA Spec
     //get_ATA_Log_Size(device, ATA_LOG_POWER_CONDITIONS, &epcLogSize, true, false) //uncomment this line to ask the drive for the EPC log size rather than use the hard coded value above.
-    uint8_t *epcLog = (uint8_t*)calloc(epcLogSize * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *epcLog = (uint8_t*)calloc_aligned(epcLogSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!epcLog)
     {
         return MEMORY_FAILURE;
@@ -1410,7 +1368,7 @@ int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
             }
         }
     }
-    safe_Free(epcLog);
+    safe_Free_aligned(epcLog);
     return ret;
 }
 

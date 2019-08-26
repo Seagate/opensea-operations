@@ -194,7 +194,7 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
     printf("%s: logAddress %d, gpl=%s, smart=%s\n",__FUNCTION__, logAddress, gpl ? "true":"false", smart ? "true":"false");
     #endif
 
-    uint8_t *logBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *logBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!logBuffer)
     {
         return MEMORY_FAILURE;
@@ -241,14 +241,14 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
             }
         }
     }
-    safe_Free(logBuffer);
+    safe_Free_aligned(logBuffer);
     return ret;
 }
 
 int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize)
 {
     int ret = NOT_SUPPORTED;//assume the log is not supported
-    uint8_t *logBuffer = (uint8_t*)calloc(255 * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *logBuffer = (uint8_t*)calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!logBuffer)
     {
         return MEMORY_FAILURE;
@@ -315,7 +315,7 @@ int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint
             *logFileSize = UINT16_MAX;//maximum transfer for a log page, so return this so that the page can at least be read....
         }
     }
-    safe_Free(logBuffer);
+    safe_Free_aligned(logBuffer);
     return ret;
 }
 
@@ -323,8 +323,8 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
 {
     int ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t vpdBufferLength = INQ_RETURN_DATA_LENGTH;
-    uint8_t *vpdBuffer = (uint8_t *)calloc(vpdBufferLength, sizeof(uint8_t));
-    if (vpdBuffer == NULL)
+    uint8_t *vpdBuffer = (uint8_t *)calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (!vpdBuffer)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -356,7 +356,7 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
             }
         }
     }
-    safe_Free(vpdBuffer);
+    safe_Free_aligned(vpdBuffer);
     return ret;
 }
 
@@ -373,7 +373,7 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
         sixByte = true;
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
     }
-    uint8_t *modeBuffer = (uint8_t *)calloc(modeLength, sizeof(uint8_t));
+    uint8_t *modeBuffer = (uint8_t *)calloc_aligned(modeLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!modeBuffer)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -416,7 +416,7 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
             *modePageSize = modeBuffer[0] + 1;
         }
     }
-    safe_Free(modeBuffer);
+    safe_Free_aligned(modeBuffer);
     return ret;
 }
 
@@ -435,7 +435,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
     {
         sixByte = true;
     }
-    uint8_t *modeBuffer = (uint8_t *)calloc(modeLength, sizeof(uint8_t));
+    uint8_t *modeBuffer = (uint8_t *)calloc_aligned(modeLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!modeBuffer)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -555,7 +555,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
             ret = FAILURE;
         }
     }
-    safe_Free(modeBuffer);
+    safe_Free_aligned(modeBuffer);
     return ret;
 }
 
@@ -580,7 +580,7 @@ int get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *err
     {
         return BAD_PARAMETER;
     }
-    uint8_t *errorHistoryDirectory = (uint8_t*)calloc(2088, sizeof(uint8_t));
+    uint8_t *errorHistoryDirectory = (uint8_t*)calloc_aligned(2088, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!errorHistoryDirectory)
     {
         return MEMORY_FAILURE;
@@ -618,7 +618,7 @@ int get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *err
             }
         }
     }
-    safe_Free(errorHistoryDirectory);
+    safe_Free_aligned(errorHistoryDirectory);
     return ret;
 }
 
@@ -628,7 +628,7 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
 {
     int ret = UNKNOWN;
     uint32_t historyLen = 0;
-    char name[OPENSEA_PATH_MAX];
+    char name[OPENSEA_PATH_MAX] = { 0 };
     FILE *fp_History = NULL;
     uint8_t *historyBuffer = NULL;
     if (!fileNameUsed)
@@ -641,7 +641,9 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
     {
         //If the user wants it in a buffer...just return. 
         if ((toBuffer) && (bufSize < historyLen))
+        {
             return BAD_PARAMETER;
+        }
 
         uint32_t increment = 65536;//pulling in 64K chunks...this should be ok, but we may need to change this later!
         if (transferSizeBytes != 0)
@@ -652,7 +654,7 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
         {
             increment = historyLen;
         }
-        historyBuffer = (uint8_t *)calloc(increment, sizeof(uint8_t));
+        historyBuffer = (uint8_t *)calloc_aligned(increment, sizeof(uint8_t), device->os_info.minimumAlignment);
 
         if (!historyBuffer)
         {
@@ -719,7 +721,7 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
             fflush(fp_History);
             fclose(fp_History);
         }
-        safe_Free(historyBuffer);
+        safe_Free_aligned(historyBuffer);
     }
     return ret;
 }
@@ -849,7 +851,7 @@ int pull_SCSI_G_List(tDevice *device, const char * const filePath)
     int ret = UNKNOWN;
     uint32_t addressDescriptorIndex = 0;
     uint32_t defectDataSize = 8;//set to size of defect data without any address descriptors so we know how much we will be pulling
-    uint8_t *defectData = (uint8_t*)calloc(defectDataSize * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *defectData = (uint8_t*)calloc_aligned(defectDataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!defectData)
     {
         return MEMORY_FAILURE;
@@ -892,7 +894,7 @@ int pull_SCSI_G_List(tDevice *device, const char * const filePath)
             }
         }
     }
-    safe_Free(defectData);
+    safe_Free_aligned(defectData);
     return ret;
 }
 
@@ -930,7 +932,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
         bool logFromGPL = false;
         bool fileOpened = false;
         FILE *fp_log = NULL;
-        uint8_t *logBuffer = (uint8_t *)calloc(logSize, sizeof(uint8_t));
+        uint8_t *logBuffer = (uint8_t *)calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!logBuffer)
         {
             perror("Calloc Failure!\n");
@@ -1114,7 +1116,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             fclose(fp_log);
             fileOpened = false;
         }
-        safe_Free(logBuffer);
+        safe_Free_aligned(logBuffer);
     }
 
     #ifdef _DEBUG
@@ -1165,7 +1167,7 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
             return BAD_PARAMETER;
         
         //TODO: Improve this since if caller has already has enough memory, no need to allocate this. 
-        logBuffer = (uint8_t *)calloc(pageLen, sizeof(uint8_t));
+        logBuffer = (uint8_t *)calloc_aligned(pageLen, sizeof(uint8_t), device->os_info.minimumAlignment);
         
         if (!logBuffer)
         {
@@ -1200,7 +1202,7 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
         {
             ret = FAILURE;
         }
-        safe_Free(logBuffer);
+        safe_Free_aligned(logBuffer);
     }
     return ret;
 }
@@ -1213,7 +1215,7 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
     if (ret == SUCCESS)
     {
         FILE *fp_vpd = NULL;
-        uint8_t *vpdBuffer = (uint8_t *)calloc(vpdBufferLength, sizeof(uint8_t));
+        uint8_t *vpdBuffer = (uint8_t *)calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment);
         bool fileOpened = false;
         if (!vpdBuffer)
         {
@@ -1257,7 +1259,7 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
             fclose(fp_vpd);
             fileOpened = false;
         }
-        safe_Free(vpdBuffer);
+        safe_Free_aligned(vpdBuffer);
     }
     return ret;
 }
@@ -1274,7 +1276,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
     {
         return BAD_PARAMETER;
     }
-    uint8_t *dataBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+    uint8_t *dataBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (dataBuffer == NULL)
     {
         perror("calloc failure");
@@ -1309,7 +1311,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                 else
                 {
                     ret = FILE_OPEN_ERROR;
-                    safe_Free(dataBuffer);
+                    safe_Free_aligned(dataBuffer);
                     return ret;
                 }
             }
@@ -1340,7 +1342,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                 }
                 else
                 {
-                    safe_Free(dataBuffer);
+                    safe_Free_aligned(dataBuffer);
                     return BAD_PARAMETER;
                 }
                 //getting isl sizes (little endian)
@@ -1369,9 +1371,10 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                 }
                 //increment pageNumber to 1 and reallocate the local data buffer
                 pageNumber += 1;
-                temp = (uint8_t*)realloc(dataBuffer, pullChunkSize);
+                temp = (uint8_t*)realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment);
                 if (temp == NULL)
                 {
+                    safe_Free_aligned(dataBuffer);
                     perror("realloc failure");
                     return MEMORY_FAILURE;
                 }
@@ -1408,7 +1411,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
                         }
                         else
                         {
-                            safe_Free(dataBuffer);
+                            safe_Free_aligned(dataBuffer);
                             return BAD_PARAMETER;
                         }
                     }
@@ -1443,7 +1446,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
     {
         ret = FAILURE;
     }
-    safe_Free(dataBuffer);
+    safe_Free_aligned(dataBuffer);
     return ret;
 }
 
@@ -1461,13 +1464,13 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
         //NOTE: We may be able to pull this in any size, but for now and for compatibility only allow 512B sizes.
         return BAD_PARAMETER;
     }
-    uint8_t *dataBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+    uint8_t *dataBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
 
     #ifdef _DEBUG
     printf("--> %s\n",__FUNCTION__);
     #endif
 
-    if (dataBuffer == NULL)
+    if (!dataBuffer)
     {
         perror("calloc failure");
         return MEMORY_FAILURE;
@@ -1549,7 +1552,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                     else
                     {
                         ret = FILE_OPEN_ERROR;
-                        safe_Free(dataBuffer);
+                        safe_Free_aligned(dataBuffer);
                         return ret;
                     }
                 }
@@ -1559,7 +1562,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 }
                 else
                 {
-                    safe_Free(dataBuffer);
+                    safe_Free_aligned(dataBuffer);
                     return BAD_PARAMETER;
                 }
                 if (dataBuffer[0] == RESERVED)//SAS log
@@ -1596,9 +1599,10 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 }
                 //increment pageNumber to 1 and reallocate the local data buffer
                 pageNumber += 1;
-                temp = (uint8_t*)realloc(dataBuffer, pullChunkSize);
+                temp = (uint8_t*)realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment);
                 if (temp == NULL)
                 {
+                    safe_Free_aligned(dataBuffer);
                     perror("realloc failure");
                     return MEMORY_FAILURE;
                 }
@@ -1635,7 +1639,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                         }
                         else
                         {
-                            safe_Free(dataBuffer);
+                            safe_Free_aligned(dataBuffer);
                             return BAD_PARAMETER;
                         }
                     }
@@ -1671,7 +1675,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
         //unable to read the error history directory from the device
         ret = FAILURE;
     }
-    safe_Free(dataBuffer);
+    safe_Free_aligned(dataBuffer);
     return ret;
 }
 
@@ -1723,7 +1727,7 @@ int print_Supported_Logs(tDevice *device, uint64_t flags)
 int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
 { 
     int retStatus = NOT_SUPPORTED;
-    uint8_t *logBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *logBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     bool subpagesSupported = true;
     bool gotListOfPages = true;
     if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE))
@@ -1793,7 +1797,7 @@ int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
     {
         printf("SCSI Logs not supported on this device.\n");
     }
-    safe_Free(logBuffer);
+    safe_Free_aligned(logBuffer);
     return retStatus;
 }
 
@@ -1805,7 +1809,7 @@ void format_print_logs_info(uint16_t log, uint32_t logSize)
 int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
-    uint8_t *logBuffer = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sizeof(uint8_t), sizeof(uint8_t));
+    uint8_t *logBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (logBuffer)
     {
         retStatus = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0);
@@ -1861,7 +1865,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
         retStatus =  MEMORY_FAILURE;
     }
 
-    safe_Free(logBuffer);
+    safe_Free_aligned(logBuffer);
     return retStatus;
 }
 
@@ -1921,7 +1925,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
 {
     int ret = NOT_SUPPORTED;
     uint32_t errorHistorySize = 2048;
-    uint8_t *errorHistoryDirectory = (uint8_t*)calloc(errorHistorySize, sizeof(uint8_t));
+    uint8_t *errorHistoryDirectory = (uint8_t*)calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (errorHistoryDirectory)
     {
         if (SUCCESS == scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory))
@@ -1935,7 +1939,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
             {
                 errorHistorySize = directoryLength + 32;
                 //realloc and re-read
-                uint8_t *temp = (uint8_t*)realloc(errorHistoryDirectory, errorHistorySize);
+                uint8_t *temp = (uint8_t*)realloc_aligned(errorHistoryDirectory, 2048, errorHistorySize, device->os_info.minimumAlignment);
                 if (temp)
                 {
                     errorHistoryDirectory = temp;
@@ -1946,7 +1950,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
                 else
                 {
                     ret = MEMORY_FAILURE;
-                    safe_Free(errorHistoryDirectory);
+                    safe_Free_aligned(errorHistoryDirectory);
                     return ret;
                 }
             }
@@ -1984,7 +1988,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     {
         ret = MEMORY_FAILURE;
     }
-    safe_Free(errorHistoryDirectory);
+    safe_Free_aligned(errorHistoryDirectory);
     return ret;
 }
 
@@ -2020,7 +2024,7 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
         case PULL_LOG_RAW_MODE:
             if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
             {
-                genericLogBuf = (uint8_t*)calloc(logSize * sizeof(uint8_t), sizeof(uint8_t));
+                genericLogBuf = (uint8_t*)calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (genericLogBuf)
                 {
                     retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes,0);
@@ -2048,7 +2052,7 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
         case PULL_LOG_RAW_MODE:
             if (SUCCESS == get_SCSI_Log_Size(device, logNum, subpage, &logSize))
             {
-                genericLogBuf = (uint8_t*)calloc(logSize * sizeof(uint8_t), sizeof(uint8_t));
+                genericLogBuf = (uint8_t*)calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (genericLogBuf)
                 {
                     retStatus = get_SCSI_Log(device, logNum, subpage, NULL, NULL, true, genericLogBuf, logSize, NULL);
@@ -2072,7 +2076,7 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
     default:
         break;
     }
-    safe_Free(genericLogBuf);
+    safe_Free_aligned(genericLogBuf);
     return retStatus;
 }
 
@@ -2083,8 +2087,9 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     uint8_t *genericLogBuf = NULL;
     char logFileName[30] = "GENERIC_ERROR_HISTORY-";
     char logNumPostfix[10] = { 0 };
-    sprintf(logNumPostfix, "%u", bufferID);
+    sprintf(logNumPostfix, "%" PRIu8, bufferID);
     strcat(logFileName, logNumPostfix);
+    strcat(logFileName, "\0");
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
@@ -2095,7 +2100,7 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     case PULL_LOG_RAW_MODE:
         if (SUCCESS == get_SCSI_Error_History_Size(device, bufferID, &logSize, false, rb16))
         {
-            genericLogBuf = (uint8_t*)calloc(logSize * sizeof(uint8_t), sizeof(uint8_t));
+            genericLogBuf = (uint8_t*)calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (genericLogBuf)
             {
                 retStatus = get_SCSI_Error_History(device, bufferID, NULL, false, rb16, NULL, true, genericLogBuf, logSize, NULL, transferSizeBytes, NULL);
@@ -2112,7 +2117,7 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     default:
         break;
     }
-    safe_Free(genericLogBuf);
+    safe_Free_aligned(genericLogBuf);
     return retStatus;
 }
 

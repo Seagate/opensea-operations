@@ -317,8 +317,8 @@ void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t devic
 //Function for Walking 1's/0's test
 void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
-    uint8_t *patternBuffer = (uint8_t*)calloc(deviceBufferSize, sizeof(uint8_t));//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc(deviceBufferSize);//only receive this from the drive
+    uint8_t *patternBuffer = (uint8_t*)calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment);//only send this to the drive
+    uint8_t *returnBuffer = (uint8_t*)malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment);//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t bitNumber = 0, byteNumber = 0; byteNumber < deviceBufferSize; ++bitNumber)
@@ -415,8 +415,8 @@ void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBuf
             }
         }
     }
-    safe_Free(patternBuffer);
-    safe_Free(returnBuffer);
+    safe_Free_aligned(patternBuffer);
+    safe_Free_aligned(returnBuffer);
 }
 //Function for random data pattern test
 void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)

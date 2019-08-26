@@ -475,7 +475,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             break;
         case SCSI_DRIVE:
         {
-            uint8_t *writeBufferSupportData = (uint8_t*)calloc(14, sizeof(uint8_t));
+            uint8_t *writeBufferSupportData = (uint8_t*)calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment);
             //first try asking for supported operation code for Full Buffer download
             if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE, 14, writeBufferSupportData))
             {
@@ -681,7 +681,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 }
                 else
                 {
-                    uint8_t *temp = (uint8_t*)realloc(writeBufferSupportData, 16);
+                    uint8_t *temp = (uint8_t*)realloc_aligned(writeBufferSupportData, 14, 16, device->os_info.minimumAlignment);
                     if (!temp)
                     {
                         return MEMORY_FAILURE;
@@ -766,7 +766,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     }
                 }
             }
-            safe_Free(writeBufferSupportData);
+            safe_Free_aligned(writeBufferSupportData);
 
             uint8_t offsetReq[4] = { 0 };
             if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
@@ -806,7 +806,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             eSeagateFamily family = is_Seagate_Family(device);
             if (family == SEAGATE || family == SEAGATE_VENDOR_A)
             {
-                uint8_t * c3VPD = calloc(255 * sizeof(uint8_t), sizeof(uint8_t));
+                uint8_t * c3VPD = (uint8_t*)calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (c3VPD)
                 {
                     //If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific for the supported features
@@ -828,7 +828,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         //DO NOT turn the flag to false. It should already be false. If it was set to true, then the drive has already reported it supports this mode some other way.
                     }
                 }
-                safe_Free(c3VPD);
+                safe_Free_aligned(c3VPD);
             }
             //Old method to check support is below...new method above should be as good if not better.
             /*
