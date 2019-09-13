@@ -27,6 +27,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     bool smartErrorLoggingSupported = false;
     bool smartStatusFromSCTStatusLog = false;
     memset(driveInfo, 0, sizeof(driveInformation));
+    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata, LEGACY_DRIVE_SEC_SIZE))
     {
         uint8_t *bytePtr = (uint8_t*)&device->drive_info.IdentifyData.ata.Word000;
@@ -2294,6 +2295,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     bool isSCSI1drive = false;
     bool isSCSI2drive = false;
     bool isSEAGATEVendorID = false;//matches SCSI/SAS/FC for Seagate
+    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == scsi_Inquiry(device, inquiryData, 255, 0, false, false))
     {
         //copy the read data to the device struct
@@ -6954,6 +6956,35 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     else
     {
         printf("\t\tNone reported or an error occurred while trying to determine\n\t\tthe features.\n");
+    }
+    //Adapter information
+    printf("\tAdapter Information:\n");
+    printf("\t\tVendor ID: ");
+    if (driveInfo->adapterInformation.vendorIDValid)
+    {
+        printf("%04" PRIX16 "h\n", driveInfo->adapterInformation.vendorID);
+    }
+    else
+    {
+        printf("Not available.\n");
+    }
+    printf("\t\tProduct ID: ");
+    if (driveInfo->adapterInformation.productIDValid)
+    {
+        printf("%04" PRIX16 "h\n", driveInfo->adapterInformation.productID);
+    }
+    else
+    {
+        printf("Not available.\n");
+    }
+    printf("\t\tRevision: ");
+    if (driveInfo->adapterInformation.revisionValid)
+    {
+        printf("%04" PRIX16 "h\n", driveInfo->adapterInformation.revision);
+    }
+    else
+    {
+        printf("Not available.\n");
     }
     return;
 }

@@ -206,6 +206,7 @@ extern "C"
         int lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
         uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
         bool isWriteProtected;//Not available on SATA!
+        adapterInfo adapterInformation;//Not populated on all OSs. This is only obtainable from low-level OS calls and copied from the tDevice structure.
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe
