@@ -1195,9 +1195,21 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                         ret = FAILURE;
                         break;
                     }
+                    else if (OS_PASSTHROUGH_FAILURE == repairRet)
+                    {
+                        ret = FAILURE;
+                        unableToRepair = true;
+                        break;
+                    }
                     else if (PERMISSION_DENIED == repairRet)
                     {
                         ret = PERMISSION_DENIED;
+                        break;
+                    }
+                    else if (SUCCESS != repairRet)
+                    {
+                        ret = repairRet;
+                        unableToRepair = true;
                         break;
                     }
                     //Now we need to read around the LBA we repaired to make sure there aren't others around
@@ -1271,6 +1283,12 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                                     ret = FAILURE;
                                     break;
                                 }
+                                else if (OS_PASSTHROUGH_FAILURE == repairRet)
+                                {
+                                    ret = FAILURE;
+                                    unableToRepair = true;
+                                    break;
+                                }
                                 else if (PERMISSION_DENIED == repairRet)
                                 {
                                     ret = PERMISSION_DENIED;
@@ -1308,6 +1326,10 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
         if (errorList[0].errorAddress != UINT64_MAX)
         {
             print_LBA_Error_List(errorList, (uint16_t)*errorIndex);
+            if (unableToRepair)
+            {
+                printf("Other errors were found during DST, but were unable to be repaired.\n");
+            }
         }
         else if (unableToRepair)
         {
