@@ -666,7 +666,13 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
         }
 
         bool logFileOpened = false;
-        for (uint64_t offset = 0; offset < historyLen; offset += increment)
+        uint64_t maxOffset = 0xFFFFFF;//24bits is maximum for standard readbuffer command
+        if (useReadBuffer16)
+        {
+            maxOffset = UINT64_MAX;
+        }
+        //TODO: if size of error history is greater than the maximum possible offset for the read buffer command, then need to return an error for truncated data.
+        for (uint64_t offset = 0; offset < historyLen && offset <= maxOffset; offset += increment)
         {
             bool dataRetrieved = false;
             if ((offset + increment) > historyLen)
@@ -2127,10 +2133,10 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
            //FARM pull Factory subpages   
-           //0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-           //1 – Generate and report new FARM data and save to disc(~45ms)(SATA only)
-           //2 – Report previous FARM data from disc(~20ms)(SATA only)
-           //3 – Report FARM factory data from disc(~20ms)(SATA only)
+           //0 ï¿½ Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+           //1 ï¿½ Generate and report new FARM data and save to disc(~45ms)(SATA only)
+           //2 ï¿½ Report previous FARM data from disc(~20ms)(SATA only)
+           //3 ï¿½ Report FARM factory data from disc(~20ms)(SATA only)
         if (issueFactory == 1)
         {
             ret = get_ATA_Log(device, 0xA6, "P_AND_S_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, 0x01);
@@ -2151,7 +2157,7 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //FARM pull Factory subpages   
-       //0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+       //0 ï¿½ Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
        //4 - factory subpage (SAS only)
         if (issueFactory == 4)
         {
