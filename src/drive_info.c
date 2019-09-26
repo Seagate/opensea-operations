@@ -2004,7 +2004,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                 scsi_Test_Unit_Ready(device, NULL);
             }
         }
-        bool readSCTStatusWithSMARTCommand = sct_With_SMART_Commands(device);//USB hack
+        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.smartCommandTransportWithSMARTLogCommandsOnly; //USB hack
         if (sctSupported && sctStatus > 0)//GPL or SMART
         {
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
@@ -2241,8 +2241,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
         scsi_Test_Unit_Ready(device, NULL);
     }
-    bool skipSMARTCheckDueToTranslatorBug = !supports_ATA_Return_SMART_Status_Command(device);//USB hack
-    if (!smartStatusFromSCTStatusLog && !skipSMARTCheckDueToTranslatorBug)
+    //bool skipSMARTCheckDueToTranslatorBug = !supports_ATA_Return_SMART_Status_Command(device);//USB hack
+    if (!smartStatusFromSCTStatusLog)// && !skipSMARTCheckDueToTranslatorBug)
     {
         //SMART status
         switch (ata_SMART_Check(device, NULL))
@@ -2417,7 +2417,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     }
     bool gotRotationRate = false;
     bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
-    if (version >= 2 || bridge_Does_Report_Unit_Serial_Number(device))//VPD pages indroduced in SCSI 2...also a USB hack
+    if (version >= 2 || device->drive_info.passThroughHacks.unitSNAvailable) //VPD pages indroduced in SCSI 2...also a USB hack
     {
         bool dummyUpVPDSupport = false;
         if (SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
