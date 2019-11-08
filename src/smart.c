@@ -1090,7 +1090,7 @@ int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
     {
         bool checkData = false;
         //try reading the SCT status log (ACS4 adds SMART status to this log)
-        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.smartCommandTransportWithSMARTLogCommandsOnly;//USB hack
+        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly;//USB hack
         uint8_t sctStatus[512] = { 0 };
         if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !readSCTStatusWithSMARTCommand &&
             SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_SCT_COMMAND_STATUS, 0, sctStatus, 512, 0)

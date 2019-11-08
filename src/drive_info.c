@@ -2004,7 +2004,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                 scsi_Test_Unit_Ready(device, NULL);
             }
         }
-        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.smartCommandTransportWithSMARTLogCommandsOnly; //USB hack
+        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly; //USB hack
         if (sctSupported && sctStatus > 0)//GPL or SMART
         {
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
@@ -2417,7 +2417,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     }
     bool gotRotationRate = false;
     bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
-    if (version >= 2 || device->drive_info.passThroughHacks.unitSNAvailable) //VPD pages indroduced in SCSI 2...also a USB hack
+    if (version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) //VPD pages indroduced in SCSI 2...also a USB hack
     {
         bool dummyUpVPDSupport = false;
         if (SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
@@ -2730,7 +2730,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 //driveInfo->numberOfFeaturesSupported++;
                 break;
             case POWER_CONSUMPTION:
-                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Power Comsumption");
+                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Power Consumption");
                 driveInfo->numberOfFeaturesSupported++;
                 break;
             case LOGICAL_BLOCK_PROVISIONING:
