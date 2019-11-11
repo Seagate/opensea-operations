@@ -2068,7 +2068,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
     }
-    safe_Free(logBuffer);
+    safe_Free_aligned(logBuffer);
     
     uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
