@@ -161,7 +161,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                     }
                 }
                 //we've finished making our changes to the mode page, so it's time to write it back!
-                if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), false, true, false, sasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength)))
+                if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), true, true, false, sasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength)))
                 {
                     ret = FAILURE;
                 }
