@@ -2565,7 +2565,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 if (naa == 6)
                                 {
                                     driveInfo->worldWideNameExtensionValid = true;
-                                    memcpy(&driveInfo->worldWideName, &deviceIdentification[deviceIdentificationIter + 4 + 8], 8);
+                                    memcpy(&driveInfo->worldWideNameExtension, &deviceIdentification[deviceIdentificationIter + 4 + 8], 8);
+									byte_Swap_64(&driveInfo->worldWideNameExtension);
                                 }
                             }
                             break;
