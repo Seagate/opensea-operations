@@ -6699,7 +6699,7 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
     if (externalDriveInfo && scsiDriveInfo && ataDriveInfo)
     {
         //take data from each of the inputs, and plug it into a new one, then call the standard print function
-        memcpy(externalDriveInfo, ataDriveInfo, sizeof(driveInformation));
+        memcpy(externalDriveInfo, ataDriveInfo, sizeof(driveInformationSAS_SATA));
         //we have a copy of the ata info, now just change the stuff we want to show from scsi info
         memset(externalDriveInfo->vendorID, 0, 8);
         memcpy(externalDriveInfo->vendorID, scsiDriveInfo->vendorID, 8);
@@ -6728,6 +6728,70 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
     }
     return;
 }
+
+void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationNVMe nvmeDriveInfo)
+{
+    //for the most part, keep all the SCSI information.
+    //After that take the POH, temperature, DST information, workload, and combine the features.
+    //Also add the NVMe spec version to the output as well.
+    if (externalDriveInfo && scsiDriveInfo && nvmeDriveInfo)
+    {
+        //take data from each of the inputs, and plug it into a new one, then call the standard print function
+        memcpy(externalDriveInfo, scsiDriveInfo, sizeof(driveInformationSAS_SATA));
+        //Keep the SCSI information, minus a few things to copy from NVMe if the NVMe info needed was read properly
+        if (nvmeDriveInfo->smartData.valid)
+        {
+            //Power on hours
+            externalDriveInfo->powerOnMinutes = (uint64_t)(nvmeDriveInfo->smartData.powerOnHoursD * 60);
+            //Temperature (SCSI is in Celcius!)
+            externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
+            //Workload (reads, writes)
+            externalDriveInfo->totalBytesRead = nvmeDriveInfo->smartData.dataUnitsReadD * 512;//this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsRead = nvmeDriveInfo->smartData.dataUnitsReadD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes;
+            externalDriveInfo->totalBytesWritten = nvmeDriveInfo->smartData.dataUnitsWrittenD * 512; //this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsWritten = nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes;
+            externalDriveInfo->percentEnduranceUsed = nvmeDriveInfo->smartData.percentageUsed;
+        }
+
+        memcpy(&externalDriveInfo->dstInfo, &nvmeDriveInfo->dstInfo, sizeof(lastDSTInformation));
+        externalDriveInfo->longDSTTimeMinutes = nvmeDriveInfo->controllerData.longDSTTimeMinutes;
+
+        //copy specifications supported into the external drive info.
+        uint16_t extSpecNumber = externalDriveInfo->numberOfSpecificationsSupported;
+        if (nvmeDriveInfo->controllerData.majorVersion > 0 || nvmeDriveInfo->controllerData.minorVersion > 0 || nvmeDriveInfo->controllerData.tertiaryVersion > 0)
+        {
+            sprintf(externalDriveInfo->specificationsSupported[extSpecNumber], "NVMe %" PRIu16 ".%" PRIu8 ".%" PRIu8 "\n", nvmeDriveInfo->controllerData.majorVersion, nvmeDriveInfo->controllerData.minorVersion, nvmeDriveInfo->controllerData.tertiaryVersion);
+        }
+        else
+        {
+            sprintf(externalDriveInfo->specificationsSupported[extSpecNumber], "NVMe 1.1 or older\n");
+        }
+        ++(externalDriveInfo->numberOfSpecificationsSupported);
+
+        //now copy over features such as sanitize and dst
+        //copy specifications supported into the external drive info.
+        uint16_t extFeatNumber = externalDriveInfo->numberOfFeaturesSupported;
+        uint16_t nvmeFeatNumber = 0;
+        //controller features
+        for (; extFeatNumber < MAX_FEATURES && nvmeFeatNumber < nvmeDriveInfo->controllerData.numberOfControllerFeatures; ++extFeatNumber, ++nvmeFeatNumber)
+        {
+            memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], &nvmeDriveInfo->controllerData.controllerFeaturesSupported[nvmeFeatNumber], MAX_FEATURE_LENGTH);
+            ++(externalDriveInfo->numberOfFeaturesSupported);
+        }
+        if (nvmeDriveInfo->namespaceData.valid)
+        {
+            //namespace features
+            nvmeFeatNumber = 0;
+            for (; extFeatNumber < MAX_FEATURES && nvmeFeatNumber < nvmeDriveInfo->namespaceData.numberOfNamespaceFeatures; ++extFeatNumber, ++nvmeFeatNumber)
+            {
+                memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], &nvmeDriveInfo->namespaceData.namespaceFeaturesSupported[nvmeFeatNumber], MAX_FEATURE_LENGTH);
+                ++(externalDriveInfo->numberOfFeaturesSupported);
+            }
+        }
+    }
+    return;
+}
+
 
 int print_Drive_Information(tDevice *device, bool showChildInformation)
 {
@@ -6777,6 +6841,13 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
                 usbDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
                 usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
                 generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &ataDriveInfo->sasSata);
+                print_Device_Information(usbDriveInfo);
+            }
+            else if (device->drive_info.interface_type == USB_INTERFACE && device->drive_info.drive_type == NVME_DRIVE)
+            {
+                usbDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
+                usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
+                generate_External_NVMe_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &nvmeDriveInfo->nvme);
                 print_Device_Information(usbDriveInfo);
             }
             else//ata or scsi
