@@ -349,6 +349,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationSAS_SATA ataDriveInfo);
 
+    OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationNVMe nvmeDriveInfo);
+
     //-----------------------------------------------------------------------------
     //
     //  print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)

@@ -311,11 +311,6 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
                 break;
             }
         }
-        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-        {
-            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-            scsi_Test_Unit_Ready(device, NULL);
-        }
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
         {
             ret = SUCCESS;
@@ -332,11 +327,6 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
             default:
                 break;
             }
-        }
-        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-        {
-            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-            scsi_Test_Unit_Ready(device, NULL);
         }
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE, 14, supportedCommands))
         {
@@ -355,11 +345,6 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
                 break;
             }
         }
-        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-        {
-            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-            scsi_Test_Unit_Ready(device, NULL);
-        }
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_EXIT_FAILURE_MODE, 14, supportedCommands))
         {
             ret = SUCCESS;
@@ -376,11 +361,6 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
             default:
                 break;
             }
-        }
-        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-        {
-            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-            scsi_Test_Unit_Ready(device, NULL);
         }
     }
     return ret;

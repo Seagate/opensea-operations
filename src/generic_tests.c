@@ -191,7 +191,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
     int ret = SUCCESS;
     char message[256] = { 0 };
     uint16_t randomLBACount = 5000;
-    uint64_t *randomLBAList = (uint64_t*)calloc(randomLBACount * sizeof(uint64_t),sizeof(uint64_t));
+    uint64_t *randomLBAList = (uint64_t*)calloc(randomLBACount, sizeof(uint64_t));
     uint64_t iterator = 0;
     uint64_t onePercentOfDrive = (uint64_t)(device->drive_info.deviceMaxLba * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
     uint8_t *dataBuf = NULL;//will be allocated at the random read section
@@ -333,6 +333,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
         if (!dataBuf)
         {
             perror("malloc data buf failed\n");
+            safe_Free(randomLBAList);
             return MEMORY_FAILURE;
         }
     }
@@ -1025,7 +1026,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         //need to be able to store at least 1 error
         errorLimit = 1;
     }
-    errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    errorList = (errorLBA*)calloc(errorLimit, sizeof(errorLBA));
     if (!errorList)
     {
         perror("calloc failure\n");
@@ -1038,6 +1039,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
+            safe_Free(errorList);
             return MEMORY_FAILURE;
         }
     }

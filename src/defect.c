@@ -156,6 +156,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                             ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
                                             ptrDefects->physical[elementNumber].multiAddressDescriptorStart = defectData[offset + 4] & BIT7;
                                             ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
+                                            break;
                                         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                             ptrDefects->physical[elementNumber].cylinderNumber = M_BytesTo4ByteValue(0, defectData[offset + 0], defectData[offset + 1], defectData[offset + 2]);
                                             ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];

@@ -1090,7 +1090,7 @@ int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
     {
         bool checkData = false;
         //try reading the SCT status log (ACS4 adds SMART status to this log)
-        bool readSCTStatusWithSMARTCommand = sct_With_SMART_Commands(device);//USB hack
+        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly;//USB hack
         uint8_t sctStatus[512] = { 0 };
         if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !readSCTStatusWithSMARTCommand &&
             SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_SCT_COMMAND_STATUS, 0, sctStatus, 512, 0)
@@ -1139,7 +1139,7 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     if (is_SMART_Enabled(device))
     {
         bool attemptCheckWithAttributes = false;
-        if (supports_ATA_Return_SMART_Status_Command(device))//USB hack. Will return true on IDE/SCSI interface. May return true or false otherwise depending on what device we detect
+        //if (supports_ATA_Return_SMART_Status_Command(device))//USB hack. Will return true on IDE/SCSI interface. May return true or false otherwise depending on what device we detect
         {
             ret = ata_SMART_Return_Status(device);
             if (device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
@@ -1170,25 +1170,25 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 }
             }
         }
-        else
-        {
-            //this device doesn't support getting SMART status from return status command (translator bug)
-            //try other methods.
-            ret = get_ATA_SMART_Status_From_SCT_Log(device);
-            if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
-            {
-                //try use SAT translation instead
-                ret = scsi_SMART_Check(device, tripInfo);
-                if (ret == UNKNOWN)
-                {
-                    attemptCheckWithAttributes = true;
-                }
-            }
-            else
-            {
-                attemptCheckWithAttributes = true;
-            }
-        }
+//      else
+//      {
+//          //this device doesn't support getting SMART status from return status command (translator bug)
+//          //try other methods.
+//          ret = get_ATA_SMART_Status_From_SCT_Log(device);
+//          if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
+//          {
+//              //try use SAT translation instead
+//              ret = scsi_SMART_Check(device, tripInfo);
+//              if (ret == UNKNOWN)
+//              {
+//                  attemptCheckWithAttributes = true;
+//              }
+//          }
+//          else
+//          {
+//              attemptCheckWithAttributes = true;
+//          }
+//      }
         
         if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED || attemptCheckWithAttributes)
         {
