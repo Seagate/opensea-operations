@@ -6746,10 +6746,10 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
             //Temperature (SCSI is in Celcius!)
             externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
             //Workload (reads, writes)
-            externalDriveInfo->totalBytesRead = nvmeDriveInfo->smartData.dataUnitsReadD * 512;//this is a count of 512B units, so converting to bytes
-            externalDriveInfo->totalLBAsRead = nvmeDriveInfo->smartData.dataUnitsReadD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes;
-            externalDriveInfo->totalBytesWritten = nvmeDriveInfo->smartData.dataUnitsWrittenD * 512; //this is a count of 512B units, so converting to bytes
-            externalDriveInfo->totalLBAsWritten = nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes;
+            externalDriveInfo->totalBytesRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512);//this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
+            externalDriveInfo->totalBytesWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512); //this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
             externalDriveInfo->percentEnduranceUsed = nvmeDriveInfo->smartData.percentageUsed;
         }
 
