@@ -207,6 +207,7 @@ extern "C"
         uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
         bool isWriteProtected;//Not available on SATA!
         adapterInfo adapterInformation;//Not populated on all OSs. This is only obtainable from low-level OS calls and copied from the tDevice structure.
+        uint8_t lunCount;//for help detecting multi-actuator drives. Will be zero if not checked for, and an invalid value. Will be 1 or more when checked. Each lun represents and actuator today. - TJE
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe
