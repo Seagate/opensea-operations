@@ -150,6 +150,7 @@ extern "C"
     {
         char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
         char serialNumber[SERIAL_NUM_LEN + 1];//Null terminated
+        char pcbaSerialNumber[SERIAL_NUM_LEN + 1];//Unique to Seagate drives at this time.
         char firmwareRevision[FW_REV_LEN + 1];//Null terminated
         char vendorID[T10_VENDOR_ID_LEN + 1];//This is the T10 vendor ID. ATA will be set to "ATA", NVMe will be set to "NVMe"
         char satVendorID[T10_VENDOR_ID_LEN + 1];//Holds the SATL vendor ID
