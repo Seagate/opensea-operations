@@ -1868,3 +1868,103 @@ int transition_To_Sleep(tDevice *device)
     }
     return ret;
 }
+
+int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber)
+{
+    int ret = SUCCESS;
+    if (!partialValid && !slumberValid)
+    {
+        return BAD_PARAMETER;
+    }
+    bool gotFullPageLength = false;
+    uint16_t enhPhyControlLength = 0;
+    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (!enhSasPhyControl)
+    {
+        return MEMORY_FAILURE;
+    }
+    //read first 4 bytes to get total mode page length, then re-read the part with all the data
+    if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl)))
+    {
+        //parse the header to figure out full page length
+        enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
+        gotFullPageLength = true;
+        uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
+        if (!temp)
+        {
+            return MEMORY_FAILURE;
+        }
+        enhSasPhyControl = temp;
+    }
+    if (gotFullPageLength)
+    {
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl))
+        {
+            //make sure we got the header as we expect it, then validate we got all the data we needed.
+            uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
+            uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            //validate we got the right page
+            if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 && (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x03 && (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & BIT6) > 0)
+            {
+                if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 5] & 0x0F) == 6)//make sure it's the SAS protocol page
+                {
+                    uint8_t numberOfPhys = enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
+                    uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
+                    uint16_t descriptorLength = 19;
+                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys; ++phyIter, phyDescriptorOffset += descriptorLength)
+                    {
+                        uint8_t phyIdentifier = enhSasPhyControl[phyDescriptorOffset + 1];
+                        descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]);
+                        //check if the caller requested changing all phys or a specific phy and only modify it's descriptor if either of those are true.
+                        if (allPhys || phyNumber == phyIdentifier)
+                        {
+                            if (partialValid)
+                            {
+                                //byte 19, bit 1
+                                if (enablePartial)
+                                {
+                                    M_SET_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 1);
+                                }
+                                else
+                                {
+                                    M_CLEAR_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 1);
+                                }
+                            }
+                            if (slumberValid)
+                            {
+                                //byte 19, bit 2
+                                if (enableSlumber)
+                                {
+                                    M_SET_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 2);
+                                }
+                                else
+                                {
+                                    M_CLEAR_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 2);
+                                }
+                            }
+                        }
+                    }
+                    //we've finished making our changes to the mode page, so it's time to write it back!
+                    if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), true, true, false, enhSasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength)))
+                    {
+                        ret = FAILURE;
+                    }
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+        }
+        else
+        {
+            ret = FAILURE;
+        }
+    }
+    safe_Free_aligned(enhSasPhyControl);
+    return ret;
+}
