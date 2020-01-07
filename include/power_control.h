@@ -256,6 +256,22 @@ extern "C"
     //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from
     OPENSEA_OPERATIONS_API int transition_To_Sleep (tDevice *device);
 
+    OPENSEA_OPERATIONS_API int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber);
+
+    OPENSEA_OPERATIONS_API int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCount);
+
+    typedef struct _sasEnhPhyControl
+    {
+        uint8_t phyIdentifier;
+        bool enablePartial;
+        bool enableSlumber;
+    }sasEnhPhyControl, *ptrSasEnhPhyControl;
+    //If doing all phys, use get_SAS_Enhanced_Phy_Control_Number_Of_Phys first to figure out how much memory must be allocated
+    OPENSEA_OPERATIONS_API int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool allPhys, uint8_t phyNumber, ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize);
+
+    OPENSEA_OPERATIONS_API void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize, bool showPartial, bool showSlumber);
+
+
 #if defined (__cplusplus)
 }
 #endif

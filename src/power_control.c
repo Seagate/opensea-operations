@@ -1968,3 +1968,171 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
     safe_Free_aligned(enhSasPhyControl);
     return ret;
 }
+
+int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCount)
+{
+    int ret = SUCCESS;
+    if (!phyCount)
+    {
+        return BAD_PARAMETER;
+    }
+    uint16_t enhPhyControlLength = 8;//only need 8 bytes to get the number of phys
+    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (!enhSasPhyControl)
+    {
+        return MEMORY_FAILURE;
+    }
+    //read first 4 bytes to get total mode page length, then re-read the part with all the data
+    if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl)))
+    {
+        uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
+        uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+        //validate we got the right page
+        if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 && (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x03 && (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & BIT6) > 0)
+        {
+            if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 5] & 0x0F) == 6)//make sure it's the SAS protocol page
+            {
+                *phyCount = enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
+            }
+        }
+    }
+    safe_Free_aligned(enhSasPhyControl);
+    return ret;
+}
+
+int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool allPhys, uint8_t phyNumber, ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize)
+{
+    int ret = SUCCESS;
+    //make sure the structure that will be filled in makes sense at a quick check
+    if (!enhPhyControlData || enhPhyControlDataSize == 0 || enhPhyControlDataSize % sizeof(sasEnhPhyControl))
+    {
+        return BAD_PARAMETER;
+    }
+
+    bool gotFullPageLength = false;
+    uint16_t enhPhyControlLength = 0;
+    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (!enhSasPhyControl)
+    {
+        return MEMORY_FAILURE;
+    }
+    //read first 4 bytes to get total mode page length, then re-read the part with all the data
+    if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl)))
+    {
+        //parse the header to figure out full page length
+        enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
+        gotFullPageLength = true;
+        uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
+        if (!temp)
+        {
+            return MEMORY_FAILURE;
+        }
+        enhSasPhyControl = temp;
+    }
+    if (gotFullPageLength)
+    {
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl))
+        {
+            //make sure we got the header as we expect it, then validate we got all the data we needed.
+            uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
+            uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            //validate we got the right page
+            if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 && (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x03 && (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & BIT6) > 0)
+            {
+                if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 5] & 0x0F) == 6)//make sure it's the SAS protocol page
+                {
+                    uint8_t numberOfPhys = enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
+                    uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
+                    uint16_t descriptorLength = 19;
+                    uint8_t phyCounter = 0;
+                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && (phyCounter * sizeof(sasEnhPhyControl)) < enhPhyControlDataSize; ++phyIter, phyDescriptorOffset += descriptorLength, ++phyCounter)
+                    {
+                        uint8_t phyIdentifier = enhSasPhyControl[phyDescriptorOffset + 1];
+                        descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]);
+                        //check if the caller requested changing all phys or a specific phy and only modify it's descriptor if either of those are true.
+                        if (allPhys)
+                        {
+                            enhPhyControlData[phyIdentifier].phyIdentifier = phyIdentifier;
+                            enhPhyControlData[phyIdentifier].enablePartial = enhSasPhyControl[phyDescriptorOffset + 19] & BIT1;
+                            enhPhyControlData[phyIdentifier].enableSlumber = enhSasPhyControl[phyDescriptorOffset + 19] & BIT2;
+                        }
+                        else if(phyNumber == phyIdentifier)
+                        {
+                            enhPhyControlData->phyIdentifier = phyIdentifier;
+                            enhPhyControlData->enablePartial = enhSasPhyControl[phyDescriptorOffset + 19] & BIT1;
+                            enhPhyControlData->enableSlumber = enhSasPhyControl[phyDescriptorOffset + 19] & BIT2;
+                        }
+                    }
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+        }
+        else
+        {
+            ret = FAILURE;
+        }
+    }
+    safe_Free_aligned(enhSasPhyControl);
+
+    return ret;
+}
+
+void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize, bool showPartial, bool showSlumber)
+{
+    if (!showPartial && !showSlumber)
+    {
+        return;//nothing that matters was requested to be shown
+    }
+    if (!enhPhyControlData || enhPhyControlDataSize == 0 || enhPhyControlDataSize % sizeof(sasEnhPhyControl))
+    {
+        return;//bad parameter that could cause breakage
+    }
+    uint32_t totalPhys = enhPhyControlDataSize / sizeof(sasEnhPhyControl);
+    //Print a format header
+    printf("Phy#");
+    if (showPartial)
+    {
+        printf("\tPartial");
+    }
+    if (showSlumber)
+    {
+        printf("\tSlumber");
+    }
+    printf("\n");
+    for (uint32_t phyIter = 0; phyIter < totalPhys; ++phyIter)
+    {
+        printf(" %2" PRIu8 " ", enhPhyControlData[phyIter].phyIdentifier);
+        if (showPartial)
+        {
+            if (enhPhyControlData[phyIter].enablePartial)
+            {
+                printf("\tEnabled ");
+            }
+            else
+            {
+                printf("\tDisabled");
+            }
+        }
+        if (showSlumber)
+        {
+            if (enhPhyControlData[phyIter].enableSlumber)
+            {
+                printf("\tEnabled ");
+            }
+            else
+            {
+                printf("\tDisabled");
+            }
+        }
+        printf("\n");
+    }
+    printf("\n");
+    return;
+}
