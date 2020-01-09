@@ -253,9 +253,10 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int transition_To_Idle(tDevice *device, bool unload); //unload feature must be supported
 
-    //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from
+    //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from, which may not be callable from an appication.
     OPENSEA_OPERATIONS_API int transition_To_Sleep (tDevice *device);
 
+    //Be careful changing partial and slumber settings. Not every controller will support it properly!
     OPENSEA_OPERATIONS_API int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber);
 
     OPENSEA_OPERATIONS_API int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCount);
