@@ -2022,12 +2022,12 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
         //parse the header to figure out full page length
         enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
         gotFullPageLength = true;
-        uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
-        if (!temp)
+        safe_Free_aligned(enhSasPhyControl);
+        enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+        if (!enhSasPhyControl)
         {
             return MEMORY_FAILURE;
         }
-        enhSasPhyControl = temp;
     }
     if (gotFullPageLength)
     {
@@ -2048,7 +2048,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
                     for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && (phyCounter * sizeof(sasEnhPhyControl)) < enhPhyControlDataSize; ++phyIter, phyDescriptorOffset += descriptorLength, ++phyCounter)
                     {
                         uint8_t phyIdentifier = enhSasPhyControl[phyDescriptorOffset + 1];
-                        descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]);
+                        descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]) + 4;
                         //check if the caller requested changing all phys or a specific phy and only modify it's descriptor if either of those are true.
                         if (allPhys)
                         {
