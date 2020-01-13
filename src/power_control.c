@@ -479,13 +479,17 @@ typedef struct _scsiPowerConditionTimers
     scsiPowerCondition idle_c;
     scsiPowerCondition standby_y;
     //PM_BG_Preference and CCF fields are handled below. EPC only
-    bool powerModeBackGroundValid;
+    bool powerModeBackgroundValid;
+    bool powerModeBackgroundResetDefault;//reset this to default value
     uint8_t powerModeBackGroundRelationShip;
     struct
     {
         bool ccfIdleValid;
         bool ccfStandbyValid;
         bool ccfStopValid;
+        bool ccfIdleResetDefault;
+        bool ccfStandbyResetDefault;
+        bool ccfStopResetDefault;
         uint8_t ccfIdleMode;
         uint8_t ccfStandbyMode;
         uint8_t ccfStopMode;
@@ -532,12 +536,17 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
         {
             return BAD_PARAMETER;
         }
-        //Check if anything in the incomming list is requesting default values so we can allocate and read the defaults for those conditions before sending to the drive.
+        //Check if anything in the incoming list is requesting default values so we can allocate and read the defaults for those conditions before sending to the drive.
         if ((powerConditions->idle_a.powerConditionValid && powerConditions->idle_a.restoreToDefault) ||
             (powerConditions->idle_b.powerConditionValid && powerConditions->idle_b.restoreToDefault) ||
             (powerConditions->idle_c.powerConditionValid && powerConditions->idle_c.restoreToDefault) ||
             (powerConditions->standby_y.powerConditionValid && powerConditions->standby_y.restoreToDefault) ||
-            (powerConditions->standby_z.powerConditionValid && powerConditions->standby_z.restoreToDefault))
+            (powerConditions->standby_z.powerConditionValid && powerConditions->standby_z.restoreToDefault) ||
+            (powerConditions->powerModeBackgroundValid && powerConditions->powerModeBackgroundResetDefault) ||
+            (powerConditions->checkConditionFlags.ccfIdleValid && powerConditions->checkConditionFlags.ccfIdleResetDefault) ||
+            (powerConditions->checkConditionFlags.ccfStandbyValid && powerConditions->checkConditionFlags.ccfStandbyResetDefault) ||
+            (powerConditions->checkConditionFlags.ccfStopValid && powerConditions->checkConditionFlags.ccfStopResetDefault)
+            )
         {
             //Read the default mode page, then save whichever things need defaults into the proper structure
             powerConditionsPageLength = MODE_PARAMETER_HEADER_10_LEN + MP_POWER_CONDITION_LEN;//*should* be maximum size we need assuming no block descriptor
@@ -566,6 +575,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                     powerConditions->standby_z.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 8], powerConditionsPage[mpStartOffset + 9], powerConditionsPage[mpStartOffset + 10], powerConditionsPage[mpStartOffset + 11]);
                     powerConditions->standby_z.restoreToDefault = false;//turn this off now that we have the other settings stored.
                 }
+                if (powerConditions->powerModeBackgroundValid && powerConditions->powerModeBackgroundResetDefault)
+                {
+                    powerConditions->powerModeBackGroundRelationShip = M_GETBITRANGE(powerConditionsPage[mpStartOffset + 2], 7, 6);
+                    powerConditions->powerModeBackgroundResetDefault = false;
+                }
                 if (powerConditionsPage[mpStartOffset + 1] > 0x0A)//newer EPC drives support these, but older devices do not.
                 {
                     if (powerConditions->idle_b.powerConditionValid && powerConditions->idle_b.restoreToDefault)
@@ -589,7 +603,23 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                         powerConditions->standby_y.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 20], powerConditionsPage[mpStartOffset + 21], powerConditionsPage[mpStartOffset + 22], powerConditionsPage[mpStartOffset + 23]);
                         powerConditions->standby_y.restoreToDefault = false;//turn this off now that we have the other settings stored.
                     }
-                    //TODO: Other fields here
+                    //TODO: Other future power modes fields here
+                    //CCF fields
+                    if (powerConditions->checkConditionFlags.ccfIdleValid && powerConditions->checkConditionFlags.ccfIdleResetDefault)
+                    {
+                        powerConditions->checkConditionFlags.ccfIdleMode = M_GETBITRANGE(powerConditionsPage[mpStartOffset + 39], 7, 6);
+                        powerConditions->checkConditionFlags.ccfIdleResetDefault = false;
+                    }
+                    if (powerConditions->checkConditionFlags.ccfStandbyValid && powerConditions->checkConditionFlags.ccfStandbyResetDefault)
+                    {
+                        powerConditions->checkConditionFlags.ccfStandbyMode = M_GETBITRANGE(powerConditionsPage[mpStartOffset + 39], 5, 4);
+                        powerConditions->checkConditionFlags.ccfStandbyResetDefault = false;
+                    }
+                    if (powerConditions->checkConditionFlags.ccfStopValid && powerConditions->checkConditionFlags.ccfStopResetDefault)
+                    {
+                        powerConditions->checkConditionFlags.ccfStopMode = M_GETBITRANGE(powerConditionsPage[mpStartOffset + 39], 3, 2);
+                        powerConditions->checkConditionFlags.ccfStopResetDefault = false;
+                    }
                 }
             }
             else
@@ -649,6 +679,10 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                 powerConditionsPage[mpStartOffset + 10] = M_Byte1(powerConditions->standby_z.timerInHundredMillisecondIncrements);
                 powerConditionsPage[mpStartOffset + 11] = M_Byte0(powerConditions->standby_z.timerInHundredMillisecondIncrements);
             }
+            if (powerConditions->powerModeBackgroundValid && !powerConditions->powerModeBackgroundResetDefault)
+            {
+                powerConditionsPage[mpStartOffset + 2] |= powerConditions->powerModeBackGroundRelationShip << 6;
+            }
             if (powerConditionsPage[mpStartOffset + 1] > 0x0A)//newer EPC drives support these, but older devices do not.
             {
                 if (powerConditions->idle_b.powerConditionValid && !powerConditions->idle_b.restoreToDefault)
@@ -705,7 +739,20 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                     powerConditionsPage[mpStartOffset + 22] = M_Byte1(powerConditions->standby_y.timerInHundredMillisecondIncrements);
                     powerConditionsPage[mpStartOffset + 23] = M_Byte0(powerConditions->standby_y.timerInHundredMillisecondIncrements);
                 }
-                //TODO: Other fields here
+                //TODO: Other future power modes fields here
+                //CCF fields
+                if (powerConditions->checkConditionFlags.ccfIdleValid && !powerConditions->checkConditionFlags.ccfIdleResetDefault)
+                {
+                    powerConditionsPage[mpStartOffset + 39] |= powerConditions->checkConditionFlags.ccfIdleMode << 6;
+                }
+                if (powerConditions->checkConditionFlags.ccfStandbyValid && !powerConditions->checkConditionFlags.ccfStandbyResetDefault)
+                {
+                    powerConditionsPage[mpStartOffset + 39] |= powerConditions->checkConditionFlags.ccfStandbyMode << 4;
+                }
+                if (powerConditions->checkConditionFlags.ccfStopValid && !powerConditions->checkConditionFlags.ccfStopResetDefault)
+                {
+                    powerConditionsPage[mpStartOffset + 39] |= powerConditions->checkConditionFlags.ccfStopMode << 2;
+                }
             }
             //send the modified data to the drive
             ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, true, false, powerConditionsPage, powerConditionsPageLength);
@@ -1819,7 +1866,7 @@ int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults,
 int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements)
 {
     int ret = NOT_SUPPORTED;
-    if (device->drive_info.IdentifyData.ata.Word049 & BIT13)
+    if (device->drive_info.IdentifyData.ata.Word049 & BIT13)//this is the only bit across all ATA standards that will most likely work. Prior to ATA3, there was no other support bit for the power management feature set.
     {
         uint8_t standbyTimer = 0;
         if (hundredMillisecondIncrements == 0)
