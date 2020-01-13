@@ -2435,9 +2435,24 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
                     if (serialNumberLength > 0)
                     {
-                        memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN + 1, serialNumberLength));
-                        remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-                        driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
+                        if (strcmp(driveInfo->vendorID, "SEAGATE") == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
+                        {
+                            //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
+                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
+                            driveInfo->serialNumber[8] = '\0';
+                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                            //remaining is PCBA SN
+                            memcpy(driveInfo->pcbaSerialNumber, &unitSerialNumber[12], 12);
+                            driveInfo->pcbaSerialNumber[12] = '\0';
+                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+
+                        }
+                        else
+                        {
+                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN + 1, serialNumberLength));
+                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                            driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
+                        }
                     }
                 }
                 safe_Free_aligned(unitSerialNumber);
@@ -5857,6 +5872,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     printf("\tModel Number: %s\n", driveInfo->modelNumber);
     printf("\tSerial Number: %s\n", driveInfo->serialNumber);
+    if (strlen(driveInfo->pcbaSerialNumber))
+    {
+        printf("\tPCBA Serial Number: %s\n", driveInfo->pcbaSerialNumber);
+    }
     printf("\tFirmware Revision: %s\n", driveInfo->firmwareRevision);
     if (strlen(driveInfo->satVendorID))
     {
