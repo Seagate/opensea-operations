@@ -422,6 +422,19 @@ extern "C"
     //This function will return BAD_PARAMETER if the device does not support resetting a specific page (logpage or subpage not equal to zero)
     OPENSEA_OPERATIONS_API int reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
 
+    OPENSEA_OPERATIONS_API uint8_t get_LUN_Count(tDevice *device);
+
+    typedef enum _eMLU
+    {
+        MLU_NOT_REPORTED = 0,
+        MLU_AFFECTS_ONLY_THIS_UNIT = 1,
+        MLU_AFFECTS_MULTIPLE_LU = 2,
+        MLU_AFFECTS_ALL_LU = 3
+    }eMLU;
+
+    OPENSEA_OPERATIONS_API eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, uint16_t serviceAction);
+
+
     #if defined (__cplusplus)
 }
     #endif

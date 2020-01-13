@@ -2318,3 +2318,40 @@ int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8
 
     return ret;
 }
+
+//doing this in SCSI way for now...should handle nvme separately at some point since a namespace is similar to a lun
+uint8_t get_LUN_Count(tDevice *device)
+{
+    uint8_t lunCount = 1;//assume 1 since we are talking over a lun right now. - TJE
+    uint8_t luns[4] = { 0 };
+    uint8_t selectReport = 0x02;//or 0????
+    if (SUCCESS == scsi_Report_Luns(device, selectReport, 4, luns))
+    {
+        uint32_t lunListLength = M_BytesTo4ByteValue(luns[0], luns[1], luns[2], luns[3]);
+        lunCount = lunListLength / 8;
+    }
+    return lunCount;
+}
+
+eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, uint16_t serviceAction)
+{
+    eMLU mlu = MLU_NOT_REPORTED;
+    uint8_t reportOp[4] = { 0 };
+    uint8_t reportingOptions = 1;
+    if (serviceAction > 0)
+    {
+        reportingOptions = 2;
+    }
+    if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, reportingOptions, operationCode, serviceAction, 4, reportOp))
+    {
+        switch (M_GETBITRANGE(reportOp[1], 2, 0))
+        {
+        case 3:
+            mlu = (eMLU)M_GETBITRANGE(reportOp[1], 6, 5);
+            break;
+        default:
+            break;
+        }
+    }
+    return mlu;
+}
