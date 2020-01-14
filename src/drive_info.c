@@ -2420,7 +2420,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
                     if (serialNumberLength > 0)
                     {
-                        if (strcmp(driveInfo->vendorID, "SEAGATE") == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
+                        if (strncmp(driveInfo->vendorID, "SEAGATE", strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
                         {
                             //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
                             memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
