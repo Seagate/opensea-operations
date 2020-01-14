@@ -1802,7 +1802,7 @@ int transition_To_Standby(tDevice *device)
     {
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
         {
-            ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_STANDBY_0, false, false, false);
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_STANDBY, false, false, false);
         }
         else
         {
