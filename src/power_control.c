@@ -16,6 +16,7 @@
 #include "power_control.h"
 #include "logs.h"
 #include "cmds.h"
+#include "operations.h"
 
 //There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see with ATA
 int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
@@ -1526,6 +1527,7 @@ int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
                 ret = SUCCESS;
             }
         }
+        epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
     }
     return ret;
 }
@@ -1627,6 +1629,10 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     if (epcSettings->standby_z.powerConditionSupported)
     {
         print_Power_Condition(&epcSettings->standby_z, "Standby Z");
+    }
+    if (epcSettings->settingsAffectMultipleLogicalUnits)
+    {
+        printf("\nNote: All settings affect multiple logical units.\n");
     }
 }
 
