@@ -434,6 +434,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, uint16_t serviceAction);
 
+    //If true, then the specified mode page affects multiple logical units, otherwise it is not reported whether multiple are affected or not.
+    OPENSEA_OPERATIONS_API bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t modePage, uint8_t subPage);
 
     #if defined (__cplusplus)
 }

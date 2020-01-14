@@ -2355,3 +2355,37 @@ eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, ui
     }
     return mlu;
 }
+
+bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t modePage, uint8_t subPage)
+{
+    bool mlus = false;
+    uint32_t modePagePolicyLength = 4;
+    uint8_t *vpdModePagePolicy = (uint8_t*)calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (vpdModePagePolicy)
+    {
+        if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
+        {
+            modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
+            safe_Free_aligned(vpdModePagePolicy);
+            vpdModePagePolicy = (uint8_t*)calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (vpdModePagePolicy)
+            {
+                if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
+                {
+                    modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
+                    //Now loop through and find the requested page
+                    for (uint16_t vpdMPOffset = 4; vpdMPOffset < modePagePolicyLength; vpdMPOffset += 4)
+                    {
+                        if (modePage == M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) && subPage == vpdModePagePolicy[vpdMPOffset + 1])
+                        {
+                            mlus = vpdModePagePolicy[vpdMPOffset + 2] & BIT7 ? true : false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        safe_Free_aligned(vpdModePagePolicy);
+    }
+    return mlus;
+}
