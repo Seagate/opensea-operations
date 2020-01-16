@@ -20,6 +20,7 @@
 #include "sanitize.h"
 #include "format.h"
 #include "vendor/seagate/seagate_ata_types.h"
+#include "vendor/seagate/seagate_scsi_types.h"
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
@@ -676,11 +677,11 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
     {
         if (enable)
         {
-            ret = ata_Set_Features(device, 0x5C, 0, 1, 0, 0);
+            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
         }
         else
         {
-            ret = ata_Set_Features(device, 0x5C, 0, 2, 0, 0);
+            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -750,7 +751,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
             uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (iddDiagPage)
             {
-                if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15))
+                if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15))
                 {
                     ret = SUCCESS;
                     iddSupport->iddShort = true;//short
@@ -842,7 +843,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
         if (iddDiagPage)
         {
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
-            ret = scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15);
+            ret = scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15);
             if (ret != SUCCESS)
             {
                 uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
@@ -854,7 +855,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
                     return SUCCESS;
                 }
             }
-            if (iddDiagPage[0] == 0x98 && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
+            if (iddDiagPage[0] == SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
             {
                 ret = SUCCESS;
                 *status = M_Nibble0(iddDiagPage[4]);
@@ -879,7 +880,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t iddTestNumber = 0;
-        uint32_t timeoutSeconds = 300;//make this super long just in case...
+        uint32_t timeoutSeconds = SEAGATE_IDD_TIMEOUT;//make this super long just in case...
         if (captiveForeground)
         {
             timeoutSeconds = UINT32_MAX;
@@ -887,17 +888,17 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
         switch (iddOperation)
         {
         case SEAGATE_IDD_SHORT:
-            iddTestNumber = 0x70;
+            iddTestNumber = SEAGATE_ST_IDD_SHORT_OFFLINE;
             if (captiveForeground)
             {
-                iddTestNumber = 0xD0;
+                iddTestNumber = SEAGATE_ST_IDD_SHORT_CAPTIVE;
             }
             break;
         case SEAGATE_IDD_LONG:
-            iddTestNumber = 0x71;
+            iddTestNumber = SEAGATE_ST_IDD_LONG_OFFLINE;
             if (captiveForeground)
             {
-                iddTestNumber = 0xD1;
+                iddTestNumber = SEAGATE_ST_IDD_LONG_CAPTIVE;
             }
             break;
         default:
@@ -911,8 +912,8 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
         uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (iddDiagPage)
         {
-            uint32_t commandTimeoutSeconds = 300;
-            iddDiagPage[0] = 0x98;//page code
+            uint32_t commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;
+            iddDiagPage[0] = SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS;//page code
             switch (iddOperation)
             {
             case SEAGATE_IDD_SHORT:
@@ -927,7 +928,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             }
             if (captiveForeground)
             {
-                commandTimeoutSeconds = 300;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
+                commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
                 iddDiagPage[1] |= BIT4;
             }
             else
