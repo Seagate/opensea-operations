@@ -1226,7 +1226,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         ret = get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &powerTelemetryLogSize, true, false);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLog, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (powerTelemetryLog)
             {
                 ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, NULL, NULL, true, false, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, 0);
@@ -1247,7 +1247,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         ret = get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &powerTelemetryLogSize, false, rb16);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLog, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (powerTelemetryLog)
             {
                 ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, NULL, false, rb16, NULL, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, NULL);
@@ -1268,7 +1268,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         //got the data, now parse it into the correct fields.
         //Everything, but the strings, are reported in little endian by the drive.
         //This makes it easy, so just need to convert to the host's endianness if necessary
-        memset(pwrTelData, 0 sizeof(seagatePwrTelemetry));
+        memset(pwrTelData, 0, sizeof(seagatePwrTelemetry));
         memcpy(pwrTelData->serialNumber, &powerTelemetryLog[0], 8);
         pwrTelData->powerCycleCount = M_BytesTo2ByteValue(powerTelemetryLog[9], powerTelemetryLog[8]);
         //drive timestamps will be reported as uint64 in this structure so that they can be converted to whatever is easy by other users
@@ -1287,9 +1287,9 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
 
         for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementOffset < dataLength && measurementOffset < powerTelemetryLogSize; ++measurementNumber, measurementOffset += 6)
         {
-            pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 1], measurementOffset[measurementOffset + 0]);
-            pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 3], measurementOffset[measurementOffset + 2]);
-            pwrTelData->measurement[measurementNumber].reserved = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 5], measurementOffset[measurementOffset + 4]);
+            pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 1], powerTelemetryLog[measurementOffset + 0]);
+            pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 3], powerTelemetryLog[measurementOffset + 2]);
+            pwrTelData->measurement[measurementNumber].reserved = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 5], powerTelemetryLog[measurementOffset + 4]);
             if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 && pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
             {
                 //invalid or empty entry should only happen once at the end! loop conditions should also protect from this!
@@ -1297,7 +1297,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
             }
         }
     }
-
+    safe_Free_aligned(powerTelemetryLog);
     return ret;
 }
 
@@ -1306,7 +1306,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
     if (pwrTelData)
     {
         //doubles for end statistics of measurement
-        double sum5v = 0 sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
+        double sum5v = 0, sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
         double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Concert from milliseconds to something else???
 
         printf("Power Telemetry\n");
@@ -1328,7 +1328,8 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         //TODO: Host requested time and log retrieval time??? Is this necessary?
 
         printf("\nIndividual Power Measurements\n");
-        printf("    #\t     Time     \t 5V Pwr (W) \t 12V Pwr (W) \t  Total (W)\n");
+        //Note, while the spacing may not make much sense, it definitely works with the widths below.
+        printf("    #\t     Time       \t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
         for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementNumber < POWER_TELEMETRY_MAXIMUM_MEASUREMENTS; ++measurementNumber)
         {
             double power5VWatts = pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts / 1000.0;
@@ -1347,7 +1348,8 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
                 break;
             }
             //TODO: IF format is %v only or 12V only, handle showing N/A for some output.
-            printf("%4" PRIu16 "\t%10.6f\t%6.3f\t%6.3f\t%6.3f\n", measurementNumber, measurementTime, power5VWatts, power12VWatts, power5VWatts + power12VWatts);
+            //NOTE: Original format was 10.6, 6.3, 6.3, 6.3. Trying to widen to match the header
+            printf("%5" PRIu16 "\t%16.6f\t%12.3f\t%13.3f\t%11.3f\n", measurementNumber, measurementTime, power5VWatts, power12VWatts, power5VWatts + power12VWatts);
             //update min/max values
             if (power5VWatts < min5v)
             {
@@ -1371,8 +1373,8 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         if (pwrTelData->numberOfMeasurements > 0)
         {
             printf("\n");
-            printf(" 5 Volt Power\tAverage: %6.3f\tMinumum: %6.3f\tMaximum: %6.3f\n", sum5v / pwrTelData->numberOfMeasurements, min5v, max5v);
-            printf("12 Volt Power\tAverage: %6.3f\tMinumum: %6.3f\tMaximum: %6.3f\n", sum12v / pwrTelData->numberOfMeasurements, min12v, max12v);
+            printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum5v / pwrTelData->numberOfMeasurements, min5v, max5v);
+            printf("12 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum12v / pwrTelData->numberOfMeasurements, min12v, max12v);
         }
     }
     return;
