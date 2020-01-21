@@ -21,6 +21,7 @@
 #include "format.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
+#include <float.h> //for DBL_MAX
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
@@ -1117,4 +1118,262 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
         return NOT_SUPPORTED;
     }
     return result;
+}
+
+bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check if log page E3h has data
+        uint32_t logSize = 0;
+        if (SUCCESS == get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &logSize, true, false))
+        {
+            if (logSize > 0)
+            {
+                supported = true;
+            }
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        //check for non-zero value for buffer ID 54h
+        uint32_t bufferSize = 0;
+        if (SUCCESS == get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &bufferSize, false, is_SCSI_Read_Buffer_16_Supported(device)))
+        {
+            if (bufferSize > 0)
+            {
+                supported = true;
+            }
+        }
+    }
+    return supported;
+}
+
+//TODO: These are in the spec, but need to be verified before they are used.
+#define ATA_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(8192)
+#define SCSI_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(6240)
+
+//This can be used to save this log to a binary file to be read later.
+int pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, "PWRTEL", "pwr", true, false, false, NULL, 0, filePath, transferSizeBytes, 0);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, "PWRTEL", false, is_SCSI_Read_Buffer_16_Supported(device), "pwr", false, NULL, 0, filePath, transferSizeBytes, NULL);
+    }
+    return ret;
+}
+
+int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, ePowerTelemetryMeasurementOptions measurementOption)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint8_t pwrTelLogPg[512] = { 0 };
+        pwrTelLogPg[0] = (uint8_t)SEAGATE_ATA_LOG_POWER_TELEMETRY;
+        pwrTelLogPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
+        pwrTelLogPg[2] = RESERVED;
+        pwrTelLogPg[3] = RESERVED;
+        pwrTelLogPg[4] = M_Byte0(timeMeasurementSeconds);
+        pwrTelLogPg[5] = M_Byte1(timeMeasurementSeconds);
+        pwrTelLogPg[6] = (uint8_t)measurementOption;
+        //remaining bytes are reserved
+        //send write log ext
+        ret = ata_Write_Log_Ext(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, 0, pwrTelLogPg, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, false);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t pwrTelDiagPg[16] = { 0 };
+        pwrTelDiagPg[0] = (uint8_t)SEAGATE_DIAG_POWER_MEASUREMENT;
+        pwrTelDiagPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
+        pwrTelDiagPg[2] = M_Byte1(12);//page length msb
+        pwrTelDiagPg[3] = M_Byte0(12);//page length lsb
+        pwrTelDiagPg[4] = M_Byte1(timeMeasurementSeconds);
+        pwrTelDiagPg[5] = M_Byte0(timeMeasurementSeconds);
+        pwrTelDiagPg[6] = (uint8_t)measurementOption;
+        pwrTelDiagPg[7] = RESERVED;
+        pwrTelDiagPg[8] = RESERVED;
+        pwrTelDiagPg[9] = RESERVED;
+        pwrTelDiagPg[10] = RESERVED;
+        pwrTelDiagPg[11] = RESERVED;
+        pwrTelDiagPg[12] = RESERVED;
+        pwrTelDiagPg[13] = RESERVED;
+        pwrTelDiagPg[14] = RESERVED;
+        pwrTelDiagPg[15] = RESERVED;
+        //send diagnostic command
+        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 16, pwrTelDiagPg, 16, 15);
+    }
+    return ret;
+}
+
+int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
+{
+    int ret = NOT_SUPPORTED;
+    if (!pwrTelData)
+    {
+        return BAD_PARAMETER;
+    }
+    uint32_t powerTelemetryLogSize = 0;
+    uint8_t *powerTelemetryLog = NULL;
+    //first, determine how much data there is, allocate memory, then read it all into that buffer
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &powerTelemetryLogSize, true, false);
+        if (ret == SUCCESS && powerTelemetryLogSize > 0)
+        {
+            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLog, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (powerTelemetryLog)
+            {
+                ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, NULL, NULL, true, false, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, 0);
+            }
+            else
+            {
+                ret = MEMORY_FAILURE;
+            }
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
+        ret = get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &powerTelemetryLogSize, false, rb16);
+        if (ret == SUCCESS && powerTelemetryLogSize > 0)
+        {
+            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLog, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (powerTelemetryLog)
+            {
+                ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, NULL, false, rb16, NULL, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, NULL);
+            }
+            else
+            {
+                ret = MEMORY_FAILURE;
+            }
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+    }
+
+    if (ret == SUCCESS && powerTelemetryLogSize > 0)
+    {
+        //got the data, now parse it into the correct fields.
+        //Everything, but the strings, are reported in little endian by the drive.
+        //This makes it easy, so just need to convert to the host's endianness if necessary
+        memset(pwrTelData, 0 sizeof(seagatePwrTelemetry));
+        memcpy(pwrTelData->serialNumber, &powerTelemetryLog[0], 8);
+        pwrTelData->powerCycleCount = M_BytesTo2ByteValue(powerTelemetryLog[9], powerTelemetryLog[8]);
+        //drive timestamps will be reported as uint64 in this structure so that they can be converted to whatever is easy by other users
+        pwrTelData->driveTimeStampForHostRequestedMeasurement = M_BytesTo8ByteValue(0,0, powerTelemetryLog[15], powerTelemetryLog[14], powerTelemetryLog[13], powerTelemetryLog[12], powerTelemetryLog[11], powerTelemetryLog[10]);
+        pwrTelData->driveTimeStampWhenTheLogWasRetrieved = M_BytesTo8ByteValue(0, 0, powerTelemetryLog[21], powerTelemetryLog[20], powerTelemetryLog[19], powerTelemetryLog[18], powerTelemetryLog[17], powerTelemetryLog[16]);
+        pwrTelData->majorRevision = powerTelemetryLog[22];
+        pwrTelData->minorRevision = powerTelemetryLog[23];
+        memcpy(pwrTelData->signature, &powerTelemetryLog[24], 8);
+        pwrTelData->totalMeasurementTimeRequested = M_BytesTo2ByteValue(powerTelemetryLog[33], powerTelemetryLog[32]);
+        uint16_t dataLength = M_BytesTo2ByteValue(powerTelemetryLog[35], powerTelemetryLog[34]);
+        pwrTelData->numberOfMeasurements = M_BytesTo2ByteValue(powerTelemetryLog[37], powerTelemetryLog[36]);
+        uint16_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
+        pwrTelData->measurementFormat = powerTelemetryLog[40];
+        pwrTelData->temperatureCelcius = powerTelemetryLog[41];
+        pwrTelData->measurementWindowTimeMilliseconds = M_BytesTo2ByteValue(powerTelemetryLog[43], powerTelemetryLog[42]);
+
+        for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementOffset < dataLength && measurementOffset < powerTelemetryLogSize; ++measurementNumber, measurementOffset += 6)
+        {
+            pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 1], measurementOffset[measurementOffset + 0]);
+            pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 3], measurementOffset[measurementOffset + 2]);
+            pwrTelData->measurement[measurementNumber].reserved = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 5], measurementOffset[measurementOffset + 4]);
+            if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 && pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
+            {
+                //invalid or empty entry should only happen once at the end! loop conditions should also protect from this!
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
+{
+    if (pwrTelData)
+    {
+        //doubles for end statistics of measurement
+        double sum5v = 0 sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
+        double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Concert from milliseconds to something else???
+
+        printf("Power Telemetry\n");
+        printf("\tSerial Number: %s\n", pwrTelData->serialNumber);
+        printf("\tRevision: %" PRIu8 ".%" PRIu8 "\n", pwrTelData->majorRevision, pwrTelData->minorRevision);
+        printf("\tTemperature (C): %" PRIu8 "\n", pwrTelData->temperatureCelcius);
+        printf("\tPower Cycle Count: %" PRIu16 "\n", pwrTelData->powerCycleCount);
+        printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
+        if (pwrTelData->totalMeasurementTimeRequested == 0)
+        {
+            printf("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
+        }
+        else
+        {
+            printf("\tMeasurement Time (seconds): %" PRIu16 "\n", pwrTelData->totalMeasurementTimeRequested);
+        }
+        printf("\tMeasurement Window (ms): %" PRIu16 "\n", pwrTelData->measurementWindowTimeMilliseconds);
+
+        //TODO: Host requested time and log retrieval time??? Is this necessary?
+
+        printf("\nIndividual Power Measurements\n");
+        printf("    #\t     Time     \t 5V Pwr (W) \t 12V Pwr (W) \t  Total (W)\n");
+        for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementNumber < POWER_TELEMETRY_MAXIMUM_MEASUREMENTS; ++measurementNumber)
+        {
+            double power5VWatts = pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts / 1000.0;
+            double power12VWatts = pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts / 1000.0;
+            double measurementTime = measurementNumber * stepTime;
+            if (pwrTelData->totalMeasurementTimeRequested == 0)
+            {
+                measurementTime += pwrTelData->driveTimeStampWhenTheLogWasRetrieved;
+            }
+            else
+            {
+                measurementTime += pwrTelData->driveTimeStampForHostRequestedMeasurement;
+            }
+            if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 && pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
+            {
+                break;
+            }
+            //TODO: IF format is %v only or 12V only, handle showing N/A for some output.
+            printf("%4" PRIu16 "\t%10.6f\t%6.3f\t%6.3f\t%6.3f\n", measurementNumber, measurementTime, power5VWatts, power12VWatts, power5VWatts + power12VWatts);
+            //update min/max values
+            if (power5VWatts < min5v)
+            {
+                min5v = power5VWatts;
+            }
+            if (power12VWatts < min12v)
+            {
+                min12v = power12VWatts;
+            }
+            if (power5VWatts > max5v)
+            {
+                max5v = power5VWatts;
+            }
+            if (power12VWatts > max12v)
+            {
+                max12v = power12VWatts;
+            }
+            sum5v += power5VWatts;
+            sum12v += power12VWatts;
+        }
+        if (pwrTelData->numberOfMeasurements > 0)
+        {
+            printf("\n");
+            printf(" 5 Volt Power\tAverage: %6.3f\tMinumum: %6.3f\tMaximum: %6.3f\n", sum5v / pwrTelData->numberOfMeasurements, min5v, max5v);
+            printf("12 Volt Power\tAverage: %6.3f\tMinumum: %6.3f\tMaximum: %6.3f\n", sum12v / pwrTelData->numberOfMeasurements, min12v, max12v);
+        }
+    }
+    return;
 }
