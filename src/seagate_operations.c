@@ -1314,7 +1314,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         printf("\tRevision: %" PRIu8 ".%" PRIu8 "\n", pwrTelData->majorRevision, pwrTelData->minorRevision);
         printf("\tTemperature (C): %" PRIu8 "\n", pwrTelData->temperatureCelcius);
         printf("\tPower Cycle Count: %" PRIu16 "\n", pwrTelData->powerCycleCount);
-        printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
+        //printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
         if (pwrTelData->totalMeasurementTimeRequested == 0)
         {
             printf("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
@@ -1330,6 +1330,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         printf("\nIndividual Power Measurements\n");
         //Note, while the spacing may not make much sense, it definitely works with the widths below.
         printf("    #\t     Time       \t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
+        uint16_t measurementCounter = 0;
         for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementNumber < POWER_TELEMETRY_MAXIMUM_MEASUREMENTS; ++measurementNumber)
         {
             double power5VWatts = pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts / 1000.0;
@@ -1369,12 +1370,13 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             }
             sum5v += power5VWatts;
             sum12v += power12VWatts;
+            ++measurementCounter;
         }
-        if (pwrTelData->numberOfMeasurements > 0)
+        if (measurementCounter > 0)
         {
             printf("\n");
-            printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum5v / pwrTelData->numberOfMeasurements, min5v, max5v);
-            printf("12 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum12v / pwrTelData->numberOfMeasurements, min12v, max12v);
+            printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum5v / measurementCounter, min5v, max5v);
+            printf("12 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum12v / measurementCounter, min12v, max12v);
         }
     }
     return;
