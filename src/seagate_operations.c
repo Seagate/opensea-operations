@@ -84,7 +84,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         return NOT_SUPPORTED;
     }
-    uint16_t phyControlLength = 104;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
+    uint16_t phyControlLength = 116;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + 8 bytes for beginning of the page. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
     uint8_t *sasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + phyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!sasPhyControl)
     {
@@ -98,12 +98,12 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
         //validate we got the right page
         if ((sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x01 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & BIT6) > 0)
         {
-            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]);
+            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]) + 4;
             //check that we were able to read the full page! If we didn't get the entire thing, we need to reread it and adjust the phyControlLength variable!
-            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN) > modeDataLength || pageLength > phyControlLength)
+            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN) > (modeDataLength - 6) || pageLength > phyControlLength)
             {
                 //reread the page for the larger length
-                phyControlLength = pageLength + 8 + MODE_PARAMETER_HEADER_10_LEN;
+                phyControlLength = pageLength + 4 + MODE_PARAMETER_HEADER_10_LEN;
                 uint8_t *temp = realloc_aligned(sasPhyControl, 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
