@@ -386,6 +386,61 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
     return ret;
 }
 
+
+int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, ptrPowerConditionSettings powerConditionSettings)
+{
+    int ret = SUCCESS;
+    if (!powerConditionSettings || powerCondition == PWR_CND_ACTIVE)
+    {
+        return BAD_PARAMETER;
+    }
+    if (powerConditionSettings->powerConditionValid)
+    {
+        if (powerConditionSettings->restoreToDefault)
+        {
+            //this command is restoring the power conditions from the drive's default settings (bit6) and saving them upon completion (bit4)...the other option is to return to the saved settings, but we aren't going to support that with this option right now
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, EPC_RESTORE_POWER_CONDITION_SETTINGS | BIT6 | BIT4, RESERVED, RESERVED);
+        }
+        else//we aren't restoring settings, so we need to set things up to save settings
+        {
+            uint8_t lbalo = 0;
+            uint8_t lbaMid = 0;
+            uint16_t lbaHi = 0;
+            if (powerConditionSettings->timerValid)
+            {
+                lbalo = EPC_SET_POWER_CONDITION_TIMER;
+                if (powerConditionSettings->timerInHundredMillisecondIncrements <= UINT16_MAX)
+                {
+                    lbaMid = M_Byte0(powerConditionSettings->timerInHundredMillisecondIncrements);
+                    lbaHi = M_Byte1(powerConditionSettings->timerInHundredMillisecondIncrements);
+                }
+                else
+                {
+                    //need to convert to a number of minutes to send to the drive instead!
+                    lbalo |= BIT7;//meaning unit in minutes instead of 100ms
+                    uint64_t convertedMinutes = ((uint64_t)powerConditionSettings->timerInHundredMillisecondIncrements * UINT64_C(100)) / UINT64_C(60000);
+                    //now, this value should be able to be sent...
+                    lbaMid = M_Byte0(convertedMinutes);
+                    lbaHi = M_Byte1(convertedMinutes);
+                }
+            }
+            else //they didn't enter a timer value so this command will do the EXACT same thing...just decided to use a different feature to EPC
+            {
+                lbalo = EPC_SET_POWER_CONDITION_STATE;
+            }
+            if (powerConditionSettings->enableValid && powerConditionSettings->enable)
+            {
+                lbalo |= BIT5;
+            }
+            //set the save bit
+            lbalo |= BIT4;
+            //issue the command
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, lbalo, lbaMid, lbaHi);
+        }
+    }
+    return ret;
+}
+
 //enableDisable = true means enable, false means disable
 int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
     ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid)
@@ -408,7 +463,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
             {
                 printf("Device does not support the Extended Power Control Feature!\n");
             }
-            free(ataDataBuffer);
+            safe_Free_aligned(ataDataBuffer);
             return NOT_SUPPORTED;
         }
     }
@@ -423,82 +478,26 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
     }
     safe_Free_aligned(ataDataBuffer);
     //if we go this far, then we know that we support the required EPC feature
+    powerConditionSettings powerSettings;
+    memset(&powerSettings, 0, sizeof(powerConditionSettings));
+    powerSettings.powerConditionValid = true;
     if (restoreDefaults)
     {
-        //this command is restoring the power conditions from the drive's default settings (bit6) and saving them upon completion (bit4)...the other option is to return to the saved settings, but we aren't going to support that with this option right now
-        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, EPC_RESTORE_POWER_CONDITION_SETTINGS | BIT6 | BIT4, RESERVED, RESERVED);
+        powerSettings.restoreToDefault = restoreDefaults;
     }
-    else//we aren't restoring settings, so we need to set things up to save settings
+    else
     {
-        uint8_t lbalo = 0;
-        uint8_t lbaMid = 0;
-        uint16_t lbaHi = 0;
-        if (powerModeTimerValid)
-        {
-            lbalo = EPC_SET_POWER_CONDITION_TIMER;
-            lbaMid = M_Byte0(powerModeTimer);
-            lbaHi = M_Byte1(powerModeTimer);
-        }
-        else//they didn't enter a timer value so this command will do the EXACT same thing...just decided to use a different feature to EPC
-        {
-            lbalo = EPC_SET_POWER_CONDITION_STATE;
-        }
-        if (enableDisable)
-        {
-            lbalo |= BIT5;
-        }
-        //set the save bit
-        lbalo |= BIT4;
-        //issue the command
-        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, lbalo, lbaMid, lbaHi);
+        powerSettings.enableValid = true;
+        powerSettings.enable = enableDisable;
+        powerSettings.timerValid = powerModeTimer;
+        powerSettings.timerInHundredMillisecondIncrements = powerModeTimer;
     }
+    ret = ata_Set_EPC_Power_Mode(device, powerCondition, &powerSettings);
     return ret;
 }
 
-typedef struct _scsiPowerCondition
-{
-    bool powerConditionValid;//specifies whether to look at anything in this structure or not.
-    bool restoreToDefault;//If this is set, none of the other values in this matter
-    bool enableValid;//holds if enable bool below should be referenced at all or not.
-    bool enable;//set to false to disable when enableValid is set to true
-    uint32_t timerInHundredMillisecondIncrements;
-}scsiPowerCondition, *ptrScsiPowerCondition;
-
-typedef struct _scsiPowerConditionTimers
-{
-    union {
-        scsiPowerCondition idle;
-        scsiPowerCondition idle_a;
-    };
-    union {
-        scsiPowerCondition standby;
-        scsiPowerCondition standby_z;
-    };
-    //All fields below here only apply to EPC. Everything above is supported by legacy devices that support the power conditions mode page
-    scsiPowerCondition idle_b;
-    scsiPowerCondition idle_c;
-    scsiPowerCondition standby_y;
-    //PM_BG_Preference and CCF fields are handled below. EPC only
-    bool powerModeBackgroundValid;
-    bool powerModeBackgroundResetDefault;//reset this to default value
-    uint8_t powerModeBackGroundRelationShip;
-    struct
-    {
-        bool ccfIdleValid;
-        bool ccfStandbyValid;
-        bool ccfStopValid;
-        bool ccfIdleResetDefault;
-        bool ccfStandbyResetDefault;
-        bool ccfStopResetDefault;
-        uint8_t ccfIdleMode;
-        uint8_t ccfStandbyMode;
-        uint8_t ccfStopMode;
-    }checkConditionFlags;
-}scsiPowerConditionTimers, *ptrScsiPowerConditionTimers;
-
-
 //TODO: Only supports mode_Select_10. This should work 98% of the time. Add mode sense/select 6 commands??? May improve some devices, such as IEEE1394 or USB if this page is even supported by them (unlikely) - TJE
-int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScsiPowerConditionTimers powerConditions)
+int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
     //TODO: This will need to work for both EPC and legacy modes, so no checking pages in advance or anything.
     //If restore all to defaults, then read the default mode page, then write it back.
@@ -564,14 +563,16 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                 if (powerConditions->idle_a.powerConditionValid && powerConditions->idle_a.restoreToDefault)
                 {
                     powerConditions->idle_a.enableValid = true;
-                    powerConditions->idle_a.enable = powerConditionsPage[mpStartOffset + 3] & BIT1 > 0 ? true : false;
+                    powerConditions->idle_a.enable = (powerConditionsPage[mpStartOffset + 3] & BIT1) > 0 ? true : false;
+                    powerConditions->idle_a.timerValid = true;
                     powerConditions->idle_a.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 4], powerConditionsPage[mpStartOffset + 5], powerConditionsPage[mpStartOffset + 6], powerConditionsPage[mpStartOffset + 7]);
                     powerConditions->idle_a.restoreToDefault = false;//turn this off now that we have the other settings stored.
                 }
                 if (powerConditions->standby_z.powerConditionValid && powerConditions->standby_z.restoreToDefault)
                 {
                     powerConditions->standby_z.enableValid = true;
-                    powerConditions->standby_z.enable = powerConditionsPage[mpStartOffset + 3] & BIT0 > 0 ? true : false;
+                    powerConditions->standby_z.enable = (powerConditionsPage[mpStartOffset + 3] & BIT0) > 0 ? true : false;
+                    powerConditions->standby_z.timerValid = true;
                     powerConditions->standby_z.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 8], powerConditionsPage[mpStartOffset + 9], powerConditionsPage[mpStartOffset + 10], powerConditionsPage[mpStartOffset + 11]);
                     powerConditions->standby_z.restoreToDefault = false;//turn this off now that we have the other settings stored.
                 }
@@ -585,21 +586,24 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                     if (powerConditions->idle_b.powerConditionValid && powerConditions->idle_b.restoreToDefault)
                     {
                         powerConditions->idle_b.enableValid = true;
-                        powerConditions->idle_b.enable = powerConditionsPage[mpStartOffset + 3] & BIT2 > 0 ? true : false;
+                        powerConditions->idle_b.enable = (powerConditionsPage[mpStartOffset + 3] & BIT2) > 0 ? true : false;
+                        powerConditions->idle_b.timerValid = true;
                         powerConditions->idle_b.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 12], powerConditionsPage[mpStartOffset + 13], powerConditionsPage[mpStartOffset + 14], powerConditionsPage[mpStartOffset + 15]);
                         powerConditions->idle_b.restoreToDefault = false;//turn this off now that we have the other settings stored.
                     }
                     if (powerConditions->idle_c.powerConditionValid && powerConditions->idle_c.restoreToDefault)
                     {
                         powerConditions->idle_c.enableValid = true;
-                        powerConditions->idle_c.enable = powerConditionsPage[mpStartOffset + 3] & BIT3 > 0 ? true : false;
+                        powerConditions->idle_c.enable = (powerConditionsPage[mpStartOffset + 3] & BIT3) > 0 ? true : false;
+                        powerConditions->idle_c.timerValid = true;
                         powerConditions->idle_c.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 16], powerConditionsPage[mpStartOffset + 17], powerConditionsPage[mpStartOffset + 18], powerConditionsPage[mpStartOffset + 19]);
                         powerConditions->idle_c.restoreToDefault = false;//turn this off now that we have the other settings stored.
                     }
                     if (powerConditions->standby_y.powerConditionValid && powerConditions->standby_y.restoreToDefault)
                     {
                         powerConditions->standby_y.enableValid = true;
-                        powerConditions->standby_y.enable = powerConditionsPage[mpStartOffset + 2] & BIT0 > 0 ? true : false;
+                        powerConditions->standby_y.enable = (powerConditionsPage[mpStartOffset + 2] & BIT0) > 0 ? true : false;
+                        powerConditions->standby_y.timerValid = true;
                         powerConditions->standby_y.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 20], powerConditionsPage[mpStartOffset + 21], powerConditionsPage[mpStartOffset + 22], powerConditionsPage[mpStartOffset + 23]);
                         powerConditions->standby_y.restoreToDefault = false;//turn this off now that we have the other settings stored.
                     }
@@ -656,10 +660,13 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                         M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 1);
                     }
                 }
-                powerConditionsPage[mpStartOffset + 4] = M_Byte3(powerConditions->idle_a.timerInHundredMillisecondIncrements);
-                powerConditionsPage[mpStartOffset + 5] = M_Byte2(powerConditions->idle_a.timerInHundredMillisecondIncrements);
-                powerConditionsPage[mpStartOffset + 6] = M_Byte1(powerConditions->idle_a.timerInHundredMillisecondIncrements);
-                powerConditionsPage[mpStartOffset + 7] = M_Byte0(powerConditions->idle_a.timerInHundredMillisecondIncrements);
+                if (powerConditions->idle_a.timerValid)
+                {
+                    powerConditionsPage[mpStartOffset + 4] = M_Byte3(powerConditions->idle_a.timerInHundredMillisecondIncrements);
+                    powerConditionsPage[mpStartOffset + 5] = M_Byte2(powerConditions->idle_a.timerInHundredMillisecondIncrements);
+                    powerConditionsPage[mpStartOffset + 6] = M_Byte1(powerConditions->idle_a.timerInHundredMillisecondIncrements);
+                    powerConditionsPage[mpStartOffset + 7] = M_Byte0(powerConditions->idle_a.timerInHundredMillisecondIncrements);
+                }
             }
             if (powerConditions->standby_z.powerConditionValid && !powerConditions->standby_z.restoreToDefault)
             {
@@ -674,10 +681,13 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                         M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 0);
                     }
                 }
-                powerConditionsPage[mpStartOffset + 8] = M_Byte3(powerConditions->standby_z.timerInHundredMillisecondIncrements);
-                powerConditionsPage[mpStartOffset + 9] = M_Byte2(powerConditions->standby_z.timerInHundredMillisecondIncrements);
-                powerConditionsPage[mpStartOffset + 10] = M_Byte1(powerConditions->standby_z.timerInHundredMillisecondIncrements);
-                powerConditionsPage[mpStartOffset + 11] = M_Byte0(powerConditions->standby_z.timerInHundredMillisecondIncrements);
+                if (powerConditions->standby_z.timerValid)
+                {
+                    powerConditionsPage[mpStartOffset + 8] = M_Byte3(powerConditions->standby_z.timerInHundredMillisecondIncrements);
+                    powerConditionsPage[mpStartOffset + 9] = M_Byte2(powerConditions->standby_z.timerInHundredMillisecondIncrements);
+                    powerConditionsPage[mpStartOffset + 10] = M_Byte1(powerConditions->standby_z.timerInHundredMillisecondIncrements);
+                    powerConditionsPage[mpStartOffset + 11] = M_Byte0(powerConditions->standby_z.timerInHundredMillisecondIncrements);
+                }
             }
             if (powerConditions->powerModeBackgroundValid && !powerConditions->powerModeBackgroundResetDefault)
             {
@@ -698,10 +708,13 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                             M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 2);
                         }
                     }
-                    powerConditionsPage[mpStartOffset + 12] = M_Byte3(powerConditions->idle_b.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 13] = M_Byte2(powerConditions->idle_b.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 14] = M_Byte1(powerConditions->idle_b.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 15] = M_Byte0(powerConditions->idle_b.timerInHundredMillisecondIncrements);
+                    if (powerConditions->idle_b.timerValid)
+                    {
+                        powerConditionsPage[mpStartOffset + 12] = M_Byte3(powerConditions->idle_b.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 13] = M_Byte2(powerConditions->idle_b.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 14] = M_Byte1(powerConditions->idle_b.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 15] = M_Byte0(powerConditions->idle_b.timerInHundredMillisecondIncrements);
+                    }
                 }
                 if (powerConditions->idle_c.powerConditionValid && !powerConditions->idle_c.restoreToDefault)
                 {
@@ -716,10 +729,13 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                             M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 3);
                         }
                     }
-                    powerConditionsPage[mpStartOffset + 16] = M_Byte3(powerConditions->idle_c.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 17] = M_Byte2(powerConditions->idle_c.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 18] = M_Byte1(powerConditions->idle_c.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 19] = M_Byte0(powerConditions->idle_c.timerInHundredMillisecondIncrements);
+                    if (powerConditions->idle_c.timerValid)
+                    {
+                        powerConditionsPage[mpStartOffset + 16] = M_Byte3(powerConditions->idle_c.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 17] = M_Byte2(powerConditions->idle_c.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 18] = M_Byte1(powerConditions->idle_c.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 19] = M_Byte0(powerConditions->idle_c.timerInHundredMillisecondIncrements);
+                    }
                 }
                 if (powerConditions->standby_y.powerConditionValid && !powerConditions->standby_y.restoreToDefault)
                 {
@@ -734,10 +750,13 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
                             M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 2], 0);
                         }
                     }
-                    powerConditionsPage[mpStartOffset + 20] = M_Byte3(powerConditions->standby_y.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 21] = M_Byte2(powerConditions->standby_y.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 22] = M_Byte1(powerConditions->standby_y.timerInHundredMillisecondIncrements);
-                    powerConditionsPage[mpStartOffset + 23] = M_Byte0(powerConditions->standby_y.timerInHundredMillisecondIncrements);
+                    if (powerConditions->standby_y.timerValid)
+                    {
+                        powerConditionsPage[mpStartOffset + 20] = M_Byte3(powerConditions->standby_y.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 21] = M_Byte2(powerConditions->standby_y.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 22] = M_Byte1(powerConditions->standby_y.timerInHundredMillisecondIncrements);
+                        powerConditionsPage[mpStartOffset + 23] = M_Byte0(powerConditions->standby_y.timerInHundredMillisecondIncrements);
+                    }
                 }
                 //TODO: Other future power modes fields here
                 //CCF fields
@@ -766,6 +785,99 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScs
         safe_Free_aligned(powerConditionsPage);
     }
     safe_Free_aligned(powerConditionsPage);
+    return ret;
+}
+
+int scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+{
+    //TODO: Check to make sure the changes being requested are supported by the device.
+    return scsi_Set_Power_Conditions(device, restoreAllToDefaults, powerConditions);
+}
+
+//This function will go through and change each requested setting.
+//The first failure that happens will cause the function to fail and not proceed to set any other timer values.
+int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.IdentifyData.ata.Word119 & BIT7)
+    {
+        //TODO: Should each of the settings be validated that it is supported before issuing to the drive???
+        if (restoreAllToDefaults)
+        {
+            powerConditionSettings allSettings;
+            memset(&allSettings, 0, sizeof(powerConditionSettings));
+            allSettings.powerConditionValid = true;
+            allSettings.restoreToDefault = true;
+            ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_ALL_POWER_CONDITIONS, &allSettings);
+        }
+        else
+        {
+            if (powerConditions)
+            {
+                //go through each and every power condition and for each valid one, pass it to the ATA function. If unsuccessful, return immediately
+                //This does it in the same top-down order as the SCSI mode page to keep things working "the same" between the two
+                if (powerConditions->idle_a.powerConditionValid)
+                {
+                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_IDLE_A, &powerConditions->idle_a);
+                    if (ret != SUCCESS)
+                    {
+                        return ret;
+                    }
+                }
+                if (powerConditions->standby_z.powerConditionValid)
+                {
+                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_STANDBY_Z, &powerConditions->idle_a);
+                    if (ret != SUCCESS)
+                    {
+                        return ret;
+                    }
+                }
+                if (powerConditions->idle_b.powerConditionValid)
+                {
+                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_IDLE_B, &powerConditions->idle_a);
+                    if (ret != SUCCESS)
+                    {
+                        return ret;
+                    }
+                }
+                if (powerConditions->idle_c.powerConditionValid)
+                {
+                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_IDLE_C, &powerConditions->idle_a);
+                    if (ret != SUCCESS)
+                    {
+                        return ret;
+                    }
+                }
+                if (powerConditions->standby_y.powerConditionValid)
+                {
+                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_STANDBY_Y, &powerConditions->idle_a);
+                    if (ret != SUCCESS)
+                    {
+                        return ret;
+                    }
+                }
+            }
+            else
+            {
+                ret = BAD_PARAMETER;
+            }
+        }
+    }
+    return ret;
+}
+
+int set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Set_EPC_Power_Conditions(device, restoreAllToDefaults, powerConditions);
+    }
+    else
+    {
+        //assume and try SCSI method
+        ret = scsi_Set_EPC_Power_Conditions(device, restoreAllToDefaults, powerConditions);
+    }
     return ret;
 }
 
@@ -813,8 +925,8 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         }
         else
         {
-            scsiPowerConditionTimers powerConditions;
-            memset(&powerConditions, 0, sizeof(scsiPowerConditionTimers));
+            powerConditionTimers powerConditions;
+            memset(&powerConditions, 0, sizeof(powerConditionTimers));
             switch (powerCondition)
             {
             case PWR_CND_IDLE_A:
@@ -847,8 +959,8 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
     else
     {
         //not restoring, so figure out what timer is being changed.
-        scsiPowerConditionTimers powerConditions;
-        memset(&powerConditions, 0, sizeof(scsiPowerConditionTimers));
+        powerConditionTimers powerConditions;
+        memset(&powerConditions, 0, sizeof(powerConditionTimers));
         //All checks for NOT_SUPPORTED are based off of VPD page support bits. Current assumption is if that timer is supported by the device, then so is changing that timer or changing it from enabled to disabled.
         //It would probably be a good idea to also check the changable mode page, but that is not done right now - TJE
         switch (powerCondition)
@@ -1513,7 +1625,7 @@ int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
         ret = SUCCESS;
         for (uint32_t offset = 0; offset < (LEGACY_DRIVE_SEC_SIZE * 2); offset += 64)
         {
-            ptrPowerCondition currentPowerCondition = NULL;
+            ptrPowerConditionInfo currentPowerCondition = NULL;
             switch (offset)
             {
             case 0://idle a
@@ -1754,7 +1866,7 @@ int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     }
 }
 
-void print_Power_Condition(ptrPowerCondition condition, char *conditionName)
+void print_Power_Condition(ptrPowerConditionInfo condition, char *conditionName)
 {
     printf("%-10s ", conditionName);
     if (condition->currentTimerEnabled)
@@ -1813,7 +1925,7 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     printf("\n===EPC Settings===\n");
     printf("\t* = timer is enabled\n");
     printf("\tC column = Changeable\n");
-    printf("\tS column = Saveable\n");
+    printf("\tS column = Savable\n");
     printf("\tAll times are in 100 milliseconds\n\n");
     printf("%-10s %-13s %-13s %-13s %-12s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer", "Recovery Time");
     if (epcSettings->idle_a.powerConditionSupported)
@@ -1842,22 +1954,22 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
 //More Notes: This function is similar to the EPC function, BUT this will not check for the VPD page as it doesn't exist on old drives.
 //            These functions should probaby be combined at some point
 
-int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrScsiPowerCondition standbyTimer, ptrScsiPowerCondition idleTimer)
+int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer)
 {
     //Check the changable page for support of idle and standby timers before beginning???
     if (!restoreAllToDefaults || !standbyTimer || !idleTimer)
     {
         return BAD_PARAMETER;
     }
-    scsiPowerConditionTimers pwrConditions;
-    memset(&pwrConditions, 0, sizeof(scsiPowerConditionTimers));
+    powerConditionTimers pwrConditions;
+    memset(&pwrConditions, 0, sizeof(powerConditionTimers));
     if (standbyTimer)
     {
-        memcpy(&pwrConditions.standby, standbyTimer, sizeof(scsiPowerCondition));
+        memcpy(&pwrConditions.standby, standbyTimer, sizeof(powerConditionSettings));
     }
     if (idleTimer)
     {
-        memcpy(&pwrConditions.idle, idleTimer, sizeof(scsiPowerCondition));
+        memcpy(&pwrConditions.idle, idleTimer, sizeof(powerConditionSettings));
     }
     return scsi_Set_Power_Conditions(device, restoreAllToDefaults, &pwrConditions);
 }
@@ -1904,16 +2016,59 @@ int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements
     return ret;
 }
 
-int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements)
+int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
+        if (restoreToDefault)
+        {
+            //Cannot restore ATA to default values. This is done with a power cycle or some SATL that has a capability to remember the original timer (in which case, the scsi function should be used instead)
+            return NOT_SUPPORTED;
+        }
         ret = ata_Set_Standby_Timer(device, hundredMillisecondIncrements);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
+        powerConditionSettings standbyTimer;
+        memset(&standbyTimer, 0, sizeof(powerConditionSettings));
+        standbyTimer.powerConditionValid = true;
+        if (restoreToDefault)
+        {
+            standbyTimer.restoreToDefault = restoreToDefault;
+        }
+        else
+        {
+            standbyTimer.enableValid = true;
+            standbyTimer.enable = true;
+            standbyTimer.timerValid = true;
+            standbyTimer.timerInHundredMillisecondIncrements = hundredMillisecondIncrements;
+        }
+        ret = scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, NULL);
+    }
+    return ret;
+}
 
+int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        powerConditionSettings idleTimer;
+        memset(&idleTimer, 0, sizeof(powerConditionSettings));
+        idleTimer.powerConditionValid = true;
+        if (restoreToDefault)
+        {
+            idleTimer.restoreToDefault = restoreToDefault;
+        }
+        else
+        {
+            idleTimer.enableValid = true;
+            idleTimer.enable = true;
+            idleTimer.timerValid = true;
+            idleTimer.timerInHundredMillisecondIncrements = hundredMillisecondIncrements;
+        }
+        ret = scsi_Set_Legacy_Power_Conditions(device, false, NULL, &idleTimer);
     }
     return ret;
 }

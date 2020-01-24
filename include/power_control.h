@@ -55,7 +55,8 @@ extern "C"
     //
     //  set_Device_Power_Mode( tDevice * device )
     //
-    //! \brief   Set the power modes, their timers, or restore default settings
+    //! \brief   Set the power modes, their timers, or restore default settings. This can only do EPC settings, and single power states at a time.
+    //!          This function has been replaced by a set_EPC_Power_Conditions below which can handle changing multiple power states at a time.
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -206,7 +207,7 @@ extern "C"
     
     OPENSEA_OPERATIONS_API int get_APM_Level(tDevice *device, uint8_t *apmLevel);
 
-    typedef struct _powerCondition //written according to ATA spec fields...will try to populate as much as possible that's similar for SCSI
+    typedef struct _powerConditionInfo //written according to ATA spec fields...will try to populate as much as possible that's similar for SCSI
     {
         bool powerConditionSupported;
         bool powerConditionSaveable;
@@ -221,15 +222,15 @@ extern "C"
         uint32_t nominalRecoveryTimeToActiveState;
         uint32_t minimumTimerSetting;
         uint32_t maximumTimerSetting;
-    }powerCondition, *ptrPowerCondition;
+    }powerConditionInfo, *ptrPowerConditionInfo;
 
     typedef struct _epcSettings
     {
-        powerCondition idle_a;
-        powerCondition idle_b;
-        powerCondition idle_c;
-        powerCondition standby_y;
-        powerCondition standby_z;
+        powerConditionInfo idle_a;
+        powerConditionInfo idle_b;
+        powerConditionInfo idle_c;
+        powerConditionInfo standby_y;
+        powerConditionInfo standby_z;
     }epcSettings, *ptrEpcSettings;
 
     OPENSEA_OPERATIONS_API int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings);
@@ -253,7 +254,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int transition_To_Idle(tDevice *device, bool unload); //unload feature must be supported
 
-    //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from, which may not be callable from an appication.
+    //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from, which may not be callable from an application.
     OPENSEA_OPERATIONS_API int transition_To_Sleep (tDevice *device);
 
     //Be careful changing partial and slumber settings. Not every controller will support it properly!
@@ -272,6 +273,60 @@ extern "C"
 
     OPENSEA_OPERATIONS_API void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize, bool showPartial, bool showSlumber);
 
+    typedef struct _powerConditionSettings
+    {
+        bool powerConditionValid;//specifies whether to look at anything in this structure or not.
+        bool restoreToDefault;//If this is set, none of the other values in this matter
+        bool enableValid;//holds if enable bool below should be referenced at all or not.
+        bool enable;//set to false to disable when enableValid is set to true
+        bool timerValid;//set to true when the below timer has a valid value to use
+        uint32_t timerInHundredMillisecondIncrements;
+    }powerConditionSettings, *ptrPowerConditionSettings;
+
+    typedef struct _powerConditionTimers
+    {
+        union {
+            powerConditionSettings idle;
+            powerConditionSettings idle_a;
+        };
+        union {
+            powerConditionSettings standby;
+            powerConditionSettings standby_z;
+        };
+        //All fields below here only apply to EPC. Everything above is supported by legacy devices that support the power conditions mode page
+        powerConditionSettings idle_b;
+        powerConditionSettings idle_c;
+        powerConditionSettings standby_y;
+        //Fields below are only for SAS/SCSI devices. Attempting to change these for other devices will be ignored.
+        //PM_BG_Preference and CCF fields are handled below. EPC only
+        bool powerModeBackgroundValid;
+        bool powerModeBackgroundResetDefault;//reset this to default value
+        uint8_t powerModeBackGroundRelationShip;
+        struct
+        {
+            bool ccfIdleValid;
+            bool ccfStandbyValid;
+            bool ccfStopValid;
+            bool ccfIdleResetDefault;
+            bool ccfStandbyResetDefault;
+            bool ccfStopResetDefault;
+            uint8_t ccfIdleMode;
+            uint8_t ccfStandbyMode;
+            uint8_t ccfStopMode;
+        }checkConditionFlags;
+    }powerConditionTimers, *ptrPowerConditionTimers;
+
+    OPENSEA_OPERATIONS_API int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
+
+    OPENSEA_OPERATIONS_API int set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
+
+    OPENSEA_OPERATIONS_API int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer);
+
+    //When ATA drive, the restoreToDefaults is not allowed. Also, translation of timer value is done according to SAT spec
+    OPENSEA_OPERATIONS_API int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
+
+    //SCSI/SAS Only
+    OPENSEA_OPERATIONS_API int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
 
 #if defined (__cplusplus)
 }
