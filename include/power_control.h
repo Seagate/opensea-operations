@@ -322,10 +322,13 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer);
 
+    OPENSEA_OPERATIONS_API int scsi_Set_Standby_Timer_State(tDevice *device, bool enable);
+
     //When ATA drive, the restoreToDefaults is not allowed. Also, translation of timer value is done according to SAT spec
     OPENSEA_OPERATIONS_API int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
 
     //SCSI/SAS Only
+    OPENSEA_OPERATIONS_API int scsi_Set_Idle_Timer_State(tDevice *device, bool enable);
     OPENSEA_OPERATIONS_API int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
 
 #if defined (__cplusplus)

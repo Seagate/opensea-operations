@@ -2016,6 +2016,17 @@ int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements
     return ret;
 }
 
+int scsi_Set_Standby_Timer_State(tDevice *device, bool enable)
+{
+    powerConditionSettings standbyTimer;
+    memset(&standbyTimer, 0, sizeof(powerConditionSettings));
+    standbyTimer.powerConditionValid = true;
+    standbyTimer.enableValid = true;
+    standbyTimer.enable = enable;
+
+    return scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, NULL);
+}
+
 int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
 {
     int ret = NOT_SUPPORTED;
@@ -2047,6 +2058,17 @@ int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bo
         ret = scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, NULL);
     }
     return ret;
+}
+
+int scsi_Set_Idle_Timer_State(tDevice *device, bool enable)
+{
+    powerConditionSettings idleTimer;
+    memset(&idleTimer, 0, sizeof(powerConditionSettings));
+    idleTimer.powerConditionValid = true;
+    idleTimer.enableValid = true;
+    idleTimer.enable = enable;
+
+    return scsi_Set_Legacy_Power_Conditions(device, false, NULL, &idleTimer);
 }
 
 int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
