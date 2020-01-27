@@ -1285,6 +1285,8 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         pwrTelData->temperatureCelcius = powerTelemetryLog[41];
         pwrTelData->measurementWindowTimeMilliseconds = M_BytesTo2ByteValue(powerTelemetryLog[43], powerTelemetryLog[42]);
 
+        pwrTelData->multipleLogicalUnits = (device->drive_info.numberOfLUs > 1) ? true : false;
+
         for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementOffset < dataLength && measurementOffset < powerTelemetryLogSize; ++measurementNumber, measurementOffset += 6)
         {
             pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 1], powerTelemetryLog[measurementOffset + 0]);
@@ -1388,12 +1390,16 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             printf("\n");
             if (pwrTelData->measurementFormat == 0 || pwrTelData->measurementFormat == 5)
             {
-                printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum5v / measurementCounter, min5v, max5v);
+                printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinimum: %6.3f \tMaximum: %6.3f\n", sum5v / measurementCounter, min5v, max5v);
             }
             if (pwrTelData->measurementFormat == 0 || pwrTelData->measurementFormat == 12)
             {
-                printf("12 Volt Power (W):\tAverage: %6.3f \tMinumum: %6.3f \tMaximum: %6.3f\n", sum12v / measurementCounter, min12v, max12v);
+                printf("12 Volt Power (W):\tAverage: %6.3f \tMinimum: %6.3f \tMaximum: %6.3f\n", sum12v / measurementCounter, min12v, max12v);
             }
+        }
+        if (pwrTelData->multipleLogicalUnits)
+        {
+            printf("NOTE: All power measurements are for the full device, not individual logical units.\n");
         }
     }
     return;

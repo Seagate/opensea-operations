@@ -296,6 +296,7 @@ extern "C"
     //      This will be filled in by parsing the return data from the drive to make it easily usable in a utility.
     typedef struct _seagatePwrTelemetry
     {
+        bool multipleLogicalUnits;
         char serialNumber[9]; //including NULL terminator.
         uint16_t powerCycleCount;
         uint64_t driveTimeStampForHostRequestedMeasurement;//in microseconds //should this be a double???
