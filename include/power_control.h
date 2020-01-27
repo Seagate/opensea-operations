@@ -225,11 +225,12 @@ extern "C"
 
     typedef struct _epcSettings
     {
-        powerCondition idle_a;
-        powerCondition idle_b;
-        powerCondition idle_c;
-        powerCondition standby_y;
-        powerCondition standby_z;
+        powerCondition  idle_a;
+        powerCondition  idle_b;
+        powerCondition  idle_c;
+        powerCondition  standby_y;
+        powerCondition  standby_z;
+        bool            settingsAffectMultipleLogicalUnits;
     }epcSettings, *ptrEpcSettings;
 
     OPENSEA_OPERATIONS_API int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings);

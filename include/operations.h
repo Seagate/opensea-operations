@@ -422,6 +422,35 @@ extern "C"
     //This function will return BAD_PARAMETER if the device does not support resetting a specific page (logpage or subpage not equal to zero)
     OPENSEA_OPERATIONS_API int reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
 
+    //The following functions are for help with devices that contain multiple logical units (actuators, for example).
+    //These commands are intended to help inform users when certain things may affect multiple LUs.
+    //Some commands that may affect more than one logical unit are:
+    // -write buffer (download firmware), read buffer may also affect multiple depending on mode
+    // -start-stop unit
+    // -format unit
+    // -remove element and truncate
+    // -sanitize
+    // -send diagnostic/receive diagnostic
+    //Some mode pages that may affect more than one logical unit are:
+    // -caching
+    // -powerConditions
+    //NOTE: some log pages may also share data for multiple logical units, like power transitions or cache memory statistics
+
+    OPENSEA_OPERATIONS_API uint8_t get_LUN_Count(tDevice *device);
+
+    typedef enum _eMLU
+    {
+        MLU_NOT_REPORTED = 0,
+        MLU_AFFECTS_ONLY_THIS_UNIT = 1,
+        MLU_AFFECTS_MULTIPLE_LU = 2,
+        MLU_AFFECTS_ALL_LU = 3
+    }eMLU;
+
+    OPENSEA_OPERATIONS_API eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, uint16_t serviceAction);
+
+    //If true, then the specified mode page affects multiple logical units, otherwise it is not reported whether multiple are affected or not.
+    OPENSEA_OPERATIONS_API bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t modePage, uint8_t subPage);
+
     #if defined (__cplusplus)
 }
     #endif

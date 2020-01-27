@@ -16,6 +16,7 @@
 #include "power_control.h"
 #include "logs.h"
 #include "cmds.h"
+#include "operations.h"
 
 //There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see with ATA
 int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
@@ -1412,6 +1413,7 @@ int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
             epcSettings->standby_z.powerConditionSupported = true;
             epcSettings->standby_z.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[8], epcVPDPage[9]);
         }
+        epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
         //now time to read the mode pages for the other information (start with current, then saved, then default)
         uint8_t epcModePage[MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
         for (eScsiModePageControl modePageControl = MPC_CURRENT_VALUES; modePageControl <= MPC_SAVED_VALUES; ++modePageControl)
@@ -1605,7 +1607,7 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     printf("\n===EPC Settings===\n");
     printf("\t* = timer is enabled\n");
     printf("\tC column = Changeable\n");
-    printf("\tS column = Saveable\n");
+    printf("\tS column = Savable\n");
     printf("\tAll times are in 100 milliseconds\n\n");
     printf("%-10s %-13s %-13s %-13s %-12s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer", "Recovery Time");
     if (epcSettings->idle_a.powerConditionSupported)
@@ -1628,6 +1630,10 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     {
         print_Power_Condition(&epcSettings->standby_z, "Standby Z");
     }
+    /*if (epcSettings->settingsAffectMultipleLogicalUnits)
+    {
+        printf("\nNote: All settings affect multiple logical units.\n");
+    }*/
 }
 
 int sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool *supported, bool *enabled)
@@ -1802,7 +1808,7 @@ int transition_To_Standby(tDevice *device)
     {
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
         {
-            ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_STANDBY_0, false, false, false);
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_STANDBY, false, false, false);
         }
         else
         {
