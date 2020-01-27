@@ -116,6 +116,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     ptrDefects->containsGrownList = listHasGrownDescriptors;
                                     ptrDefects->containsPrimaryList = listHasPrimaryDescriptors;
                                     ptrDefects->format = returnedDefectListFormat;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
                                     uint8_t increment = 0;
                                     switch (returnedDefectListFormat)
                                     {
@@ -223,6 +224,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     bool filledInListInfo = false;
                                     memset(ptrDefects, 0, sizeof(scsiDefectList) + defectAlloc);
                                     ptrDefects->numberOfElements = numberOfElements;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
                                     while (elementNumber < numberOfElements)
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
@@ -286,6 +288,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                                         ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
                                                         ptrDefects->physical[elementNumber].multiAddressDescriptorStart = defectData[offset + 4] & BIT7;
                                                         ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
+                                                        break;
                                                     case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                                         ptrDefects->physical[elementNumber].cylinderNumber = M_BytesTo4ByteValue(0, defectData[offset + 0], defectData[offset + 1], defectData[offset + 2]);
                                                         ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
@@ -391,6 +394,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                                 ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
                                                 ptrDefects->physical[elementNumber].multiAddressDescriptorStart = defectData[offset + 4] & BIT7;
                                                 ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
+                                                break;
                                             case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                                 ptrDefects->physical[elementNumber].cylinderNumber = M_BytesTo4ByteValue(0, defectData[offset + 0], defectData[offset + 1], defectData[offset + 2]);
                                                 ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
@@ -425,6 +429,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     temp->containsPrimaryList = listHasPrimaryDescriptors;
                     temp->generation = generationCode;
                     temp->format = returnedDefectListFormat;
+                    temp->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
                     ret = SUCCESS;
                 }
                 else
@@ -463,6 +468,10 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
         if (defects->generation > 0)
         {
             printf("\tGeneration Code: %" PRIu16 "\n", defects->generation);
+        }
+        if (defects->deviceHasMultipleLogicalUnits)
+        {
+            printf("\tNOTE: At this time, reported defects are for the entire device, not a single logical unit\n");
         }
         //TODO: Add a way to handle getting per-head counts to output first
         bool multiBit = false;
