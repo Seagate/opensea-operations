@@ -60,7 +60,7 @@ extern "C" {
             bytesFromIndexAddress bfi[1];
             physicalSectorAddress physical[1];
         };
-        bool deviceHasMultipleLogicalUnits
+        bool deviceHasMultipleLogicalUnits;
     }scsiDefectList, *ptrSCSIDefectList;
 
     //-----------------------------------------------------------------------------
