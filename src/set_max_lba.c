@@ -146,7 +146,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     //first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable address feature set)
     uint64_t nativeMaxLBA = 0;
     //always get the native max first (even if that's only a restriction of the HPA feature set)
-    if (SUCCESS == get_Native_Max_LBA(device, &nativeMaxLBA))
+    if (SUCCESS == (ret = get_Native_Max_LBA(device, &nativeMaxLBA)))
     {
         if (reset == true)
         {
