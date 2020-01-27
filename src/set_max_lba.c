@@ -142,7 +142,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 
 int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
-    int ret = UNKNOWN;
+    int ret = NOT_SUPPORTED;
     //first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable address feature set)
     uint64_t nativeMaxLBA = 0;
     //always get the native max first (even if that's only a restriction of the HPA feature set)
@@ -193,7 +193,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 
 int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
-    int ret = UNKNOWN;
+    int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = scsi_Set_Max_LBA(device, newMaxLBA, reset);
