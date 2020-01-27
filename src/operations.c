@@ -2381,6 +2381,18 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t m
                             mlus = vpdModePagePolicy[vpdMPOffset + 2] & BIT7 ? true : false;
                             break;
                         }
+                        else if (M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F && subPage == 0 && vpdModePagePolicy[vpdMPOffset + 1] == 0)
+                        {
+                            //This is the "report all mode pages", no subpages to indicate that the mlus applies to all mode pages on the device.
+                            mlus = vpdModePagePolicy[vpdMPOffset + 2] & BIT7 ? true : false;
+                            break;
+                        }
+                        else if (M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F && vpdModePagePolicy[vpdMPOffset + 1] == 0xFF)
+                        {
+                            //This is the "report all mode pages and subpages", to indicate that the mlus applies to all mode pages and subpages on the device.
+                            mlus = vpdModePagePolicy[vpdMPOffset + 2] & BIT7 ? true : false;
+                            break;
+                        }
                     }
                 }
             }
