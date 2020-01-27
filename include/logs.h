@@ -554,7 +554,6 @@ extern "C" {
     //!   \param[in] device = poiner to a valid device structure with a device handle
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
-    //!                Any other value will specify a transfer size to use to pull SM2. On ATA, this must be a multiple of 512Bytes
     //!   \param[in] issueFactory = if set 0-4 issue the command with the factory feature. 
     //!                             FARM pull Factory subpages   
     //!                             0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
