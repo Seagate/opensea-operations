@@ -1607,7 +1607,7 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     printf("\n===EPC Settings===\n");
     printf("\t* = timer is enabled\n");
     printf("\tC column = Changeable\n");
-    printf("\tS column = Saveable\n");
+    printf("\tS column = Savable\n");
     printf("\tAll times are in 100 milliseconds\n\n");
     printf("%-10s %-13s %-13s %-13s %-12s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer", "Recovery Time");
     if (epcSettings->idle_a.powerConditionSupported)
@@ -1630,10 +1630,10 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     {
         print_Power_Condition(&epcSettings->standby_z, "Standby Z");
     }
-    if (epcSettings->settingsAffectMultipleLogicalUnits)
+    /*if (epcSettings->settingsAffectMultipleLogicalUnits)
     {
         printf("\nNote: All settings affect multiple logical units.\n");
-    }
+    }*/
 }
 
 int sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool *supported, bool *enabled)

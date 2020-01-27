@@ -1065,7 +1065,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
                 //don't print anything...
                 break;
             }
-            printf("Affect on multiple logical units/namespaces: ");
+            /*printf("Affect on multiple logical units/namespaces: ");
             switch (supportedModes->multipleLogicalUnitsAffected)
             {
             case MLU_NOT_REPORTED:
@@ -1080,7 +1080,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
             case MLU_AFFECTS_ALL_LU:
                 printf("FW Updates affect all logical units.\n");
                 break;
-            }
+            }*/
             if (supportedModes->firmwareSlotInfo.firmwareSlotInfoValid)
             {
                 printf("Firmware Slot Info:\n");
