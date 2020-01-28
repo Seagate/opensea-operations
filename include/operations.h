@@ -402,6 +402,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
+    OPENSEA_OPERATIONS_API bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device);//This is the reset to defaults bit in mode select command. Not anything else. If this is false, the old read the defaults and write it back should still work - TJE
+
     typedef enum _eSCSI_MP_UPDATE_MODE
     {
         UPDATE_SCSI_MP_RESET_TO_DEFAULT,
