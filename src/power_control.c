@@ -291,7 +291,7 @@ int print_Current_Power_Mode(tDevice *device)
 
 int transition_Power_State(tDevice *device, ePowerConditionID newState)
 {
-    int ret = UNKNOWN; 
+    int ret = NOT_SUPPORTED; 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         switch (newState)
@@ -316,7 +316,39 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_C,\
                                    EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
-        case PWR_CND_ACTIVE: //No such thing in ATA (...yet)
+        case PWR_CND_ACTIVE: //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly
+            seed_64(time(NULL));
+            for (uint8_t counter = 0; counter < 5; ++counter)
+            {
+                uint64_t lba = 0;
+                lba = random_Range_64(0, device->drive_info.deviceMaxLba);
+                ata_Read_Verify(device, lba, 1);
+            }
+            //TODO: better way to judge if tried commands worked or not...
+            //TODO: better handling for zoned devices...
+            ret = SUCCESS;
+            break;
+        case PWR_CND_IDLE://send idle immediate
+            ret = ata_Idle_Immediate(device, false);
+            break;
+        case PWR_CND_IDLE_UNLOAD://send idle immediate - unload
+            if ((device->drive_info.IdentifyData.ata.Word084 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word084 != 0 && device->drive_info.IdentifyData.ata.Word084 & BIT13) ||
+                (device->drive_info.IdentifyData.ata.Word087 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word087 != 0 && device->drive_info.IdentifyData.ata.Word087 & BIT13)
+                )
+            {
+                ret = ata_Idle_Immediate(device, true);
+            }
+            else
+            {
+                ret = NOT_SUPPORTED;
+            }
+            break;
+        case PWR_CND_STANDBY://send standby immediate
+            ret = ata_Standby_Immediate(device);
+            break;
+        case PWR_CND_SLEEP://send sleep command
+            ret = ata_Sleep(device);
+            break;
         default:
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
@@ -326,27 +358,61 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             break;
         };
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else //if (device->drive_info.drive_type == SCSI_DRIVE) /*removed the if SCSI here to handle NVMe or other translations*/
     {
         switch (newState)
         {
         case PWR_CND_ACTIVE:
-            ret = scsi_Start_Stop_Unit(device, true, 0, PC_ACTIVE, false, false, false); 
+            if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+            {
+                ret = scsi_Start_Stop_Unit(device, false, 0, PC_ACTIVE, false, false, false);
+            }
+            else
+            {
+                //before you could specify a power condition, you used the "Start" bit as a way to move from standby to active
+                ret = scsi_Start_Stop_Unit(device, false, 0, PC_START_VALID, false, false, true);
+            }
             break;
         case PWR_CND_STANDBY_Z:
-            ret = scsi_Start_Stop_Unit(device, true, 0, PC_STANDBY, false, false, false); 
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_STANDBY, false, false, false);
             break;
         case PWR_CND_STANDBY_Y:
-            ret = scsi_Start_Stop_Unit(device, true, 1, PC_STANDBY, false, false, false); 
+            ret = scsi_Start_Stop_Unit(device, false, 1, PC_STANDBY, false, false, false);
             break;
         case PWR_CND_IDLE_A:
-            ret = scsi_Start_Stop_Unit(device, true, 0, PC_IDLE, false, false, false); 
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_IDLE, false, false, false);
             break;
         case PWR_CND_IDLE_B:
-            ret = scsi_Start_Stop_Unit(device, true, 1, PC_IDLE, false, false, false); 
+            ret = scsi_Start_Stop_Unit(device, false, 1, PC_IDLE, false, false, false);
             break;
         case PWR_CND_IDLE_C:
-            ret = scsi_Start_Stop_Unit(device, true, 2, PC_IDLE, false, false, false); 
+            ret = scsi_Start_Stop_Unit(device, false, 2, PC_IDLE, false, false, false);
+            break;
+        case PWR_CND_IDLE://send idle immediate
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_IDLE, false, false, false);
+            break;
+        case PWR_CND_IDLE_UNLOAD://send idle immediate - unload
+            if (device->drive_info.scsiVersion > SCSI_VERSION_SPC_2)
+            {
+                ret = scsi_Start_Stop_Unit(device, false, 1, PC_IDLE, false, false, false);
+            }
+            break;
+        case PWR_CND_STANDBY://send standby immediate
+            if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+            {
+                ret = scsi_Start_Stop_Unit(device, false, 0, PC_STANDBY, false, false, false);
+            }
+            else
+            {
+                //before you could specify a power condition, you used the "Start" bit as a way to move from standby to active
+                ret = scsi_Start_Stop_Unit(device, false, 0, 0, false, false, false);
+            }
+            break;
+        case PWR_CND_SLEEP://send sleep command
+            if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
+            {
+                ret = scsi_Start_Stop_Unit(device, false, 0, PC_SLEEP, false, false, false);//This is obsolete since SBC2...but we'll send it anyways
+            }
             break;
         default:
             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -357,16 +423,21 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             break;
         };
     }
-    #if !defined(DISABLE_NVME_PASSTHROUGH)
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    return ret;
+}
+#if !defined(DISABLE_NVME_PASSTHROUGH)
+int transition_NVM_Power_State(tDevice *device, uint8_t newState)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
-        memset(&cmdOpts,0,sizeof(cmdOpts));
+        memset(&cmdOpts, 0, sizeof(cmdOpts));
         cmdOpts.featSetGetValue = newState;
         cmdOpts.fid = NVME_FEAT_POWER_MGMT_;
         cmdOpts.sel = NVME_CURRENT_FEAT_SEL;
-        ret = nvme_Set_Features(device,&cmdOpts);
-        if (ret != SUCCESS) 
+        ret = nvme_Set_Features(device, &cmdOpts);
+        if (ret != SUCCESS)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
@@ -374,17 +445,9 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             }
         }
     }
-    #endif
-    else
-    {
-        if (VERBOSITY_QUIET < device->deviceVerbosity)
-        {
-            printf("Power State Transition is not supported on this device type at this time\n");
-        }
-        ret = NOT_SUPPORTED;
-    }
     return ret;
 }
+#endif
 
 
 int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, ptrPowerConditionSettings powerConditionSettings)
@@ -2267,7 +2330,7 @@ int transition_To_Standby(tDevice *device)
     {
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2)//checking for support after SCSI2. This isn't perfect, but should be ok for now.
         {
-            ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_STANDBY_0, false, false, false);
+            ret = scsi_Start_Stop_Unit(device, false, 0, PC_STANDBY, false, false, false);
         }
         else
         {
@@ -2305,12 +2368,12 @@ int transition_To_Idle(tDevice *device, bool unload)
                 //unload can happen if power condition modifier set to 1. Needs SBC3/SPC3.
                 if (device->drive_info.scsiVersion > SCSI_VERSION_SPC_2)
                 {
-                    ret = scsi_Start_Stop_Unit(device, false, 1, PC_FORCE_IDLE_0, false, false, false);
+                    ret = scsi_Start_Stop_Unit(device, false, 1, PC_IDLE, false, false, false);
                 }
             }
             else
             {
-                ret = scsi_Start_Stop_Unit(device, false, 0, PC_FORCE_IDLE_0, false, false, false);
+                ret = scsi_Start_Stop_Unit(device, false, 0, PC_IDLE, false, false, false);
             }
         }
     }
