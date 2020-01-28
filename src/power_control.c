@@ -619,7 +619,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
             }
             if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_POWER_CONDTION, powerConditionsPageLength, 0, true, false, MPC_DEFAULT_VALUES, powerConditionsPage)))
             {
-                uint16_t modeDataLength = M_BytesTo2ByteValue(powerConditionsPage[0], powerConditionsPage[1]);
+                //uint16_t modeDataLength = M_BytesTo2ByteValue(powerConditionsPage[0], powerConditionsPage[1]);
                 uint16_t blockDescriptorLength = M_BytesTo2ByteValue(powerConditionsPage[6], powerConditionsPage[7]);
                 uint32_t mpStartOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
                 //read the power conditions values that were requested
@@ -706,7 +706,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
         }
         if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_POWER_CONDTION, powerConditionsPageLength, 0, true, false, MPC_CURRENT_VALUES, powerConditionsPage)))
         {
-            uint16_t modeDataLength = M_BytesTo2ByteValue(powerConditionsPage[0], powerConditionsPage[1]);
+            //uint16_t modeDataLength = M_BytesTo2ByteValue(powerConditionsPage[0], powerConditionsPage[1]);
             uint16_t blockDescriptorLength = M_BytesTo2ByteValue(powerConditionsPage[6], powerConditionsPage[7]);
             uint32_t mpStartOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
             //read the power conditions values that were requested
@@ -948,8 +948,7 @@ int set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowe
 int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
     ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid)
 {
-    int ret = UNKNOWN;
-    uint8_t *temp = NULL;
+    int ret = NOT_SUPPORTED;
     //first we need to check that VPD page 8Ah (power condition) exists...and we can possibly use that information to return "not supported, etc"
     uint8_t *powerConditionVPD = (uint8_t*)calloc_aligned(VPD_POWER_CONDITION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);//size of 18 is defined in SPC4 for this VPD page
     if (!powerConditionVPD)
