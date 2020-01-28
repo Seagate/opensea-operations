@@ -246,6 +246,7 @@ extern "C"
             uint16_t numberOfControllerFeatures;
             char controllerFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
             uint64_t longDSTTimeMinutes;
+            uint8_t numberOfPowerStatesSupported;
         }controllerData;
         //smart log data (controller, not per namespace)
         struct {

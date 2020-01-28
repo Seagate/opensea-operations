@@ -5085,6 +5085,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         driveInfo->controllerData.majorVersion = M_BytesTo2ByteValue(nvmeIdentifyData[83], nvmeIdentifyData[82]);
         driveInfo->controllerData.minorVersion = nvmeIdentifyData[81];
         driveInfo->controllerData.tertiaryVersion = nvmeIdentifyData[80];
+        driveInfo->controllerData.numberOfPowerStatesSupported = nvmeIdentifyData[263] + 1;
         if (nvmeIdentifyData[96] & BIT0)
         {
             driveInfo->controllerData.hostIdentifierSupported = true;
@@ -5606,6 +5607,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("Not Supported\n");
     }
     printf("\tMaximum Number Of Namespaces: %" PRIu32 "\n", driveInfo->controllerData.maxNumberOfNamespaces);
+    printf("\tNumber of supported power states: %" PRIu8 "\n", driveInfo->controllerData.numberOfPowerStatesSupported + 1);
     //Putting SMART & DST data here so that it isn't confused with the namespace data below - TJE
     if (driveInfo->smartData.valid)
     {
@@ -6943,145 +6945,3 @@ char * print_drive_type(tDevice *device)
         return "NULL";
     }
 }
-
-#if !defined(DISABLE_NVME_PASSTHROUGH)
-#if 0
-int print_Nvme_Ctrl_Information(tDevice *device)
-{
-    int ret = UNKNOWN;
-    uint32_t c=0; 
-    nvmeIDCtrl * ctrlData = &device->drive_info.IdentifyData.nvme.ctrl; //Conroller information data structure
-    nvmeIDNameSpaces * nsData = &device->drive_info.IdentifyData.nvme.ns; //Name Space Data structure 
-    char * metricUnit = NULL;
-    char * capacityUnit = NULL;
-    double metricCapacity = (double)device->drive_info.deviceMaxLba * device->drive_info.deviceBlockSize;
-    double capacityCapacity = metricCapacity;
-
-    printf("\tPCI Vendor ID: %"PRIX16"\n",ctrlData->vid);
-    printf("\tPCI Subsystem Vendor ID: %"PRIX16"\n",ctrlData->ssvid);
-    printf("\tModel Number: %s\n", device->drive_info.product_identification);
-    printf("\tSerial Number: %s\n", device->drive_info.serialNumber);
-    printf("\tFirmware Revision: %s\n", device->drive_info.product_revision);
-    //printf("\tIEEE OUI Identifier: %X\n", ctrlData.ieee);
-    /*if (ctrlData->cmic & BIT0) 
-    {
-        printf("\tNVM subsystem contains more than one PCI Express ports")
-    }
-    else
-    {
-        printf("\tNVM subsystem contains one PCI Express ports")
-    }*/
-    printf("\tController ID: %"PRIX16"\n",ctrlData->cntlid);
-    if (ctrlData->oacs & BIT0) 
-    {
-        printf("\tController supports Security Commands\n");
-    }
-    if (ctrlData->oacs & BIT1) 
-    {
-        printf("\tController supports Format NVM Commands\n");
-    }
-    if (ctrlData->oacs & BIT2) 
-    {
-        printf("\tController supports Firmware Download & Active Commands\n");
-    }
-    if (ctrlData->lpa & BIT0) 
-    {
-        printf("\tController supports SMART/Health Information Log\n");
-    }
-    printf("\tError Log Page Entries: %"PRIu8"\n",ctrlData->elpe);
-    printf("\tNumber of Power States Supported: %"PRIu8"\n",ctrlData->npss+1);//0 based value
-    printf("\tNumber of Namespaces: %"PRIu32"\n",ctrlData->nn);
-
-    if (ctrlData->fna)
-    {
-        if (ctrlData->fna & BIT0) 
-        {
-            printf("\tFORMAT: applies to all namespaces\n");
-        }
-        else
-        {
-            printf("\tFORMAT: processed on namespace basis\n");
-        }
-        if (ctrlData->fna & BIT2)
-        {
-            printf("\tFORMAT: Ctryptographic Erase Supported\n");
-        }
-    }
-    if (ctrlData->vwc & BIT0) 
-    {
-        printf("\tController supports Volatile Write Cache\n");
-    }
-    printf("\tMaxLBA: %"PRIu64"\n", device->drive_info.deviceMaxLba);
-    printf("\tLogical Sector Size (Bytes): %"PRIu32"\n", device->drive_info.deviceBlockSize);
-    metricUnit = (char*)calloc(10, sizeof(uint8_t));
-    capacityUnit = (char*)calloc(10, sizeof(uint8_t));
-    metric_Unit_Convert(&metricCapacity, &metricUnit);
-    capacity_Unit_Convert(&capacityCapacity,&capacityUnit);
-    printf("\tCapacity (%s/%s): %.02f/%.02f\n", metricUnit, capacityUnit, metricCapacity, capacityCapacity);
-    safe_Free(metricUnit);
-    safe_Free(capacityUnit);
-
-    printf("\t\t---------NAMESPACE DATA---------\n");
-    printf("\t\tNamespace Size: %"PRIu64"\n",nsData->nsze);
-    printf("\t\tNamespace Capacity: %"PRIu64"\n",nsData->ncap);
-    printf("\t\tNamespace Used: %"PRIu64"\n", nsData->nuse);
-    if (nsData->nsfeat & BIT0) 
-    {
-        printf("\t\tNamespace supports thin provisioning\n");
-    }
-    if (nsData->mc)
-    {
-        if (nsData->mc & BIT0)
-        {
-            printf("\t\tNamespace supports metadata as part of extended data LBA\n");
-        }
-        if (nsData->mc & BIT1)
-        {
-            printf("\t\tNamespace supports metadata as part of seperate buffer\n");
-        }
-    }
-    printf("\t\tNumber of LBA Formats Supported: ");
-    for (c=0;c<=nsData->nlbaf;c++) 
-    {
-        printf("LBAF%d ",c);
-    }
-    printf("\n");
-    printf("\t\tCurrent Formatted LBA: LBAF%"PRIu8" ",nsData->flbas & 0x0F);
-    if (nsData->flbas & BIT4) 
-    {
-        printf("[Ext. Meta Data]\n");
-    }
-    else
-    {
-        printf("\n");
-    }
-
-    for (c=0; c <= nsData->nlbaf; c++) 
-    {
-        printf("\t\tLBAF%"PRIu32" | Metadata Size %"PRIu16" | LBA Data Size %"PRIu32" ", \
-               c,nsData->lbaf[c].ms, (uint32_t) power_Of_Two(nsData->lbaf[c].lbaDS));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
-        switch(nsData->lbaf[c].rp)
-        {
-        case NVME_NS_LBAF_BEST_RP:
-            printf("| BEST PERFORMANCE\n");
-            break;
-        case NVME_NS_LBAF_BETTER_RP:
-            printf("| BETTER PERFORMANCE\n");
-            break;
-        case NVME_NS_LBAF_GOOD_RP:
-            printf("| GOOD PERFORMANCE\n");
-            break;
-        case NVME_NS_LBAF_DEGRADED_RP:
-            printf("| DEGRADED PERFORMANCE\n");
-            break;
-        default:
-            printf("\n");
-            break;
-        };
-    }
-
-    return ret;
-
-}
-#endif
-#endif
