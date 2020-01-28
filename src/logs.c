@@ -13,6 +13,8 @@
 #include "ata_helper_func.h"
 #include "scsi_helper_func.h"
 #include "operations_Common.h"
+#include "vendor/seagate/seagate_ata_types.h"
+#include "vendor/seagate/seagate_scsi_types.h"
 
 int generate_Logfile_Name(tDevice *device, const char * const logName, const char * const logExtension,\
                            eLogFileNamingConvention logFileNamingConvention, char **logFileNameUsed)
@@ -2139,19 +2141,19 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
            //3 � Report FARM factory data from disc(~20ms)(SATA only)
         if (issueFactory == 1)
         {
-            ret = get_ATA_Log(device, 0xA6, "P_AND_S_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, 0x01);
+            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "P_AND_S_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_GENERATE_NEW_AND_SAVE);
         }
         else if (issueFactory == 2)
         {
-            ret = get_ATA_Log(device, 0xA6, "PREVIOUS_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, 0x02);
+            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "PREVIOUS_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_REPORT_SAVED);
         }
         else if (issueFactory == 3)
         {
-            ret = get_ATA_Log(device, 0xA6, "FACTORY_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes,0x03 );
+            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "FACTORY_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA);
         }
         else
         {
-            ret = get_ATA_Log(device, 0xA6, "FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes,0);
+            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_CURRENT);
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -2161,12 +2163,12 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
        //4 - factory subpage (SAS only)
         if (issueFactory == 4)
         {
-            ret = get_SCSI_Log(device, 0x3D, 0x04, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
+            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
             
         }
         else
         {
-            ret = get_SCSI_Log(device, 0x3D, 0x03, "FARM", "bin", false, NULL, 0, filePath);
+            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, "FARM", "bin", false, NULL, 0, filePath);
         }
     }
     else

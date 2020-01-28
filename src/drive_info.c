@@ -2319,6 +2319,15 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             driveInfo->copyrightInfo[49] = '\0';
         }
     }
+
+    //TODO: add checking peripheral device type as well to make sure it's only direct access and zoned block devices?
+    if ((device->drive_info.interface_type == SCSI_INTERFACE || device->drive_info.interface_type == RAID_INTERFACE) && (device->drive_info.drive_type != ATA_DRIVE && device->drive_info.drive_type != NVME_DRIVE))
+    {
+        //send report luns to see how many luns are attached. This SHOULD be the way to detect multi-actuator drives for now. This could change in the future.
+        //TODO: Find a better way to remove the large check above which may not work out well in some cases, but should reduce false detection on USB among other interfaces
+        driveInfo->lunCount = get_LUN_Count(device);
+    }
+
     //VPD pages (read list of supported pages...if we don't get anything back, we'll dummy up a list of things we are interested in trying to read...this is to work around crappy USB bridges
     uint8_t *tempBuf = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE * 2, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!tempBuf)
@@ -2420,7 +2429,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
                     if (serialNumberLength > 0)
                     {
-                        if (strcmp(driveInfo->vendorID, "SEAGATE") == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
+                        if (strncmp(driveInfo->vendorID, "SEAGATE", strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
                         {
                             //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
                             memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
@@ -6622,6 +6631,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("Not Supported");
     }
     printf("\n");
+    if (driveInfo->lunCount > 0)
+    {
+        printf("\tNumber of Logical Units: %" PRIu8 "\n", driveInfo->lunCount);
+    }
     //Specifications Supported
     printf("\tSpecifications Supported:\n");
     if (driveInfo->numberOfSpecificationsSupported > 0)
@@ -6678,6 +6691,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     else
     {
         printf("Not available.\n");
+    }
+    if (driveInfo->lunCount > 1)
+    {
+        printf("This device has multiple actuators. Some commands/features may affect more than one actuator.\n");
     }
     return;
 }

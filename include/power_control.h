@@ -235,6 +235,7 @@ extern "C"
         powerConditionInfo idle_c;
         powerConditionInfo standby_y;
         powerConditionInfo standby_z;
+        bool               settingsAffectMultipleLogicalUnits;
     }epcSettings, *ptrEpcSettings;
 
     OPENSEA_OPERATIONS_API int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings);

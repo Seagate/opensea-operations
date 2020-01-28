@@ -20,6 +20,8 @@
 #include "sanitize.h"
 #include "format.h"
 #include "vendor/seagate/seagate_ata_types.h"
+#include "vendor/seagate/seagate_scsi_types.h"
+#include <float.h> //for DBL_MAX
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
@@ -84,7 +86,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         return NOT_SUPPORTED;
     }
-    uint16_t phyControlLength = 104;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
+    uint16_t phyControlLength = 116;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + 8 bytes for beginning of the page. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
     uint8_t *sasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + phyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!sasPhyControl)
     {
@@ -98,12 +100,12 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
         //validate we got the right page
         if ((sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x01 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & BIT6) > 0)
         {
-            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]);
+            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]) + 4;
             //check that we were able to read the full page! If we didn't get the entire thing, we need to reread it and adjust the phyControlLength variable!
-            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN) > modeDataLength || pageLength > phyControlLength)
+            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN) > (modeDataLength - 6) || pageLength > phyControlLength)
             {
                 //reread the page for the larger length
-                phyControlLength = pageLength + 8 + MODE_PARAMETER_HEADER_10_LEN;
+                phyControlLength = pageLength + 4 + MODE_PARAMETER_HEADER_10_LEN;
                 uint8_t *temp = realloc_aligned(sasPhyControl, 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
@@ -676,11 +678,11 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
     {
         if (enable)
         {
-            ret = ata_Set_Features(device, 0x5C, 0, 1, 0, 0);
+            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
         }
         else
         {
-            ret = ata_Set_Features(device, 0x5C, 0, 2, 0, 0);
+            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -750,7 +752,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
             uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (iddDiagPage)
             {
-                if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15))
+                if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15))
                 {
                     ret = SUCCESS;
                     iddSupport->iddShort = true;//short
@@ -842,7 +844,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
         if (iddDiagPage)
         {
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
-            ret = scsi_Receive_Diagnostic_Results(device, true, 0x98, 12, iddDiagPage, 15);
+            ret = scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15);
             if (ret != SUCCESS)
             {
                 uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
@@ -854,7 +856,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
                     return SUCCESS;
                 }
             }
-            if (iddDiagPage[0] == 0x98 && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
+            if (iddDiagPage[0] == SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS && M_BytesTo2ByteValue(iddDiagPage[2], iddDiagPage[3]) == 0x0008)//check that the page and pagelength match what we expect
             {
                 ret = SUCCESS;
                 *status = M_Nibble0(iddDiagPage[4]);
@@ -879,7 +881,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t iddTestNumber = 0;
-        uint32_t timeoutSeconds = 300;//make this super long just in case...
+        uint32_t timeoutSeconds = SEAGATE_IDD_TIMEOUT;//make this super long just in case...
         if (captiveForeground)
         {
             timeoutSeconds = UINT32_MAX;
@@ -887,17 +889,17 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
         switch (iddOperation)
         {
         case SEAGATE_IDD_SHORT:
-            iddTestNumber = 0x70;
+            iddTestNumber = SEAGATE_ST_IDD_SHORT_OFFLINE;
             if (captiveForeground)
             {
-                iddTestNumber = 0xD0;
+                iddTestNumber = SEAGATE_ST_IDD_SHORT_CAPTIVE;
             }
             break;
         case SEAGATE_IDD_LONG:
-            iddTestNumber = 0x71;
+            iddTestNumber = SEAGATE_ST_IDD_LONG_OFFLINE;
             if (captiveForeground)
             {
-                iddTestNumber = 0xD1;
+                iddTestNumber = SEAGATE_ST_IDD_LONG_CAPTIVE;
             }
             break;
         default:
@@ -911,8 +913,8 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
         uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (iddDiagPage)
         {
-            uint32_t commandTimeoutSeconds = 300;
-            iddDiagPage[0] = 0x98;//page code
+            uint32_t commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;
+            iddDiagPage[0] = SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS;//page code
             switch (iddOperation)
             {
             case SEAGATE_IDD_SHORT:
@@ -927,7 +929,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             }
             if (captiveForeground)
             {
-                commandTimeoutSeconds = 300;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
+                commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
                 iddDiagPage[1] |= BIT4;
             }
             else
@@ -1116,4 +1118,289 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
         return NOT_SUPPORTED;
     }
     return result;
+}
+
+bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check if log page E3h has data
+        uint32_t logSize = 0;
+        if (SUCCESS == get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &logSize, true, false))
+        {
+            if (logSize > 0)
+            {
+                supported = true;
+            }
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        //check for non-zero value for buffer ID 54h
+        uint32_t bufferSize = 0;
+        if (SUCCESS == get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &bufferSize, false, is_SCSI_Read_Buffer_16_Supported(device)))
+        {
+            if (bufferSize > 0)
+            {
+                supported = true;
+            }
+        }
+    }
+    return supported;
+}
+
+//TODO: These are in the spec, but need to be verified before they are used.
+#define ATA_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(8192)
+#define SCSI_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(6240)
+
+//This can be used to save this log to a binary file to be read later.
+int pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, "PWRTEL", "pwr", true, false, false, NULL, 0, filePath, transferSizeBytes, 0);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, "PWRTEL", false, is_SCSI_Read_Buffer_16_Supported(device), "pwr", false, NULL, 0, filePath, transferSizeBytes, NULL);
+    }
+    return ret;
+}
+
+int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, ePowerTelemetryMeasurementOptions measurementOption)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint8_t pwrTelLogPg[512] = { 0 };
+        pwrTelLogPg[0] = (uint8_t)SEAGATE_ATA_LOG_POWER_TELEMETRY;
+        pwrTelLogPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
+        pwrTelLogPg[2] = RESERVED;
+        pwrTelLogPg[3] = RESERVED;
+        pwrTelLogPg[4] = M_Byte0(timeMeasurementSeconds);
+        pwrTelLogPg[5] = M_Byte1(timeMeasurementSeconds);
+        pwrTelLogPg[6] = (uint8_t)measurementOption;
+        //remaining bytes are reserved
+        //send write log ext
+        ret = ata_Write_Log_Ext(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, 0, pwrTelLogPg, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, false);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t pwrTelDiagPg[16] = { 0 };
+        pwrTelDiagPg[0] = (uint8_t)SEAGATE_DIAG_POWER_MEASUREMENT;
+        pwrTelDiagPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
+        pwrTelDiagPg[2] = M_Byte1(12);//page length msb
+        pwrTelDiagPg[3] = M_Byte0(12);//page length lsb
+        pwrTelDiagPg[4] = M_Byte1(timeMeasurementSeconds);
+        pwrTelDiagPg[5] = M_Byte0(timeMeasurementSeconds);
+        pwrTelDiagPg[6] = (uint8_t)measurementOption;
+        pwrTelDiagPg[7] = RESERVED;
+        pwrTelDiagPg[8] = RESERVED;
+        pwrTelDiagPg[9] = RESERVED;
+        pwrTelDiagPg[10] = RESERVED;
+        pwrTelDiagPg[11] = RESERVED;
+        pwrTelDiagPg[12] = RESERVED;
+        pwrTelDiagPg[13] = RESERVED;
+        pwrTelDiagPg[14] = RESERVED;
+        pwrTelDiagPg[15] = RESERVED;
+        //send diagnostic command
+        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 16, pwrTelDiagPg, 16, 15);
+    }
+    return ret;
+}
+
+int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
+{
+    int ret = NOT_SUPPORTED;
+    if (!pwrTelData)
+    {
+        return BAD_PARAMETER;
+    }
+    uint32_t powerTelemetryLogSize = 0;
+    uint8_t *powerTelemetryLog = NULL;
+    //first, determine how much data there is, allocate memory, then read it all into that buffer
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &powerTelemetryLogSize, true, false);
+        if (ret == SUCCESS && powerTelemetryLogSize > 0)
+        {
+            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (powerTelemetryLog)
+            {
+                ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, NULL, NULL, true, false, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, 0);
+            }
+            else
+            {
+                ret = MEMORY_FAILURE;
+            }
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
+        ret = get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &powerTelemetryLogSize, false, rb16);
+        if (ret == SUCCESS && powerTelemetryLogSize > 0)
+        {
+            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (powerTelemetryLog)
+            {
+                ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, NULL, false, rb16, NULL, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, NULL);
+            }
+            else
+            {
+                ret = MEMORY_FAILURE;
+            }
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+    }
+
+    if (ret == SUCCESS && powerTelemetryLogSize > 0)
+    {
+        //got the data, now parse it into the correct fields.
+        //Everything, but the strings, are reported in little endian by the drive.
+        //This makes it easy, so just need to convert to the host's endianness if necessary
+        memset(pwrTelData, 0, sizeof(seagatePwrTelemetry));
+        memcpy(pwrTelData->serialNumber, &powerTelemetryLog[0], 8);
+        pwrTelData->powerCycleCount = M_BytesTo2ByteValue(powerTelemetryLog[9], powerTelemetryLog[8]);
+        //drive timestamps will be reported as uint64 in this structure so that they can be converted to whatever is easy by other users
+        pwrTelData->driveTimeStampForHostRequestedMeasurement = M_BytesTo8ByteValue(0,0, powerTelemetryLog[15], powerTelemetryLog[14], powerTelemetryLog[13], powerTelemetryLog[12], powerTelemetryLog[11], powerTelemetryLog[10]);
+        pwrTelData->driveTimeStampWhenTheLogWasRetrieved = M_BytesTo8ByteValue(0, 0, powerTelemetryLog[21], powerTelemetryLog[20], powerTelemetryLog[19], powerTelemetryLog[18], powerTelemetryLog[17], powerTelemetryLog[16]);
+        pwrTelData->majorRevision = powerTelemetryLog[22];
+        pwrTelData->minorRevision = powerTelemetryLog[23];
+        memcpy(pwrTelData->signature, &powerTelemetryLog[24], 8);
+        pwrTelData->totalMeasurementTimeRequested = M_BytesTo2ByteValue(powerTelemetryLog[33], powerTelemetryLog[32]);
+        uint16_t dataLength = M_BytesTo2ByteValue(powerTelemetryLog[35], powerTelemetryLog[34]);
+        pwrTelData->numberOfMeasurements = M_BytesTo2ByteValue(powerTelemetryLog[37], powerTelemetryLog[36]);
+        uint16_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
+        pwrTelData->measurementFormat = powerTelemetryLog[40];
+        pwrTelData->temperatureCelcius = powerTelemetryLog[41];
+        pwrTelData->measurementWindowTimeMilliseconds = M_BytesTo2ByteValue(powerTelemetryLog[43], powerTelemetryLog[42]);
+
+        pwrTelData->multipleLogicalUnits = (device->drive_info.numberOfLUs > 1) ? true : false;
+
+        for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementOffset < dataLength && measurementOffset < powerTelemetryLogSize; ++measurementNumber, measurementOffset += 6)
+        {
+            pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 1], powerTelemetryLog[measurementOffset + 0]);
+            pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 3], powerTelemetryLog[measurementOffset + 2]);
+            pwrTelData->measurement[measurementNumber].reserved = M_BytesTo2ByteValue(powerTelemetryLog[measurementOffset + 5], powerTelemetryLog[measurementOffset + 4]);
+            if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 && pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
+            {
+                //invalid or empty entry should only happen once at the end! loop conditions should also protect from this!
+                break;
+            }
+        }
+    }
+    safe_Free_aligned(powerTelemetryLog);
+    return ret;
+}
+
+void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
+{
+    if (pwrTelData)
+    {
+        //doubles for end statistics of measurement
+        double sum5v = 0, sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
+        double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Concert from milliseconds to something else???
+
+        printf("Power Telemetry\n");
+        printf("\tSerial Number: %s\n", pwrTelData->serialNumber);
+        printf("\tRevision: %" PRIu8 ".%" PRIu8 "\n", pwrTelData->majorRevision, pwrTelData->minorRevision);
+        printf("\tTemperature (C): %" PRIu8 "\n", pwrTelData->temperatureCelcius);
+        printf("\tPower Cycle Count: %" PRIu16 "\n", pwrTelData->powerCycleCount);
+        //printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
+        if (pwrTelData->totalMeasurementTimeRequested == 0)
+        {
+            printf("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
+        }
+        else
+        {
+            printf("\tMeasurement Time (seconds): %" PRIu16 "\n", pwrTelData->totalMeasurementTimeRequested);
+        }
+        printf("\tMeasurement Window (ms): %" PRIu16 "\n", pwrTelData->measurementWindowTimeMilliseconds);
+
+        //TODO: Host requested time and log retrieval time??? Is this necessary?
+
+        printf("\nIndividual Power Measurements\n");
+        //Note, while the spacing may not make much sense, it definitely works with the widths below.
+        printf("    #\t     Time       \t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
+        uint16_t measurementCounter = 0;
+        for (uint16_t measurementNumber = 0; measurementNumber < pwrTelData->numberOfMeasurements && measurementNumber < POWER_TELEMETRY_MAXIMUM_MEASUREMENTS; ++measurementNumber)
+        {
+            double power5VWatts = pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts / 1000.0;
+            double power12VWatts = pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts / 1000.0;
+            double measurementTime = measurementNumber * stepTime;
+            if (pwrTelData->totalMeasurementTimeRequested == 0)
+            {
+                measurementTime += pwrTelData->driveTimeStampWhenTheLogWasRetrieved;
+            }
+            else
+            {
+                measurementTime += pwrTelData->driveTimeStampForHostRequestedMeasurement;
+            }
+            if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 && pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
+            {
+                break;
+            }
+            //TODO: IF format is %v only or 12V only, handle showing N/A for some output.
+            //NOTE: Original format was 10.6, 6.3, 6.3, 6.3. Trying to widen to match the header
+            if (pwrTelData->measurementFormat == 5)
+            {
+                printf("%5" PRIu16 "\t%16.6f\t%12.3f\t%13s\t%11.3f\n", measurementNumber, measurementTime, power5VWatts, "N/A", power5VWatts);
+            }
+            else if (pwrTelData->measurementFormat == 12)
+            {
+                printf("%5" PRIu16 "\t%16.6f\t%12s\t%13.3f\t%11.3f\n", measurementNumber, measurementTime, "N/A", power12VWatts, power12VWatts);
+            }
+            else
+            {
+                printf("%5" PRIu16 "\t%16.6f\t%12.3f\t%13.3f\t%11.3f\n", measurementNumber, measurementTime, power5VWatts, power12VWatts, power5VWatts + power12VWatts);
+            }
+            //update min/max values
+            if (power5VWatts < min5v)
+            {
+                min5v = power5VWatts;
+            }
+            if (power12VWatts < min12v)
+            {
+                min12v = power12VWatts;
+            }
+            if (power5VWatts > max5v)
+            {
+                max5v = power5VWatts;
+            }
+            if (power12VWatts > max12v)
+            {
+                max12v = power12VWatts;
+            }
+            sum5v += power5VWatts;
+            sum12v += power12VWatts;
+            ++measurementCounter;
+        }
+        if (measurementCounter > 0)
+        {
+            printf("\n");
+            if (pwrTelData->measurementFormat == 0 || pwrTelData->measurementFormat == 5)
+            {
+                printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinimum: %6.3f \tMaximum: %6.3f\n", sum5v / measurementCounter, min5v, max5v);
+            }
+            if (pwrTelData->measurementFormat == 0 || pwrTelData->measurementFormat == 12)
+            {
+                printf("12 Volt Power (W):\tAverage: %6.3f \tMinimum: %6.3f \tMaximum: %6.3f\n", sum12v / measurementCounter, min12v, max12v);
+            }
+        }
+        if (pwrTelData->multipleLogicalUnits)
+        {
+            printf("NOTE: All power measurements are for the full device, not individual logical units.\n");
+        }
+    }
+    return;
 }

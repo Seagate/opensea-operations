@@ -2318,3 +2318,86 @@ int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8
 
     return ret;
 }
+
+//doing this in SCSI way for now...should handle nvme separately at some point since a namespace is similar to a lun
+uint8_t get_LUN_Count(tDevice *device)
+{
+    uint8_t lunCount = 1;//assume 1 since we are talking over a lun right now. - TJE
+    uint8_t luns[4] = { 0 };
+    uint8_t selectReport = 0x02;//or 0????
+    if (SUCCESS == scsi_Report_Luns(device, selectReport, 4, luns))
+    {
+        uint32_t lunListLength = M_BytesTo4ByteValue(luns[0], luns[1], luns[2], luns[3]);
+        lunCount = lunListLength / 8;
+    }
+    return lunCount;
+}
+
+eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, uint16_t serviceAction)
+{
+    eMLU mlu = MLU_NOT_REPORTED;
+    uint8_t reportOp[4] = { 0 };
+    uint8_t reportingOptions = 1;
+    if (serviceAction > 0)
+    {
+        reportingOptions = 2;
+    }
+    if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, reportingOptions, operationCode, serviceAction, 4, reportOp))
+    {
+        switch (M_GETBITRANGE(reportOp[1], 2, 0))
+        {
+        case 3:
+            mlu = (eMLU)M_GETBITRANGE(reportOp[1], 6, 5);
+            break;
+        default:
+            break;
+        }
+    }
+    return mlu;
+}
+
+bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t modePage, uint8_t subPage)
+{
+    bool mlus = false;
+    uint32_t modePagePolicyLength = 4;
+    uint8_t *vpdModePagePolicy = (uint8_t*)calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (vpdModePagePolicy)
+    {
+        if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
+        {
+            modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
+            safe_Free_aligned(vpdModePagePolicy);
+            vpdModePagePolicy = (uint8_t*)calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (vpdModePagePolicy)
+            {
+                if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
+                {
+                    modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
+                    //Now loop through and find the requested page
+                    for (uint16_t vpdMPOffset = 4; vpdMPOffset < modePagePolicyLength; vpdMPOffset += 4)
+                    {
+                        if (modePage == M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) && subPage == vpdModePagePolicy[vpdMPOffset + 1])
+                        {
+                            mlus = vpdModePagePolicy[vpdMPOffset + 2] & BIT7 ? true : false;
+                            break;
+                        }
+                        else if (M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F && subPage == 0 && vpdModePagePolicy[vpdMPOffset + 1] == 0)
+                        {
+                            //This is the "report all mode pages", no subpages to indicate that the mlus applies to all mode pages on the device.
+                            mlus = vpdModePagePolicy[vpdMPOffset + 2] & BIT7 ? true : false;
+                            break;
+                        }
+                        else if (M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F && vpdModePagePolicy[vpdMPOffset + 1] == 0xFF)
+                        {
+                            //This is the "report all mode pages and subpages", to indicate that the mlus applies to all mode pages and subpages on the device.
+                            mlus = vpdModePagePolicy[vpdMPOffset + 2] & BIT7 ? true : false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        safe_Free_aligned(vpdModePagePolicy);
+    }
+    return mlus;
+}
