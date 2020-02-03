@@ -1272,7 +1272,7 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
     return ret;
 }
 
-int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
+int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
                              bool saveToFile, uint8_t* ptrData, uint32_t dataSize,\
                             const char * const filePath, uint32_t transferSizeBytes)
 {
@@ -1308,12 +1308,12 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
         {
             if (saveToFile == true)
             {
-                if (SUCCESS == create_And_Open_Log_File(device, &isl, filePath, "ISL", "isl", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+                if (SUCCESS == create_And_Open_Log_File(device, &isl, filePath, "TELEMETRY", "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                 {
                     //fileOpened = true;
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Saving ISL log to file %s\n", fileNameUsed);
+                        printf("Saving telemetry log to file %s\n", fileNameUsed);
                     }
                 }
                 else
@@ -1458,7 +1458,7 @@ int ata_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t i
     return ret;
 }
 
-int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
+int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
                               bool saveToFile, uint8_t* ptrData, uint32_t dataSize,\
                               const char * const filePath, uint32_t transferSizeBytes)
 {
@@ -1505,7 +1505,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Found ISL log in error history but length is 0! Cannot pull the log!\n");
+                        printf("Found telemetry log in error history but length is 0! Cannot pull the log!\n");
                     }
                     ret = NOT_SUPPORTED;
                 }
@@ -1523,7 +1523,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Found ISL log in error history but length is 0! Cannot pull the log!\n");
+                        printf("Found telemetry log in error history but length is 0! Cannot pull the log!\n");
                     }
                     ret = NOT_SUPPORTED;
                 }
@@ -1543,11 +1543,12 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 uint16_t reportedSmallSize = 0;
                 uint16_t reportedMediumSize = 0;
                 uint16_t reportedLargeSize = 0;
-                uint16_t islPullingSize = 0;
+                uint32_t reportedXLargeSize = 0;
+                uint32_t islPullingSize = 0;
                 uint8_t *temp = NULL;
                 if (saveToFile == true)
                 {
-                    if (SUCCESS == create_And_Open_Log_File(device, &isl, filePath, "ISL", "isl", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+                    if (SUCCESS == create_And_Open_Log_File(device, &isl, filePath, "TELEMETRY", "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
@@ -1578,6 +1579,7 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                     reportedSmallSize = M_BytesTo2ByteValue(dataBuffer[8], dataBuffer[9]);
                     reportedMediumSize = M_BytesTo2ByteValue(dataBuffer[10], dataBuffer[11]);
                     reportedLargeSize = M_BytesTo2ByteValue(dataBuffer[12], dataBuffer[13]);
+                    reportedXLargeSize = M_BytesTo4ByteValue(dataBuffer[14], dataBuffer[15], dataBuffer[16], dataBuffer[17]);
                 }
                 else //ATA log (SAT translation somewhere below)
                 {
@@ -1588,6 +1590,12 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 //check what the user requested us try and pull and set a size based off of what the drive reports supporting (ex, if they asked for large, but only small is available, return the small information set)
                 switch (islDataSet)
                 {
+                case 4://X-large
+                    islPullingSize = reportedXLargeSize;
+                    if (islPullingSize > 0)
+                    {
+                        break;
+                    }
                 case 3://large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > 0)
@@ -1687,24 +1695,216 @@ int scsi_Pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t 
     return ret;
 }
 
-int pull_Internal_Status_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, bool saveToFile, uint8_t* ptrData, uint32_t dataSize, const char * const filePath, uint32_t transferSizeBytes)
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, \
+    bool saveToFile, uint8_t* ptrData, uint32_t dataSize, \
+    const char * const filePath, uint32_t transferSizeBytes)
 {
-    int ret = UNKNOWN;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    int ret = SUCCESS;
+    char fileName[OPENSEA_PATH_MAX] = { 0 };
+    char * fileNameUsed = &fileName[0];
+    FILE *isl = NULL;
+    if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
     {
-        ret = ata_Pull_Internal_Status_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
+        return BAD_PARAMETER;
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    uint8_t *dataBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (!dataBuffer)
     {
-        ret = scsi_Pull_Internal_Status_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
+        perror("calloc failure");
+        return MEMORY_FAILURE;
+    }
+    //check if the nvme telemetry log is supported in the identify data
+    if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT3)//If this bit is set, then BOTH host and controller initiated are supported
+    {
+        uint8_t islLogToPull = 0;
+        if (currentOrSaved == true)
+        {
+            //current/host
+            islLogToPull = NVME_LOG_TELEMETRY_HOST;
+        }
+        else
+        {
+            //saved/controller
+            islLogToPull = NVME_LOG_TELEMETRY_CTRL;
+        }
+        {
+            if (saveToFile == true)
+            {
+                if (SUCCESS == create_And_Open_Log_File(device, &isl, filePath, "TELEMETRY", "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+                {
+                    //fileOpened = true;
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        printf("Saving Telemetry log to file %s\n", fileNameUsed);
+                    }
+                }
+                else
+                {
+                    ret = FILE_OPEN_ERROR;
+                    safe_Free_aligned(dataBuffer);
+                    return ret;
+                }
+            }
+            //read the first sector of the log with the trigger bit set
+            nvmeGetLogPageCmdOpts telemOpts;
+            memset(&telemOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+            telemOpts.dataLen = 512;
+            telemOpts.addr = dataBuffer;
+            telemOpts.nsid = NVME_ALL_NAMESPACES;
+            telemOpts.lid = islLogToPull;
+            telemOpts.lsp = 1;//This will be shifted into bit 8
+            telemOpts.offset = 0;
+            if (SUCCESS == nvme_Get_Log_Page(device, &telemOpts))
+            {
+                //now we need to check the sizes reported for the log and what the user is requesting to pull (and save what we just read to a file)
+                uint16_t reportedSmallSize = 0;
+                uint16_t reportedMediumSize = 0;
+                uint16_t reportedLargeSize = 0;
+                uint16_t islPullingSize = 0;
+                uint16_t pageNumber = 0;//keep track of the offset we are reading/saving
+                uint32_t pullChunkSize = 8 * LEGACY_DRIVE_SEC_SIZE;//pull the remainder of the log in 4k chunks
+                if (transferSizeBytes)
+                {
+                    pullChunkSize = transferSizeBytes;
+                }
+                uint8_t *temp = NULL;
+                //saving first page to file
+                if (saveToFile == true)
+                {
+                    fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl);
+                    fflush(isl);
+                }
+                else if (dataSize >= (uint32_t)(pageNumber * LEGACY_DRIVE_SEC_SIZE) && ptrData != NULL)
+                {
+                    memcpy(&ptrData[0], dataBuffer, LEGACY_DRIVE_SEC_SIZE);
+                }
+                else
+                {
+                    safe_Free_aligned(dataBuffer);
+                    return BAD_PARAMETER;
+                }
+                //getting isl sizes (little endian)
+                reportedSmallSize = ((uint16_t)dataBuffer[8]) | ((uint16_t)dataBuffer[9] << 8);
+                reportedMediumSize = ((uint16_t)dataBuffer[10]) | ((uint16_t)dataBuffer[11] << 8);
+                reportedLargeSize = ((uint16_t)dataBuffer[12]) | ((uint16_t)dataBuffer[13] << 8);
+                //check what the user requested us try and pull and set a size based off of what the drive reports supporting (ex, if they asked for large, but only small is available, return the small information set)
+                switch (islDataSet)
+                {
+                case 3://large
+                    islPullingSize = reportedLargeSize;
+                    if (islPullingSize > 0)
+                    {
+                        break;
+                    }
+                case 2://medium
+                    islPullingSize = reportedMediumSize;
+                    if (islPullingSize > 0)
+                    {
+                        break;
+                    }
+                case 1://small
+                default:
+                    islPullingSize = reportedSmallSize;
+                    break;
+                }
+                //increment pageNumber to 1 and reallocate the local data buffer
+                pageNumber += 1;
+                temp = (uint8_t*)realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment);
+                if (temp == NULL)
+                {
+                    safe_Free_aligned(dataBuffer);
+                    perror("realloc failure");
+                    return MEMORY_FAILURE;
+                }
+                dataBuffer = temp;
+                memset(dataBuffer, 0, pullChunkSize);
+                //read the remaining data
+                for (pageNumber = 1; pageNumber < islPullingSize; pageNumber += (pullChunkSize / LEGACY_DRIVE_SEC_SIZE))
+                {
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        if ((pageNumber - 1) % 16 == 0)
+                        {
+                            printf(".");
+                            fflush(stdout);
+                        }
+                    }
+                    //adjust pullcheck size so we don't try and request anything that's not supported by the drive
+                    if (pageNumber + (pullChunkSize / LEGACY_DRIVE_SEC_SIZE) > islPullingSize)
+                    {
+                        pullChunkSize = (islPullingSize - pageNumber) * LEGACY_DRIVE_SEC_SIZE;
+                    }
+                    //read each remaining chunk with the trigger bit set to 0
+                    telemOpts.lsp = 0;
+                    telemOpts.offset = pageNumber * 512;
+                    if (SUCCESS == nvme_Get_Log_Page(device, &telemOpts))
+                    {
+                        //save to file, or copy to the ptr we were given
+                        if (saveToFile == true)
+                        {
+                            fwrite(dataBuffer, pullChunkSize, 1, isl);
+                            fflush(isl);
+                        }
+                        else if (dataSize >= (uint32_t)(pageNumber * LEGACY_DRIVE_SEC_SIZE) && ptrData != NULL)
+                        {
+                            memcpy(&ptrData[pageNumber * LEGACY_DRIVE_SEC_SIZE], dataBuffer, pullChunkSize);
+                        }
+                        else
+                        {
+                            safe_Free_aligned(dataBuffer);
+                            return BAD_PARAMETER;
+                        }
+                    }
+                    else
+                    {
+                        ret = FAILURE;
+                        break;
+                    }
+                    memset(dataBuffer, 0, pullChunkSize);
+                }
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("\n");
+                }
+                if (saveToFile == true)
+                {
+                    fflush(isl);
+                    fclose(isl);
+                }
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+        }
     }
     else
     {
-        if (VERBOSITY_QUIET < device->deviceVerbosity)
-        {
-            printf("Drive Type %d is not supported\n",device->drive_info.drive_type);
-        }
         ret = NOT_SUPPORTED;
+    }
+    safe_Free_aligned(dataBuffer);
+    return ret;
+}
+
+#endif
+
+//TODO: extra bool to trigger or not trigger???
+int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, bool saveToFile, uint8_t* ptrData, uint32_t dataSize, const char * const filePath, uint32_t transferSizeBytes)
+{
+    int ret = NOT_SUPPORTED;
+    switch (device->drive_info.drive_type)
+    {
+    case ATA_DRIVE:
+        ret = ata_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
+        break;
+    case NVME_DRIVE:
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+        ret = nvme_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
+#endif
+    case SCSI_DRIVE:
+        ret = scsi_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
+        break;
     }
     return ret;
 }

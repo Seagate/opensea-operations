@@ -242,14 +242,15 @@ extern "C" {
 
     //-----------------------------------------------------------------------------
     //
-    //  pull_Internal_Status_Log()
+    //  pull_Telemetry_Log()
     //
-    //! \brief   Description:  this function will pull Internal Status logs from an ATA or SCSI device.
+    //! \brief   Description:  this function will pull Internal Status logs from an ATA or SCSI device or the host or controller telemetry log on NVMe devices.
+    //!                        These logs are all referred to as telemetry to keep things simple and a common name across interfaces
     //
     //  Entry:
     //!   \param device - pointer to the device structure
-    //!   \param currentOrSaved - boolean flag to switch between pulling the current log or the saved log (current is currently the only log supported so set this to true)
-    //!   \param islDataSet - flag to pull the small, medium, or large dataset. 1 = small, 2 = medium, 3 = large
+    //!   \param currentOrSaved - boolean flag to switch between pulling the current log or the saved log (current is currently the only log supported so set this to true). On NVMe current = host, saved = controller
+    //!   \param islDataSet - flag to pull the small, medium, or large dataset. 1 = small, 2 = medium, 3 = large, 4 = extra large (SAS only)
     //!   \param saveToFile - boolean flag to tell it to save to a file with an auto generated name (naming is based off of serial number and current date and time)
     //!   \param ptrData - pointer to a data buffer. This MUST be non-NULL when saveToFile = false
     //!   \param dataSize - size of the buffer that ptrData points to. This should be at least 256K for the small data set.
@@ -259,7 +260,7 @@ extern "C" {
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Internal_Status_Log(tDevice *device,\
+    OPENSEA_OPERATIONS_API int pull_Telemetry_Log(tDevice *device,\
                                                 bool currentOrSaved,\
                                                 uint8_t islDataSet,\
                                                 bool saveToFile,\
