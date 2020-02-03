@@ -26,7 +26,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     bool gplSupported = false;
     bool smartErrorLoggingSupported = false;
     bool smartStatusFromSCTStatusLog = false;
-    memset(driveInfo, 0, sizeof(driveInformation));
+    memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata, LEGACY_DRIVE_SEC_SIZE))
     {
@@ -1495,7 +1495,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                         if (readFullLog)
                         {
-                            uint8_t *temp = (uint8_t*)realloc(logBuffer, idDataLog * sizeof(uint8_t));
+                            uint8_t *temp = (uint8_t *)realloc_aligned(logBuffer, 0, idDataLog * sizeof(uint8_t), device->os_info.minimumAlignment);
                             if (temp)
                             {
                                 logBuffer = temp;
@@ -1742,7 +1742,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                         if (readFullLog)
                         {
-                            uint8_t *temp = (uint8_t*)realloc(logBuffer, devStatsSize * sizeof(uint8_t));
+                            uint8_t *temp = (uint8_t *)realloc_aligned(logBuffer, 0, devStatsSize * sizeof(uint8_t), device->os_info.minimumAlignment);
                             if (temp)
                             {
                                 logBuffer = temp;
