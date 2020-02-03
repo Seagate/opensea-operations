@@ -1905,6 +1905,8 @@ int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,
     case SCSI_DRIVE:
         ret = scsi_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
         break;
+    default:
+        break;
     }
     return ret;
 }
