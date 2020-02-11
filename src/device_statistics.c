@@ -1413,46 +1413,46 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
-                        case 2://total
-                            deviceStats->sasStatistics.writeTotal.isSupported = true;
-                            deviceStats->sasStatistics.writeTotal.isValueValid = true;
+                        case 2://total rewrites
+                            deviceStats->sasStatistics.writeTotalReWrites.isSupported = true;
+                            deviceStats->sasStatistics.writeTotalReWrites.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.writeTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.writeTotalReWrites.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.writeTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.writeTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.writeTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.writeTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.writeTotal.isValueValid = false;
+                                deviceStats->sasStatistics.writeTotalReWrites.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -1707,29 +1707,29 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                                 break;
                             case 2://total
-                                deviceStats->sasStatistics.writeTotal.supportsNotification = true;
+                                deviceStats->sasStatistics.writeTotalReWrites.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.writeTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.writeTotalReWrites.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.writeTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.writeTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.writeTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.writeTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.writeTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.writeTotalReWrites.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.writeTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.writeTotalReWrites);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -1954,45 +1954,45 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://total
-                            deviceStats->sasStatistics.readTotal.isSupported = true;
-                            deviceStats->sasStatistics.readTotal.isValueValid = true;
+                            deviceStats->sasStatistics.readTotalRereads.isSupported = true;
+                            deviceStats->sasStatistics.readTotalRereads.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.readTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.readTotalRereads.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.readTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.readTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.readTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.readTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.readTotal.isValueValid = false;
+                                deviceStats->sasStatistics.readTotalRereads.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -2247,29 +2247,29 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                                 break;
                             case 2://total
-                                deviceStats->sasStatistics.readTotal.supportsNotification = true;
+                                deviceStats->sasStatistics.readTotalRereads.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.readTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.readTotalRereads.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.readTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.readTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.readTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.readTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.readTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.readTotalRereads.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readTotalRereads);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -2493,45 +2493,45 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://total
-                            deviceStats->sasStatistics.readReverseTotal.isSupported = true;
-                            deviceStats->sasStatistics.readReverseTotal.isValueValid = true;
+                            deviceStats->sasStatistics.readReverseTotalReReads.isSupported = true;
+                            deviceStats->sasStatistics.readReverseTotalReReads.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.readReverseTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.readReverseTotalReReads.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.readReverseTotal.isValueValid = false;
+                                deviceStats->sasStatistics.readReverseTotalReReads.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -2786,29 +2786,29 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                                 break;
                             case 2://total
-                                deviceStats->sasStatistics.readReverseTotal.supportsNotification = true;
+                                deviceStats->sasStatistics.readReverseTotalReReads.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.readReverseTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.readReverseTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.readReverseTotalReReads.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readReverseTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readReverseTotalReReads);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -3031,46 +3031,46 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
-                        case 2://total
-                            deviceStats->sasStatistics.verifyTotal.isSupported = true;
-                            deviceStats->sasStatistics.verifyTotal.isValueValid = true;
+                        case 2://total revverifies
+                            deviceStats->sasStatistics.verifyTotalReVerifies.isSupported = true;
+                            deviceStats->sasStatistics.verifyTotalReVerifies.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.verifyTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.verifyTotalReVerifies.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.verifyTotal.isValueValid = false;
+                                deviceStats->sasStatistics.verifyTotalReVerifies.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -3324,30 +3324,30 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                     scsi_Threshold_Comparison(&deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays);
                                 }
                                 break;
-                            case 2://total
-                                deviceStats->sasStatistics.verifyTotal.supportsNotification = true;
+                            case 2://total reverifies
+                                deviceStats->sasStatistics.verifyTotalReVerifies.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.verifyTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.verifyTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.verifyTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.verifyTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.verifyTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.verifyTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.verifyTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.verifyTotalReVerifies);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -7373,7 +7373,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
         printf("\n---Write Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay, "Write Errors Corrected Without Substantial Delay", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithPossibleDelays, "Write Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotal, "Write Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalReWrites, "Write Total Rewrites", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrected, "Write Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed, "Write Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeTotalBytesProcessed, "Write Total Bytes Processed", NULL);
@@ -7383,7 +7383,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
     {
         printf("\n---Read Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrectedWithPossibleDelays, "Read Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotal, "Read Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalRereads, "Read Total Rereads", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrected, "Read Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed, "Read Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readTotalBytesProcessed, "Read Total Bytes Processed", NULL);
@@ -7394,7 +7394,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
         printf("\n---Read Reverse Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay, "Read Reverse Errors Corrected Without Substantial Delay", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays, "Read Reverse Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotal, "Read Reverse Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalReReads, "Read Reverse Total Rereads", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrected, "Read Reverse Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed, "Read Reverse Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalBytesProcessed, "Read Reverse Total Bytes Processed", NULL);
@@ -7405,7 +7405,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
         printf("\n---Verify Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay, "Verify Errors Corrected Without Substantial Delay", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays, "Verify Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotal, "Verify Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalReVerifies, "Verify Total Rereads", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrected, "Verify Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed, "Verify Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyTotalBytesProcessed, "Verify Total Bytes Processed", NULL);

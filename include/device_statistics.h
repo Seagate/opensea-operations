@@ -132,7 +132,7 @@ extern "C"
         bool writeErrorCountersSupported;
         statistic writeErrorsCorrectedWithoutSubstantialDelay;
         statistic writeErrorsCorrectedWithPossibleDelays;
-        statistic writeTotal;
+        statistic writeTotalReWrites;
         statistic writeErrorsCorrected;
         statistic writeTotalTimeCorrectionAlgorithmProcessed;
         statistic writeTotalBytesProcessed;
@@ -141,7 +141,7 @@ extern "C"
         bool readErrorCountersSupported;
         statistic readErrorsCorrectedWithoutSubstantialDelay;
         statistic readErrorsCorrectedWithPossibleDelays;
-        statistic readTotal;
+        statistic readTotalRereads;
         statistic readErrorsCorrected;
         statistic readTotalTimeCorrectionAlgorithmProcessed;
         statistic readTotalBytesProcessed;
@@ -150,7 +150,7 @@ extern "C"
         bool readReverseErrorCountersSupported;
         statistic readReverseErrorsCorrectedWithoutSubstantialDelay;
         statistic readReverseErrorsCorrectedWithPossibleDelays;
-        statistic readReverseTotal;
+        statistic readReverseTotalReReads;
         statistic readReverseErrorsCorrected;
         statistic readReverseTotalTimeCorrectionAlgorithmProcessed;
         statistic readReverseTotalBytesProcessed;
@@ -159,7 +159,7 @@ extern "C"
         bool verifyErrorCountersSupported;
         statistic verifyErrorsCorrectedWithoutSubstantialDelay;
         statistic verifyErrorsCorrectedWithPossibleDelays;
-        statistic verifyTotal;
+        statistic verifyTotalReVerifies;
         statistic verifyErrorsCorrected;
         statistic verifyTotalTimeCorrectionAlgorithmProcessed;
         statistic verifyTotalBytesProcessed;
