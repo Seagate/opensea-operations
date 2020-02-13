@@ -121,12 +121,32 @@ int create_And_Open_Log_File(tDevice *device,\
             {
                 //Both logPath and logFileNameUsed have non-empty values
                 char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
+		char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
 #if defined (_WIN32)
-                sprintf(lpathNFilename, "%s\\%s", logPath, *logFileNameUsed);
+                sprintf(lpathNFilename, "%s", *logFileNameUsed);
+		sprintf(lpathNFilenameGeneration, "%s\\%s", logPath, filename);
+		if(strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
+		{
+		    sprintf(*logFileNameUsed, "%s\\%s", logPath, filename);
+		}
+		else
+		{
+		    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
+		}
+
 #else
-                sprintf(lpathNFilename, "%s/%s", logPath, *logFileNameUsed);
+                //sprintf(lpathNFilename, "%s/%s", logPath, *logFileNameUsed);
+		sprintf(lpathNFilenameGeneration, "%s/%s", logPath, filename);
+		sprintf(lpathNFilename, "%s", *logFileNameUsed);
 #endif
-                memcpy(*logFileNameUsed, lpathNFilename, OPENSEA_PATH_MAX);
+		if(strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
+		{
+		    sprintf(*logFileNameUsed, "%s/%s", logPath, filename);
+		}
+		else
+		{
+		    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
+		}
             }
         }
     }
