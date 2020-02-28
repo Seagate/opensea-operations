@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,7 +53,7 @@ int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
     int ret = UNKNOWN;
-    uint8_t *scsiDataBuffer = (uint8_t*)calloc(0x18, sizeof(uint8_t));//this should be big enough to get back the block descriptor we care about
+    uint8_t *scsiDataBuffer = (uint8_t*)calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment);//this should be big enough to get back the block descriptor we care about
     if (scsiDataBuffer == NULL)
     {
         perror("calloc failure");
@@ -136,17 +136,17 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         ret = FAILURE;
     }
-    free(scsiDataBuffer);
+    safe_Free_aligned(scsiDataBuffer);
     return ret;
 }
 
 int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
-    int ret = UNKNOWN;
+    int ret = NOT_SUPPORTED;
     //first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable address feature set)
     uint64_t nativeMaxLBA = 0;
     //always get the native max first (even if that's only a restriction of the HPA feature set)
-    if (SUCCESS == get_Native_Max_LBA(device, &nativeMaxLBA))
+    if (SUCCESS == (ret = get_Native_Max_LBA(device, &nativeMaxLBA)))
     {
         if (reset == true)
         {
@@ -193,7 +193,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 
 int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
-    int ret = UNKNOWN;
+    int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = scsi_Set_Max_LBA(device, newMaxLBA, reset);

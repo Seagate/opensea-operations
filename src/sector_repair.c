@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
     int ret = UNKNOWN;
     uint16_t logicalPerPhysical = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
     uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
-    uint8_t *dataBuf = (uint8_t*)calloc(dataSize, sizeof(uint8_t));
+    uint8_t *dataBuf = (uint8_t*)calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -39,9 +39,10 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             uint8_t *temp = NULL;
             logicalPerPhysical = device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize;
             dataSize = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
-            temp = (uint8_t*)realloc(dataBuf, dataSize * sizeof(uint8_t));
+            temp = (uint8_t*)realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!temp)
             {
+                safe_Free_aligned(dataBuf);
                 return MEMORY_FAILURE;
             }
             dataBuf = temp;
@@ -314,7 +315,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             }
         }
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     switch (ret)
     {
     case SUCCESS:

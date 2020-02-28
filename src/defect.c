@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         uint16_t generationCode = 0;
         uint8_t returnedDefectListFormat = UINT8_MAX;
         uint32_t dataLength = 8;
-        uint8_t *defectData = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
+        uint8_t *defectData = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
         uint32_t defectListLength = 0;
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
         {
@@ -116,6 +116,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     ptrDefects->containsGrownList = listHasGrownDescriptors;
                                     ptrDefects->containsPrimaryList = listHasPrimaryDescriptors;
                                     ptrDefects->format = returnedDefectListFormat;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
                                     uint8_t increment = 0;
                                     switch (returnedDefectListFormat)
                                     {
@@ -156,6 +157,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                             ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
                                             ptrDefects->physical[elementNumber].multiAddressDescriptorStart = defectData[offset + 4] & BIT7;
                                             ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
+                                            break;
                                         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                             ptrDefects->physical[elementNumber].cylinderNumber = M_BytesTo4ByteValue(0, defectData[offset + 0], defectData[offset + 1], defectData[offset + 2]);
                                             ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
@@ -222,6 +224,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     bool filledInListInfo = false;
                                     memset(ptrDefects, 0, sizeof(scsiDefectList) + defectAlloc);
                                     ptrDefects->numberOfElements = numberOfElements;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
                                     while (elementNumber < numberOfElements)
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
@@ -285,6 +288,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                                         ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
                                                         ptrDefects->physical[elementNumber].multiAddressDescriptorStart = defectData[offset + 4] & BIT7;
                                                         ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
+                                                        break;
                                                     case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                                         ptrDefects->physical[elementNumber].cylinderNumber = M_BytesTo4ByteValue(0, defectData[offset + 0], defectData[offset + 1], defectData[offset + 2]);
                                                         ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
@@ -390,6 +394,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                                 ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
                                                 ptrDefects->physical[elementNumber].multiAddressDescriptorStart = defectData[offset + 4] & BIT7;
                                                 ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
+                                                break;
                                             case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                                 ptrDefects->physical[elementNumber].cylinderNumber = M_BytesTo4ByteValue(0, defectData[offset + 0], defectData[offset + 1], defectData[offset + 2]);
                                                 ptrDefects->physical[elementNumber].headNumber = defectData[offset + 3];
@@ -424,6 +429,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     temp->containsPrimaryList = listHasPrimaryDescriptors;
                     temp->generation = generationCode;
                     temp->format = returnedDefectListFormat;
+                    temp->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
                     ret = SUCCESS;
                 }
                 else
@@ -432,7 +438,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                 }
             }
         }
-        safe_Free(defectData);
+        safe_Free_aligned(defectData);
     }
     else
     {
@@ -462,6 +468,10 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
         if (defects->generation > 0)
         {
             printf("\tGeneration Code: %" PRIu16 "\n", defects->generation);
+        }
+        if (defects->deviceHasMultipleLogicalUnits)
+        {
+            printf("\tNOTE: At this time, reported defects are for the entire device, not a single logical unit\n");
         }
         //TODO: Add a way to handle getting per-head counts to output first
         bool multiBit = false;
@@ -692,7 +702,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
         }
         if (readUncorrectables)
         {
-            uint8_t *dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t));
+            uint8_t *dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!dataBuf)
             {
                 return MEMORY_FAILURE;
@@ -704,7 +714,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free(dataBuf);
+            safe_Free_aligned(dataBuf);
         }
     }
     return ret;
@@ -853,7 +863,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             uint16_t numberOfECCCRCBytes = 0;
             uint16_t numberOfBlocksRequested = 0;
             uint32_t dataSize = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
-            uint8_t *data = (uint8_t*)calloc(dataSize, sizeof(uint8_t));
+            uint8_t *data = (uint8_t*)calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!data)
             {
                 return MEMORY_FAILURE;
@@ -875,7 +885,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 //now write back the data with a write long command
                 ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, NULL, NULL);
             }
-            safe_Free(data);
+            safe_Free_aligned(data);
         }
         else if (device->drive_info.IdentifyData.ata.Word022 > 0 && device->drive_info.IdentifyData.ata.Word022 < UINT16_MAX && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
         {
@@ -889,7 +899,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
             }
             uint32_t dataSize = device->drive_info.deviceBlockSize + device->drive_info.IdentifyData.ata.Word022;
-            uint8_t *data = (uint8_t*)calloc(dataSize, sizeof(uint8_t));
+            uint8_t *data = (uint8_t*)calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!data)
             {
                 return MEMORY_FAILURE;
@@ -943,7 +953,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     setFeaturesToChangeECCBytes = false;
                 }
             }
-            safe_Free(data);
+            safe_Free_aligned(data);
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -951,7 +961,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         senseDataFields senseFields;
         memset(&senseFields, 0, sizeof(senseDataFields));
         uint16_t dataLength = device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks;//start with this size for now...
-        uint8_t *dataBuffer = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
+        uint8_t *dataBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
         {
             ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
@@ -1018,7 +1028,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         {
             ret = NOT_SUPPORTED;
         }
-        safe_Free(dataBuffer);
+        safe_Free_aligned(dataBuffer);
     }
     return ret;
 }
@@ -1056,7 +1066,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
         }
         if (readCorruptedLBAs)
         {
-            uint8_t *dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t));
+            uint8_t *dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!dataBuf)
             {
                 return MEMORY_FAILURE;
@@ -1068,7 +1078,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free(dataBuf);
+            safe_Free_aligned(dataBuf);
         }
     }
     return ret;

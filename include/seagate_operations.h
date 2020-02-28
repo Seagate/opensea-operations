@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -267,6 +267,115 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_IDD_Status(tDevice *device, uint8_t *status);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  gis_Seagate_Power_Telemetry_Feature_Supported(tDevice *device)
+    //
+    //! \brief   Description:  Checks if the Seagate power telemetry feature is supported or not
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice *device);
+
+    //NOTE: While these 2 structures are common, keep them in this layer since they are meant to be read into for an operation.
+    //Putting these in opensea-transport may confuse users into thinking a memcpy can be done to use them, but these are modified to make things easier for operations
+    typedef struct _seagatePwrTelemetryMeasurement
+    {
+        uint16_t fiveVoltMilliWatts;
+        uint16_t twelveVoltMilliWatts;
+        uint16_t reserved;
+    }seagatePwrTelemetryMeasurement;
+
+    //NOTE: This structure should not be used for memcpy or pointing over a data buffer!
+    //      This will be filled in by parsing the return data from the drive to make it easily usable in a utility.
+    typedef struct _seagatePwrTelemetry
+    {
+        bool multipleLogicalUnits;
+        char serialNumber[9]; //including NULL terminator.
+        uint16_t powerCycleCount;
+        uint64_t driveTimeStampForHostRequestedMeasurement;//in microseconds //should this be a double???
+        uint64_t driveTimeStampWhenTheLogWasRetrieved;//in microseconds //should this be a double???
+        uint8_t majorRevision;
+        uint8_t minorRevision;
+        char signature[9]; //including null terminator
+        uint16_t totalMeasurementTimeRequested;//seconds
+        uint16_t numberOfMeasurements;//default = 1024
+        uint8_t measurementFormat;
+        uint8_t temperatureCelcius;
+        uint16_t measurementWindowTimeMilliseconds;
+        seagatePwrTelemetryMeasurement measurement[POWER_TELEMETRY_MAXIMUM_MEASUREMENTS];
+    }seagatePwrTelemetry, *ptrSeagatePwrTelemetry;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
+    //
+    //! \brief   Description:  Gets the power telemetry data into a structure that can be used to display the data
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[out] pwrTelData = must be allocated before calling. Will be filled with power telemetry data upon success
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
+    //
+    //! \brief   Description:  Shows the power telemetry data on the screen
+    //
+    //  Entry:
+    //!   \param[int] pwrTelData = pointer to power telemetry data already retrieved from the drive.
+    //!
+    //  Exit:
+    //!   \return VOID
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, ePowerTelemetryMeasurementOptions measurementOption)
+    //
+    //! \brief   Description: Sends a power measurement request to the drive.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] timeMeasurementSeconds = amount of time to measure for
+    //!   \param[in] measurementOption = set to measure 5v, 12v, or both
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, ePowerTelemetryMeasurementOptions measurementOption);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes)
+    //
+    //! \brief   Description:  Pulls the power telemetry data to a binary file
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. Should be rounded to 512B for ATA devices
+    //!
+    //  Exit:
+    //!   \return VOID
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
 
 #if defined (__cplusplus)
 }

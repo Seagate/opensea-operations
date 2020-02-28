@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -44,7 +44,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
     uint8_t *dataBuf = NULL;
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = (uint8_t*)calloc((size_t)(sectorCount * device->drive_info.deviceBlockSize) * sizeof(uint8_t), sizeof(uint8_t));
+        dataBuf = (uint8_t*)calloc_aligned((size_t)(sectorCount * device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -66,7 +66,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
             if (rwvCommand != RWV_COMMAND_VERIFY)
             {
                 //reallocate the memory to be sized appropriately for this change
-                temp = (uint8_t*)realloc(dataBuf, (size_t)(sectorCount * device->drive_info.deviceBlockSize * sizeof(uint8_t)));
+                temp = (uint8_t*)realloc_aligned(dataBuf, 0, (size_t)(sectorCount * device->drive_info.deviceBlockSize), device->os_info.minimumAlignment);
                 if (!temp)
                 {
                     perror("memory reallocation failure");
@@ -152,7 +152,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         }
         fflush(stdout);
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     return ret;
 }
 
@@ -191,7 +191,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
     int ret = SUCCESS;
     char message[256] = { 0 };
     uint16_t randomLBACount = 5000;
-    uint64_t *randomLBAList = (uint64_t*)calloc(randomLBACount * sizeof(uint64_t),sizeof(uint64_t));
+    uint64_t *randomLBAList = (uint64_t*)calloc(randomLBACount, sizeof(uint64_t));
     uint64_t iterator = 0;
     uint64_t onePercentOfDrive = (uint64_t)(device->drive_info.deviceMaxLba * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
     uint8_t *dataBuf = NULL;//will be allocated at the random read section
@@ -333,6 +333,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
         if (!dataBuf)
         {
             perror("malloc data buf failed\n");
+            safe_Free(randomLBAList);
             return MEMORY_FAILURE;
         }
     }
@@ -883,7 +884,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     bool errorLimitReached = false;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     //only one of these flags should be set. If they are both set, this makes no sense
-    if (repairAtEnd && repairOnTheFly)
+    if ((repairAtEnd && repairOnTheFly) || (repairAtEnd && (errorLimit == 0)))
     {
         return BAD_PARAMETER;
     }
@@ -896,9 +897,12 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     if (errorLimit < 1)
     {
         //need to be able to store at least 1 error
-        errorLimit = 1;
+        errorList = (errorLBA*)calloc(1 * sizeof(errorLBA), sizeof(errorLBA));
     }
-    errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    else
+    {
+        errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    }
     if (!errorList)
     {
         perror("calloc failure\n");
@@ -919,12 +923,14 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\nError Found at LBA %"PRIu64"\n", errorList[errorIndex].errorAddress);
+                printf("\nError Found at LBA %"PRIu64"", errorList[errorIndex].errorAddress);
+                if (errorLimit != 0)
+                    printf("\n");
             }
             //set a new start for next time through the loop to 1 lba past the last error LBA
             startingLBA = errorList[errorIndex].errorAddress + 1;
             range = endingLBA - startingLBA;
-            if (stopOnError || errorIndex >= errorLimit)
+            if (stopOnError || ((errorLimit != 0) && (errorIndex >= errorLimit)))
             {
                 errorLimitReached = true;
                 ret = FAILURE;
@@ -933,7 +939,8 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
             {
                 repair_LBA(device, &errorList[errorIndex], false, autoWriteReassign, autoReadReassign);//This function will set the repair status for us. - TJE
             }
-            errorIndex++;
+            if (errorLimit != 0)
+                errorIndex++;
         }
         else
         {
@@ -981,7 +988,13 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
         {
             if (errorList[0].errorAddress != UINT64_MAX)
             {
-                print_LBA_Error_List(errorList, (uint16_t)errorIndex);
+                if (errorLimit != 0)
+                    print_LBA_Error_List(errorList, (uint16_t)errorIndex);
+                else
+                {
+                    printf("One or more bad LBAs detected during read scan of device.\n");
+                    ret = FAILURE;
+                }
             }
             else
             {
@@ -1013,7 +1026,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         //need to be able to store at least 1 error
         errorLimit = 1;
     }
-    errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    errorList = (errorLBA*)calloc(errorLimit, sizeof(errorLBA));
     if (!errorList)
     {
         perror("calloc failure\n");
@@ -1022,10 +1035,11 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
     if (rwvCommand == RWV_COMMAND_READ || rwvCommand == RWV_COMMAND_WRITE)
     {
         //allocate memory
-        dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t), sizeof(uint8_t));
+        dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
+            safe_Free(errorList);
             return MEMORY_FAILURE;
         }
     }
@@ -1132,7 +1146,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         printf("\n");
         fflush(stdout);
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -1923,7 +1937,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
     if (rwvCommand == RWV_COMMAND_READ || rwvCommand == RWV_COMMAND_WRITE)
     {
         //allocate memory
-        dataBuf = (uint8_t*)calloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t), sizeof(uint8_t));
+        dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
@@ -2037,7 +2051,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
     {
         *numberOfLbasAccessed = startingLBA + sectorCount - *numberOfLbasAccessed;//subtract itself since it gets set to where we start at when we begin.
     }
-    safe_Free(dataBuf);
+    safe_Free_aligned(dataBuf);
     return ret;
 }
 

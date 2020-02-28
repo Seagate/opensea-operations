@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,7 +53,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
     {
         return BAD_PARAMETER;
     }
-    reportZones = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sectorCount * sizeof(uint8_t), sizeof(uint8_t));
+    reportZones = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!reportZones)
     {
         return MEMORY_FAILURE;
@@ -83,7 +83,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
         }
         else
         {
-            safe_Free(reportZones);
+            safe_Free_aligned(reportZones);
             return NOT_SUPPORTED;
         }
         if (ret != SUCCESS)
@@ -120,7 +120,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
             break;
         }
     }
-    safe_Free(reportZones);
+    safe_Free_aligned(reportZones);
     return SUCCESS;
 }
 

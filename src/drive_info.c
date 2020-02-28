@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     bool gplSupported = false;
     bool smartErrorLoggingSupported = false;
     bool smartStatusFromSCTStatusLog = false;
-    memset(driveInfo, 0, sizeof(driveInformation));
+    memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
+    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata, LEGACY_DRIVE_SEC_SIZE))
     {
         uint8_t *bytePtr = (uint8_t*)&device->drive_info.IdentifyData.ata.Word000;
@@ -330,7 +331,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             else
             {
                 //Read supported security protocol list
-                uint8_t *protocolList = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+                uint8_t *protocolList = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (protocolList)
                 {
                     if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0, protocolList, LEGACY_DRIVE_SEC_SIZE))
@@ -1291,7 +1292,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
 
     //Read Log data
     uint32_t logBufferSize = LEGACY_DRIVE_SEC_SIZE;
-    uint8_t *logBuffer = (uint8_t*)calloc(logBufferSize, sizeof(uint8_t));
+    uint8_t *logBuffer = (uint8_t*)calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!logBuffer)
     {
         return MEMORY_FAILURE;
@@ -1307,11 +1308,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     else if (smartErrorLoggingSupported && SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE))
     {
         gotLogDirectory = true;
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
     }
 
     if (gotLogDirectory)
@@ -1390,11 +1386,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
                 bool dlcSupported = false;
                 if (supportedCapabilities && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
@@ -1453,11 +1444,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
                 bool dlcEnabled = false;
                 if(currentSettings && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
@@ -1473,11 +1459,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                             }
                         }
                     }
-                }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
                 }
                 if (dlcSupported)
                 {
@@ -1514,7 +1495,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                         if (readFullLog)
                         {
-                            uint8_t *temp = (uint8_t*)realloc(logBuffer, idDataLog * sizeof(uint8_t));
+                            uint8_t *temp = (uint8_t *)realloc_aligned(logBuffer, 0, idDataLog * sizeof(uint8_t), device->os_info.minimumAlignment);
                             if (temp)
                             {
                                 logBuffer = temp;
@@ -1619,19 +1600,9 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                                         }
                                     }
                                 }
-                                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                                {
-                                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                                    scsi_Test_Unit_Ready(device, NULL);
-                                }
                             }
                         }
                     }
-                }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
                 }
             }
         }
@@ -1708,11 +1679,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
                 if (temperatureStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_TEMP, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
@@ -1741,11 +1707,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
                 if (solidStateStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_SSD, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
@@ -1758,11 +1719,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                             driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
                         }
                     }
-                }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
                 }
             }
             else if (smartErrorLoggingSupported)
@@ -1786,7 +1742,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         }
                         if (readFullLog)
                         {
-                            uint8_t *temp = (uint8_t*)realloc(logBuffer, devStatsSize * sizeof(uint8_t));
+                            uint8_t *temp = (uint8_t *)realloc_aligned(logBuffer, 0, devStatsSize * sizeof(uint8_t), device->os_info.minimumAlignment);
                             if (temp)
                             {
                                 logBuffer = temp;
@@ -1873,19 +1829,9 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                                         }
                                     }
                                 }
-                                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                                {
-                                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                                    scsi_Test_Unit_Ready(device, NULL);
-                                }
                             }
                         }
                     }
-                }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
                 }
             }
         }
@@ -1894,11 +1840,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_HYBRID_INFORMATION, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
             {
                 driveInfo->hybridNANDSize = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]) * driveInfo->logicalSectorSize;
-            }
-            else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
             }
         }
         if (gplSupported && extSelfTest > 0)//GPL only
@@ -1955,11 +1896,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     driveInfo->dstInfo.errorLBA = UINT64_MAX;
                 }
             }
-            else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
-            }
         }
         else if (smartErrorLoggingSupported && smartSelfTest > 0)//SMART log only (only 1 sector in size)
         {
@@ -1997,13 +1933,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     driveInfo->dstInfo.errorLBA = UINT64_MAX;
                 }
             }
-            else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
-            }
         }
-        bool readSCTStatusWithSMARTCommand = sct_With_SMART_Commands(device);//USB hack
+        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly; //USB hack
         if (sctSupported && sctStatus > 0)//GPL or SMART
         {
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
@@ -2016,11 +1947,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             else if (smartErrorLoggingSupported && SUCCESS == ata_SMART_Read_Log(device, ATA_SCT_COMMAND_STATUS, logBuffer, LEGACY_DRIVE_SEC_SIZE))
             {
                 sctStatusRead = true;
-            }
-            else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
             }
             if (sctStatusRead)
             {
@@ -2067,7 +1993,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
     }
-    safe_Free(logBuffer);
+    safe_Free_aligned(logBuffer);
     
     uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
@@ -2225,11 +2151,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
     }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
     //set total bytes read/written
     driveInfo->totalBytesRead = driveInfo->totalLBAsRead * driveInfo->logicalSectorSize;
     driveInfo->totalBytesWritten = driveInfo->totalLBAsWritten * driveInfo->logicalSectorSize;
@@ -2240,8 +2161,8 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
         scsi_Test_Unit_Ready(device, NULL);
     }
-    bool skipSMARTCheckDueToTranslatorBug = !supports_ATA_Return_SMART_Status_Command(device);//USB hack
-    if (!smartStatusFromSCTStatusLog && !skipSMARTCheckDueToTranslatorBug)
+    //bool skipSMARTCheckDueToTranslatorBug = !supports_ATA_Return_SMART_Status_Command(device);//USB hack
+    if (!smartStatusFromSCTStatusLog)// && !skipSMARTCheckDueToTranslatorBug)
     {
         //SMART status
         switch (ata_SMART_Check(device, NULL))
@@ -2251,19 +2172,9 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             break;
         case FAILURE:
             driveInfo->smartStatus = 1;
-            if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
-            }
             break;
         default:
             driveInfo->smartStatus = 2;
-            if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
-            }
             break;
         }
     }
@@ -2294,6 +2205,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     bool isSCSI1drive = false;
     bool isSCSI2drive = false;
     bool isSEAGATEVendorID = false;//matches SCSI/SAS/FC for Seagate
+    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == scsi_Inquiry(device, inquiryData, 255, 0, false, false))
     {
         //copy the read data to the device struct
@@ -2380,7 +2292,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             driveInfo->numberOfSpecificationsSupported++;
         }
         protectionSupported = inquiryData[5] & BIT0;
-        if (version >= 4)
+        if (version >= 4 && (inquiryData[4] + 4) > 57)
         {
             //Version Descriptors 1-8 (SPC2 and up)
             uint16_t versionDescriptor = 0;
@@ -2407,20 +2319,33 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             driveInfo->copyrightInfo[49] = '\0';
         }
     }
+
+    //TODO: add checking peripheral device type as well to make sure it's only direct access and zoned block devices?
+    if ((device->drive_info.interface_type == SCSI_INTERFACE || device->drive_info.interface_type == RAID_INTERFACE) && (device->drive_info.drive_type != ATA_DRIVE && device->drive_info.drive_type != NVME_DRIVE))
+    {
+        //send report luns to see how many luns are attached. This SHOULD be the way to detect multi-actuator drives for now. This could change in the future.
+        //TODO: Find a better way to remove the large check above which may not work out well in some cases, but should reduce false detection on USB among other interfaces
+        driveInfo->lunCount = get_LUN_Count(device);
+    }
+
     //VPD pages (read list of supported pages...if we don't get anything back, we'll dummy up a list of things we are interested in trying to read...this is to work around crappy USB bridges
-    uint8_t *tempBuf = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * 2, sizeof(uint8_t));
+    uint8_t *tempBuf = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE * 2, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!tempBuf)
     {
         return MEMORY_FAILURE;
     }
     bool gotRotationRate = false;
     bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
-    if (version >= 2 || bridge_Does_Report_Unit_Serial_Number(device))//VPD pages indroduced in SCSI 2...also a USB hack
+    if (version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) //VPD pages indroduced in SCSI 2...also a USB hack
     {
         bool dummyUpVPDSupport = false;
-        if (SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
+        if (!device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
         {
             //for whatever reason, this device didn't return support for the list of supported pages, so set a flag telling us to dummy up a list so that we can still attempt to issue commands to pages we do need to try and get (this is a workaround for some really stupid USB bridges)
+            dummyUpVPDSupport = true;
+        }
+        else if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)
+        {
             dummyUpVPDSupport = true;
         }
         if (dummyUpVPDSupport == false)
@@ -2440,27 +2365,37 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             tempBuf[0] |= peripheralDeviceType;
             //set page code
             tempBuf[1] = 0x00;
-            //now each byte will reference a supported VPD page we want to dummy up. These should be in ascending order
-            tempBuf[offset] = SUPPORTED_VPD_PAGES;//SCSI2
-            ++offset;
-            tempBuf[offset] = UNIT_SERIAL_NUMBER;//SCSI2
-            ++offset;
-            if (version >= 3)//SPC
+            if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)
             {
-                tempBuf[offset] = DEVICE_IDENTIFICATION;
+                //This is a hack for devices that will only support this page and MAYBE the device identification VPD page.
+                //Not adding the device ID page here because it almost always contains only a name string and/or a T10 string which isn't useful for the information being gathered in here today.
+                tempBuf[offset] = UNIT_SERIAL_NUMBER;//SCSI2
                 ++offset;
             }
-            tempBuf[offset] = ATA_INFORMATION;//SAT. Going to leave this in here no matter what other version info is available since SATLs needing this dummy data may support this regardless of other version info
-            ++offset;
-            if (version >= 6)//SBC3 - SPC4
+            else
             {
-                if (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+                //now each byte will reference a supported VPD page we want to dummy up. These should be in ascending order
+                tempBuf[offset] = SUPPORTED_VPD_PAGES;//SCSI2
+                ++offset;
+                tempBuf[offset] = UNIT_SERIAL_NUMBER;//SCSI2
+                ++offset;
+                if (version >= 3)//SPC
                 {
-                    tempBuf[offset] = BLOCK_DEVICE_CHARACTERISTICS;
+                    tempBuf[offset] = DEVICE_IDENTIFICATION;
                     ++offset;
                 }
+                tempBuf[offset] = ATA_INFORMATION;//SAT. Going to leave this in here no matter what other version info is available since SATLs needing this dummy data may support this regardless of other version info
+                ++offset;
+                if (version >= 6)//SBC3 - SPC4
+                {
+                    if (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+                    {
+                        tempBuf[offset] = BLOCK_DEVICE_CHARACTERISTICS;
+                        ++offset;
+                    }
+                }
+                //TODO: Add more pages to the dummy information as we need to. This may be useful to do in the future in case a device decides not to support a MANDATORY page or another page we care about
             }
-            //TODO: Add more pages to the dummy information as we need to. This may be useful to do in the future in case a device decides not to support a MANDATORY page or another page we care about
             //set page length (n-3)
             tempBuf[2] = M_Byte1(offset - 4);//msb
             tempBuf[3] = M_Byte0(offset - 4);//lsb
@@ -2483,7 +2418,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             case UNIT_SERIAL_NUMBER:
             {
                 uint8_t unitSerialNumberPageLength = SERIAL_NUM_LEN + 4;//adding 4 bytes extra for the header
-                uint8_t *unitSerialNumber = (uint8_t*)calloc(unitSerialNumberPageLength, sizeof(uint8_t));
+                uint8_t *unitSerialNumber = (uint8_t*)calloc_aligned(unitSerialNumberPageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!unitSerialNumber)
                 {
                     perror("Error allocating memory to read the unit serial number");
@@ -2494,22 +2429,32 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
                     if (serialNumberLength > 0)
                     {
-                        memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN + 1, serialNumberLength));
-                        remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-                        driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
+                        if (strncmp(driveInfo->vendorID, "SEAGATE", strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
+                        {
+                            //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
+                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
+                            driveInfo->serialNumber[8] = '\0';
+                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                            //remaining is PCBA SN
+                            memcpy(driveInfo->pcbaSerialNumber, &unitSerialNumber[12], 12);
+                            driveInfo->pcbaSerialNumber[12] = '\0';
+                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+
+                        }
+                        else
+                        {
+                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN + 1, serialNumberLength));
+                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                            driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
+                        }
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
-                safe_Free(unitSerialNumber);
+                safe_Free_aligned(unitSerialNumber);
                 break;
             }
             case DEVICE_IDENTIFICATION:
             {
-                uint8_t *deviceIdentification = (uint8_t*)calloc(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t));
+                uint8_t *deviceIdentification = (uint8_t*)calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!deviceIdentification)
                 {
                     perror("Error allocating memory to read device identification VPD page");
@@ -2521,10 +2466,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     if (devIDPageLen + 4 > INQ_RETURN_DATA_LENGTH)
                     {
                         //realloc and re-read the page with the larger pagelength
-                        uint8_t *temp = (uint8_t*)realloc(deviceIdentification, devIDPageLen + 4);
+                        uint8_t *temp = (uint8_t*)realloc_aligned(deviceIdentification, 0, devIDPageLen + 4, device->os_info.minimumAlignment);
                         if (!temp)
                         {
-                            perror("realloc failure!\n");
+                            perror("Error trying to realloc for larget device identification VPD page data!\n");
                             return 101;
                         }
                         deviceIdentification = temp;
@@ -2563,7 +2508,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 if (naa == 6)
                                 {
                                     driveInfo->worldWideNameExtensionValid = true;
-                                    memcpy(&driveInfo->worldWideName, &deviceIdentification[deviceIdentificationIter + 4 + 8], 8);
+                                    memcpy(&driveInfo->worldWideNameExtension, &deviceIdentification[deviceIdentificationIter + 4 + 8], 8);
+									byte_Swap_64(&driveInfo->worldWideNameExtension);
                                 }
                             }
                             break;
@@ -2596,17 +2542,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
-                safe_Free(deviceIdentification);
+                safe_Free_aligned(deviceIdentification);
                 break;
             }
             case EXTENDED_INQUIRY_DATA:
             {
-                uint8_t *extendedInquiryData = (uint8_t*)calloc(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t));
+                uint8_t *extendedInquiryData = (uint8_t*)calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!extendedInquiryData)
                 {
                     perror("Error allocating memory to read extended inquiry VPD page");
@@ -2646,13 +2587,13 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //read supported lengths and protection types VPD page
                     {
                         uint16_t supportedBlockSizesAndProtectionTypesLength = 4;//reallocate in a minute when we know how much to read
-                        uint8_t *supportedBlockSizesAndProtectionTypes = (uint8_t*)calloc(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t));
+                        uint8_t *supportedBlockSizesAndProtectionTypes = (uint8_t*)calloc_aligned(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t), device->os_info.minimumAlignment);
                         if (supportedBlockSizesAndProtectionTypes)
                         {
                             if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                             {
                                 supportedBlockSizesAndProtectionTypesLength = M_BytesTo2ByteValue(supportedBlockSizesAndProtectionTypes[2], supportedBlockSizesAndProtectionTypes[3]);
-                                uint8_t *temp = (uint8_t*)realloc(supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t));
+                                uint8_t *temp = (uint8_t*)realloc_aligned(supportedBlockSizesAndProtectionTypes, 0, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                                 supportedBlockSizesAndProtectionTypes = temp;
                                 if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                                 {
@@ -2679,7 +2620,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                     }
                                 }
                             }
-                            safe_Free(supportedBlockSizesAndProtectionTypes);
+                            safe_Free_aligned(supportedBlockSizesAndProtectionTypes);
                         }
                         //no else...don't care that much right now...-TJE
                     }
@@ -2691,17 +2632,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         break;
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
-                safe_Free(extendedInquiryData);
+                safe_Free_aligned(extendedInquiryData);
                 break;
             }
             case BLOCK_DEVICE_CHARACTERISTICS:
             {
-                uint8_t *blockDeviceCharacteristics = (uint8_t*)calloc(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t));
+                uint8_t *blockDeviceCharacteristics = (uint8_t*)calloc_aligned(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!blockDeviceCharacteristics)
                 {
                     perror("Error allocating memory to read block device characteistics VPD page");
@@ -2714,12 +2650,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     driveInfo->formFactor = M_Nibble0(blockDeviceCharacteristics[7]);
                     driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
-                safe_Free(blockDeviceCharacteristics);
+                safe_Free_aligned(blockDeviceCharacteristics);
                 break;
             }
             case POWER_CONDITION:
@@ -2728,12 +2659,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 //driveInfo->numberOfFeaturesSupported++;
                 break;
             case POWER_CONSUMPTION:
-                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Power Comsumption");
+                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Power Consumption");
                 driveInfo->numberOfFeaturesSupported++;
                 break;
             case LOGICAL_BLOCK_PROVISIONING:
             {
-                uint8_t *logicalBlockProvisioning = (uint8_t*)calloc(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t));
+                uint8_t *logicalBlockProvisioning = (uint8_t*)calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!logicalBlockProvisioning)
                 {
                     perror("Error allocating memory to read logical block provisioning VPD page");
@@ -2747,17 +2678,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->numberOfFeaturesSupported++;
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
-                safe_Free(logicalBlockProvisioning);
+                safe_Free_aligned(logicalBlockProvisioning);
                 break;
             }
             case BLOCK_LIMITS:
             {
-                uint8_t *blockLimits = (uint8_t*)calloc(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t));
+                uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!blockLimits)
                 {
                     perror("Error allocating memory to read logical block provisioning VPD page");
@@ -2772,17 +2698,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->numberOfFeaturesSupported++;
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
-                safe_Free(blockLimits);
+                safe_Free_aligned(blockLimits);
                 break;
             }
             case ATA_INFORMATION:
             {
-                uint8_t *ataInformation = (uint8_t*)calloc(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t));
+                uint8_t *ataInformation = (uint8_t*)calloc_aligned(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!ataInformation)
                 {
                     perror("Error allocating memory to read ATA Information VPD page");
@@ -2796,12 +2717,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     memcpy(driveInfo->satProductRevision, &ataInformation[32], 4);
                     driveInfo->numberOfFeaturesSupported++;
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
-                safe_Free(ataInformation);
+                safe_Free_aligned(ataInformation);
                 break;
             }
             default:
@@ -2818,10 +2734,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     }
     uint8_t protectionTypeEnabled = 0;//default to type 0
     //read capacity data - try read capacity 10 first, then do a read capacity 16. This is to work around some USB bridges passing the command and returning no data.
-    uint8_t *readCapBuf = (uint8_t*)calloc(READ_CAPACITY_10_LEN, sizeof(uint8_t));
+    uint8_t *readCapBuf = (uint8_t*)calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!readCapBuf)
     {
-        safe_Free(tempBuf);
+        safe_Free_aligned(tempBuf);
         return MEMORY_FAILURE;
     }
     switch (peripheralDeviceType)
@@ -2836,11 +2752,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             if (version > 3)//SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
             {
                 //try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a physical sector size whereas readcap10 data will not
-                uint8_t* temp = (uint8_t*)realloc(readCapBuf, READ_CAPACITY_16_LEN * sizeof(uint8_t));
+                uint8_t* temp = (uint8_t*)realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
-                    safe_Free(tempBuf);
-                    safe_Free(readCapBuf);
+                    safe_Free_aligned(tempBuf);
+                    safe_Free_aligned(readCapBuf);
                     return MEMORY_FAILURE;
                 }
                 readCapBuf = temp;
@@ -2878,11 +2794,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
-                else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
                 //check for format corrupt
                 uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
                 get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
@@ -2903,11 +2814,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             }
 
             //try read capacity 16, if that fails we are done trying
-            uint8_t* temp = (uint8_t*)realloc(readCapBuf, READ_CAPACITY_16_LEN * sizeof(uint8_t));
+            uint8_t* temp = (uint8_t*)realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment);
             if (temp == NULL)
             {
-                safe_Free(tempBuf);
-                safe_Free(readCapBuf);
+                safe_Free_aligned(tempBuf);
+                safe_Free_aligned(readCapBuf);
                 return MEMORY_FAILURE;
             }
             readCapBuf = temp;
@@ -2933,11 +2844,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     }
                 }
             }
-            else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
-            }
             //check for format corrupt first
             senseKey = 0, asc = 0, ascq = 0, fru = 0;
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
@@ -2950,7 +2856,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     default:
         break;
     }
-    safe_Free(readCapBuf);
+    safe_Free_aligned(readCapBuf);
     if (protectionSupported)
     {
         //set protection types supported up here.
@@ -2991,7 +2897,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             driveInfo->numberOfFeaturesSupported++;
         }
     }
-    if (version >= 6 && SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))//security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
+    if (version >= 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
     {
         //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
         memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
@@ -3086,42 +2992,36 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 }
             }
         }
-        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-        {
-            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-            scsi_Test_Unit_Ready(device, NULL);
-        }
     }
     driveInfo->percentEnduranceUsed = -1;//set to this to filter out later
 
     bool smartStatusRead = false;
-    if (version >= 2 && peripheralDeviceType != PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE)//SCSI2 introduced log pages
+    if (version >= 2 && peripheralDeviceType != PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE && !device->drive_info.passThroughHacks.scsiHacks.noLogPages)//SCSI2 introduced log pages
     {
         bool dummyUpLogPages = false;
         bool subpagesSupported = true;
         //Check log pages for data->start with list of pages and subpages
         memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-        if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, tempBuf, LEGACY_DRIVE_SEC_SIZE))
+        if (!device->drive_info.passThroughHacks.scsiHacks.noLogSubPages && SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, tempBuf, LEGACY_DRIVE_SEC_SIZE))
         {
-            if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-            {
-                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                scsi_Test_Unit_Ready(device, NULL);
-            }
             //either device doesn't support logs, or it just doesn't support subpages, so let's try reading the list of supported pages (no subpages) before saying we need to dummy up the list
             if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, tempBuf, LEGACY_DRIVE_SEC_SIZE))
             {
                 dummyUpLogPages = true;
-                if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                {
-                    //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                    scsi_Test_Unit_Ready(device, NULL);
-                }
             }
             else
             {
                 subpagesSupported = false;
             }
+        }
+        else if (device->drive_info.passThroughHacks.scsiHacks.noLogSubPages)
+        {
+            //device doesn't support subpages, so read the list of pages without subpages before continuing.
+            if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, tempBuf, LEGACY_DRIVE_SEC_SIZE))
+            {
+                dummyUpLogPages = true;
+            }
+            subpagesSupported = false;
         }
         if (!dummyUpLogPages)
         {
@@ -3258,7 +3158,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                     //we need parameter code 5h (total bytes processed)
                     //assume we only need to read 16 bytes to get this value
-                    uint8_t *writeErrorData = (uint8_t*)calloc(16 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *writeErrorData = (uint8_t*)calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!writeErrorData)
                     {
                         break;
@@ -3293,12 +3193,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(writeErrorData);
+                    safe_Free_aligned(writeErrorData);
                 }
                 break;
             case LP_READ_ERROR_COUNTERS:
@@ -3306,7 +3201,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                     //we need parameter code 5h (total bytes processed)
                     //assume we only need to read 16 bytes to get this value
-                    uint8_t *readErrorData = (uint8_t*)calloc(16 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *readErrorData = (uint8_t*)calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!readErrorData)
                     {
                         break;
@@ -3341,12 +3236,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(readErrorData);
+                    safe_Free_aligned(readErrorData);
                 }
                 break;
             case LP_LOGICAL_BLOCK_PROVISIONING:
@@ -3360,7 +3250,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                 case 0://temperature
                 {
-                    uint8_t *temperatureData = (uint8_t*)calloc(10 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *temperatureData = (uint8_t*)calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!temperatureData)
                     {
                         break;
@@ -3370,17 +3260,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->temperatureData.temperatureDataValid = true;
                         driveInfo->temperatureData.currentTemperature = temperatureData[9];
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(temperatureData);
+                    safe_Free_aligned(temperatureData);
                 }
                 break;
                 case 1://environmental reporting
                 {
-                    uint8_t *environmentReporting = (uint8_t*)calloc(16 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *environmentReporting = (uint8_t*)calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!environmentReporting)
                     {
                         break;
@@ -3395,11 +3280,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->temperatureData.highestValid = true;
                         driveInfo->temperatureData.lowestValid = true;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     //now get humidity data if available
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0100, environmentReporting, 16))
                     {
@@ -3410,12 +3290,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->humidityData.highestValid = true;
                         driveInfo->humidityData.lowestValid = true;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(environmentReporting);
+                    safe_Free_aligned(environmentReporting);
                 }
                 break;
                 default:
@@ -3427,7 +3302,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                 case 0x01://utilization
                 {
-                    uint8_t *utilizationData = (uint8_t*)calloc(10 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *utilizationData = (uint8_t*)calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!utilizationData)
                     {
                         break;
@@ -3437,12 +3312,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //bytes 9 & 10
                         driveInfo->deviceReportedUtilizationRate = ((double)M_BytesTo2ByteValue(utilizationData[8], utilizationData[9])) / 1000.0;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(utilizationData);
+                    safe_Free_aligned(utilizationData);
                 }
                 break;
                 default:
@@ -3454,7 +3324,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                 case 0x00://application client
                 {
-                    uint8_t *applicationClient = (uint8_t*)calloc(4 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *applicationClient = (uint8_t*)calloc_aligned(4, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!applicationClient)
                     {
                         break;
@@ -3465,12 +3335,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Application Client Logging");
                         driveInfo->numberOfFeaturesSupported++;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(applicationClient);
+                    safe_Free_aligned(applicationClient);
                 }
                 break;
                 default:
@@ -3480,7 +3345,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             case LP_SELF_TEST_RESULTS:
                 if (subpageCode == 0)
                 {
-                    uint8_t *selfTestResults = (uint8_t*)calloc(LP_SELF_TEST_RESULTS_LEN * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *selfTestResults = (uint8_t*)calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!selfTestResults)
                     {
                         break;
@@ -3497,19 +3362,14 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->dstInfo.powerOnHours = M_BytesTo2ByteValue(selfTestResults[parameterOffset + 6], selfTestResults[parameterOffset + 7]);
                         driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(selfTestResults[parameterOffset + 8], selfTestResults[parameterOffset + 9], selfTestResults[parameterOffset + 10], selfTestResults[parameterOffset + 11], selfTestResults[parameterOffset + 12], selfTestResults[parameterOffset + 13], selfTestResults[parameterOffset + 14], selfTestResults[parameterOffset + 15]);
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(selfTestResults);
+                    safe_Free_aligned(selfTestResults);
                 }
                 break;
             case LP_SOLID_STATE_MEDIA:
                 if (subpageCode == 0)
                 {
                     //need parameter 0001h
-                    uint8_t *ssdEnduranceData = (uint8_t*)calloc(12 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *ssdEnduranceData = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!ssdEnduranceData)
                     {
                         break;
@@ -3519,19 +3379,14 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //bytes 7 of parameter 1 (or byte 12)
                         driveInfo->percentEnduranceUsed = (double)ssdEnduranceData[11];
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(ssdEnduranceData);
+                    safe_Free_aligned(ssdEnduranceData);
                 }
                 break;
             case LP_BACKGROUND_SCAN_RESULTS:
                 if (subpageCode == 0)
                 {
                     //reading power on minutes from here
-                    uint8_t *backgroundScanResults = (uint8_t*)calloc(19 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *backgroundScanResults = (uint8_t*)calloc_aligned(19, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!backgroundScanResults)
                     {
                         break;
@@ -3541,19 +3396,14 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //bytes 8 to 11
                         driveInfo->powerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[8], backgroundScanResults[9], backgroundScanResults[10], backgroundScanResults[11]);
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(backgroundScanResults);
+                    safe_Free_aligned(backgroundScanResults);
                 }
                 break;
             case LP_GENERAL_STATISTICS_AND_PERFORMANCE:
                 if (subpageCode == 0)
                 {
                     //parameter code 1 is what we're interested in for this one
-                    uint8_t *generalStatsAndPerformance = (uint8_t*)calloc(72 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *generalStatsAndPerformance = (uint8_t*)calloc_aligned(72, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!generalStatsAndPerformance)
                     {
                         break;
@@ -3569,18 +3419,13 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //convert to bytes written
                         driveInfo->totalBytesRead = driveInfo->totalLBAsRead * driveInfo->logicalSectorSize;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(generalStatsAndPerformance);
+                    safe_Free_aligned(generalStatsAndPerformance);
                 }
                 break;
             case LP_INFORMATION_EXCEPTIONS:
                 if (subpageCode == 0)
                 {
-                    uint8_t *informationExceptions = (uint8_t*)calloc(11 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *informationExceptions = (uint8_t*)calloc_aligned(11, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!informationExceptions)
                     {
                         break;
@@ -3597,23 +3442,17 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             driveInfo->smartStatus = 1;
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                        driveInfo->smartStatus = 2;
-                    }
                     else
                     {
                         driveInfo->smartStatus = 2;
                     }
-                    safe_Free(informationExceptions);
+                    safe_Free_aligned(informationExceptions);
                 }
                 break;
             case 0x3C://Vendor specific page. we're checking this page on Seagate drives for an enhanced usage indicator on SSDs (PPM value)
                 if (is_Seagate_Family(device) == SEAGATE || is_Seagate_Family(device) == SEAGATE_VENDOR_A)
                 {
-                    uint8_t *ssdUsage = (uint8_t*)calloc(12 * sizeof(uint8_t), sizeof(uint8_t));
+                    uint8_t *ssdUsage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
                     if (!ssdUsage)
                     {
                         break;
@@ -3622,12 +3461,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         driveInfo->percentEnduranceUsed = (((double)M_BytesTo4ByteValue(ssdUsage[8], ssdUsage[9], ssdUsage[10], ssdUsage[11])) / 1000000.00) * 100.00;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
-                    safe_Free(ssdUsage);
+                    safe_Free_aligned(ssdUsage);
                 }
                 break;
             default:
@@ -3641,7 +3475,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         driveInfo->smartStatus = 2;
     }
 
-    if (version >= 2 || responseFormat == 1)
+    if (!device->drive_info.passThroughHacks.scsiHacks.noModePages && (version >= 2 || responseFormat == 1))
     {
         uint16_t numberOfPages = 0;
         uint16_t offset = 0;
@@ -3662,7 +3496,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             listOfModePagesAndSubpages[offset] = MP_CONTROL;//Long DST Time
             offset += 2;
         }
-        if (version >= 5)//SPC3 added subpage codes
+        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
         {
             listOfModePagesAndSubpages[offset] = MP_CONTROL;//DLC
             listOfModePagesAndSubpages[offset + 1] = 0x01;
@@ -3682,7 +3516,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             listOfModePagesAndSubpages[offset + 1] = 0;
             offset += 2;
         }
-        if (version >= 5)//SPC3 added subpage codes
+        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
         {
             listOfModePagesAndSubpages[offset] = MP_PROTOCOL_SPECIFIC_PORT;//get SAS phy speed
             listOfModePagesAndSubpages[offset + 1] = 1;
@@ -3694,7 +3528,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             listOfModePagesAndSubpages[offset + 1] = 0;
             offset += 2;
         }
-        if (version >= 5)//SPC3 added subpage codes
+        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
         {
             //ATA Advanced Power Management page from SAT2
             listOfModePagesAndSubpages[offset] = MP_POWER_CONDTION;//ATA APM
@@ -3707,7 +3541,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             listOfModePagesAndSubpages[offset + 1] = 0;
             offset += 2;
         }
-        if (version >= 5)//SPC3 added subpage codes
+        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
         {
             listOfModePagesAndSubpages[offset] = MP_BACKGROUND_CONTROL;//EN_BMS, EN_PS
             listOfModePagesAndSubpages[offset + 1] = 0x01;
@@ -3742,11 +3576,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     if (defaultsRead)
                     {
@@ -3874,11 +3703,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
 
                         }
-                        else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                        {
-                            //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                            scsi_Test_Unit_Ready(device, NULL);
-                        }
                         if (pageRead)
                         {
                             driveInfo->rotationRate = M_BytesTo2ByteValue(rigidGeometry[headerLength + 20], rigidGeometry[headerLength + 21]);
@@ -3915,11 +3739,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             driveInfo->isWriteProtected = true;
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     if (pageRead)
                     {
                         //NV_DIS
@@ -3952,11 +3771,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             {
                                 pageRead = true;
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                            }
-                            else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                            {
-                                //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                                scsi_Test_Unit_Ready(device, NULL);
                             }
                             if (pageRead)
                             {
@@ -3997,11 +3811,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             driveInfo->isWriteProtected = true;
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     if (pageRead)
                     {
                         //check the page code and page length
@@ -4035,11 +3844,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (controlExtensionPage[headerLength + 0] & BIT6)
@@ -4089,11 +3893,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             driveInfo->isWriteProtected = true;
                         }
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (controlExtensionPage[headerLength + 0] & BIT6)
@@ -4147,11 +3946,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             driveInfo->isWriteProtected = true;
                         }
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (ioAdviceHints[headerLength + 0] & BIT6)
@@ -4209,11 +4003,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         pageRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     //make sure we got the expected format!
                     if (pataControl[headerLength + 0] & BIT6)
                     {
@@ -4265,11 +4054,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             driveInfo->isWriteProtected = true;
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     if (pageRead)
                     {
                         protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 2]);
@@ -4298,11 +4082,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             driveInfo->isWriteProtected = true;
                         }
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (protocolSpecificPort[headerLength + 0] & BIT6)
@@ -4442,11 +4221,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             driveInfo->isWriteProtected = true;
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     //make sure we got the expected format!
                     if (protocolSpecificPort[headerLength + 0] & BIT6)
                     {
@@ -4553,11 +4327,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             driveInfo->isWriteProtected = true;
                         }
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (protocolSpecificPort[headerLength + 0] & BIT6)
@@ -4666,11 +4435,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
                         readDefaults = true;
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     if (readDefaults)
                     {
                         if (powerConditions[1 + mpHeaderLen] > 0x0A)
@@ -4717,11 +4481,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             driveInfo->isWriteProtected = true;
                         }
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     if (pageRead)
                     {
@@ -4780,11 +4539,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
                         pageRead = true;
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (ataPowerConditions[mpHeaderLen + 0] & BIT6)
@@ -4845,11 +4599,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             driveInfo->isWriteProtected = true;
                         }
                     }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
-                    }
                     if (pageRead)
                     {
                         sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Informational Exceptions [Mode %"PRIu8"]", M_Nibble0(informationalExceptions[headerLength + 3]));
@@ -4874,11 +4623,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         defaultsRead = true;
                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (backgroundControl[headerLength + 0] & BIT6)
@@ -4942,11 +4686,6 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             driveInfo->isWriteProtected = true;
                         }
-                    }
-                    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-                    {
-                        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-                        scsi_Test_Unit_Ready(device, NULL);
                     }
                     //make sure we got the expected format!
                     if (backgroundControl[headerLength + 0] & BIT6)
@@ -5086,282 +4825,241 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             }
         }
     }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+    
+    if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)//mostly for USB devices to prevent sending commands that don't usually work in the first place.
     {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
+        uint8_t *supportedCommands = tempBuf;
+        memset(supportedCommands, 0, 1024);
 
-    uint8_t *supportedCommands = tempBuf;
-    memset(supportedCommands, 0, 1024);
-
-    //Most SAT devices won't report all at once, so try asking for individual commands that are supported
-    //one at a time instead of asking for everything all at once.
-    //Format unit
-    bool formatSupported = false;
-    bool fastFormatSupported = false;
-    if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_UNIT_CMD, 0, 10, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        //Most SAT devices won't report all at once, so try asking for individual commands that are supported
+        //one at a time instead of asking for everything all at once.
+        //Format unit
+        bool formatSupported = false;
+        bool fastFormatSupported = false;
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_UNIT_CMD, 0, 10, supportedCommands))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            formatSupported = true;
-            //now check for fast format support
-            if (!(supportedCommands[7] == 0xFF && supportedCommands[8] == 0xFF))//if both these bytes are FFh, then the drive conforms to SCSI2 where this was the "interleave" field
+            switch (supportedCommands[1] & 0x07)
             {
-                if (supportedCommands[8] & 0x03)//checks that fast format bits are available for use.
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                formatSupported = true;
+                //now check for fast format support
+                if (!(supportedCommands[7] == 0xFF && supportedCommands[8] == 0xFF))//if both these bytes are FFh, then the drive conforms to SCSI2 where this was the "interleave" field
                 {
-                    fastFormatSupported = true;
+                    if (supportedCommands[8] & 0x03)//checks that fast format bits are available for use.
+                    {
+                        fastFormatSupported = true;
+                    }
                 }
+                break;
+            default:
+                break;
             }
-            break;
-        default:
-            break;
         }
-    }
-    else if (version >= 3 && version < 5 && SUCCESS == scsi_Inquiry(device, supportedCommands, 12, SCSI_FORMAT_UNIT_CMD, false, true))
-    {
-        switch (supportedCommands[1] & 0x07)
+        else if (version >= 3 && version < 5 && SUCCESS == scsi_Inquiry(device, supportedCommands, 12, SCSI_FORMAT_UNIT_CMD, false, true))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            formatSupported = true;
-            break;
-        default:
-            break;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                formatSupported = true;
+                break;
+            default:
+                break;
+            }
         }
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
-    if (formatSupported)
-    {
-        sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Format Unit");
-        driveInfo->numberOfFeaturesSupported++;
-    }
-    if (fastFormatSupported)
-    {
-        sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Fast Format");
-        driveInfo->numberOfFeaturesSupported++;
-    }
-    memset(supportedCommands, 0, 1024);
-    //Sanitize (need to check each service action to make sure at least one is supported.
-    bool sanitizeSupported = false;
-    if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        if (formatSupported)
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            sanitizeSupported = true;
-            break;
-        default:
-            break;
+            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Format Unit");
+            driveInfo->numberOfFeaturesSupported++;
         }
-    }
-    else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        if (fastFormatSupported)
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            sanitizeSupported = true;
-            break;
-        default:
-            break;
+            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Fast Format");
+            driveInfo->numberOfFeaturesSupported++;
         }
-    }
-    else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE, 14, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        memset(supportedCommands, 0, 1024);
+        //Sanitize (need to check each service action to make sure at least one is supported.
+        bool sanitizeSupported = false;
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            sanitizeSupported = true;
-            break;
-        default:
-            break;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sanitizeSupported = true;
+                break;
+            default:
+                break;
+            }
         }
-    }
-    else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_EXIT_FAILURE_MODE, 14, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            sanitizeSupported = true;
-            break;
-        default:
-            break;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sanitizeSupported = true;
+                break;
+            default:
+                break;
+            }
         }
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
-    if (sanitizeSupported)
-    {
-        sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Sanitize");
-        driveInfo->numberOfFeaturesSupported++;
-    }
-    //storage element depopulation
-    bool getElementStatusSupported = false;
-    bool removeAndTruncateSupported = false;
-    if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x17, 20, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE, 14, supportedCommands))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            getElementStatusSupported = true;
-            break;
-        default:
-            break;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sanitizeSupported = true;
+                break;
+            default:
+                break;
+            }
         }
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
-    if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x18, 20, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_EXIT_FAILURE_MODE, 14, supportedCommands))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            removeAndTruncateSupported = true;
-            break;
-        default:
-            break;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sanitizeSupported = true;
+                break;
+            default:
+                break;
+            }
         }
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
-    if (removeAndTruncateSupported && getElementStatusSupported)
-    {
-        sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Storage Element Depopulation");
-        driveInfo->numberOfFeaturesSupported++;
-    }
+        if (sanitizeSupported)
+        {
+            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Sanitize");
+            driveInfo->numberOfFeaturesSupported++;
+        }
+        //storage element depopulation
+        bool getElementStatusSupported = false;
+        bool removeAndTruncateSupported = false;
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x17, 20, supportedCommands))
+        {
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                getElementStatusSupported = true;
+                break;
+            default:
+                break;
+            }
+        }
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x18, 20, supportedCommands))
+        {
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                removeAndTruncateSupported = true;
+                break;
+            default:
+                break;
+            }
+        }
+        if (removeAndTruncateSupported && getElementStatusSupported)
+        {
+            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Storage Element Depopulation");
+            driveInfo->numberOfFeaturesSupported++;
+        }
 
-    //check write buffer (firmware download) call info firmware download.h for this information.
-    supportedDLModes supportedDLModes;
-    memset(&supportedDLModes, 0, sizeof(supportedDLModes));
-    //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
-    int tempDevType = device->drive_info.drive_type;
-    device->drive_info.drive_type = SCSI_DRIVE;
-    if (SUCCESS == get_Supported_FWDL_Modes(device, &supportedDLModes))
-    {
-        driveInfo->fwdlSupport.downloadSupported = supportedDLModes.downloadMicrocodeSupported;
-        driveInfo->fwdlSupport.segmentedSupported = supportedDLModes.segmented;
-        driveInfo->fwdlSupport.deferredSupported = supportedDLModes.deferred;
-        driveInfo->fwdlSupport.dmaModeSupported = supportedDLModes.firmwareDownloadDMACommandSupported;
-        driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = supportedDLModes.seagateDeferredPowerCycleActivate;
-    }
-    device->drive_info.drive_type = tempDevType;
-    if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
-    //ATA Passthrough commands
-    if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_12, 0, 16, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+
+        //check write buffer (firmware download) call info firmware download.h for this information.
+        supportedDLModes supportedDLModes;
+        memset(&supportedDLModes, 0, sizeof(supportedDLModes));
+        //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
+        int tempDevType = device->drive_info.drive_type;
+        device->drive_info.drive_type = SCSI_DRIVE;
+        if (SUCCESS == get_Supported_FWDL_Modes(device, &supportedDLModes))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            //TODO: make sure this isn't the "blank" command being supported by a MMC device.
-            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "ATA Pass-Through 12");
-            driveInfo->numberOfFeaturesSupported++;
-            break;
-        default:
-            break;
+            driveInfo->fwdlSupport.downloadSupported = supportedDLModes.downloadMicrocodeSupported;
+            driveInfo->fwdlSupport.segmentedSupported = supportedDLModes.segmented;
+            driveInfo->fwdlSupport.deferredSupported = supportedDLModes.deferred;
+            driveInfo->fwdlSupport.dmaModeSupported = supportedDLModes.firmwareDownloadDMACommandSupported;
+            driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = supportedDLModes.seagateDeferredPowerCycleActivate;
         }
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
-    if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_16, 0, 20, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        device->drive_info.drive_type = tempDevType;
+        //ATA Passthrough commands
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_12, 0, 16, supportedCommands))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "ATA Pass-Through 16");
-            driveInfo->numberOfFeaturesSupported++;
-            break;
-        default:
-            break;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                //TODO: make sure this isn't the "blank" command being supported by a MMC device.
+                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "ATA Pass-Through 12");
+                driveInfo->numberOfFeaturesSupported++;
+                break;
+            default:
+                break;
+            }
         }
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
-    }
-    if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x7F, 0x1FF0, 36, supportedCommands))
-    {
-        switch (supportedCommands[1] & 0x07)
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_16, 0, 20, supportedCommands))
         {
-        case 0: //not available right now...so not supported
-        case 1://not supported
-            break;
-        case 3://supported according to spec
-        case 5://supported in vendor specific mannor in same format as case 3
-            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "ATA Pass-Through 32");
-            driveInfo->numberOfFeaturesSupported++;
-            break;
-        default:
-            break;
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "ATA Pass-Through 16");
+                driveInfo->numberOfFeaturesSupported++;
+                break;
+            default:
+                break;
+            }
         }
-    }
-    else if (device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
-    {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x7F, 0x1FF0, 36, supportedCommands))
+        {
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "ATA Pass-Through 32");
+                driveInfo->numberOfFeaturesSupported++;
+                break;
+            default:
+                break;
+            }
+        }
     }
     driveInfo->lowCurrentSpinupValid = false;
-    safe_Free(tempBuf);
+    safe_Free_aligned(tempBuf);
     return ret;
 }
 
@@ -5372,7 +5070,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
 #if !defined(DISABLE_NVME_PASSTHROUGH)
     //changing ret to success since we have passthrough available
     ret = SUCCESS;
-    uint8_t *nvmeIdentifyData = (uint8_t*)calloc(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t));
+    uint8_t *nvmeIdentifyData = (uint8_t*)calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, 0, 1))
     {
         //MN
@@ -5396,6 +5094,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         driveInfo->controllerData.majorVersion = M_BytesTo2ByteValue(nvmeIdentifyData[83], nvmeIdentifyData[82]);
         driveInfo->controllerData.minorVersion = nvmeIdentifyData[81];
         driveInfo->controllerData.tertiaryVersion = nvmeIdentifyData[80];
+        driveInfo->controllerData.numberOfPowerStatesSupported = nvmeIdentifyData[263] + 1;
         if (nvmeIdentifyData[96] & BIT0)
         {
             driveInfo->controllerData.hostIdentifierSupported = true;
@@ -5405,7 +5104,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             getHostIdentifier.fid = 0x81;
             getHostIdentifier.sel = 0;//current data
             uint8_t hostIdentifier[16] = { 0 };
-            getHostIdentifier.prp1 = (uint64_t)hostIdentifier;
+            getHostIdentifier.prp1 = (uintptr_t)hostIdentifier;
             //TODO: Need to debug why this doesn't work right now - TJE
             if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
             {
@@ -5799,6 +5498,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         {
             driveInfo->smartData.smartStatus = 2;
         }
+        safe_Free_aligned(nvmeIdentifyData);
     }
     else
     {
@@ -5916,6 +5616,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("Not Supported\n");
     }
     printf("\tMaximum Number Of Namespaces: %" PRIu32 "\n", driveInfo->controllerData.maxNumberOfNamespaces);
+    printf("\tNumber of supported power states: %" PRIu8 "\n", driveInfo->controllerData.numberOfPowerStatesSupported + 1);
     //Putting SMART & DST data here so that it isn't confused with the namespace data below - TJE
     if (driveInfo->smartData.valid)
     {
@@ -6167,6 +5868,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     printf("\tModel Number: %s\n", driveInfo->modelNumber);
     printf("\tSerial Number: %s\n", driveInfo->serialNumber);
+    if (strlen(driveInfo->pcbaSerialNumber))
+    {
+        printf("\tPCBA Serial Number: %s\n", driveInfo->pcbaSerialNumber);
+    }
     printf("\tFirmware Revision: %s\n", driveInfo->firmwareRevision);
     if (strlen(driveInfo->satVendorID))
     {
@@ -6926,6 +6631,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("Not Supported");
     }
     printf("\n");
+    if (driveInfo->lunCount > 0)
+    {
+        printf("\tNumber of Logical Units: %" PRIu8 "\n", driveInfo->lunCount);
+    }
     //Specifications Supported
     printf("\tSpecifications Supported:\n");
     if (driveInfo->numberOfSpecificationsSupported > 0)
@@ -6953,6 +6662,39 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     else
     {
         printf("\t\tNone reported or an error occurred while trying to determine\n\t\tthe features.\n");
+    }
+    //Adapter information
+    printf("\tAdapter Information:\n");
+    printf("\t\tVendor ID: ");
+    if (driveInfo->adapterInformation.vendorIDValid)
+    {
+        printf("%04" PRIX16 "h\n", driveInfo->adapterInformation.vendorID);
+    }
+    else
+    {
+        printf("Not available.\n");
+    }
+    printf("\t\tProduct ID: ");
+    if (driveInfo->adapterInformation.productIDValid)
+    {
+        printf("%04" PRIX16 "h\n", driveInfo->adapterInformation.productID);
+    }
+    else
+    {
+        printf("Not available.\n");
+    }
+    printf("\t\tRevision: ");
+    if (driveInfo->adapterInformation.revisionValid)
+    {
+        printf("%04" PRIX16 "h\n", driveInfo->adapterInformation.revision);
+    }
+    else
+    {
+        printf("Not available.\n");
+    }
+    if (driveInfo->lunCount > 1)
+    {
+        printf("This device has multiple actuators. Some commands/features may affect more than one actuator.\n");
     }
     return;
 }
@@ -6996,7 +6738,7 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
     if (externalDriveInfo && scsiDriveInfo && ataDriveInfo)
     {
         //take data from each of the inputs, and plug it into a new one, then call the standard print function
-        memcpy(externalDriveInfo, ataDriveInfo, sizeof(driveInformation));
+        memcpy(externalDriveInfo, ataDriveInfo, sizeof(driveInformationSAS_SATA));
         //we have a copy of the ata info, now just change the stuff we want to show from scsi info
         memset(externalDriveInfo->vendorID, 0, 8);
         memcpy(externalDriveInfo->vendorID, scsiDriveInfo->vendorID, 8);
@@ -7026,17 +6768,81 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
     return;
 }
 
+void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationNVMe nvmeDriveInfo)
+{
+    //for the most part, keep all the SCSI information.
+    //After that take the POH, temperature, DST information, workload, and combine the features.
+    //Also add the NVMe spec version to the output as well.
+    if (externalDriveInfo && scsiDriveInfo && nvmeDriveInfo)
+    {
+        //take data from each of the inputs, and plug it into a new one, then call the standard print function
+        memcpy(externalDriveInfo, scsiDriveInfo, sizeof(driveInformationSAS_SATA));
+        //Keep the SCSI information, minus a few things to copy from NVMe if the NVMe info needed was read properly
+        if (nvmeDriveInfo->smartData.valid)
+        {
+            //Power on hours
+            externalDriveInfo->powerOnMinutes = (uint64_t)(nvmeDriveInfo->smartData.powerOnHoursD * 60);
+            //Temperature (SCSI is in Celcius!)
+            externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
+            //Workload (reads, writes)
+            externalDriveInfo->totalBytesRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512);//this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
+            externalDriveInfo->totalBytesWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512); //this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
+            externalDriveInfo->percentEnduranceUsed = nvmeDriveInfo->smartData.percentageUsed;
+        }
+
+        memcpy(&externalDriveInfo->dstInfo, &nvmeDriveInfo->dstInfo, sizeof(lastDSTInformation));
+        externalDriveInfo->longDSTTimeMinutes = nvmeDriveInfo->controllerData.longDSTTimeMinutes;
+
+        //copy specifications supported into the external drive info.
+        uint16_t extSpecNumber = externalDriveInfo->numberOfSpecificationsSupported;
+        if (nvmeDriveInfo->controllerData.majorVersion > 0 || nvmeDriveInfo->controllerData.minorVersion > 0 || nvmeDriveInfo->controllerData.tertiaryVersion > 0)
+        {
+            sprintf(externalDriveInfo->specificationsSupported[extSpecNumber], "NVMe %" PRIu16 ".%" PRIu8 ".%" PRIu8 "\n", nvmeDriveInfo->controllerData.majorVersion, nvmeDriveInfo->controllerData.minorVersion, nvmeDriveInfo->controllerData.tertiaryVersion);
+        }
+        else
+        {
+            sprintf(externalDriveInfo->specificationsSupported[extSpecNumber], "NVMe 1.1 or older\n");
+        }
+        ++(externalDriveInfo->numberOfSpecificationsSupported);
+
+        //now copy over features such as sanitize and dst
+        //copy specifications supported into the external drive info.
+        uint16_t extFeatNumber = externalDriveInfo->numberOfFeaturesSupported;
+        uint16_t nvmeFeatNumber = 0;
+        //controller features
+        for (; extFeatNumber < MAX_FEATURES && nvmeFeatNumber < nvmeDriveInfo->controllerData.numberOfControllerFeatures; ++extFeatNumber, ++nvmeFeatNumber)
+        {
+            memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], &nvmeDriveInfo->controllerData.controllerFeaturesSupported[nvmeFeatNumber], MAX_FEATURE_LENGTH);
+            ++(externalDriveInfo->numberOfFeaturesSupported);
+        }
+        if (nvmeDriveInfo->namespaceData.valid)
+        {
+            //namespace features
+            nvmeFeatNumber = 0;
+            for (; extFeatNumber < MAX_FEATURES && nvmeFeatNumber < nvmeDriveInfo->namespaceData.numberOfNamespaceFeatures; ++extFeatNumber, ++nvmeFeatNumber)
+            {
+                memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], &nvmeDriveInfo->namespaceData.namespaceFeaturesSupported[nvmeFeatNumber], MAX_FEATURE_LENGTH);
+                ++(externalDriveInfo->numberOfFeaturesSupported);
+            }
+        }
+    }
+    return;
+}
+
+
 int print_Drive_Information(tDevice *device, bool showChildInformation)
 {
     int ret = SUCCESS;
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
-    scsiDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+    scsiDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
     scsiDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //allocate ataDriveInfo since this is an ATA drive
-        ataDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+        ataDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
         ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
         ret = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
     }
@@ -7044,7 +6850,7 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         //allocate nvmeDriveInfo since this is an NVMe drive
-        nvmeDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+        nvmeDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
         nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
         get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
     }
@@ -7071,9 +6877,16 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
             //ONLY call the external function when we are able to get some passthrough information back as well
             if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && device->drive_info.drive_type == ATA_DRIVE)
             {
-                usbDriveInfo = (ptrDriveInformation)calloc(sizeof(driveInformation), sizeof(driveInformation));
+                usbDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
                 usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
                 generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &ataDriveInfo->sasSata);
+                print_Device_Information(usbDriveInfo);
+            }
+            else if (device->drive_info.interface_type == USB_INTERFACE && device->drive_info.drive_type == NVME_DRIVE)
+            {
+                usbDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
+                usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
+                generate_External_NVMe_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &nvmeDriveInfo->nvme);
                 print_Device_Information(usbDriveInfo);
             }
             else//ata or scsi
@@ -7149,145 +6962,3 @@ char * print_drive_type(tDevice *device)
         return "NULL";
     }
 }
-
-#if !defined(DISABLE_NVME_PASSTHROUGH)
-#if 0
-int print_Nvme_Ctrl_Information(tDevice *device)
-{
-    int ret = UNKNOWN;
-    uint32_t c=0; 
-    nvmeIDCtrl * ctrlData = &device->drive_info.IdentifyData.nvme.ctrl; //Conroller information data structure
-    nvmeIDNameSpaces * nsData = &device->drive_info.IdentifyData.nvme.ns; //Name Space Data structure 
-    char * metricUnit = NULL;
-    char * capacityUnit = NULL;
-    double metricCapacity = (double)device->drive_info.deviceMaxLba * device->drive_info.deviceBlockSize;
-    double capacityCapacity = metricCapacity;
-
-    printf("\tPCI Vendor ID: %"PRIX16"\n",ctrlData->vid);
-    printf("\tPCI Subsystem Vendor ID: %"PRIX16"\n",ctrlData->ssvid);
-    printf("\tModel Number: %s\n", device->drive_info.product_identification);
-    printf("\tSerial Number: %s\n", device->drive_info.serialNumber);
-    printf("\tFirmware Revision: %s\n", device->drive_info.product_revision);
-    //printf("\tIEEE OUI Identifier: %X\n", ctrlData.ieee);
-    /*if (ctrlData->cmic & BIT0) 
-    {
-        printf("\tNVM subsystem contains more than one PCI Express ports")
-    }
-    else
-    {
-        printf("\tNVM subsystem contains one PCI Express ports")
-    }*/
-    printf("\tController ID: %"PRIX16"\n",ctrlData->cntlid);
-    if (ctrlData->oacs & BIT0) 
-    {
-        printf("\tController supports Security Commands\n");
-    }
-    if (ctrlData->oacs & BIT1) 
-    {
-        printf("\tController supports Format NVM Commands\n");
-    }
-    if (ctrlData->oacs & BIT2) 
-    {
-        printf("\tController supports Firmware Download & Active Commands\n");
-    }
-    if (ctrlData->lpa & BIT0) 
-    {
-        printf("\tController supports SMART/Health Information Log\n");
-    }
-    printf("\tError Log Page Entries: %"PRIu8"\n",ctrlData->elpe);
-    printf("\tNumber of Power States Supported: %"PRIu8"\n",ctrlData->npss+1);//0 based value
-    printf("\tNumber of Namespaces: %"PRIu32"\n",ctrlData->nn);
-
-    if (ctrlData->fna)
-    {
-        if (ctrlData->fna & BIT0) 
-        {
-            printf("\tFORMAT: applies to all namespaces\n");
-        }
-        else
-        {
-            printf("\tFORMAT: processed on namespace basis\n");
-        }
-        if (ctrlData->fna & BIT2)
-        {
-            printf("\tFORMAT: Ctryptographic Erase Supported\n");
-        }
-    }
-    if (ctrlData->vwc & BIT0) 
-    {
-        printf("\tController supports Volatile Write Cache\n");
-    }
-    printf("\tMaxLBA: %"PRIu64"\n", device->drive_info.deviceMaxLba);
-    printf("\tLogical Sector Size (Bytes): %"PRIu32"\n", device->drive_info.deviceBlockSize);
-    metricUnit = (char*)calloc(10, sizeof(uint8_t));
-    capacityUnit = (char*)calloc(10, sizeof(uint8_t));
-    metric_Unit_Convert(&metricCapacity, &metricUnit);
-    capacity_Unit_Convert(&capacityCapacity,&capacityUnit);
-    printf("\tCapacity (%s/%s): %.02f/%.02f\n", metricUnit, capacityUnit, metricCapacity, capacityCapacity);
-    safe_Free(metricUnit);
-    safe_Free(capacityUnit);
-
-    printf("\t\t---------NAMESPACE DATA---------\n");
-    printf("\t\tNamespace Size: %"PRIu64"\n",nsData->nsze);
-    printf("\t\tNamespace Capacity: %"PRIu64"\n",nsData->ncap);
-    printf("\t\tNamespace Used: %"PRIu64"\n", nsData->nuse);
-    if (nsData->nsfeat & BIT0) 
-    {
-        printf("\t\tNamespace supports thin provisioning\n");
-    }
-    if (nsData->mc)
-    {
-        if (nsData->mc & BIT0)
-        {
-            printf("\t\tNamespace supports metadata as part of extended data LBA\n");
-        }
-        if (nsData->mc & BIT1)
-        {
-            printf("\t\tNamespace supports metadata as part of seperate buffer\n");
-        }
-    }
-    printf("\t\tNumber of LBA Formats Supported: ");
-    for (c=0;c<=nsData->nlbaf;c++) 
-    {
-        printf("LBAF%d ",c);
-    }
-    printf("\n");
-    printf("\t\tCurrent Formatted LBA: LBAF%"PRIu8" ",nsData->flbas & 0x0F);
-    if (nsData->flbas & BIT4) 
-    {
-        printf("[Ext. Meta Data]\n");
-    }
-    else
-    {
-        printf("\n");
-    }
-
-    for (c=0; c <= nsData->nlbaf; c++) 
-    {
-        printf("\t\tLBAF%"PRIu32" | Metadata Size %"PRIu16" | LBA Data Size %"PRIu32" ", \
-               c,nsData->lbaf[c].ms, (uint32_t) power_Of_Two(nsData->lbaf[c].lbaDS));//removing pow function. Let's not depend on the math lib unless we really need to...-TJE
-        switch(nsData->lbaf[c].rp)
-        {
-        case NVME_NS_LBAF_BEST_RP:
-            printf("| BEST PERFORMANCE\n");
-            break;
-        case NVME_NS_LBAF_BETTER_RP:
-            printf("| BETTER PERFORMANCE\n");
-            break;
-        case NVME_NS_LBAF_GOOD_RP:
-            printf("| GOOD PERFORMANCE\n");
-            break;
-        case NVME_NS_LBAF_DEGRADED_RP:
-            printf("| DEGRADED PERFORMANCE\n");
-            break;
-        default:
-            printf("\n");
-            break;
-        };
-    }
-
-    return ret;
-
-}
-#endif
-#endif

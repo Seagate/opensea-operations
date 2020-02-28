@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -150,6 +150,7 @@ extern "C"
     {
         char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
         char serialNumber[SERIAL_NUM_LEN + 1];//Null terminated
+        char pcbaSerialNumber[SERIAL_NUM_LEN + 1];//Unique to Seagate drives at this time.
         char firmwareRevision[FW_REV_LEN + 1];//Null terminated
         char vendorID[T10_VENDOR_ID_LEN + 1];//This is the T10 vendor ID. ATA will be set to "ATA", NVMe will be set to "NVMe"
         char satVendorID[T10_VENDOR_ID_LEN + 1];//Holds the SATL vendor ID
@@ -206,6 +207,8 @@ extern "C"
         int lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
         uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
         bool isWriteProtected;//Not available on SATA!
+        adapterInfo adapterInformation;//Not populated on all OSs. This is only obtainable from low-level OS calls and copied from the tDevice structure.
+        uint8_t lunCount;//for help detecting multi-actuator drives. Will be zero if not checked for, and an invalid value. Will be 1 or more when checked. Each lun represents and actuator today. - TJE
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe
@@ -244,6 +247,7 @@ extern "C"
             uint16_t numberOfControllerFeatures;
             char controllerFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
             uint64_t longDSTTimeMinutes;
+            uint8_t numberOfPowerStatesSupported;
         }controllerData;
         //smart log data (controller, not per namespace)
         struct {
@@ -347,6 +351,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationSAS_SATA ataDriveInfo);
+
+    OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationNVMe nvmeDriveInfo);
 
     //-----------------------------------------------------------------------------
     //

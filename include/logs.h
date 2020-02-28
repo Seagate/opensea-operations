@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -145,6 +145,7 @@ extern "C" {
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param[in] featureRegister - this is the feature register for the command. default to zero for most commands.
     //! 
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -154,7 +155,8 @@ extern "C" {
                                         char *logName, char *fileExtension,\
                                         bool GPL, bool SMART, bool toBuffer,\
                                         uint8_t *myBuf, uint32_t bufSize,\
-                                        const char * const filePath, uint32_t transferSizeBytes);
+                                        const char * const filePath, \
+                                        uint32_t transferSizeBytes, uint16_t featureRegister);
 
     //-----------------------------------------------------------------------------
     //
@@ -240,14 +242,15 @@ extern "C" {
 
     //-----------------------------------------------------------------------------
     //
-    //  pull_Internal_Status_Log()
+    //  pull_Telemetry_Log()
     //
-    //! \brief   Description:  this function will pull Internal Status logs from an ATA or SCSI device.
+    //! \brief   Description:  this function will pull Internal Status logs from an ATA or SCSI device or the host or controller telemetry log on NVMe devices.
+    //!                        These logs are all referred to as telemetry to keep things simple and a common name across interfaces
     //
     //  Entry:
     //!   \param device - pointer to the device structure
-    //!   \param currentOrSaved - boolean flag to switch between pulling the current log or the saved log (current is currently the only log supported so set this to true)
-    //!   \param islDataSet - flag to pull the small, medium, or large dataset. 1 = small, 2 = medium, 3 = large
+    //!   \param currentOrSaved - boolean flag to switch between pulling the current log or the saved log (current is currently the only log supported so set this to true). On NVMe current = host, saved = controller
+    //!   \param islDataSet - flag to pull the small, medium, or large dataset. 1 = small, 2 = medium, 3 = large, 4 = extra large (SAS only)
     //!   \param saveToFile - boolean flag to tell it to save to a file with an auto generated name (naming is based off of serial number and current date and time)
     //!   \param ptrData - pointer to a data buffer. This MUST be non-NULL when saveToFile = false
     //!   \param dataSize - size of the buffer that ptrData points to. This should be at least 256K for the small data set.
@@ -257,7 +260,7 @@ extern "C" {
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Internal_Status_Log(tDevice *device,\
+    OPENSEA_OPERATIONS_API int pull_Telemetry_Log(tDevice *device,\
                                                 bool currentOrSaved,\
                                                 uint8_t islDataSet,\
                                                 bool saveToFile,\
@@ -552,12 +555,18 @@ extern "C" {
     //!   \param[in] device = poiner to a valid device structure with a device handle
     //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
-    //!                Any other value will specify a transfer size to use to pull SM2. On ATA, this must be a multiple of 512Bytes
+    //!   \param[in] issueFactory = if set 0-4 issue the command with the factory feature. 
+    //!                             FARM pull Factory subpages   
+    //!                             0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+    //!                             1 – Generate and report new FARM data and save to disc(~45ms)(SATA only)
+    //!                             2 – Report previous FARM data from disc(~20ms)(SATA only)
+    //!                             3 – Report FARM factory data from disc(~20ms)(SATA only)
+    //!                             4 - factory subpage (SAS only)
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory);
 
     //-----------------------------------------------------------------------------
     //

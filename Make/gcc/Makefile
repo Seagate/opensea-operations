@@ -19,7 +19,7 @@ MAJOR=1
 #Change the Minor version when new features are added. 
 MINOR=20
 #Change the patch version when only bug fixes are made.
-PATCH=16
+PATCH=218
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
@@ -82,8 +82,7 @@ $(LIBS): $(LIB_OBJ_FILES) opensea-libs
 	rm -f $(FILE_OUTPUT_DIR)/$@
 	$(AR) cq $(FILE_OUTPUT_DIR)/$@ $(LIB_OBJ_FILES)
 	$(CC) -shared $(LIB_OBJ_FILES) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
-	cd $(FILE_OUTPUT_DIR) 
-	ln -s lib$(NAME).so* lib$(NAME).so
+	cd $(FILE_OUTPUT_DIR) && ln -s lib$(NAME).so* lib$(NAME).so
 
 clean:
 	rm -f $(FILE_OUTPUT_DIR)/lib$(NAME).a $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION) lib$(NAME).so *.o ../../src/*.o

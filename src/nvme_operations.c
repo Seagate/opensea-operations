@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -636,7 +636,7 @@ int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
     {
         numOfErrToPrint = 32;
     }
-    pErrLogBuf = (nvmeErrLogEntry *)calloc((size_t)numOfErrToPrint, sizeof(nvmeErrLogEntry));
+    pErrLogBuf = (nvmeErrLogEntry *)calloc_aligned((size_t)numOfErrToPrint, sizeof(nvmeErrLogEntry), device->os_info.minimumAlignment);
     if (pErrLogBuf != NULL)
     {
         ret = nvme_Get_ERROR_Log_Page(device, (uint8_t*)pErrLogBuf, (uint32_t)(numOfErrToPrint * sizeof(nvmeErrLogEntry)));
@@ -660,7 +660,7 @@ int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
             }
         }
     }
-    safe_Free(pErrLogBuf);
+    safe_Free_aligned(pErrLogBuf);
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
 #endif

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "operations.h"
 #include "operations_Common.h"
 
 #if defined(__cplusplus)
@@ -96,6 +97,7 @@ extern "C"
         bool deferredVendorSpecificActivationSupported;//SAS only
         SCSIMicrocodeActivation codeActivation;//SAS Only
         firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
+        eMLU multipleLogicalUnitsAffected;//This will only be set for multi-lun devices. NVMe will set this since firmware affects all namespaces on the controller
     }supportedDLModes, *ptrSupportedDLModes;
 
     //-----------------------------------------------------------------------------

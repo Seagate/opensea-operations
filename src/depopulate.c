@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -138,13 +138,13 @@ int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsE
     if (!elementList)
     {
         return BAD_PARAMETER;
-}
+    }
     //This should be a number of 512B blocks based on how many physical elements are supported by the drive.
     //NOTE: If this ever starts requesting a LOT of data, then this may need to be broken into multiple commands. - TJE
     uint32_t getPhysicalElementsDataSize = (numberOfElementsExpected * 32 /*bytes per descriptor*/) + 32 /*bytes for data header*/;
     //now round that to the nearest 512B sector
     getPhysicalElementsDataSize = ((getPhysicalElementsDataSize + LEGACY_DRIVE_SEC_SIZE - 1) / LEGACY_DRIVE_SEC_SIZE) * LEGACY_DRIVE_SEC_SIZE;
-    uint8_t *getPhysicalElements = (uint8_t*)calloc(getPhysicalElementsDataSize, sizeof(uint8_t));
+    uint8_t *getPhysicalElements = (uint8_t*)calloc_aligned(getPhysicalElementsDataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (getPhysicalElements)
     {
         uint32_t numberOfDescriptorsReturned = 0;
@@ -194,6 +194,7 @@ int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsE
                 }
             }
         }
+        safe_Free_aligned(getPhysicalElements);
     }
     else
     {

@@ -1,0 +1,22 @@
+## @file
+#   Declarations for the opensea-operations library
+##
+
+
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = opensea-operationslib
+  PACKAGE_GUID                   = cd3322e1-eef9-4c3a-877f-c4955df3c435
+  PACKAGE_VERSION                = 0.01
+
+
+[Includes]
+  include
+
+[Guids]
+  gopensea-operationsLibTokenSpaceGuid          = { 0x75c382f5, 0x4ed4, 0x4d3d, { 0xb2, 0x65, 0xeb, 0xb0, 0x5c, 0x11, 0xd9, 0x72 }}
+
+
+[Protocols]
+  gEfiSocketProtocolGuid = { 0x58e6ed63, 0x1694, 0x440b, { 0x93, 0x88, 0xe9, 0x8f, 0xed, 0x6b, 0x65, 0xaf } }
+  gEfiSocketServiceBindingProtocolGuid = { 0x8aaedb2a, 0xa6bb, 0x47c6, { 0x94, 0xce, 0x1b, 0x80, 0x96, 0x42, 0x3f, 0x2a } }
