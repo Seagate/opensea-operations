@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2018 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -327,6 +327,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             //set the LBA to all Fs to reset to maximum LBA of the drive
             if (formatParameters.newMaxLBA)
             {
+                formatParameters.newMaxLBA += 1;//Need to add 1 for SCSI so that this will match the -i report. If this is not done, then  we end up with 1 less than the value provided.
                 modeParameterData[blockDescriptorOffset + 0] = M_Byte3(formatParameters.newMaxLBA);
                 modeParameterData[blockDescriptorOffset + 1] = M_Byte2(formatParameters.newMaxLBA);
                 modeParameterData[blockDescriptorOffset + 2] = M_Byte1(formatParameters.newMaxLBA);
@@ -354,6 +355,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             //set the LBA to all Fs to reset to maximum LBA of the drive
             if (formatParameters.newMaxLBA)
             {
+                formatParameters.newMaxLBA += 1;//Need to add 1 for SCSI so that this will match the -i report. If this is not done, then  we end up with 1 less than the value provided.
                 modeParameterData[blockDescriptorOffset + 0] = M_Byte7(formatParameters.newMaxLBA);
                 modeParameterData[blockDescriptorOffset + 1] = M_Byte6(formatParameters.newMaxLBA);
                 modeParameterData[blockDescriptorOffset + 2] = M_Byte5(formatParameters.newMaxLBA);
