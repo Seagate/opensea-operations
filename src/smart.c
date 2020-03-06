@@ -6090,6 +6090,8 @@ bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 }
 
 #define ATA_ERROR_INFO_MAX_LENGTH UINT8_C(4096) //making this bigger than we need for the moment
+#define ATA_ERROR_MESSAGE_MAX_LENGTH UINT8_C(256) //making this bigger than we need for the moment
+#define ATA_STATUS_MESSAGE_MAX_LENGTH UINT8_C(256) //making this bigger than we need for the moment
 void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceReg, uint8_t status, uint8_t error, uint16_t count, uint64_t lba, uint8_t device, uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
 {
     //bool isDMAQueued = is_DMA_Queued_Command(commandOpCodeThatCausedError);
@@ -6097,8 +6099,8 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceR
     bool isReadWrite = is_Read_Write_Command(commandOpCodeThatCausedError);
     bool isRecal = is_Recalibrate_Command(commandOpCodeThatCausedError);//NOTE: This will only catch case 0x10. The function is_Possible_Recalibrate_Command can also be used, but some of those op-codes HAVE been repurposed so it is less accurate!
 
-    char statusMessage[2048] = { 0 };
-    char errorMessage[2048] = { 0 };
+    char statusMessage[ATA_STATUS_MESSAGE_MAX_LENGTH] = { 0 };
+    char errorMessage[ATA_ERROR_MESSAGE_MAX_LENGTH] = { 0 };
 
     //TODO: Start with Status bits!
     if (status & ATA_STATUS_BIT_DEVICE_FAULT)
@@ -6190,7 +6192,7 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceR
                     strcat(errorMessage, ", ");
                 }
                 //unknown error, possibly recalibrate command + track zero not found....
-                snprintf(errorMessage, 2047, "Unknown Error Condition (%02" PRIX8 "h)", error);
+                snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Unknown Error Condition (%02" PRIX8 "h)", error);
             }
         }
     }
@@ -6198,7 +6200,7 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceR
     {
         if (strlen(statusMessage) == 0)
         {
-            snprintf(statusMessage, 2047, "Unknown Status Bits Set: %02" PRIX8 "h)", status);
+            snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Unknown Status Bits Set: %02" PRIX8 "h)", status);
         }
         strcat(errorMessage, "No Error Bits Set");
     }
