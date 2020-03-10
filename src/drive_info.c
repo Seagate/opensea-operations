@@ -378,7 +378,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                             }
                         }
                     }
-                    safe_Free(protocolList);
+                    safe_Free_aligned(protocolList);
                 }
             }
         }
