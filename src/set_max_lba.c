@@ -23,7 +23,7 @@ int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
     {
         ret = ata_Get_Native_Max_Address_Ext(device, nativeMaxLBA);
     }
-    else if (device->drive_info.IdentifyData.ata.CommandsAndFeaturesSupported1 & BIT10) //HPA feature set
+    else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
     {
         ret = ata_Read_Native_Max_Address(device, nativeMaxLBA, device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported);
     }
@@ -157,7 +157,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
             //accessible Max Address Configuration feature set supported
             ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA);
         }
-        else if (device->drive_info.IdentifyData.ata.CommandsAndFeaturesSupported1 & BIT10) //HPA feature set
+        else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
         {
             if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
             {
