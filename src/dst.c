@@ -1988,25 +1988,25 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             if (percentRemaining > 0)
             {
                 char percentRemainingString[8] = { 0 };
-                sprintf(percentRemainingString, " (%"PRIu8"%%)", percentRemaining);
+                sprintf(percentRemainingString, " (%" PRIu8 "%%)", percentRemaining);
                 strcat(status, percentRemainingString);
             }
             printf("%-26s  ", status);
             //Error LBA
-            char errorLBAString[15] = { 0 };
+            char errorLBAString[21] = { 0 };
             if (entries->dstEntry[iter].lbaOfFailure == UINT64_MAX)
             {
                 sprintf(errorLBAString, "None");
             }
             else
             {
-                sprintf(errorLBAString, "%"PRIu64, entries->dstEntry[iter].lbaOfFailure);
+                sprintf(errorLBAString, "%" PRIu64, entries->dstEntry[iter].lbaOfFailure);
             }
             printf("%-14s  ", errorLBAString);
             //Checkpoint/Segment number
-            printf("%-10"PRIX8"  ", entries->dstEntry[iter].checkPointByte);
+            printf("%-10" PRIX8 "  ", entries->dstEntry[iter].checkPointByte);
             //Sense Info
-            char senseInfoString[10] = { 0 };
+            char senseInfoString[21] = { 0 };
             if (entries->logType == DST_LOG_TYPE_NVME)
             {
                 //SCT - SC
