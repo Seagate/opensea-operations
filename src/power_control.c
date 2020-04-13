@@ -871,7 +871,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
             memset(&allSettings, 0, sizeof(powerConditionSettings));
             allSettings.powerConditionValid = true;
             allSettings.restoreToDefault = true;
-            ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_ALL_POWER_CONDITIONS, &allSettings);
+            ret = ata_Set_EPC_Power_Mode(device, PWR_CND_ALL, &allSettings);
         }
         else
         {
@@ -881,7 +881,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 //This does it in the same top-down order as the SCSI mode page to keep things working "the same" between the two
                 if (powerConditions->idle_a.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_IDLE_A, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_A, &powerConditions->idle_a);
                     if (ret != SUCCESS)
                     {
                         return ret;
@@ -889,7 +889,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->standby_z.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_STANDBY_Z, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Z, &powerConditions->idle_a);
                     if (ret != SUCCESS)
                     {
                         return ret;
@@ -897,7 +897,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->idle_b.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_IDLE_B, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_B, &powerConditions->idle_a);
                     if (ret != SUCCESS)
                     {
                         return ret;
@@ -905,7 +905,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->idle_c.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_IDLE_C, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_C, &powerConditions->idle_a);
                     if (ret != SUCCESS)
                     {
                         return ret;
@@ -913,7 +913,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->standby_y.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, EPC_POWER_CONDITION_STANDBY_Y, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Y, &powerConditions->idle_a);
                     if (ret != SUCCESS)
                     {
                         return ret;
