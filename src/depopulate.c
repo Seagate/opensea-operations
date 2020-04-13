@@ -228,7 +228,7 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     for (uint32_t elementIter = 0; elementIter < numberOfElements; ++elementIter)
     {
         char statusString[23] = { 0 };
-        char capacityString[19] = { 0 };
+        char capacityString[21] = { 0 };
         char elementType = 'P';//physical element
         if (elementList[elementIter].elementHealth >= 0 && elementList[elementIter].elementHealth <= 0x63)
         {

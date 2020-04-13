@@ -511,6 +511,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         //bit 1 = dm_md_f - activate deferred code (part of mode e. If mode e is supported, so should f - TJE
                     }
                 }
+                safe_Free_aligned(extendedInq); // PRH valgrind check
             }
 
             uint8_t *writeBufferSupportData = (uint8_t*)calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment);

@@ -378,7 +378,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                             }
                         }
                     }
-                    safe_Free(protocolList);
+                    safe_Free_aligned(protocolList);
                 }
             }
         }
@@ -6782,14 +6782,16 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
         {
             //Power on hours
             externalDriveInfo->powerOnMinutes = (uint64_t)(nvmeDriveInfo->smartData.powerOnHoursD * 60);
-            //Temperature (SCSI is in Celcius!)
+            //Temperature (SCSI is in Celsius!)
             externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
+            externalDriveInfo->temperatureData.temperatureDataValid = true;
             //Workload (reads, writes)
             externalDriveInfo->totalBytesRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512);//this is a count of 512B units, so converting to bytes
             externalDriveInfo->totalLBAsRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
             externalDriveInfo->totalBytesWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512); //this is a count of 512B units, so converting to bytes
             externalDriveInfo->totalLBAsWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
             externalDriveInfo->percentEnduranceUsed = nvmeDriveInfo->smartData.percentageUsed;
+            externalDriveInfo->smartStatus = nvmeDriveInfo->smartData.smartStatus;
         }
 
         memcpy(&externalDriveInfo->dstInfo, &nvmeDriveInfo->dstInfo, sizeof(lastDSTInformation));

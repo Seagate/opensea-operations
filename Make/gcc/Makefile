@@ -29,7 +29,7 @@ AR ?= ar
 CFLAGS ?= -Wall 
 CFLAGS += -c -fPIC -I. -std=gnu99
 
-LFLAGS ?= -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
+LFLAGS ?= -Wl,-Map,output.map -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
 LIB_SRC_FILES = \
 	$(SRC_DIR)ata_Security.c \
 	$(SRC_DIR)dst.c \
@@ -81,7 +81,7 @@ opensea-libs:
 $(LIBS): $(LIB_OBJ_FILES) opensea-libs
 	rm -f $(FILE_OUTPUT_DIR)/$@
 	$(AR) cq $(FILE_OUTPUT_DIR)/$@ $(LIB_OBJ_FILES)
-	$(CC) -shared $(LIB_OBJ_FILES) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
+	$(CC) -shared $(LIB_OBJ_FILES) $(LFLAGS) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
 	cd $(FILE_OUTPUT_DIR) && ln -s lib$(NAME).so* lib$(NAME).so
 
 clean:
