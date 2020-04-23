@@ -394,14 +394,17 @@ bool is_Self_Test_Supported(tDevice *device)
     {
     case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-        if (!device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
+        //set based on controller reported capabilities first
+        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT4)
         {
-            if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT4)
-            {
-                supported = true;
-            }
-            break;
+            supported = true;
         }
+        //check if there is a passthrough limitation next
+        if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities && !device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.deviceSelfTest)
+        {
+            supported = false;
+        }
+        break;
 #endif
     case SCSI_DRIVE:
     {
