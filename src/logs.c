@@ -524,7 +524,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
                     fclose(fpmp);
                     fileOpened = false;
                     safe_Free_aligned(modeBuffer);
-                    return ERROR_FLUSHING_DATA;
+                    return ERROR_WRITING_FILE;
                 }
 
                 fclose(fpmp);
@@ -612,7 +612,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
                     fclose(fpmp);
                     fileOpened = false;
                     safe_Free_aligned(modeBuffer);
-                    return ERROR_FLUSHING_DATA;
+                    return ERROR_WRITING_FILE;
                 }
                 fclose(fpmp);
                 fileOpened = false;
@@ -1009,7 +1009,7 @@ int pull_SCSI_G_List(tDevice *device, const char * const filePath)
                         fclose(gListData);
                         fileOpened = false;
                         safe_Free_aligned(defectData);
-                        return ERROR_FLUSHING_DATA;
+                        return ERROR_WRITING_FILE;
                     }
                     fclose(gListData);
                 }
@@ -1277,7 +1277,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 fclose(fp_log);
                 fileOpened = false;
                 safe_Free_aligned(logBuffer);
-                return ERROR_FLUSHING_DATA;
+                return ERROR_WRITING_FILE;
             }
             fclose(fp_log);
             fileOpened = false;
@@ -1374,7 +1374,7 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
                         }
                         fclose(fp_log);
                         safe_Free_aligned(logBuffer);
-                        return ERROR_FLUSHING_DATA;
+                        return ERROR_WRITING_FILE;
                     }
                     fclose(fp_log);
                 }
@@ -1462,7 +1462,7 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
                 fclose(fp_vpd);
                 fileOpened = false;
                 safe_Free_aligned(vpdBuffer);
-                return ERROR_FLUSHING_DATA;
+                return ERROR_WRITING_FILE;
             }
             fclose(fp_vpd);
             fileOpened = false;
@@ -1561,7 +1561,7 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                         }
                         fclose(isl);
                         safe_Free_aligned(dataBuffer);
-                        return ERROR_FLUSHING_DATA;
+                        return ERROR_WRITING_FILE;
                     }
                 }
                 else if (dataSize >= (uint32_t)(pageNumber * LEGACY_DRIVE_SEC_SIZE) && ptrData != NULL)
@@ -1650,7 +1650,7 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                                 }
                                 fclose(isl);
                                 safe_Free_aligned(dataBuffer);
-                                return ERROR_FLUSHING_DATA;
+                                return ERROR_WRITING_FILE;
                             }
                         }
                         else if (dataSize >= (uint32_t)(pageNumber * LEGACY_DRIVE_SEC_SIZE) && ptrData != NULL)
@@ -1684,7 +1684,7 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                             perror("Error flushing data!\n");
                         }
                         fclose(isl);
-                        return ERROR_FLUSHING_DATA;
+                        return ERROR_WRITING_FILE;
                     }
                     fclose(isl);
                 }
@@ -1824,7 +1824,7 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                             }
                             fclose(isl);
                             safe_Free_aligned(dataBuffer);
-                            return ERROR_FLUSHING_DATA;
+                            return ERROR_WRITING_FILE;
                         }
                     }
                     else
@@ -1935,7 +1935,7 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                                 }
                                 fclose(isl);
                                 safe_Free_aligned(dataBuffer);
-                                return ERROR_FLUSHING_DATA;
+                                return ERROR_WRITING_FILE;
                             }
                         }
                         else if (dataSize >= (uint32_t)(pageNumber * pullChunkSize) && ptrData != NULL)
@@ -2081,7 +2081,7 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                         }
                         fclose(isl);
                         safe_Free_aligned(dataBuffer);
-                        return ERROR_FLUSHING_DATA;
+                        return ERROR_WRITING_FILE;
                     }
                 }
                 else if (dataSize >= (uint32_t)(pageNumber * LEGACY_DRIVE_SEC_SIZE) && ptrData != NULL)
@@ -2172,7 +2172,7 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                                 }
                                 fclose(isl);
                                 safe_Free_aligned(dataBuffer);
-                                return ERROR_FLUSHING_DATA;
+                                return ERROR_WRITING_FILE;
                             }
                         }
                         else if (dataSize >= (uint32_t)(pageNumber * LEGACY_DRIVE_SEC_SIZE) && ptrData != NULL)
@@ -2206,7 +2206,7 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                             perror("Error flushing data!\n");
                         }
                         fclose(isl);
-                        return ERROR_FLUSHING_DATA;
+                        return ERROR_WRITING_FILE;
                     }
                     fclose(isl);
                 }
