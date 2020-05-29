@@ -487,7 +487,6 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
             if (fileOpened && ret != FAILURE)
             {
                 //write the vpd page to a file
-                //fwrite(modeBuffer, sizeof(uint8_t), modeLength, fpmp);
                 if ((fwrite(modeBuffer, sizeof(uint8_t), modeLength, fpmp) != modeLength) || ferror(fpmp))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -514,7 +513,6 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
             }
             if (fileOpened)
             {
-                //fflush(fpmp);
                 if (fflush(fpmp) != 0 || ferror(fpmp))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -576,7 +574,6 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
             if (fileOpened && ret != FAILURE)
             {
                 //write the vpd page to a file
-                //fwrite(modeBuffer, sizeof(uint8_t), modeLength, fpmp);
                 if ((fwrite(modeBuffer, sizeof(uint8_t), modeLength, fpmp) != modeLength) || ferror(fpmp))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -602,7 +599,6 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
             }
             if (fileOpened)
             {
-                //fflush(fpmp);
                 if (fflush(fpmp) != 0 || ferror(fpmp))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -780,7 +776,6 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
                     if (logFileOpened)
                     {
                         //write the history data to a file
-                        //fwrite(historyBuffer, sizeof(uint8_t), increment, fp_History);
                         if ((fwrite(historyBuffer, sizeof(uint8_t), increment, fp_History) != increment) || ferror(fp_History))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -803,7 +798,6 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
         }
         if (logFileOpened && fp_History)
         {
-            //fflush(fp_History);
             if (fflush(fp_History) != 0 || ferror(fp_History))
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -985,7 +979,6 @@ int pull_SCSI_G_List(tDevice *device, const char * const filePath)
                 if (fileOpened)
                 {
                     //write out to a file
-                    //fwrite(defectData, sizeof(uint8_t), defectDataSize, gListData);
                     if ((fwrite(defectData, sizeof(uint8_t), defectDataSize, gListData) != defectDataSize) || ferror(gListData))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1128,7 +1121,6 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     if (fileOpened)
                     {
                         //write out to a file
-                        //fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log);
                         if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE) || ferror(fp_log))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1177,7 +1169,6 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     if (fileOpened)
                     {
                         //write out to a file
-                        //fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), remainderPages * LEGACY_DRIVE_SEC_SIZE, fp_log);
                         if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE) || ferror(fp_log))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1233,7 +1224,6 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 if (fileOpened)
                 {
                     //write out to a file
-                    //fwrite(logBuffer, sizeof(uint8_t), logSize, fp_log);
                     if ((fwrite(logBuffer, sizeof(uint8_t), logSize, fp_log) != logSize) || ferror(fp_log))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1267,7 +1257,6 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
         }
         if (fileOpened)
         {
-            //fflush(fp_log);
             if (fflush(fp_log) != 0 || ferror(fp_log))
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1354,7 +1343,6 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
                 if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                 {
                     //write the log to a file
-                    //fwrite(logBuffer, sizeof(uint8_t), M_Min(pageLen, returnedPageLength), fp_log);//only write what the log reported the size to be if more was requested than is available by the device.
                     if ((fwrite(logBuffer, sizeof(uint8_t), M_Min(pageLen, returnedPageLength), fp_log) != M_Min(pageLen, returnedPageLength)) || ferror(fp_log))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1365,7 +1353,6 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
                         safe_Free_aligned(logBuffer);
                         return ERROR_WRITING_FILE;
                     }
-                    //fflush(fp_log);
                     if ((fflush(fp_log) != 0) || ferror(fp_log))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1425,7 +1412,6 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
             if (fileOpened && ret != FAILURE)
             {
                 //write the vpd page to a file
-                //fwrite(vpdBuffer, sizeof(uint8_t), vpdBufferLength, fp_vpd);
                 if ((fwrite(vpdBuffer, sizeof(uint8_t), vpdBufferLength, fp_vpd) != vpdBufferLength) || ferror(fp_vpd))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1452,7 +1438,6 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
         }
         if (fileOpened)
         {
-            //fflush(fp_vpd);
             if ((fflush(fp_vpd) != 0) || ferror(fp_vpd))
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1541,7 +1526,6 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                 //saving first page to file
                 if (saveToFile == true)
                 {
-                    //fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl);
                     if ((fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl) != 1) || ferror(isl))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1552,7 +1536,6 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                         safe_Free_aligned(dataBuffer);
                         return ERROR_WRITING_FILE;
                     }
-                    //fflush(isl);
                     if ((fflush(isl) != 0) || ferror(isl))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1630,7 +1613,6 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                         //save to file, or copy to the ptr we were given
                         if (saveToFile == true)
                         {
-                            //fwrite(dataBuffer, pullChunkSize, 1, isl);
                             if ((fwrite(dataBuffer, pullChunkSize, 1, isl) != 1) || ferror(isl))
                             {
                                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1641,7 +1623,6 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                                 safe_Free_aligned(dataBuffer);
                                 return ERROR_WRITING_FILE;
                             }
-                            //fflush(isl);
                             if ((fflush(isl) != 0) || ferror(isl))
                             {
                                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1676,7 +1657,6 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                 }
                 if (saveToFile == true)
                 {
-                    //fflush(isl);
                     if ((fflush(isl) != 0) || ferror(isl))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1803,8 +1783,6 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                         {
                             printf("Saving to file %s\n", fileNameUsed);
                         }
-
-                        //fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl);
                         if ((fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl) != 1) || ferror(isl))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1815,7 +1793,6 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                             safe_Free_aligned(dataBuffer);
                             return ERROR_WRITING_FILE;
                         }
-                        //fflush(isl);
                         if ((fflush(isl) != 0) || ferror(isl))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1915,7 +1892,6 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                         //save to file, or copy to the ptr we were given
                         if (saveToFile == true)
                         {
-                            //fwrite(dataBuffer, pullChunkSize, 1, isl);
                             if ((fwrite(dataBuffer, pullChunkSize, 1, isl) != 1) || ferror(isl))
                             {
                                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1926,7 +1902,6 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                                 safe_Free_aligned(dataBuffer);
                                 return ERROR_WRITING_FILE;
                             }
-                            //fflush(isl);
                             if ((fflush(isl) != 0) || ferror(isl))
                             {
                                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -2061,7 +2036,6 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                 //saving first page to file
                 if (saveToFile == true)
                 {
-                    //fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl);
                     if ((fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl) != 1) || ferror(isl))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -2072,7 +2046,6 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                         safe_Free_aligned(dataBuffer);
                         return ERROR_WRITING_FILE;
                     }
-                    //fflush(isl);
                     if ((fflush(isl) != 0) || ferror(isl))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -2152,7 +2125,6 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                         //save to file, or copy to the ptr we were given
                         if (saveToFile == true)
                         {
-                            //fwrite(dataBuffer, pullChunkSize, 1, isl);
                             if ((fwrite(dataBuffer, pullChunkSize, 1, isl) != 1) || ferror(isl))
                             {
                                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -2163,7 +2135,6 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                                 safe_Free_aligned(dataBuffer);
                                 return ERROR_WRITING_FILE;
                             }
-                            //fflush(isl);
                             if ((fflush(isl) != 0) || ferror(isl))
                             {
                                 if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -2198,7 +2169,6 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                 }
                 if (saveToFile == true)
                 {
-                    //fflush(isl);
                     if ((fflush(isl) != 0) || ferror(isl))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
