@@ -143,7 +143,7 @@ int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSi
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        return scsi_Write_Buffer(device, 0x02, 0, 0, 0, dataSize, ptrData);
+        return scsi_Write_Buffer(device, 0x02, 0, 0, 0, dataSize, ptrData, false, false, 0);
     }
     else
     {
