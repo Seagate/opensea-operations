@@ -1215,10 +1215,10 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
         {
             printf("Get Power State is currently not supported on this device type at this time.\n");
         }
-        return NOT_SUPPORTED;
+        ret = NOT_SUPPORTED;
     }
 
-    return SUCCESS;
+    return ret;
 }
 
 int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdentifiers identifiers)
