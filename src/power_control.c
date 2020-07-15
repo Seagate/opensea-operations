@@ -1177,8 +1177,8 @@ int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisa
 
 int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue )
 {
-    #if !defined(DISABLE_NVME_PASSTHROUGH)
     int ret = UNKNOWN;
+    #if !defined(DISABLE_NVME_PASSTHROUGH)
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
