@@ -889,7 +889,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->standby_z.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Z, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Z, &powerConditions->standby_z);
                     if (ret != SUCCESS)
                     {
                         return ret;
@@ -897,7 +897,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->idle_b.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_B, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_B, &powerConditions->idle_b);
                     if (ret != SUCCESS)
                     {
                         return ret;
@@ -905,7 +905,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->idle_c.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_C, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_C, &powerConditions->idle_c);
                     if (ret != SUCCESS)
                     {
                         return ret;
@@ -913,7 +913,7 @@ int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptr
                 }
                 if (powerConditions->standby_y.powerConditionValid)
                 {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Y, &powerConditions->idle_a);
+                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Y, &powerConditions->standby_y);
                     if (ret != SUCCESS)
                     {
                         return ret;
