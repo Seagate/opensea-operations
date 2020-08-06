@@ -863,7 +863,7 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue *currentAttribute, char 
         {
             printf("%3"PRIu8" %-35s  %04"PRIX16"h    %02"PRIX8"h     %02"PRIX8"h     N/A   ", currentAttribute->data.attributeNumber, attributeName, currentAttribute->data.status, currentAttribute->data.nominal, currentAttribute->data.worstEver);
         }
-        for (rawIter = 0; rawIter < 7; rawIter++)
+        for (rawIter = 3; rawIter < 7; rawIter++)
         {
             printf("%02"PRIX8"", currentAttribute->data.rawData[6 - rawIter]);
         }
