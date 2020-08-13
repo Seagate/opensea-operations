@@ -11,7 +11,7 @@
 // 
 // \file smart.c
 // \brief This file defines the functions related to SMART features on a drive (attributes, Status check)
-
+#include <string.h>
 #include "operations_Common.h"
 #include "smart.h"
 #include "usb_hacks.h"
@@ -842,9 +842,48 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
     }
 }
 
+/**
+ * hex2int
+ * take a hex string and convert it to a 32bit number (max 8 hex digits)
+ */
+uint32_t hex2int(char *hex) {
+    uint32_t val = 0;
+    while (*hex) {
+        // get current character then increment
+        char byte = *hex++;
+        // transform hex character to the 4bit equivalent number, using the ascii table indexes
+        if (byte >= '0' && byte <= '9') byte = byte - '0';
+        else if (byte >= 'a' && byte <= 'f') byte = byte - 'a' + 10;
+        else if (byte >= 'A' && byte <= 'F') byte = byte - 'A' + 10;
+        // shift 4 to make space for new digit, and add the 4 bits of the new digit 
+        val = (val << 4) | (byte & 0xF);
+    }
+    return val;
+}
+
+static void print_ATA_SMART_Attribute_Raw_Int_Value(uint8_t* rawdataParameter, int intialIndex, char finalIndex)
+{
+    int8_t rawIter;
+    char rawdata[20] = { NULL };
+    char temp[4];
+    uint32_t  rawdataIntValue=0;
+    for (rawIter = finalIndex; rawIter >= intialIndex; rawIter--) {
+        sprintf(temp, "%02"PRIX8"", rawdataParameter[rawIter]);
+        strcat(rawdata, temp);
+
+    }
+    rawdataIntValue = hex2int(rawdata);
+    printf("%" PRIu32 , rawdataIntValue);
+    //sscanf(rawdata, "%x", &rawdataIntValue);
+    //printf("%X", rawdataIntValue);
+
+}
 static void print_ATA_SMART_Attribute_Raw(ataSMARTValue *currentAttribute, char *attributeName)
 {
     uint8_t rawIter = 0;
+    char rawdata[20] = {NULL};
+    char temp[3];
+    long rawdataIntValue;
     if (currentAttribute->data.attributeNumber != 0)
     {
         if (currentAttribute->isWarrantied)
@@ -863,11 +902,104 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue *currentAttribute, char 
         {
             printf("%3"PRIu8" %-35s  %04"PRIX16"h    %02"PRIX8"h     %02"PRIX8"h     N/A   ", currentAttribute->data.attributeNumber, attributeName, currentAttribute->data.status, currentAttribute->data.nominal, currentAttribute->data.worstEver);
         }
-        for (rawIter = 3; rawIter < 7; rawIter++)
-        {
-            printf("%02"PRIX8"", currentAttribute->data.rawData[6 - rawIter]);
+        switch (currentAttribute->data.attributeNumber) {
+            case 1:  print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                     printf(" (Correctable, Soft LDPC correctable errors since last power cycle)\n");
+                     break;
+            case 9:  print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                     printf(" (power on hours)\n");
+                     break;
+            case 11: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                     printf(" (successful power fail backup events) \t");
+                     print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 4, 5);
+                     printf(" (unsuccessful power fail backup events)\n");
+                     break;
+            case 12: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                     printf(" (power cycles) \n");
+                     break;
+            case 100:print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                     printf(" (GB (binary) erases of flash) \n");
+                     break;
+            case 101: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (dev sleep exits) \n");
+                      break;
+            case 102: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 4);
+                      printf(" (PS4 entries) \n");
+                      break;
+            case 103: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 4);
+                      printf(" (PS3 entries) \n");
+                      break;
+            case 171: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      break;
+            case 172: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (erase failure events) \n");
+                      break;
+            case 173: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (program/erase cycles on all good blocks) \n");
+                      break;
+            case 174: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (unexpected power loss power cycles) \n");
+                      break;
+            case 177: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 1);
+                      printf(" ( 100 * [(MW – LW)/MRW]) \n");
+                      break;
+            case 183: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 2);
+                      printf(" ( interface downshift events this power cycle) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 3, 6);
+                      printf(" ( interface downshift events lifetime) \t");
+                      break;
+            case 184: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" ( detected End-To-End CRC Errors) \n");
+                      break;
+            case 187: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" ( uncorrectable codewords) \n");
+                      break;
+            case 194: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 1);
+                      printf(" (Current Temperature (C)) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 2, 3);
+                      printf(" (Lifetime Maximum Temperature (C)) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 4, 5);
+                      printf(" (Lifetime Minimum Temperature (C)) \n");
+                      break;
+            case 195: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 1);
+                      printf(" (RAISE-1 recoveries) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 2, 3);
+                      printf(" (RAISE-2 recoveries) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 4, 5);
+                      printf(" (number of times RAISE is used to restore date being programmed after a program failure) \n");
+                      break;
+            case 198: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (uncorrectable read errors) \n");
+                      break;
+            case 199: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (SATA Interface CRC Errors Count) \n");
+                      break;
+            case 231: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 0);
+                      printf(" (0=>TermA dominated and 1=> Termb dominated) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 1, 1);
+                      printf(" (Term A value) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 2, 2);
+                      printf(" (Term B value) \n");
+                      break;
+            case 233: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (GB (binary) written of flash) \n");
+                      break;
+            case 241: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (GB (binary) written to drive by host) \n");
+                      break;
+            case 242: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (GB (binary) read from drive by host) \n");
+                      break;
+            case 243: print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 3);
+                      printf(" (Free Space) \t");
+                      print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 4, 5);
+                      printf(" (Free Space Percentage in hundreths of a percent) \n");
+                      break;
+            default:  print_ATA_SMART_Attribute_Raw_Int_Value(currentAttribute->data.rawData, 0, 6);
+                      printf("\n");
+                      break;
         }
-        printf("h\n");
+        
     }
     //clear out the attribute name before looping again so we don't show dulicates
     sprintf(attributeName, "                             ");
