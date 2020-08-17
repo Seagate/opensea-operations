@@ -299,7 +299,7 @@ extern "C"
         ERASE_SANITIZE_CRYPTO,
         ERASE_SANITIZE_BLOCK,
         ERASE_SANITIZE_OVERWRITE,
-        ERASE_TRIM_UNMAP,
+        ERASE_OBSOLETE, //This was previously for Trim/unmap, but has been removed since these don't guarantee data erasure. They are more of "hints" which may or may not cause erasure.
         ERASE_TCG_REVERT_SP, //will be use in tcg operations lib, not operations lib
         ERASE_TCG_REVERT, //will be use in tcg operations lib, not operations lib
         ERASE_FORMAT_UNIT,
