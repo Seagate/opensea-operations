@@ -757,16 +757,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         formatUnitAdded = true;
     }
 
-    //next trim/unmap
-    if (isTrimUnmapSupported)
-    {
-        currentErase->eraseIdentifier = ERASE_TRIM_UNMAP;
-        snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "TRIM/UNMAP Erase");
-        //snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "");
-        currentErase->warningValid = false;
-        currentErase->eraseWeight = 3;
-        ++currentErase;
-    }
+    //trim/unmap/deallocate are not allowed since they are "hints" rather than guaranteed erasure.
 
     //This weight value is reserved for TCG revert (this is placed in another library)
 
@@ -899,7 +890,6 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
 {
     uint8_t counter = 0;
     bool cryptoSupported = false;
-    bool trimUnmapSupported = false;
     bool sanitizeBlockEraseSupported = false;
     printf("Erase Methods supported by this drive (listed fastest to slowest):\n");
     while (counter < MAX_SUPPORTED_ERASE_METHODS)
@@ -916,9 +906,6 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
             break;
         case ERASE_SANITIZE_BLOCK:
             sanitizeBlockEraseSupported = true;
-            break;
-        case ERASE_TRIM_UNMAP:
-            trimUnmapSupported = true;
             break;
         default:
             break;
@@ -948,9 +935,9 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
         {
             printf("Cryptographic erase completes in seconds.\n");
         }
-        if (trimUnmapSupported || sanitizeBlockEraseSupported)
+        if (sanitizeBlockEraseSupported)
         {
-            printf("Trim/Unmap & blockerase should also complete in under a minute.\n");
+            printf("Blockerase should also complete in under a minute.\n");
         }
         printf("\n");
     }
