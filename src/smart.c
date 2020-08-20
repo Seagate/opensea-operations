@@ -1002,7 +1002,6 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     }
                 }
                 eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
-                memset(*attributeName, 0, MAX_ATTRIBUTE_NAME_LENGTH);
                 if (isSeagateDrive == SEAGATE_VENDOR_G)
                 {
                     switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber) {
@@ -1142,8 +1141,9 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                 }
                 else
                 {
+                    printf("\tRaw Data: ");
                     for (uint8_t rawIter = 0; rawIter < 7; ++rawIter)
-                    {
+                    {                    
                         printf("%02"PRIX8"", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
                     }
                     printf("h\n");
