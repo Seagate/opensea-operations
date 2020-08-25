@@ -918,7 +918,7 @@ uint32_t hex2int(char *hex) {
 static void print_ATA_SMART_Attribute_Raw_Int_Value(uint8_t* rawdataParameter, int intialIndex, char finalIndex)
 {
     int8_t rawIter;
-    char rawdata[20] = { NULL };
+    char rawdata[20] = { 0 };
     char temp[4];
     uint32_t  rawdataIntValue = 0;
     for (rawIter = finalIndex; rawIter >= intialIndex; rawIter--) {
