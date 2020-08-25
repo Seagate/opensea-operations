@@ -1,4 +1,4 @@
-﻿//
+//
 // Do NOT modify or remove this copyright and license
 //
 // Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
@@ -25,7 +25,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE && is_SMART_Enabled(device))
     {
-        ataSMARTAttribute *currentAttribute = NULL;
+        ataSMARTAttribute currentAttribute;
         uint16_t            smartIter = 0;
         uint8_t *ATAdataBuffer = (uint8_t *)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (ATAdataBuffer == NULL)
@@ -38,29 +38,50 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
         {
             for (smartIter = ATA_SMART_BEGIN_ATTRIBUTES; smartIter < ATA_SMART_END_ATTRIBUTES; smartIter += ATA_SMART_ATTRIBUTE_SIZE)
             {
-                currentAttribute = (ataSMARTAttribute *)&ATAdataBuffer[smartIter];
-                if (currentAttribute->attributeNumber > 0 && currentAttribute->attributeNumber < 255)
+                currentAttribute.attributeNumber = ATAdataBuffer[smartIter + 0];
+                currentAttribute.status = M_BytesTo2ByteValue(ATAdataBuffer[smartIter + 2], ATAdataBuffer[smartIter + 1]);
+                currentAttribute.nominal = ATAdataBuffer[smartIter + 3];
+                currentAttribute.worstEver = ATAdataBuffer[smartIter + 4];
+                currentAttribute.rawData[0] = ATAdataBuffer[smartIter + 5];
+                currentAttribute.rawData[1] = ATAdataBuffer[smartIter + 6];
+                currentAttribute.rawData[2] = ATAdataBuffer[smartIter + 7];
+                currentAttribute.rawData[3] = ATAdataBuffer[smartIter + 8];
+                currentAttribute.rawData[4] = ATAdataBuffer[smartIter + 9];
+                currentAttribute.rawData[5] = ATAdataBuffer[smartIter + 10];
+                currentAttribute.rawData[6] = ATAdataBuffer[smartIter + 11];
+                if (currentAttribute.attributeNumber > 0 && currentAttribute.attributeNumber < 255)
                 {
-                    smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute->attributeNumber].valid = true;
-                    memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute->attributeNumber].data, currentAttribute, sizeof(ataSMARTAttribute));
+                    smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].valid = true;
+                    memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].data, &currentAttribute, sizeof(ataSMARTAttribute));
                     //check if it's warrantied (This should work on Seagate drives at least)
-                    if (currentAttribute->status & BIT0)
+                    if (currentAttribute.status & BIT0)
                     {
-                        smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute->attributeNumber].isWarrantied = true;
+                        smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].isWarrantied = true;
                     }
                 }
             }
             memset(ATAdataBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
             if (SUCCESS == ata_SMART_Read_Thresholds(device, ATAdataBuffer, LEGACY_DRIVE_SEC_SIZE))
             {
-                ataSMARTThreshold *currentThreshold = NULL;
+                ataSMARTThreshold currentThreshold;
                 for (smartIter = ATA_SMART_BEGIN_ATTRIBUTES; smartIter < ATA_SMART_END_ATTRIBUTES; smartIter += ATA_SMART_ATTRIBUTE_SIZE)
                 {
-                    currentThreshold = (ataSMARTThreshold*)&ATAdataBuffer[smartIter];
-                    if (currentThreshold->attributeNumber > 0 && currentThreshold->attributeNumber < 255)
+                    currentThreshold.attributeNumber = ATAdataBuffer[smartIter + 0];
+                    currentThreshold.thresholdValue = ATAdataBuffer[smartIter + 1];
+                    currentThreshold.reservedBytes[0] = ATAdataBuffer[smartIter + 2];
+                    currentThreshold.reservedBytes[1] = ATAdataBuffer[smartIter + 3];
+                    currentThreshold.reservedBytes[2] = ATAdataBuffer[smartIter + 4];
+                    currentThreshold.reservedBytes[3] = ATAdataBuffer[smartIter + 5];
+                    currentThreshold.reservedBytes[4] = ATAdataBuffer[smartIter + 6];
+                    currentThreshold.reservedBytes[5] = ATAdataBuffer[smartIter + 7];
+                    currentThreshold.reservedBytes[6] = ATAdataBuffer[smartIter + 8];
+                    currentThreshold.reservedBytes[7] = ATAdataBuffer[smartIter + 9];
+                    currentThreshold.reservedBytes[8] = ATAdataBuffer[smartIter + 10];
+                    currentThreshold.reservedBytes[9] = ATAdataBuffer[smartIter + 11];
+                    if (currentThreshold.attributeNumber > 0 && currentThreshold.attributeNumber < 255)
                     {
-                        smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold->attributeNumber].thresholdDataValid = true;
-                        memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold->attributeNumber].thresholdData, currentThreshold, sizeof(ataSMARTThreshold));
+                        smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber].thresholdDataValid = true;
+                        memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber].thresholdData, &currentThreshold, sizeof(ataSMARTThreshold));
                     }
                 }
             }

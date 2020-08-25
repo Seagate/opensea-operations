@@ -597,6 +597,13 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     break;
                 }
                 qwordPtrDeviceStatsLog = (uint64_t*)&deviceStatsLog[offset];
+#if defined (__BIG_ENDIAN__)
+                //TODO: Find a better way to change this code, but for now, on big endian systems, we need to byte swap all qwords of the buffer to make the code below work properly
+               for(uint8_t qwordBSwapIter = 0; qwordBSwapIter < 64; ++qwordBSwapIter)
+               {
+                    byte_Swap_64(&qwordPtrDeviceStatsLog[qwordBSwapIter]);
+                }
+#endif
                 switch (deviceStatsLog[9 + pageIter])
                 {
                 case 0://supported pages page...

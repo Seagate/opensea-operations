@@ -34,15 +34,21 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         uint16_t *wordPtr = &device->drive_info.IdentifyData.ata.Word000;
         //MN
         memcpy(driveInfo->modelNumber, device->drive_info.IdentifyData.ata.ModelNum, MODEL_NUM_LEN);
+#if !defined (__BIG_ENDIAN__)
         byte_Swap_String(driveInfo->modelNumber);
+#endif
         remove_Leading_And_Trailing_Whitespace(driveInfo->modelNumber);
         //SN
         memcpy(driveInfo->serialNumber, device->drive_info.IdentifyData.ata.SerNum, SERIAL_NUM_LEN);
+#if !defined (__BIG_ENDIAN__)
         byte_Swap_String(driveInfo->serialNumber);
+#endif
         remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
         //FWRev
         memcpy(driveInfo->firmwareRevision, device->drive_info.IdentifyData.ata.FirmVer, 8);
+#if !defined (__BIG_ENDIAN__)
         byte_Swap_String(driveInfo->firmwareRevision);
+#endif
         remove_Leading_And_Trailing_Whitespace(driveInfo->firmwareRevision);
         //WWN
         if (device->drive_info.IdentifyData.ata.Word084 & BIT8 || device->drive_info.IdentifyData.ata.Word087 & BIT8)
@@ -2005,7 +2011,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             driveInfo->longDSTTimeMinutes = M_BytesTo2ByteValue(smartData[376], smartData[375]);
         }
         //read temperature (194), poh (9) for all, then read 241, 242, and 231 for Seagate only
-        ataSMARTAttribute *currentAttribute = NULL;
+        ataSMARTAttribute currentAttribute;
         uint16_t smartIter = 0;
         eSeagateFamily seagateFamily = is_Seagate_Family(device);
         if (seagateFamily == SEAGATE)
@@ -2045,13 +2051,23 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         //first get the SMART attributes that we care about
         for (smartIter = 2; smartIter < 362; smartIter += 12)
         {
-            currentAttribute = (ataSMARTAttribute *)&smartData[smartIter];
-            switch (currentAttribute->attributeNumber)
+            currentAttribute.attributeNumber = smartData[smartIter + 0];
+            currentAttribute.status = M_BytesTo2ByteValue(smartData[smartIter + 2], smartData[smartIter + 1]);
+            currentAttribute.nominal = smartData[smartIter + 3];
+            currentAttribute.worstEver = smartData[smartIter + 4];
+            currentAttribute.rawData[0] = smartData[smartIter + 5];
+            currentAttribute.rawData[1] = smartData[smartIter + 6];
+            currentAttribute.rawData[2] = smartData[smartIter + 7];
+            currentAttribute.rawData[3] = smartData[smartIter + 8];
+            currentAttribute.rawData[4] = smartData[smartIter + 9];
+            currentAttribute.rawData[5] = smartData[smartIter + 10];
+            currentAttribute.rawData[6] = smartData[smartIter + 11];
+            switch (currentAttribute.attributeNumber)
             {
             case 9: //POH (This attribute seems shared between vendors)
             {
-                uint32_t millisecondsSinceIncrement = M_BytesTo4ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4]);
-                uint32_t powerOnMinutes = M_BytesTo4ByteValue(currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]) * 60;
+                uint32_t millisecondsSinceIncrement = M_BytesTo4ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4]);
+                uint32_t powerOnMinutes = M_BytesTo4ByteValue(currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]) * 60;
                 powerOnMinutes += (millisecondsSinceIncrement / 60000);//convert the milliseconds to minutes, then add that to the amount of time we already know
                 if (driveInfo->powerOnMinutes < powerOnMinutes)
                 {
@@ -2063,16 +2079,16 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                 if (!driveInfo->temperatureData.temperatureDataValid)
                 {
                     driveInfo->temperatureData.temperatureDataValid = true;
-                    driveInfo->temperatureData.currentTemperature = (int16_t)M_BytesTo2ByteValue(currentAttribute->rawData[1], currentAttribute->rawData[0]);
+                    driveInfo->temperatureData.currentTemperature = (int16_t)M_BytesTo2ByteValue(currentAttribute.rawData[1], currentAttribute.rawData[0]);
                 }
                 if (!driveInfo->temperatureData.lowestValid)
                 {
-                    driveInfo->temperatureData.lowestTemperature = (int16_t)M_BytesTo2ByteValue(currentAttribute->rawData[5], currentAttribute->rawData[4]);
+                    driveInfo->temperatureData.lowestTemperature = (int16_t)M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4]);
                     driveInfo->temperatureData.lowestValid = true;
                 }
                 if (!driveInfo->temperatureData.highestValid)
                 {
-                    driveInfo->temperatureData.highestTemperature = (int16_t)currentAttribute->worstEver;
+                    driveInfo->temperatureData.highestTemperature = (int16_t)currentAttribute.worstEver;
                     driveInfo->temperatureData.highestValid = true;
                 }
                 break;
@@ -2100,18 +2116,18 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         strcmp(driveInfo->modelNumber, "ST400FM0052") == 0) &&
                         strcmp(driveInfo->firmwareRevision, "0004") == 0)
                     {
-                        driveInfo->percentEnduranceUsed = 100 - ((currentAttribute->nominal * 100) / 255);
+                        driveInfo->percentEnduranceUsed = 100 - ((currentAttribute.nominal * 100) / 255);
                     }
                     else
                     {
-                        driveInfo->percentEnduranceUsed = 100 - currentAttribute->nominal;
+                        driveInfo->percentEnduranceUsed = 100 - currentAttribute.nominal;
                     }
                 }
                 break;
             case 233: //Lifetime Write to Flash (SSD)
                 if (seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_F)
                 {
-                    driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
+                    driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     //convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
                     driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                 }
@@ -2119,7 +2135,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             case 234: //Lifetime Write to Flash (SSD)
                 if (seagateFamily == SEAGATE || (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B))
                 {
-                    driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
+                    driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     //convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
                     driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                 }
@@ -2127,7 +2143,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             case 241: //Total Bytes written (SSD) Total LBAs written (HDD)
                 if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsWritten == 0)
                 {
-                    driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
+                    driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB written, so convert to LBAs
@@ -2138,7 +2154,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             case 242: //Total Bytes read (SSD) Total LBAs read (HDD)
                 if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsRead == 0)
                 {
-                    driveInfo->totalLBAsRead = M_BytesTo8ByteValue(0, currentAttribute->rawData[6], currentAttribute->rawData[5], currentAttribute->rawData[4], currentAttribute->rawData[3], currentAttribute->rawData[2], currentAttribute->rawData[1], currentAttribute->rawData[0]);
+                    driveInfo->totalLBAsRead = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB read, so convert to LBAs
