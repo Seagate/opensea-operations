@@ -703,7 +703,6 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     uint64_t maxNumberOfLogicalBlocksPerCommand = 0;
     bool formatUnitAdded = false;
     bool isWriteSameSupported = is_Write_Same_Supported(device, 0, (uint32_t)device->drive_info.deviceMaxLba, &maxNumberOfLogicalBlocksPerCommand);
-    bool isTrimUnmapSupported = is_Trim_Or_Unmap_Supported(device, NULL, NULL);
     bool isFormatUnitSupported = is_Format_Unit_Supported(device, NULL);
     eraseMethod * currentErase = (eraseMethod*)eraseMethodList;
     if (!currentErase)
