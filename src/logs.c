@@ -12,6 +12,9 @@
 #include "logs.h"
 #include "ata_helper_func.h"
 #include "scsi_helper_func.h"
+#include "nvme_helper.h"
+#include "nvme_operations.h"
+#include "smart.h"
 #include "operations_Common.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
@@ -2387,57 +2390,65 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
     return retStatus;
 }
 
-int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
+int print_Supported_NVMe_Logs(tDevice *device, uint32_t logNum)
 {
-    int retStatus = NOT_SUPPORTED;
-
-    if (!is_Seagate(device, false)) 
-    {
-        return retStatus;
-    }
-
-#if !defined(DISABLE_NVME_PASSTHROUGH)
-    logPageMap suptLogPage;
-    nvmeGetLogPageCmdOpts suptLogOpts;
-
-    memset(&suptLogPage, 0, sizeof(logPageMap));
-    memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-    suptLogOpts.addr = (uint8_t*)(&suptLogPage);
-    suptLogOpts.dataLen = sizeof(logPageMap);
-    suptLogOpts.lid = 0xc5;
-    suptLogOpts.nsid = 0;//controller data
-    if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
-    {
-        retStatus = SUCCESS;
-        uint32_t numPage = suptLogPage.numLogPages;
-        uint32_t page = 0;          
-        printf("\n  Log Pages  :   Signature    :    Version\n");
-        printf("-------------:----------------:--------------\n");
-        for (page = 0; page < numPage; page++)
-        {
-            if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
+    //Since 0 is reserved log
+    int retStatus=0;
+    switch (logNum) {
+        case NVME_LOG_SMART_ID:
+            switch (print_SMART_Attributes(device, SMART_ATTR_OUTPUT_RAW))
             {
-                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
-                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                retStatus = 3;
+                break;
             }
-        }
-        printf("\t\t------------------\n");
-        printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-        printf("\t\t------------------\n");
-        for (page = 0; page < numPage; page++)
-        {
-            if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
+            break;
+        case NVME_LOG_ERROR_ID:
+            switch (nvme_Print_ERROR_Log_Page(device, 0))
             {
-                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
-                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                retStatus = 3;
+                break;
             }
-        }
+            break;
+        case NVME_LOG_FW_SLOT_ID:
+            switch (nvme_Print_FWSLOTS_Log_Page(device))
+            {
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                
+                retStatus = 3;
+                break;
+            }
+            break;
+        case NVME_LOG_CMD_SPT_EFET_ID:
+            switch (nvme_Print_CmdSptEfft_Log_Page(device))
+            {
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                retStatus = 3;
+                break;
+            }
+            break;
+        default:
+            
+            retStatus = 3;
+            break;
     }
-#endif
     return retStatus;
 }
+    
+
 
 int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags)
 {
@@ -2589,7 +2600,7 @@ int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPul
         }
         break;
     case NVME_DRIVE:
-        retStatus = print_Supported_NVMe_Logs(device, 0);
+        retStatus = print_Supported_NVMe_Logs(device, logNum);
         break;
     default:
         break;
