@@ -664,7 +664,7 @@ int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, b
     return ret;
 }
 
-int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData)
+int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     int ret = SUCCESS;
     uint64_t iterator = 0;
@@ -720,7 +720,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
     return ret;
 }
 
-int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData)
+int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     int ret = SUCCESS;
     uint64_t iterator = 0;
@@ -1033,7 +1033,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
     return ret;
 }
 
-int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
+int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     int ret = SUCCESS;
     uint64_t iterator = 0;

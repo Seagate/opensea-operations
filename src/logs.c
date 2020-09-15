@@ -1071,6 +1071,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     pagesToReadAtATime = 16;
                     break;
                 }
+                M_FALLTHROUGH
             default:
                 if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
                 {
@@ -1569,13 +1570,16 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 1://small
+                    M_FALLTHROUGH
                 default:
                     islPullingSize = reportedSmallSize;
                     break;                    
@@ -1842,19 +1846,23 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 3://large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 1://small
+                    M_FALLTHROUGH
                 default:
                     islPullingSize = reportedSmallSize;
                     break;
@@ -2079,13 +2087,16 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 1://small
+                    M_FALLTHROUGH
                 default:
                     islPullingSize = reportedSmallSize;
                     break;
@@ -2209,6 +2220,7 @@ int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,
     case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
         ret = nvme_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
+        break;
 #endif
     case SCSI_DRIVE:
         ret = scsi_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
@@ -2248,6 +2260,7 @@ int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
     uint8_t *logBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     bool subpagesSupported = true;
     bool gotListOfPages = true;
+    M_USE_UNUSED(flags);
     if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE))
     {
         //either device doesn't support logs, or it just doesn't support subpages, so let's try reading the list of supported pages (no subpages) before saying we need to dummy up the list
@@ -2328,6 +2341,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
     uint8_t *logBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    M_USE_UNUSED(flags);
     if (logBuffer)
     {
         retStatus = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0);
@@ -2390,7 +2404,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
-
+    M_USE_UNUSED(flags);
     if (!is_Seagate(device, false)) 
     {
         return retStatus;
@@ -2444,6 +2458,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     int ret = NOT_SUPPORTED;
     uint32_t errorHistorySize = 2048;
     uint8_t *errorHistoryDirectory = (uint8_t*)calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment);
+    M_USE_UNUSED(flags);
     if (errorHistoryDirectory)
     {
         if (SUCCESS == scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory))

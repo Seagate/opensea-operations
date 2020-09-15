@@ -890,6 +890,7 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     uint8_t counter = 0;
     bool cryptoSupported = false;
     bool sanitizeBlockEraseSupported = false;
+    M_USE_UNUSED(device);
     printf("Erase Methods supported by this drive (listed fastest to slowest):\n");
     while (counter < MAX_SUPPORTED_ERASE_METHODS)
     {
@@ -1788,6 +1789,7 @@ void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage,
             default:
                 break;
             }
+            break;
         case 0x01://Device Configuration Extension
             snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration Extension");
             break;

@@ -552,10 +552,13 @@ int seagate_SAS_Set_JIT_Modes(tDevice *device, bool disableVjit, uint8_t jitMode
                 default:
                 case 0:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT0;
+                    M_FALLTHROUGH
                 case 1:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT1;
+                    M_FALLTHROUGH
                 case 2:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT2;
+                    M_FALLTHROUGH
                 case 3:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT3;
                 }

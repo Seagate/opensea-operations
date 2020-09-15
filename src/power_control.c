@@ -552,7 +552,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
     {
         powerSettings.enableValid = true;
         powerSettings.enable = enableDisable;
-        powerSettings.timerValid = powerModeTimer;
+        powerSettings.timerValid = powerModeTimerValid;
         powerSettings.timerInHundredMillisecondIncrements = powerModeTimer;
     }
     ret = ata_Set_EPC_Power_Mode(device, powerCondition, &powerSettings);
@@ -1038,6 +1038,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             powerConditions.idle_a.enableValid = true;
             powerConditions.idle_a.enable = enableDisable;
             //set the timer value
+            powerConditions.idle_a.timerValid = powerModeTimerValid;
             powerConditions.idle_a.timerInHundredMillisecondIncrements = powerModeTimer;
             break;
         case PWR_CND_IDLE_B:
@@ -1051,6 +1052,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             powerConditions.idle_b.enableValid = true;
             powerConditions.idle_b.enable = enableDisable;
             //set the timer value
+            powerConditions.idle_b.timerValid = powerModeTimerValid;
             powerConditions.idle_b.timerInHundredMillisecondIncrements = powerModeTimer;
             break;
         case PWR_CND_IDLE_C:
@@ -1064,6 +1066,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             powerConditions.idle_c.enableValid = true;
             powerConditions.idle_c.enable = enableDisable;
             //set the timer value
+            powerConditions.idle_c.timerValid = powerModeTimerValid;
             powerConditions.idle_c.timerInHundredMillisecondIncrements = powerModeTimer;
             break;
         case PWR_CND_STANDBY_Y:
@@ -1077,6 +1080,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             powerConditions.standby_y.enableValid = true;
             powerConditions.standby_y.enable = enableDisable;
             //set the timer value
+            powerConditions.standby_y.timerValid = powerModeTimerValid;
             powerConditions.standby_y.timerInHundredMillisecondIncrements = powerModeTimer;
             break;
         case PWR_CND_STANDBY_Z:
@@ -1090,6 +1094,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             powerConditions.standby_z.enableValid = true;
             powerConditions.standby_z.enable = enableDisable;
             //set the timer value
+            powerConditions.standby_z.timerValid = powerModeTimerValid;
             powerConditions.standby_z.timerInHundredMillisecondIncrements = powerModeTimer;
             break;
         case PWR_CND_ALL:
@@ -1101,6 +1106,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 powerConditions.standby_y.enableValid = true;
                 powerConditions.standby_y.enable = enableDisable;
                 //set the timer value
+                powerConditions.standby_y.timerValid = powerModeTimerValid;
                 powerConditions.standby_y.timerInHundredMillisecondIncrements = powerModeTimer;
             }
             else if (powerConditionVPD[4] & BIT0)//standby_z
@@ -1110,6 +1116,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 powerConditions.standby_z.enableValid = true;
                 powerConditions.standby_z.enable = enableDisable;
                 //set the timer value
+                powerConditions.standby_z.timerValid = powerModeTimerValid;
                 powerConditions.standby_z.timerInHundredMillisecondIncrements = powerModeTimer;
             }
             else if (powerConditionVPD[5] & BIT2)//idle_c
@@ -1119,6 +1126,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 powerConditions.idle_c.enableValid = true;
                 powerConditions.idle_c.enable = enableDisable;
                 //set the timer value
+                powerConditions.idle_c.timerValid = powerModeTimerValid;
                 powerConditions.idle_c.timerInHundredMillisecondIncrements = powerModeTimer;
             }
             else if (powerConditionVPD[5] & BIT1)//idle_b
@@ -1128,6 +1136,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 powerConditions.idle_b.enableValid = true;
                 powerConditions.idle_b.enable = enableDisable;
                 //set the timer value
+                powerConditions.idle_b.timerValid = powerModeTimerValid;
                 powerConditions.idle_b.timerInHundredMillisecondIncrements = powerModeTimer;
             }
             else if (powerConditionVPD[5] & BIT0)//idle_a
@@ -1137,6 +1146,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 powerConditions.idle_a.enableValid = true;
                 powerConditions.idle_a.enable = enableDisable;
                 //set the timer value
+                powerConditions.idle_a.timerValid = powerModeTimerValid;
                 powerConditions.idle_a.timerInHundredMillisecondIncrements = powerModeTimer;
             }
             break;
@@ -1324,6 +1334,7 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                     break;
                 case 5://microwatts
                     printf("Microwatts");
+                    break;
                 default:
                     printf("unknown unit of measure");
                     break;
@@ -1504,7 +1515,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
         uint8_t pcId1 = 0xFF, pcId2 = 0xFF;
         uint64_t watts1 = 0, watts2 = 0;
         ret = NOT_SUPPORTED;
-        for (; iter1 < identifiers.numberOfPCIdentifiers && iter2 >= 0; iter1++, iter2--)
+        for (; iter1 < identifiers.numberOfPCIdentifiers /* && iter2 >= 0*/; iter1++, iter2--)
         {
             uint64_t pcWatts1 = identifiers.identifiers[iter1].value;
             uint64_t pcWatts2 = identifiers.identifiers[iter2].value;
@@ -1527,6 +1538,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
                 break;
             case 5://microwatts
                 pcWatts1 /= 1000000;
+                break;
             default:
                 ret = NOT_SUPPORTED;
                 break;
@@ -1549,6 +1561,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
                 break;
             case 5://microwatts
                 pcWatts2 /= 1000000;
+                break;
             default:
                 ret = NOT_SUPPORTED;
                 break;
@@ -1985,6 +1998,7 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     {
         return;
     }
+    M_USE_UNUSED(device);
     printf("\n===EPC Settings===\n");
     printf("\t* = timer is enabled\n");
     printf("\tC column = Changeable\n");

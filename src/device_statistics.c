@@ -16,6 +16,7 @@
 #include "logs.h"
 
 //this is ued to determine which device statistic is being talked about by the DSN log on ata
+/*
 int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = FAILURE;
@@ -25,6 +26,7 @@ int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *devi
     }
     return ret;
 }
+*/
 void scsi_Threshold_Comparison(statistic *ptrStatistic);//prototype
 
 int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
@@ -6676,7 +6678,7 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
         if (theStatistic.isValueValid)
         {
             uint8_t resourceValue = M_Byte0(theStatistic.statisticValue);
-            if (resourceValue >= 0 && resourceValue <= 0x7F)
+            if (/* resourceValue >= 0 && */ resourceValue <= 0x7F)
             {
                 printf("Within nominal bounds (%" PRIX8 "h)", resourceValue);
             }
@@ -7362,7 +7364,7 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     return ret;
 }
 
-int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = SUCCESS;
     if (!deviceStats)

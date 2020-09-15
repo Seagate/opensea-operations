@@ -32,7 +32,7 @@ int read_Write_Seek_Command(tDevice *device, eRWVCommandType rwvCommand, uint64_
     }
 }
 
-int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     uint64_t lbaIter = startingLBA;
@@ -186,7 +186,7 @@ int short_Generic_Write_Test(tDevice *device, custom_Update updateFunction, void
     return short_Generic_Test(device, RWV_COMMAND_WRITE, updateFunction, updateData, hideLBACounter);
 }
 
-int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     char message[256] = { 0 };
@@ -418,7 +418,7 @@ typedef struct _performanceNumbers
     uint16_t sectorCount;
 }performanceNumbers;
 
-int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     bool showPerformanceNumbers = false;//TODO: make this a function parameter.
@@ -876,7 +876,7 @@ int user_Sequential_Verify_Test(tDevice *device, uint64_t startingLBA, uint64_t 
     return user_Sequential_Test(device, RWV_COMMAND_VERIFY, startingLBA, range, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     errorLBA *errorList = NULL;
@@ -1006,7 +1006,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     return ret;
 }
 
-int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     bool errorLimitReached = false;
@@ -1215,7 +1215,7 @@ int butterfly_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Updat
     return butterfly_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
@@ -1337,7 +1337,7 @@ int random_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Update u
     return random_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
@@ -1391,7 +1391,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     return ret;
 }
 
-int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, custom_Update updateFunction, void *updateData)
+int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     uint8_t *dataBuf = NULL;
     time_t startTime = 0;

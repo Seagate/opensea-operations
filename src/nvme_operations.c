@@ -41,7 +41,7 @@ void nvme_Print_Feature_Identifiers_Help()
     printf("====================================================\n");
 }
 
-int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, bool listOnlySupportedFeatures)
+int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, M_ATTR_UNUSED bool listOnlySupportedFeatures)
 {
     int ret = UNKNOWN;
     uint8_t featureID;
@@ -429,6 +429,7 @@ int nvme_Get_Log_Size(uint8_t logPageId, uint64_t * logSize)
         break;
     case NVME_LOG_DEV_SELF_TEST:
         *logSize = sizeof(nvmeSelfTestLog);
+        break;
     default:
         *logSize = 0;
         break;

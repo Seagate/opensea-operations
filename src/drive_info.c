@@ -4214,6 +4214,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
+                break;
                 case 0x03://Negotiated Settings (Parallel SCSI)
                 {
                     uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
@@ -4294,7 +4295,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 {
                                     scalingMultiplier = 10;
                                 }
-                                else if (transferPeriodFactor >= 0x32 && transferPeriodFactor <= 0xFF)
+                                else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
                                 {
                                     scalingMultiplier = 5;
                                 }
@@ -4321,6 +4322,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
+                break;
                 case 0x04://Report Transfer Capabilities (Parallel SCSI)
                 {
                     uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
@@ -4401,7 +4403,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 {
                                     scalingMultiplier = 10;
                                 }
-                                else if (transferPeriodFactor >= 0x32 && transferPeriodFactor <= 0xFF)
+                                else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
                                 {
                                     scalingMultiplier = 5;
                                 }

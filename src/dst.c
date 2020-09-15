@@ -831,6 +831,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         *minutes = (uint8_t)(longTestTime % 60);
         ret = SUCCESS;
     }
+        break;
 #endif
     case SCSI_DRIVE:
     {
@@ -1088,6 +1089,8 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     uint64_t totalErrors = 0;
     bool unableToRepair = false;
     bool passthroughWrite = false;
+    M_USE_UNUSED(updateFunction);
+    M_USE_UNUSED(updateData);
     if (is_Sector_Size_Emulation_Active(device))
     {
         passthroughWrite = true;//in this case, since sector size emulation is active, we need to issue a passthrough command for the repair instead of a standard interface command. - TJE
@@ -1843,7 +1846,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                     sprintf(selfTestRunString, "Selective (captive)");
                     break;
                 default:
-                    if ((entries->dstEntry[iter].selfTestRun >= 0x40 && entries->dstEntry[iter].selfTestRun <= 0x7E) || (entries->dstEntry[iter].selfTestRun >= 0x90 && entries->dstEntry[iter].selfTestRun <= 0xFF))
+                    if ((entries->dstEntry[iter].selfTestRun >= 0x40 && entries->dstEntry[iter].selfTestRun <= 0x7E) || (entries->dstEntry[iter].selfTestRun >= 0x90 /*&& entries->dstEntry[iter].selfTestRun <= 0xFF*/))
                     {
                         sprintf(selfTestRunString, "Vendor Specific - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
                     }
