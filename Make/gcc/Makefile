@@ -26,7 +26,7 @@ INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-
 CC ?= gcc
 AR ?= ar
 #override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
-CFLAGS ?= -Wall 
+CFLAGS ?= -Wall -Wextra 
 CFLAGS += -c -fPIC -I. -std=gnu99
 
 LFLAGS ?= -Wl,-Map,output.map -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
