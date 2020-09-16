@@ -1096,7 +1096,8 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
 
 void show_Test_Unit_Ready_Status(tDevice *device)
 {
-    scsiStatus returnedStatus = { 0 };
+    scsiStatus returnedStatus;
+	memset(&returnedStatus, 0, sizeof(scsiStatus));
     int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {

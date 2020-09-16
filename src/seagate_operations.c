@@ -1067,7 +1067,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                     while (status > 0x08 && ret == SUCCESS)
                     {
                         ret = get_IDD_Status(device, &status);
-                        if (VERBOSITY_QUIET <= device->deviceVerbosity)
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("\n    IDD test is still in progress...please wait");
                             fflush(stdout);
