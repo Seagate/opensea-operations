@@ -2495,8 +2495,8 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint32_t logNum, eLogPullMode mode
             }
             else {
                 retStatus = 3;
-                safe_Free(logBuffer);
             }
+            safe_Free(logBuffer);
         }
         else {
             retStatus = 3;
