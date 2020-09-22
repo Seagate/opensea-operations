@@ -495,7 +495,7 @@ int nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
 {
     int ret = UNKNOWN;
     nvmeEffectsLog effectsLogInfo;
-    uint8_t i = 0;
+    uint16_t i = 0;
     int effect = 0;
 
 #ifdef _DEBUG
