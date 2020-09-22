@@ -567,7 +567,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
     //TODO: Check the powerConditions structure to see if there are any specific timers to restore up front, then copy the default data into that timer structure so it can be written back.
     //Write all applicable changes back to the drive, checking each structure as it goes.
     int ret = SUCCESS;
-    uint32_t powerConditionsPageLength = 0;
+    uint16_t powerConditionsPageLength = 0;
     uint8_t *powerConditionsPage = NULL;
     if (restoreAllToDefaults)
     {
@@ -1248,7 +1248,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
-                identifiers->numberOfPCIdentifiers = (powerConsumptionLength - 4) / 4;
+                identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
                 uint16_t pcIter = 4, counter = 0;
                 for (; pcIter < powerConsumptionLength; pcIter += 4, counter++)
                 {
@@ -2067,25 +2067,25 @@ int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements
             //send standby immediate and return immediately
             return ata_Standby_Immediate(device);
         }
-        else if (hundredMillisecondIncrements >= 1 && hundredMillisecondIncrements <= 12000)
+        else if (hundredMillisecondIncrements >= UINT32_C(1) && hundredMillisecondIncrements <= UINT32_C(12000))
         {
-            standbyTimer = ((hundredMillisecondIncrements - 1) / 50) + 1;
+            standbyTimer = C_CAST(uint8_t, ((hundredMillisecondIncrements - UINT32_C(1)) / UINT32_C(50)) + UINT32_C(1));
         }
-        else if (hundredMillisecondIncrements >= 12001 && hundredMillisecondIncrements <= 12600)
+        else if (hundredMillisecondIncrements >= UINT32_C(12001) && hundredMillisecondIncrements <= UINT32_C(12600))
         {
             standbyTimer = 0xFC;
         }
-        else if (hundredMillisecondIncrements >= 12601 && hundredMillisecondIncrements <= 12750)
+        else if (hundredMillisecondIncrements >= UINT32_C(12601) && hundredMillisecondIncrements <= UINT32_C(12750))
         {
             standbyTimer = 0xFF;
         }
-        else if (hundredMillisecondIncrements >= 12751 && hundredMillisecondIncrements <= 17999)
+        else if (hundredMillisecondIncrements >= UINT32_C(12751) && hundredMillisecondIncrements <= UINT32_C(17999))
         {
             standbyTimer = 0xF1;
         }
-        else if (hundredMillisecondIncrements >= 18000 && hundredMillisecondIncrements <= 198000)
+        else if (hundredMillisecondIncrements >= UINT32_C(18000) && hundredMillisecondIncrements <= UINT32_C(198000))
         {
-            standbyTimer = (hundredMillisecondIncrements / 18000) + 240;
+            standbyTimer = C_CAST(uint8_t, (hundredMillisecondIncrements / UINT32_C(18000)) + UINT32_C(240));
         }
         else
         {

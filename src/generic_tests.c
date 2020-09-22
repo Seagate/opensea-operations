@@ -471,7 +471,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     }
     odTest.asyncCommandsUsed = false;
     odTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
-    odTest.sectorCount = sectorCount;
+    odTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this command to get us in the right place for the OD test.
     read_Write_Seek_Command(device, rwvCommand, 0, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize));
     startTime = time(NULL);
@@ -566,7 +566,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     IDStartLBA = device->drive_info.deviceMaxLba - ODEndingLBA;
     idTest.asyncCommandsUsed = false;
     idTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
-    idTest.sectorCount = sectorCount;
+    idTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this read to get the heads in the right place before starting the ID test.
     read_Write_Seek_Command(device, rwvCommand, IDStartLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize));
     startTime = time(NULL);
@@ -661,7 +661,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     }
     randomTest.asyncCommandsUsed = false;
     randomTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
-    randomTest.sectorCount = sectorCount;
+    randomTest.sectorCount = C_CAST(uint16_t, sectorCount);
     startTime = time(NULL);
     start_Timer(&randomTestTimer);
     while (difftime(time(NULL), startTime) < randomTimeSeconds)
@@ -956,7 +956,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorIndex; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)
@@ -1156,7 +1156,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorIndex; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)
@@ -1863,7 +1863,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorOffset; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)
@@ -2152,7 +2152,7 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorOffset; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)

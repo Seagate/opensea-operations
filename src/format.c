@@ -62,7 +62,6 @@ bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
     {
         return false;
     }
-    return false;
 }
 
 int get_Format_Progress(tDevice *device, double *percentComplete)
@@ -943,88 +942,84 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
     if (formats->protectionInformationSupported.protectionReportedPerSectorSize || supportedSectorSizesDataLength)
     {
-        uint32_t supportedSectorSizesDataLength = 0;
-        if (SUCCESS == get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength))
+        uint8_t *supportedBlockLengthsData = (uint8_t*)calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+        if (!supportedBlockLengthsData)
         {
-            uint8_t *supportedBlockLengthsData = (uint8_t*)calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
-            if (!supportedBlockLengthsData)
-            {
-                return MEMORY_FAILURE;
-            }
-            if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, supportedSectorSizesDataLength, NULL))
-            {
-                dummyUpCommonSizes = false;
-                uint32_t numberOfSizes = formats->numberOfSectorSizes;
-                formats->numberOfSectorSizes = 0;
-                for (uint32_t iter = 4, sectorSizeCounter = 0; (iter + 8) < supportedSectorSizesDataLength && sectorSizeCounter < numberOfSizes; iter += 8, ++sectorSizeCounter, ++formats->numberOfSectorSizes)
-                {
-                    formats->sectorSizes[sectorSizeCounter].valid = true;
-                    formats->sectorSizes[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(supportedBlockLengthsData[iter + 0], supportedBlockLengthsData[iter + 1], supportedBlockLengthsData[iter + 2], supportedBlockLengthsData[iter + 3]);
-                    formats->sectorSizes[sectorSizeCounter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.piSupportBitsValid = true;
-                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.p_i_i_sup = (bool)(supportedBlockLengthsData[iter + 4] & BIT6);
-                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.no_pi_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT3);
-                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.grd_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT2);
-                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.app_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT1);
-                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.ref_chk = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
-                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
-                    if (supportedBlockLengthsData[iter + 5] & BIT1)
-                    {
-                        formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t1ps = true;
-                        formats->protectionInformationSupported.protectionType1Supported = true;
-                    }
-                    if (supportedBlockLengthsData[iter + 5] & BIT2)
-                    {
-                        formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t2ps = true;
-                        formats->protectionInformationSupported.protectionType2Supported = true;
-                    }
-                    if (supportedBlockLengthsData[iter + 5] & BIT3)
-                    {
-                        formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t3ps = true;
-                        formats->protectionInformationSupported.protectionType3Supported = true;
-                    }
-                    if (device->drive_info.deviceBlockSize == formats->sectorSizes[sectorSizeCounter].logicalBlockLength)
-                    {
-                        //check PI to see if this is the current format
-                        switch (device->drive_info.currentProtectionType)
-                        {
-                        case 0:
-                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps)
-                            {
-                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
-                            }
-                            break;
-                        case 1:
-                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t1ps)
-                            {
-                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
-                            }
-                            break;
-                        case 2:
-                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t2ps)
-                            {
-                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
-                            }
-                            break;
-                        case 3:
-                            if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t3ps)
-                            {
-                                formats->sectorSizes[sectorSizeCounter].currentFormat = true;
-                            }
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                }
-                if (formats->protectionInformationSupported.protectionType1Supported || formats->protectionInformationSupported.protectionType2Supported || formats->protectionInformationSupported.protectionType3Supported)
-                {
-                    formats->protectionInformationSupported.deviceSupportsProtection = true;
-                }
-                ret = SUCCESS;
-            }
-            safe_Free_aligned(supportedBlockLengthsData);
+            return MEMORY_FAILURE;
         }
+        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, supportedSectorSizesDataLength, NULL))
+        {
+            dummyUpCommonSizes = false;
+            uint32_t numberOfSizes = formats->numberOfSectorSizes;
+            formats->numberOfSectorSizes = 0;
+            for (uint32_t iter = 4, sectorSizeCounter = 0; (iter + 8) < supportedSectorSizesDataLength && sectorSizeCounter < numberOfSizes; iter += 8, ++sectorSizeCounter, ++formats->numberOfSectorSizes)
+            {
+                formats->sectorSizes[sectorSizeCounter].valid = true;
+                formats->sectorSizes[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(supportedBlockLengthsData[iter + 0], supportedBlockLengthsData[iter + 1], supportedBlockLengthsData[iter + 2], supportedBlockLengthsData[iter + 3]);
+                formats->sectorSizes[sectorSizeCounter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.piSupportBitsValid = true;
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.p_i_i_sup = (bool)(supportedBlockLengthsData[iter + 4] & BIT6);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.no_pi_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT3);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.grd_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT2);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.app_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT1);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.ref_chk = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
+                if (supportedBlockLengthsData[iter + 5] & BIT1)
+                {
+                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t1ps = true;
+                    formats->protectionInformationSupported.protectionType1Supported = true;
+                }
+                if (supportedBlockLengthsData[iter + 5] & BIT2)
+                {
+                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t2ps = true;
+                    formats->protectionInformationSupported.protectionType2Supported = true;
+                }
+                if (supportedBlockLengthsData[iter + 5] & BIT3)
+                {
+                    formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t3ps = true;
+                    formats->protectionInformationSupported.protectionType3Supported = true;
+                }
+                if (device->drive_info.deviceBlockSize == formats->sectorSizes[sectorSizeCounter].logicalBlockLength)
+                {
+                    //check PI to see if this is the current format
+                    switch (device->drive_info.currentProtectionType)
+                    {
+                    case 0:
+                        if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps)
+                        {
+                            formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                        }
+                        break;
+                    case 1:
+                        if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t1ps)
+                        {
+                            formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                        }
+                        break;
+                    case 2:
+                        if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t2ps)
+                        {
+                            formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                        }
+                        break;
+                    case 3:
+                        if (formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t3ps)
+                        {
+                            formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+            if (formats->protectionInformationSupported.protectionType1Supported || formats->protectionInformationSupported.protectionType2Supported || formats->protectionInformationSupported.protectionType3Supported)
+            {
+                formats->protectionInformationSupported.deviceSupportsProtection = true;
+            }
+            ret = SUCCESS;
+        }
+        safe_Free_aligned(supportedBlockLengthsData);
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))
     {
@@ -1603,9 +1598,9 @@ int show_NVM_Format_Progress(tDevice *device)
     return ret;
 }
 
-int map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
+uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
 {
-    int fmtNum = 16;//invalid value to catch errors!
+    uint8_t fmtNum = 16;//invalid value to catch errors!
     for (uint8_t fmtIter = 0; fmtIter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++fmtIter)
     {
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
@@ -1654,7 +1649,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
     {
         //need to figure out what format we want to run!
         uint32_t fmtBlockSize = device->drive_info.deviceBlockSize;
-        uint32_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0)].ms;
+        uint16_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0)].ms;
 
         if (!nvmParams.newSize.currentBlockSize)
         {

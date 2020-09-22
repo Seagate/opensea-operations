@@ -40,7 +40,8 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         else
         {
             dataLength = 4;
-            if ((ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, dataLength, defectData) == SUCCESS))
+            ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, C_CAST(uint16_t, dataLength), defectData);
+            if (ret == SUCCESS)
             {
                 tenByte = true;
                 gotDefectData = true;
@@ -99,7 +100,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                         {
                             defectData = temp;
                             memset(defectData, 0, dataLength);
-                            if (SUCCESS == (ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, dataLength, defectData)))
+                            if (SUCCESS == (ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, C_CAST(uint16_t, dataLength), defectData)))
                             {
                                 uint32_t offset = 4;
                                 defectListLength = M_BytesTo2ByteValue(defectData[2], defectData[3]);
@@ -670,7 +671,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
     uint64_t iterator = 0;
     bool wue = is_Write_Psuedo_Uncorrectable_Supported(device);
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
-    uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+    uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
     uint16_t increment = logicalPerPhysicalSectors;
     if (!wue && readWriteLong && logicalPerPhysicalSectors != 1 && device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -960,7 +961,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
     {
         senseDataFields senseFields;
         memset(&senseFields, 0, sizeof(senseDataFields));
-        uint16_t dataLength = device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks;//start with this size for now...
+        uint16_t dataLength = C_CAST(uint16_t, device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks);//start with this size for now...
         uint8_t *dataBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
         {
@@ -977,11 +978,11 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         {
             if (senseFields.fixedFormat)
             {
-                dataLength += M_2sCOMPLEMENT(senseFields.fixedInformation);//length different is a twos compliment value since we requested less than is available.
+                dataLength += C_CAST(uint16_t, M_2sCOMPLEMENT(senseFields.fixedInformation));//length different is a twos compliment value since we requested less than is available.
             }
             else
             {
-                dataLength += (uint16_t)M_2sCOMPLEMENT(senseFields.descriptorInformation);//length different is a twos compliment value since we requested less than is available.
+                dataLength += C_CAST(uint16_t, M_2sCOMPLEMENT(senseFields.descriptorInformation));//length different is a twos compliment value since we requested less than is available.
             }
             uint8_t *temp = (uint8_t*)realloc(dataBuffer, dataLength);
             if (temp)
@@ -1038,7 +1039,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
     int ret = SUCCESS;
     uint64_t iterator = 0;
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
-    uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+    uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
     uint16_t increment = logicalPerPhysicalSectors;
     if (readWriteLong && logicalPerPhysicalSectors != 1 && device->drive_info.drive_type == ATA_DRIVE)
     {

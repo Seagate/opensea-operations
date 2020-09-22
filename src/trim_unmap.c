@@ -21,7 +21,7 @@ bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
         uint8_t logBuffer[LEGACY_DRIVE_SEC_SIZE] = { 0 };
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
         {
-            bool supportedCapabilities = false;
+            bool supportedCapabilitiesPage = false;
             //find the supported capabilities page in the list, then read it
             uint8_t pageNumber = logBuffer[2];
             uint16_t revision = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
@@ -34,7 +34,7 @@ bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
                     switch (logBuffer[iter])
                     {
                     case ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES:
-                        supportedCapabilities = true;
+                        supportedCapabilitiesPage = true;
                         break;
                     case ATA_ID_DATA_LOG_SUPPORTED_PAGES:
                     case ATA_ID_DATA_LOG_COPY_OF_IDENTIFY_DATA:
@@ -51,7 +51,7 @@ bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
                     }
                 }
             }
-            if (supportedCapabilities)
+            if (supportedCapabilitiesPage)
             {
                 memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
@@ -246,20 +246,20 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     {
         bool xlCommand = is_ATA_Data_Set_Management_XL_Supported(device);
         uint64_t maxRange = xlCommand ? UINT64_MAX : UINT16_MAX;//xl = uint64_max, regular = uint16_max
-        uint16_t maxEntriesPerPage = xlCommand ? 32 : 64;//regular cmd = 64, regular = 32
-        uint8_t entryLengthBytes = xlCommand ? 16 : 8;
+        uint16_t maxEntriesPerPage = xlCommand ? UINT16_C(32) : UINT16_C(64);//regular cmd = 64, regular = 32
+        uint8_t entryLengthBytes = xlCommand ? UINT8_C(16) : UINT8_C(8);
         uint64_t finalLBA = startLBA + range;
         uint64_t numberOfLBAsToTrim = ((startLBA + range) - startLBA);
-        uint64_t trimRange = (uint16_t)M_Min(numberOfLBAsToTrim, maxRange);//range must be FFFFh or less, so take the minimum of these two
-        uint64_t trimDescriptors = ((numberOfLBAsToTrim + trimRange) - 1) / trimRange;//need to make sure this division rounds up as necessary so the whole range gets TRIMed
-        uint64_t trimBufferLen = (uint64_t)((((trimDescriptors + maxEntriesPerPage) - 1) / maxEntriesPerPage) * LEGACY_DRIVE_SEC_SIZE);//maximum of 64 TRIM entries per sector
-        uint8_t *trimBuffer = (uint8_t*)calloc_aligned((size_t)trimBufferLen, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint64_t trimRange = C_CAST(uint16_t, M_Min(numberOfLBAsToTrim, maxRange));//range must be FFFFh or less, so take the minimum of these two
+        uint64_t trimDescriptors = ((numberOfLBAsToTrim + trimRange) - UINT64_C(1)) / trimRange;//need to make sure this division rounds up as necessary so the whole range gets TRIMed
+        uint64_t trimBufferLen = C_CAST(uint64_t, (((trimDescriptors + maxEntriesPerPage) - 1) / maxEntriesPerPage) * LEGACY_DRIVE_SEC_SIZE);//maximum of 64 TRIM entries per sector
+        uint8_t *trimBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, trimBufferLen), sizeof(uint8_t), device->os_info.minimumAlignment));
         uint64_t trimLBA = 0;
         uint64_t bufferIter = 0;
         uint16_t trimCommands = 0;
-        uint16_t maxTRIMdataBlocks = (uint16_t)(maxTrimOrUnmapBlockDescriptors / maxEntriesPerPage);
+        uint16_t maxTRIMdataBlocks = C_CAST(uint16_t, maxTrimOrUnmapBlockDescriptors / maxEntriesPerPage);
         uint16_t numberOfTRIMCommandsRequired = (uint16_t)((((trimBufferLen / LEGACY_DRIVE_SEC_SIZE) + maxTRIMdataBlocks) - 1) / maxTRIMdataBlocks);
-        uint32_t trimCommandLen = (uint32_t)(M_Min(maxTRIMdataBlocks * LEGACY_DRIVE_SEC_SIZE, trimBufferLen));
+        uint32_t trimCommandLen = C_CAST(uint32_t, M_Min(C_CAST(uint64_t, maxTRIMdataBlocks * LEGACY_DRIVE_SEC_SIZE), trimBufferLen));
         if (!trimBuffer)
         {
             perror("calloc failure!");

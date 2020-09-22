@@ -450,6 +450,11 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
         }
     }
 
+    if (patternLength > UINT16_MAX)
+    {
+        return BAD_PARAMETER;
+    }
+
     //start the sanitize operation requested
     switch (sanitizeOperation)
     {
@@ -462,7 +467,7 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
         delayTime = 1;
         break;
     case SANITIZE_OVERWRITE_ERASE:
-        ret = send_Sanitize_Overwrite_Erase(device, false, false, 1, pattern, patternLength, false);
+        ret = send_Sanitize_Overwrite_Erase(device, false, false, UINT8_C(1), pattern, C_CAST(uint16_t, patternLength), false);
         delayTime = 600;//this is 10 minute delay between progress updates
         break;
     case SANTIZIE_FREEZE_LOCK:

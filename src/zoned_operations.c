@@ -71,7 +71,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
         }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
-            ret = ata_Report_Zones_Ext(device, reportingOptions, true, M_Min(dataBytesToRequest / LEGACY_DRIVE_SEC_SIZE, sectorCount), nextZoneLBA, reportZones, (LEGACY_DRIVE_SEC_SIZE * sectorCount));
+            ret = ata_Report_Zones_Ext(device, reportingOptions, true, C_CAST(uint16_t, M_Min(dataBytesToRequest / LEGACY_DRIVE_SEC_SIZE, sectorCount)), nextZoneLBA, reportZones, (LEGACY_DRIVE_SEC_SIZE * sectorCount));
             localListLength = M_BytesTo4ByteValue(reportZones[3], reportZones[2], reportZones[1], reportZones[0]);
             zoneMaxLBA = M_BytesTo8ByteValue(reportZones[15], reportZones[14], reportZones[13], reportZones[12], reportZones[11], reportZones[10], reportZones[9], reportZones[8]);
         }

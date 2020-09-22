@@ -2387,17 +2387,24 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     {
         if (device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
         {
-            //made it this far, so the feature is supported
-            switch (ercCommand)
+            if ((timerValueMilliseconds / 100) > UINT16_MAX)
             {
-            case SCT_ERC_READ_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, timerValueMilliseconds / 100);
-                break;
-            case SCT_ERC_WRITE_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, timerValueMilliseconds / 100);
-                break;
-            default:
-                break;
+                ret = BAD_PARAMETER;
+            }
+            else
+            {
+                //made it this far, so the feature is supported
+                switch (ercCommand)
+                {
+                case SCT_ERC_READ_COMMAND:
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    break;
+                case SCT_ERC_WRITE_COMMAND:
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    break;
+                default:
+                    break;
+                }
             }
         }
     }
@@ -3269,7 +3276,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     uint16_t pageNumber = 0;
                     uint32_t compErrLogSize = 0;
                     get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false);
-                    uint16_t maxPage = compErrLogSize / 512;
+                    uint16_t maxPage = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
                     uint16_t pageIter = 0;
                     if (compErrLogSize > 0)
                     {
@@ -3441,7 +3448,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                     //We now have the full log in memory. 
                                     //First, figure out the first page to read. Next: need to handle switching between pages as we fill in the structure with data.
                                     uint16_t pageNumber = errorLogIndex / COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//5 entries per page
-                                    uint16_t maxPages = compErrLogSize / 512;
+                                    uint16_t maxPages = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
                                     uint16_t pageIter = 0;
                                     //byte offset, this will point to the first entry
                                     uint8_t pageEntryNumber = errorLogIndex % COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//remainder...zero indexed
