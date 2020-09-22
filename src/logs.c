@@ -855,6 +855,9 @@ int get_DST_Log(tDevice *device, const char * const filePath)
     {
         return get_SCSI_Log(device, LP_SELF_TEST_RESULTS, 0, "Self_Test_Results", "bin", false, NULL, 0, filePath);
     }
+    else if (device->drive_info.drive_type == NVME_DRIVE) {
+        return pull_Supported_NVMe_Logs(device, 6, pull_Supported_NVMe_Logs);
+    }
     else
     {
         return NOT_SUPPORTED;
