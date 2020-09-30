@@ -722,7 +722,7 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 242: //Lifetime Reads from Host
             sprintf(*attributeName, "Lifetime Reads From Host");
             break;
-		case 246: //Write Protect Detail
+		case 246: //Write Protect Detail 
 			sprintf(*attributeName, "Write Protect Detail");
 			break;
         default:
