@@ -345,16 +345,16 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                printf("\rReading LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rReading LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             case RWV_COMMAND_VERIFY:
-                printf("\rVerify LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rVerify LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             case RWV_COMMAND_WRITE:
-                printf("\rWrite LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rWrite LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             default:
-                printf("\rUnknown LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rUnknown LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             }
             fflush(stdout);
@@ -364,16 +364,16 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, 256, "\nRead error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nRead error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, 256, "\nVerify error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nVerify error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, 256, "\nWrite error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nWrite error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             default:
-                snprintf(message, 256, "\nUnknown error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nUnknown error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             }
             printf("%s\n", message);
