@@ -12,6 +12,11 @@
 #include "logs.h"
 #include "ata_helper_func.h"
 #include "scsi_helper_func.h"
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+#include "nvme_helper.h"
+#include "nvme_operations.h"
+#include "smart.h"
+#endif
 #include "operations_Common.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
@@ -852,6 +857,11 @@ int get_DST_Log(tDevice *device, const char * const filePath)
     {
         return get_SCSI_Log(device, LP_SELF_TEST_RESULTS, 0, "Self_Test_Results", "bin", false, NULL, 0, filePath);
     }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE) {
+        return pull_Supported_NVMe_Logs(device, 6, pull_Supported_NVMe_Logs);
+    }
+#endif
     else
     {
         return NOT_SUPPORTED;
@@ -2424,16 +2434,16 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
     {
         retStatus = SUCCESS;
         uint32_t numPage = suptLogPage.numLogPages;
-        uint32_t page = 0;          
+        uint32_t page = 0;
         printf("\n  Log Pages  :   Signature    :    Version\n");
         printf("-------------:----------------:--------------\n");
         for (page = 0; page < numPage; page++)
         {
             if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
             {
-                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
-                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
+                    suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                    suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
             }
         }
         printf("\t\t------------------\n");
@@ -2443,15 +2453,134 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
         {
             if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
             {
-                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n", 
-                       suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                       suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
+                    suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                    suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
             }
         }
     }
 #endif
     return retStatus;
 }
+
+int pull_Supported_NVMe_Logs(tDevice *device, uint32_t logNum, eLogPullMode mode)
+{
+    //Since 0 is reserved log
+    int retStatus=0;
+    uint64_t size = 0;
+    uint8_t * logBuffer = NULL;
+    nvmeGetLogPageCmdOpts cmdOpts;
+    if ((nvme_Get_Log_Size(logNum, &size) == SUCCESS) && size) {
+        memset(&cmdOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+        if (NVME_LOG_ERROR_ID == logNum)
+        {
+            size = 32 * size; //Get first 32 entries.
+        }
+        logBuffer = (uint8_t *)calloc((size_t)size, sizeof(uint8_t));
+        if (logBuffer != NULL) {
+            cmdOpts.nsid = NVME_ALL_NAMESPACES;
+            cmdOpts.addr = logBuffer;
+            cmdOpts.dataLen = (uint32_t)size;
+            cmdOpts.lid = logNum;
+            if (nvme_Get_Log_Page(device, &cmdOpts) == SUCCESS) {
+                if (mode == PULL_LOG_RAW_MODE)
+                {
+                    printf("Log Page %d Buffer:\n", logNum);
+                    printf("================================\n");
+                    print_Data_Buffer((uint8_t *)logBuffer, (uint32_t)size, true);
+                    printf("================================\n");
+                }
+                else if (mode == PULL_LOG_BIN_FILE_MODE) {
+                    FILE * pLogFile = NULL;
+                    char identifyFileName[OPENSEA_PATH_MAX] = { 0 };
+                    char * fileNameUsed = &identifyFileName[0];
+                    char logName[16];
+                    sprintf(logName, "LOG_PAGE_%d", logNum);
+                    if (SUCCESS == create_And_Open_Log_File(device, &pLogFile, NULL, \
+                        logName, "bin", 1, &fileNameUsed)) {
+                        fwrite(logBuffer, sizeof(uint8_t), (size_t)size, pLogFile);
+                        fflush(pLogFile);
+                        fclose(pLogFile);
+                        if (VERBOSITY_QUIET < VERBOSITY_DEFAULT)
+                        {
+                            printf("Created %s with Log Page %" PRId32 " Information\n", fileNameUsed, logNum);
+                        }
+                    }
+                    else {
+                        retStatus = 3;
+                    }
+                }
+                else {
+                    retStatus = 3;
+                }
+            }
+            else {
+                retStatus = 3;
+            }
+            safe_Free(logBuffer);
+        }
+        else {
+            retStatus = 3;
+        }
+    }
+    else {
+        retStatus = 4;
+    }
+    /*switch (logNum) {
+        case NVME_LOG_SMART_ID:
+            switch (print_SMART_Attributes(device, SMART_ATTR_OUTPUT_RAW))
+            {
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                retStatus = 3;
+                break;
+            }
+            break;
+        case NVME_LOG_ERROR_ID:
+            switch (nvme_Print_ERROR_Log_Page(device, 0))
+            {
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                retStatus = 3;
+                break;
+            }
+            break;
+        case NVME_LOG_FW_SLOT_ID:
+            switch (nvme_Print_FWSLOTS_Log_Page(device))
+            {
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                
+                retStatus = 3;
+                break;
+            }
+            break;
+        case NVME_LOG_CMD_SPT_EFET_ID:
+            switch (nvme_Print_CmdSptEfft_Log_Page(device))
+            {
+            case SUCCESS:
+                //nothing to print here since if it was successful, the log will be printed to the screen
+                break;
+            default:
+                retStatus = 3;
+                break;
+            }
+            break;
+        default:
+            
+            retStatus = 3;
+            break;
+    }*/
+    return retStatus;
+}
+    
+
 
 int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags)
 {
@@ -2604,7 +2733,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
         }
         break;
     case NVME_DRIVE:
-        retStatus = print_Supported_NVMe_Logs(device, 0);
+        retStatus = pull_Supported_NVMe_Logs(device, logNum, mode);
         break;
     default:
         break;
