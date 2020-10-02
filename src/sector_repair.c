@@ -18,7 +18,7 @@
 int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled)
 {
     int ret = UNKNOWN;
-    uint16_t logicalPerPhysical = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+    uint16_t logicalPerPhysical = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
     uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
     uint8_t *dataBuf = (uint8_t*)calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!dataBuf)
@@ -37,7 +37,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
         {
             //need to use child drive info for write
             uint8_t *temp = NULL;
-            logicalPerPhysical = device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize;
+            logicalPerPhysical = C_CAST(uint16_t, device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize);
             dataSize = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
             temp = (uint8_t*)realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!temp)

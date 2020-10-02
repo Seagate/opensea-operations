@@ -474,7 +474,7 @@ extern "C" {
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage,\
+    OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage,\
         eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
 
     OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);

@@ -16,6 +16,7 @@
 #include "logs.h"
 
 //this is ued to determine which device statistic is being talked about by the DSN log on ata
+/*
 int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = FAILURE;
@@ -25,6 +26,7 @@ int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *devi
     }
     return ret;
 }
+*/
 void scsi_Threshold_Comparison(statistic *ptrStatistic);//prototype
 
 int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
@@ -1652,8 +1654,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -2192,8 +2194,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -2731,8 +2733,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -3270,8 +3272,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -3544,8 +3546,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -3793,8 +3795,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4110,8 +4112,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4266,8 +4268,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4819,8 +4821,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4973,8 +4975,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5069,8 +5071,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5147,8 +5149,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5241,8 +5243,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5324,8 +5326,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5437,8 +5439,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5752,8 +5754,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -6064,8 +6066,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -6676,7 +6678,7 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
         if (theStatistic.isValueValid)
         {
             uint8_t resourceValue = M_Byte0(theStatistic.statisticValue);
-            if (resourceValue >= 0 && resourceValue <= 0x7F)
+            if (/* resourceValue >= 0 && */ resourceValue <= 0x7F)
             {
                 printf("Within nominal bounds (%" PRIX8 "h)", resourceValue);
             }
@@ -7033,8 +7035,16 @@ void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            char year[5] = { M_Byte3(theStatistic.statisticValue), M_Byte2(theStatistic.statisticValue), M_Byte1(theStatistic.statisticValue), M_Byte0(theStatistic.statisticValue), 0 };
-            char week[3] = { M_Byte5(theStatistic.statisticValue), M_Byte4(theStatistic.statisticValue), 0 };
+            char week[3] = { 0 };
+            char year[5] = { 0 };
+            year[0] = M_Byte3(theStatistic.statisticValue);
+            year[1] = M_Byte2(theStatistic.statisticValue);
+            year[2] = M_Byte1(theStatistic.statisticValue);
+            year[3] = M_Byte0(theStatistic.statisticValue);
+            year[4] = '\0';
+            week[0] = M_Byte5(theStatistic.statisticValue);
+            week[1] = M_Byte4(theStatistic.statisticValue);
+            week[2] = '\0';
             if (strcmp(year, "    ") == 0 && strcmp(week, "  ") == 0)
             {
                 printf("Not set");
@@ -7362,7 +7372,7 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     return ret;
 }
 
-int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = SUCCESS;
     if (!deviceStats)

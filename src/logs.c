@@ -12,9 +12,11 @@
 #include "logs.h"
 #include "ata_helper_func.h"
 #include "scsi_helper_func.h"
+#if !defined (DISABLE_NVME_PASSTHROUGH)
 #include "nvme_helper.h"
 #include "nvme_operations.h"
 #include "smart.h"
+#endif
 #include "operations_Common.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
@@ -436,7 +438,7 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     }
     if (sixByte)//not an else because in the above if, we can retry the command as 6 byte if it doesn't work.
     {
-        if (SUCCESS == scsi_Mode_Sense_6(device, modePage, modeLength, subpage, false, mpc, modeBuffer))//don't disable block descriptors here since this is mostly to support old drives.
+        if (SUCCESS == scsi_Mode_Sense_6(device, modePage, C_CAST(uint8_t, modeLength), subpage, false, mpc, modeBuffer))//don't disable block descriptors here since this is mostly to support old drives.
         {
             *modePageSize = modeBuffer[0] + 1;
         }
@@ -558,7 +560,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
     }
     if (sixByte)//not an else because in the above if, we can retry the command as 6 byte if it doesn't work.
     {
-        if (SUCCESS == scsi_Mode_Sense_6(device, modePage, modeLength, subpage, false, mpc, modeBuffer))//don't disable block descriptors here since this is mostly to support old drives.
+        if (SUCCESS == scsi_Mode_Sense_6(device, modePage, C_CAST(uint8_t, modeLength), subpage, false, mpc, modeBuffer))//don't disable block descriptors here since this is mostly to support old drives.
         {
             FILE *fpmp = NULL;
             bool fileOpened = false;
@@ -855,9 +857,11 @@ int get_DST_Log(tDevice *device, const char * const filePath)
     {
         return get_SCSI_Log(device, LP_SELF_TEST_RESULTS, 0, "Self_Test_Results", "bin", false, NULL, 0, filePath);
     }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) {
         return pull_Supported_NVMe_Logs(device, 6, pull_Supported_NVMe_Logs);
     }
+#endif
     else
     {
         return NOT_SUPPORTED;
@@ -1065,7 +1069,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             char *fileNameUsed = NULL;
             //read each log 1 page at a time since some can get to be so large some controllers won't let you pull it.
             uint16_t pagesToReadAtATime = 1;
-            uint16_t numberOfLogPages = logSize / LEGACY_DRIVE_SEC_SIZE;
+            uint16_t numberOfLogPages = C_CAST(uint16_t, logSize / LEGACY_DRIVE_SEC_SIZE);
             uint16_t remainderPages = 0;
             uint16_t currentPage = 0;
             switch (logAddress)
@@ -1077,16 +1081,17 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     pagesToReadAtATime = 16;
                     break;
                 }
+                M_FALLTHROUGH
             default:
                 if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
                 {
-                    if (numberOfLogPages >= 32)
+                    if (numberOfLogPages >= UINT16_C(32))
                     {
-                        pagesToReadAtATime = M_Min(32, logSize / LEGACY_DRIVE_SEC_SIZE);//16k at a time should be a little faster...especially on larger logs
+                        pagesToReadAtATime = C_CAST(uint16_t, (M_Min(UINT16_C(32), logSize / LEGACY_DRIVE_SEC_SIZE)));//16k at a time should be a little faster...especially on larger logs
                     }
                     else
                     {
-                        pagesToReadAtATime = logSize / LEGACY_DRIVE_SEC_SIZE;
+                        pagesToReadAtATime = C_CAST(uint16_t, (logSize / LEGACY_DRIVE_SEC_SIZE));
                     }
                 }
                 else
@@ -1099,7 +1104,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             if (transferSizeBytes)
             {
                 //caller is telling us how much to read at a time...so let them.
-                pagesToReadAtATime = transferSizeBytes / LEGACY_DRIVE_SEC_SIZE;
+                pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / LEGACY_DRIVE_SEC_SIZE));
             }
             logFromGPL = true;
             remainderPages = numberOfLogPages % pagesToReadAtATime;
@@ -1127,7 +1132,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     if (fileOpened)
                     {
                         //write out to a file
-                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE) || ferror(fp_log))
+                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
@@ -1175,7 +1180,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     if (fileOpened)
                     {
                         //write out to a file
-                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE) || ferror(fp_log))
+                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
@@ -1339,7 +1344,7 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
             return MEMORY_FAILURE;
         }
 
-        if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logAddress, subpage, 0, logBuffer, pageLen) == SUCCESS)
+        if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logAddress, subpage, 0, logBuffer, C_CAST(uint16_t, pageLen)) == SUCCESS)
         {
             uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + LOG_PAGE_HEADER_LENGTH;
             ret = SUCCESS;
@@ -1575,13 +1580,16 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 1://small
+                    M_FALLTHROUGH
                 default:
                     islPullingSize = reportedSmallSize;
                     break;                    
@@ -1598,7 +1606,7 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
                 dataBuffer = temp;
                 memset(dataBuffer, 0, pullChunkSize);
                 //read the remaining data
-                for (pageNumber = 1; pageNumber < islPullingSize; pageNumber += (pullChunkSize / LEGACY_DRIVE_SEC_SIZE))
+                for (pageNumber = UINT16_C(1); pageNumber < islPullingSize; pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
@@ -1848,19 +1856,23 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 3://large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 1://small
+                    M_FALLTHROUGH
                 default:
                     islPullingSize = reportedSmallSize;
                     break;
@@ -2085,13 +2097,16 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
+                    M_FALLTHROUGH
                 case 1://small
+                    M_FALLTHROUGH
                 default:
                     islPullingSize = reportedSmallSize;
                     break;
@@ -2108,7 +2123,7 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                 dataBuffer = temp;
                 memset(dataBuffer, 0, pullChunkSize);
                 //read the remaining data
-                for (pageNumber = 1; pageNumber < islPullingSize; pageNumber += (pullChunkSize / LEGACY_DRIVE_SEC_SIZE))
+                for (pageNumber = UINT16_C(1); pageNumber < islPullingSize; pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
@@ -2215,6 +2230,7 @@ int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,
     case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
         ret = nvme_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
+        break;
 #endif
     case SCSI_DRIVE:
         ret = scsi_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
@@ -2254,6 +2270,7 @@ int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
     uint8_t *logBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     bool subpagesSupported = true;
     bool gotListOfPages = true;
+    M_USE_UNUSED(flags);
     if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE))
     {
         //either device doesn't support logs, or it just doesn't support subpages, so let's try reading the list of supported pages (no subpages) before saying we need to dummy up the list
@@ -2334,6 +2351,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
     uint8_t *logBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    M_USE_UNUSED(flags);
     if (logBuffer)
     {
         retStatus = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0);
@@ -2396,8 +2414,8 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
-
-    if (!is_Seagate(device, false))
+    M_USE_UNUSED(flags);
+    if (!is_Seagate(device, false)) 
     {
         return retStatus;
     }
@@ -2569,6 +2587,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     int ret = NOT_SUPPORTED;
     uint32_t errorHistorySize = 2048;
     uint8_t *errorHistoryDirectory = (uint8_t*)calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment);
+    M_USE_UNUSED(flags);
     if (errorHistoryDirectory)
     {
         if (SUCCESS == scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory))
@@ -2635,7 +2654,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     return ret;
 }
 
-int pull_Generic_Log(tDevice *device, uint32_t logNum, uint32_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes)
+int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes)
 {
     int retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;

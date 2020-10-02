@@ -890,6 +890,7 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     uint8_t counter = 0;
     bool cryptoSupported = false;
     bool sanitizeBlockEraseSupported = false;
+    M_USE_UNUSED(device);
     printf("Erase Methods supported by this drive (listed fastest to slowest):\n");
     while (counter < MAX_SUPPORTED_ERASE_METHODS)
     {
@@ -1027,11 +1028,11 @@ int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorF
     }
     if (descriptorFormat)
     {
-        controlModePage[byteOffset] |= BIT2;//set the bit to 1
+        M_SET_BIT(controlModePage[byteOffset], 2);
     }
     else
     {
-        controlModePage[byteOffset] &= (uint8_t)(~BIT2);//set the bit to 0
+        M_CLEAR_BIT(controlModePage[byteOffset], 2);
     }
     //write the change to the drive
     if (mode6ByteCmd)
@@ -1095,7 +1096,8 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
 
 void show_Test_Unit_Ready_Status(tDevice *device)
 {
-    scsiStatus returnedStatus = { 0 };
+    scsiStatus returnedStatus;
+	memset(&returnedStatus, 0, sizeof(scsiStatus));
     int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {
@@ -1261,7 +1263,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
                     for (; offset < modePageLength; offset += currentPageLength, ++counter)
                     {
                         uint8_t* currentPageToSet = NULL;
-                        uint32_t currentPageToSetLength = used6ByteCmd ? MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength : MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                        uint16_t currentPageToSetLength = used6ByteCmd ? MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength : MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
                         uint8_t currentPage = M_GETBITRANGE(modeData[offset + 0], 5, 0);
                         uint8_t currentSubPage = 0;
                         uint16_t currentPageOffset = 0;
@@ -1311,7 +1313,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
                         bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
                         if (used6ByteCmd)
                         {
-                            if (SUCCESS != scsi_Mode_Select_6(device, currentPageToSetLength, pageFormat, savable, false, currentPageToSet, currentPageToSetLength))
+                            if (SUCCESS != scsi_Mode_Select_6(device, C_CAST(uint8_t, currentPageToSetLength), pageFormat, savable, false, currentPageToSet, currentPageToSetLength))
                             {
                                 ++failedModeSelects;
                                 printf("WARNING! Unable to reset page %" PRIX8 "h", currentPage);
@@ -1410,7 +1412,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
                 bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
                 if (used6ByteCmd)
                 {
-                    if (SUCCESS != scsi_Mode_Select_6(device, modePageLength, pageFormat, savable, false, modeData, modePageLength))
+                    if (SUCCESS != scsi_Mode_Select_6(device, C_CAST(uint8_t, modePageLength), pageFormat, savable, false, modeData, modePageLength))
                     {
                         ret = FAILURE;
                     }
@@ -1421,7 +1423,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
                 }
                 else
                 {
-                    if (SUCCESS != scsi_Mode_Select_10(device, modePageLength, pageFormat, savable, false, modeData, modePageLength))
+                    if (SUCCESS != scsi_Mode_Select_10(device, C_CAST(uint16_t, modePageLength), pageFormat, savable, false, modeData, modePageLength))
                     {
                         ret = FAILURE;
                     }
@@ -1500,7 +1502,7 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
             //bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
             if (used6ByteCmd)
             {
-                if (SUCCESS != scsi_Mode_Select_6(device, modePageLength, pageFormat, saveChanges, false, modeData, modePageLength))
+                if (SUCCESS != scsi_Mode_Select_6(device, C_CAST(uint8_t, modePageLength), pageFormat, saveChanges, false, modeData, modePageLength))
                 {
                     ret = FAILURE;
                 }
@@ -1511,7 +1513,7 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
             }
             else
             {
-                if (SUCCESS != scsi_Mode_Select_10(device, modePageLength, pageFormat, saveChanges, false, modeData, modePageLength))
+                if (SUCCESS != scsi_Mode_Select_10(device, C_CAST(uint16_t, modePageLength), pageFormat, saveChanges, false, modeData, modePageLength))
                 {
                     ret = FAILURE;
                 }
@@ -1788,6 +1790,7 @@ void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage,
             default:
                 break;
             }
+            break;
         case 0x01://Device Configuration Extension
             snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration Extension");
             break;
@@ -2200,7 +2203,9 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         else
         {
             //not supported (SATL most likely)
-            uint8_t modeData[2] = { modePage , subpage };
+            uint8_t modeData[2] = { 0 };
+            modeData[0] = modePage;
+            modeData[1] = subpage;
             print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
         }
     }
@@ -2233,7 +2238,9 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         else
         {
             //not supported (SATL most likely)
-            uint8_t modeData[2] = { modePage , subpage };
+            uint8_t modeData[2] = { 0 };
+            modeData[0] = modePage;
+            modeData[1] = subpage;
             print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
         }
     }
@@ -2314,7 +2321,7 @@ uint8_t get_LUN_Count(tDevice *device)
     if (SUCCESS == scsi_Report_Luns(device, selectReport, 4, luns))
     {
         uint32_t lunListLength = M_BytesTo4ByteValue(luns[0], luns[1], luns[2], luns[3]);
-        lunCount = lunListLength / 8;
+        lunCount = C_CAST(uint8_t, lunListLength / UINT32_C(8));
     }
     return lunCount;
 }

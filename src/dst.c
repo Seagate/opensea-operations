@@ -831,6 +831,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         *minutes = (uint8_t)(longTestTime % 60);
         ret = SUCCESS;
     }
+        break;
 #endif
     case SCSI_DRIVE:
     {
@@ -1088,6 +1089,8 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     uint64_t totalErrors = 0;
     bool unableToRepair = false;
     bool passthroughWrite = false;
+    M_USE_UNUSED(updateFunction);
+    M_USE_UNUSED(updateData);
     if (is_Sector_Size_Emulation_Active(device))
     {
         passthroughWrite = true;//in this case, since sector size emulation is active, we need to issue a passthrough command for the repair instead of a standard interface command. - TJE
@@ -1253,10 +1256,10 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     if (SUCCESS != verify)
                     {
                         //there is another bad sector we need to find and fix...
-                        uint8_t logicalPerPhysical = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+                        uint8_t logicalPerPhysical = C_CAST(uint8_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
                         if (passthroughWrite)
                         {
-                            logicalPerPhysical = device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize;
+                            logicalPerPhysical = C_CAST(uint8_t, device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize);
                         }
                         for (uint64_t iter = readAroundStart; iter < (readAroundStart + readAroundRange); iter += logicalPerPhysical)
                         {
@@ -1281,7 +1284,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                                 //add the LBA to the error list we have going, then repair it
                                 errorList[totalErrors].repairStatus = NOT_REPAIRED;
                                 errorList[totalErrors].errorAddress = iter;
-                                int repairRet = repair_LBA(device, &errorList[totalErrors], passthroughWrite, autoWriteReassign, autoReadReassign);
+                                repairRet = repair_LBA(device, &errorList[totalErrors], passthroughWrite, autoWriteReassign, autoReadReassign);
                                 ++totalErrors;
                                 ++(*errorIndex);
                                 if (FAILURE == repairRet)
@@ -1364,7 +1367,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             return NOT_SUPPORTED;
         }
         selfTestResults = (uint8_t*)calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
-        uint16_t lastPage = (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1;//zero indexed
+        uint16_t lastPage = C_CAST(uint16_t, (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1);//zero indexed
         if (!selfTestResults)
         {
             return MEMORY_FAILURE;
@@ -1475,14 +1478,14 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                     }
                     if(offset > descriptorLength)
                     {
-                        uint16_t offsetCheck = 0;
+                        uint32_t offsetCheck = 0;
                         //offset needs to subtract since we work backwards from the end (until rollover)
                         offset -= descriptorLength;
                         offsetCheck = offset;
                         #if ENABLE_DST_LOG_DEBUG
                         printf("\toffsetCheck = %u ", offsetCheck);
                         #endif
-                        if(pageNumber > 0 && offsetCheck > (LEGACY_DRIVE_SEC_SIZE * pageNumber))
+                        if(pageNumber > 0 && offsetCheck > C_CAST(uint32_t, (LEGACY_DRIVE_SEC_SIZE * pageNumber)))//this cast is extremely stupid. Apparently MSFT's UINT16_C doesn't actually force it to unsigned properly, so this generates an unneccessary warning
                         {   
                             offsetCheck -= (LEGACY_DRIVE_SEC_SIZE * pageNumber);
                             #if ENABLE_DST_LOG_DEBUG
@@ -1843,7 +1846,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                     sprintf(selfTestRunString, "Selective (captive)");
                     break;
                 default:
-                    if ((entries->dstEntry[iter].selfTestRun >= 0x40 && entries->dstEntry[iter].selfTestRun <= 0x7E) || (entries->dstEntry[iter].selfTestRun >= 0x90 && entries->dstEntry[iter].selfTestRun <= 0xFF))
+                    if ((entries->dstEntry[iter].selfTestRun >= 0x40 && entries->dstEntry[iter].selfTestRun <= 0x7E) || (entries->dstEntry[iter].selfTestRun >= 0x90 /*&& entries->dstEntry[iter].selfTestRun <= 0xFF*/))
                     {
                         sprintf(selfTestRunString, "Vendor Specific - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
                     }

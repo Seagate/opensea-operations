@@ -383,7 +383,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 else if (updateGranularity > 0)
                 {
                     //get the power of 2 that represents this byte value
-                    uint32_t counter = 0;
+                    uint8_t counter = 0;
                     uint32_t updateGranularityD = updateGranularity;
                     while (updateGranularityD != 0)
                     {
@@ -391,7 +391,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         ++counter;
                     }
                     supportedModes->driveOffsetBoundary = counter - 1;
-                    supportedModes->minSegmentSize = supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE;
+                    supportedModes->minSegmentSize = C_CAST(uint16_t, supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE);
                     supportedModes->maxSegmentSize = UINT32_MAX;
                 }
                 else
@@ -411,7 +411,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                             byteAlignment = byteAlignment >> 1;
                             ++counter;
                         }
-                        supportedModes->driveOffsetBoundary = counter - 1;
+                        supportedModes->driveOffsetBoundary = C_CAST(uint8_t, counter - UINT8_C(1));
                     }
 #endif
                 }

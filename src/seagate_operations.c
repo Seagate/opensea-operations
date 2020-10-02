@@ -552,10 +552,13 @@ int seagate_SAS_Set_JIT_Modes(tDevice *device, bool disableVjit, uint8_t jitMode
                 default:
                 case 0:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT0;
+                    M_FALLTHROUGH
                 case 1:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT1;
+                    M_FALLTHROUGH
                 case 2:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT2;
+                    M_FALLTHROUGH
                 case 3:
                     seagateUnitAttentionParameters[headerLength + 4] |= BIT3;
                 }
@@ -1064,7 +1067,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                     while (status > 0x08 && ret == SUCCESS)
                     {
                         ret = get_IDD_Status(device, &status);
-                        if (VERBOSITY_QUIET <= device->deviceVerbosity)
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("\n    IDD test is still in progress...please wait");
                             fflush(stdout);

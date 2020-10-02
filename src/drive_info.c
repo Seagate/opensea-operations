@@ -445,7 +445,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             {
                 uint8_t supported = M_Byte0(wordPtr[88]);
                 uint8_t selected = M_Byte1(wordPtr[88]);
-                uint8_t counter = -1;
+                int8_t counter = -1;
                 while (supported > 0)
                 {
                     supported = supported >> 1;
@@ -549,7 +549,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     }
                 }
             }
-            uint8_t counter = -1;
+            int8_t counter = -1;
             //MWDMA
             uint8_t mwdmaSupported = M_GETBITRANGE(wordPtr[63], 2, 0);
             uint8_t mwdmaSelected = M_GETBITRANGE(wordPtr[63], 10, 8);
@@ -1399,20 +1399,20 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
                     if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= 0x0001)
                     {
-                        uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                        if (supportedCapabilities & BIT63)
+                        uint64_t supportedCapabilitiesQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        if (supportedCapabilitiesQWord & BIT63)
                         {
-                            if (supportedCapabilities & BIT54)
+                            if (supportedCapabilitiesQWord & BIT54)
                             {
                                 sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Advanced Background Operations");
                                 driveInfo->numberOfFeaturesSupported++;
                             }
-                            if (supportedCapabilities & BIT49)
+                            if (supportedCapabilitiesQWord & BIT49)
                             {
                                 sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Set Sector Configuration");
                                 driveInfo->numberOfFeaturesSupported++;
                             }
-                            if (supportedCapabilities & BIT46)
+                            if (supportedCapabilitiesQWord & BIT46)
                             {
                                 dlcSupported = true;
                                 sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
@@ -1456,10 +1456,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
                     if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_CURRENT_SETTINGS && M_Word0(qword0) >= 0x0001)
                     {
-                        uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                        if (currentSettings & BIT63)
+                        uint64_t currentSettingsQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        if (currentSettingsQWord & BIT63)
                         {
-                            if (currentSettings & BIT17)
+                            if (currentSettingsQWord & BIT17)
                             {
                                 dlcEnabled = true;
                             }
@@ -4214,6 +4214,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
+                break;
                 case 0x03://Negotiated Settings (Parallel SCSI)
                 {
                     uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
@@ -4294,7 +4295,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 {
                                     scalingMultiplier = 10;
                                 }
-                                else if (transferPeriodFactor >= 0x32 && transferPeriodFactor <= 0xFF)
+                                else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
                                 {
                                     scalingMultiplier = 5;
                                 }
@@ -4321,6 +4322,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
+                break;
                 case 0x04://Report Transfer Capabilities (Parallel SCSI)
                 {
                     uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
@@ -4401,7 +4403,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 {
                                     scalingMultiplier = 10;
                                 }
-                                else if (transferPeriodFactor >= 0x32 && transferPeriodFactor <= 0xFF)
+                                else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
                                 {
                                     scalingMultiplier = 5;
                                 }
@@ -5708,7 +5710,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         if (driveInfo->controllerData.longDSTTimeMinutes > 0)
         {
             //print as hours:minutes
-            uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
+            years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
             convert_Seconds_To_Displayable_Time(driveInfo->controllerData.longDSTTimeMinutes * 60, &years, &days, &hours, &minutes, &seconds);
             print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
         }
@@ -5829,8 +5831,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         }
         if (driveInfo->namespaceData.nvmCapacityD > 0)
         {
-            char mCapUnits[4] = { 0 }, capUnits[4] = { 0 };
-            char *mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
+            memset(mCapUnits, 0, 4 * sizeof(char));
+            memset(capUnits, 0, 4 * sizeof(char));
             double mCapacity = driveInfo->namespaceData.nvmCapacityD;
             double capacity = mCapacity;
             metric_Unit_Convert(&mCapacity, &mCapUnit);

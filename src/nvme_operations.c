@@ -41,7 +41,7 @@ void nvme_Print_Feature_Identifiers_Help()
     printf("====================================================\n");
 }
 
-int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, bool listOnlySupportedFeatures)
+int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, M_ATTR_UNUSED bool listOnlySupportedFeatures)
 {
     int ret = UNKNOWN;
     uint8_t featureID;
@@ -429,6 +429,7 @@ int nvme_Get_Log_Size(uint8_t logPageId, uint64_t * logSize)
         break;
     case NVME_LOG_DEV_SELF_TEST:
         *logSize = sizeof(nvmeSelfTestLog);
+        break;
     default:
         *logSize = 0;
         break;
@@ -494,8 +495,8 @@ int nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
 {
     int ret = UNKNOWN;
     nvmeEffectsLog effectsLogInfo;
-    int i;
-    int effect;
+    uint16_t i = 0;
+    uint32_t effect = 0;
 
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -511,7 +512,7 @@ int nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
             effect = effectsLogInfo.acs[i];
             if (effect & NVME_CMD_EFFECTS_CSUPP)
             {
-                printf("ACS%-6d[%-32s] %08x", i, nvme_cmd_to_string(1, i), effect);
+                printf("ACS%-6" PRIu16 "[%-32s] %08" PRIX32, i, nvme_cmd_to_string(1, C_CAST(uint8_t, i)), effect);
                 show_effects_log_human(effect);
             }
         }
@@ -521,7 +522,7 @@ int nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
             effect = effectsLogInfo.iocs[i];
             if (effect & NVME_CMD_EFFECTS_CSUPP)
             {
-                printf("IOCS%-5d[%-32s] %08x", i, nvme_cmd_to_string(0, i), effect);
+                printf("IOCS%-5" PRIu16 "[%-32s] %08" PRIX32, i, nvme_cmd_to_string(0, C_CAST(uint8_t, i)), effect);
                 show_effects_log_human(effect);
             }
         }

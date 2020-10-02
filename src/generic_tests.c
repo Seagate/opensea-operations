@@ -32,7 +32,7 @@ int read_Write_Seek_Command(tDevice *device, eRWVCommandType rwvCommand, uint64_
     }
 }
 
-int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     uint64_t lbaIter = startingLBA;
@@ -186,7 +186,7 @@ int short_Generic_Write_Test(tDevice *device, custom_Update updateFunction, void
     return short_Generic_Test(device, RWV_COMMAND_WRITE, updateFunction, updateData, hideLBACounter);
 }
 
-int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     char message[256] = { 0 };
@@ -345,16 +345,16 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                printf("\rReading LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rReading LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             case RWV_COMMAND_VERIFY:
-                printf("\rVerify LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rVerify LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             case RWV_COMMAND_WRITE:
-                printf("\rWrite LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rWrite LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             default:
-                printf("\rUnknown LBA: %-20"PRIu64"", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
+                printf("\rUnknown LBA: %-20" PRIu64 "", randomLBAList[iterator]);//20 wide is the max width for a unsigned 64bit number
                 break;
             }
             fflush(stdout);
@@ -364,16 +364,16 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Updat
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, 256, "\nRead error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nRead error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, 256, "\nVerify error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nVerify error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, 256, "\nWrite error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nWrite error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             default:
-                snprintf(message, 256, "\nUnknown error occurred at LBA %-20"PRIu64"", randomLBAList[iterator]);
+                snprintf(message, 256, "\nUnknown error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             }
             printf("%s\n", message);
@@ -418,7 +418,7 @@ typedef struct _performanceNumbers
     uint16_t sectorCount;
 }performanceNumbers;
 
-int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     bool showPerformanceNumbers = false;//TODO: make this a function parameter.
@@ -471,7 +471,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_
     }
     odTest.asyncCommandsUsed = false;
     odTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
-    odTest.sectorCount = sectorCount;
+    odTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this command to get us in the right place for the OD test.
     read_Write_Seek_Command(device, rwvCommand, 0, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize));
     startTime = time(NULL);
@@ -566,7 +566,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_
     IDStartLBA = device->drive_info.deviceMaxLba - ODEndingLBA;
     idTest.asyncCommandsUsed = false;
     idTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
-    idTest.sectorCount = sectorCount;
+    idTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this read to get the heads in the right place before starting the ID test.
     read_Write_Seek_Command(device, rwvCommand, IDStartLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize));
     startTime = time(NULL);
@@ -661,7 +661,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, custom_
     }
     randomTest.asyncCommandsUsed = false;
     randomTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
-    randomTest.sectorCount = sectorCount;
+    randomTest.sectorCount = C_CAST(uint16_t, sectorCount);
     startTime = time(NULL);
     start_Timer(&randomTestTimer);
     while (difftime(time(NULL), startTime) < randomTimeSeconds)
@@ -876,7 +876,7 @@ int user_Sequential_Verify_Test(tDevice *device, uint64_t startingLBA, uint64_t 
     return user_Sequential_Test(device, RWV_COMMAND_VERIFY, startingLBA, range, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     errorLBA *errorList = NULL;
@@ -956,7 +956,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorIndex; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)
@@ -1006,7 +1006,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     return ret;
 }
 
-int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     bool errorLimitReached = false;
@@ -1156,7 +1156,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorIndex; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)
@@ -1215,7 +1215,7 @@ int butterfly_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Updat
     return butterfly_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
@@ -1337,7 +1337,7 @@ int random_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Update u
     return random_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
@@ -1391,7 +1391,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     return ret;
 }
 
-int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, custom_Update updateFunction, void *updateData)
+int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     uint8_t *dataBuf = NULL;
     time_t startTime = 0;
@@ -1863,7 +1863,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorOffset; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)
@@ -2152,7 +2152,7 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
         //go through and repair the LBAs
         uint64_t errorIter = 0;
         uint64_t lastLBARepaired = UINT64_MAX;
-        uint16_t logicalPerPhysicalSectors = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
+        uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
         for (errorIter = 0; errorIter < errorOffset; errorIter++)
         {
             if (lastLBARepaired != UINT64_MAX)

@@ -1478,7 +1478,7 @@ void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reaso
     switch (asc)
     {
     case 0x5D:
-        if (ascq >= 0 && ascq < 0x10)
+        if (/* ascq >= 0 && */ ascq < 0x10)
         {
             switch (ascq)
             {
@@ -2390,17 +2390,24 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     {
         if (device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
         {
-            //made it this far, so the feature is supported
-            switch (ercCommand)
+            if ((timerValueMilliseconds / 100) > UINT16_MAX)
             {
-            case SCT_ERC_READ_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, timerValueMilliseconds / 100);
-                break;
-            case SCT_ERC_WRITE_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, timerValueMilliseconds / 100);
-                break;
-            default:
-                break;
+                ret = BAD_PARAMETER;
+            }
+            else
+            {
+                //made it this far, so the feature is supported
+                switch (ercCommand)
+                {
+                case SCT_ERC_READ_COMMAND:
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    break;
+                case SCT_ERC_WRITE_COMMAND:
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    break;
+                default:
+                    break;
+                }
             }
         }
     }
@@ -2805,7 +2812,7 @@ int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
             break;
         default:
             //vendor specific
-            if ((smartInfo->offlineDataCollectionStatus >= 0x40 && smartInfo->offlineDataCollectionStatus <= 0x7F) || (smartInfo->offlineDataCollectionStatus >= 0xC0 && smartInfo->offlineDataCollectionStatus <= 0xFF))
+            if ((smartInfo->offlineDataCollectionStatus >= 0x40 && smartInfo->offlineDataCollectionStatus <= 0x7F) || (smartInfo->offlineDataCollectionStatus >= 0xC0 /* && smartInfo->offlineDataCollectionStatus <= 0xFF */))
             {
                 printf("Vendor Specific");
             }
@@ -3272,7 +3279,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     uint16_t pageNumber = 0;
                     uint32_t compErrLogSize = 0;
                     get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false);
-                    uint16_t maxPage = compErrLogSize / 512;
+                    uint16_t maxPage = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
                     uint16_t pageIter = 0;
                     if (compErrLogSize > 0)
                     {
@@ -3444,7 +3451,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                     //We now have the full log in memory. 
                                     //First, figure out the first page to read. Next: need to handle switching between pages as we fill in the structure with data.
                                     uint16_t pageNumber = errorLogIndex / COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//5 entries per page
-                                    uint16_t maxPages = compErrLogSize / 512;
+                                    uint16_t maxPages = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
                                     uint16_t pageIter = 0;
                                     //byte offset, this will point to the first entry
                                     uint8_t pageEntryNumber = errorLogIndex % COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//remainder...zero indexed
@@ -3598,6 +3605,7 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
     case ATA_WRITE_STREAM_DMA_EXT:
     case ATA_WRITE_STREAM_EXT:
         streamDir = true;
+        M_FALLTHROUGH
     case ATA_READ_STREAM_DMA_EXT:
     case ATA_READ_STREAM_EXT:
         ext = true;
@@ -3613,10 +3621,12 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
     case ATA_READ_FPDMA_QUEUED_CMD:
     case ATA_WRITE_FPDMA_QUEUED_CMD:
         fpdma = true;
+        M_FALLTHROUGH
     case ATA_READ_DMA_QUE_EXT:
     case ATA_WRITE_DMA_QUE_FUA_EXT:
     case ATA_WRITE_DMA_QUE_EXT:
         ext = true;
+        M_FALLTHROUGH
     case ATA_WRITE_DMA_QUEUED_CMD:
     case ATA_READ_DMA_QUEUED_CMD:
         async = true;
@@ -3735,7 +3745,7 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
     }
 }
 
-void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t pageNumber = M_BytesTo2ByteValue(M_Byte5(lba), M_Byte1(lba));
     uint8_t logAddress = M_Byte0(lba);
@@ -3871,7 +3881,7 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     }
 }
 
-void get_Download_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_Download_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_Byte0(features);
     uint16_t blockCount = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
@@ -3954,7 +3964,7 @@ void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, ui
         snprintf(securityProtocolName, 30, "ATA Security");
         break;
     default:
-        if (securityProtocol >= 0xF0 && securityProtocol <= 0xFF)
+        if (securityProtocol >= 0xF0 /* && securityProtocol <= 0xFF */)
         {
             snprintf(securityProtocolName, 30, "Vendor Specific (%02" PRIX8"h)", securityProtocol);
             break;
@@ -3985,7 +3995,7 @@ void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     }
 }
 
-void get_SMART_Offline_Immediate_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
+void get_SMART_Offline_Immediate_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, M_ATTR_UNUSED uint16_t features, M_ATTR_UNUSED uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
 {
     uint8_t offlineImmdTest = M_Byte0(lba);
     char offlineTestName[41] = { 0 };
@@ -4037,7 +4047,7 @@ void get_SMART_Offline_Immediate_Info(const char* commandName, uint8_t commandOp
             //vendor unique (offline)
             snprintf(offlineTestName, 40, "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
         }
-        else if (offlineImmdTest >= 0x90 && offlineImmdTest <= 0xFF)
+        else if (offlineImmdTest >= 0x90 /* && offlineImmdTest <= 0xFF*/ )
         {
             //vendor unique (captive)
             snprintf(offlineTestName, 40, "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
@@ -4052,7 +4062,7 @@ void get_SMART_Offline_Immediate_Info(const char* commandName, uint8_t commandOp
     snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Offline Immediate: %s, SMART Signature %s", commandName, offlineTestName, smartSigValid);
 }
 
-void get_SMART_Log_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
+void get_SMART_Log_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
 {
     uint8_t logAddress = M_Byte0(lba);
     char logAddressName[41] = { 0 };
@@ -4189,22 +4199,22 @@ void get_SMART_Log_Info(const char* commandName, uint8_t commandOpCode, uint16_t
     {
         if (M_Byte0(features) == 0xD5)
         {
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Read Log - Log: %s (Invalid Address) PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Read Log - Log: %s (Invalid Address) PageCount: %" PRIu8 ", SMART Signature %s", commandName, logAddressName, logPageCount, smartSigValid);
         }
         else
         {
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Write Log - Log: %s (Invalid Address) PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Write Log - Log: %s (Invalid Address) PageCount: %" PRIu8 ", SMART Signature %s", commandName, logAddressName, logPageCount, smartSigValid);
         }
     }
     else
     {
         if (M_Byte0(features) == 0xD5)
         {
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Read Log- Log: %s PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Read Log- Log: %s PageCount: %" PRIu8 ", SMART Signature %s", commandName, logAddressName, logPageCount, smartSigValid);
         }
         else
         {
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Write Log- Log: %s PageCount: %" PRIu8 "", commandName, logAddressName, logPageCount);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s Write Log- Log: %s PageCount: %" PRIu8 ", SMART Signature %s", commandName, logAddressName, logPageCount, smartSigValid);
         }
     }
 }
@@ -4279,7 +4289,7 @@ void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint
         }
         break;
     default:
-        if ((subcommand >= 0x00 && subcommand <= 0xCF)
+        if ((/* subcommand >= 0x00 && */ subcommand <= 0xCF)
             || (subcommand >= 0xDC && subcommand <= 0xDF))
         {
             //reserved
@@ -4294,7 +4304,7 @@ void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint
     }
 }
 
-void get_Sanitize_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t subcommand = features;
     uint32_t signature = M_DoubleWord0(lba);//TODO: may need to byte swap this //NOTE: for overwrite, this is the pattern. 47:32 contain a signature
@@ -4373,7 +4383,7 @@ void get_Sanitize_Command_Info(const char* commandName, uint8_t commandOpCode, u
     }
 }
 
-void get_DCO_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_DCO_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_Byte0(features);
     switch (subcommand)
@@ -4402,7 +4412,7 @@ void get_DCO_Command_Info(const char* commandName, uint8_t commandOpCode, uint16
     }
 }
 
-void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_Set_Max_Address_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     bool volatileValue = count & BIT0;
     if (commandOpCode == ATA_SET_MAX_EXT)
@@ -4459,7 +4469,7 @@ void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOp
 }
 
 //Only idle and standby...not the immediate commands!
-void get_Idle_Or_Standby_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, M_ATTR_UNUSED uint16_t features, uint16_t count, M_ATTR_UNUSED uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t standbyTimerPeriod = M_Byte0(count);
     char standbyTimerPeriodString[31] = { 0 };
@@ -4524,7 +4534,7 @@ void get_Idle_Or_Standby_Command_Info(const char* commandName, uint8_t commandOp
     snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Standby Timer Period: %s", commandName, standbyTimerPeriodString);
 }
 
-void get_NV_Cache_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t subcommand = features;
     switch (subcommand)
@@ -4601,7 +4611,7 @@ void get_NV_Cache_Command_Info(const char* commandName, uint8_t commandOpCode, u
     }
 }
 
-void get_AMAC_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_AMAC_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     switch (features)
     {
@@ -4620,7 +4630,7 @@ void get_AMAC_Command_Info(const char* commandName, uint8_t commandOpCode, uint1
     }
 }
 
-void get_Zeros_Ext_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_Zeros_Ext_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     bool trimBit = features & BIT0;
     uint32_t numberOfSectorsToWriteZeros = count;
@@ -4672,7 +4682,7 @@ void get_SATA_Feature_Control_Command_Info(const char* commandName, bool enable,
             snprintf(hardwareFeatureName, 30, "Direct Head Unload");
             break;
         default:
-            if (functionID >= 0xF000 && functionID <= 0xFFFF)
+            if (functionID >= 0xF000 /* && functionID <= 0xFFFF */)
             {
                 snprintf(hardwareFeatureName, 30, "Vendor Specific (%04" PRIX16 "h)", functionID);
             }
@@ -5190,7 +5200,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
             //vendor specific
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
         }
-        else if ((setFeaturesSubcommand >= 0xF0 && setFeaturesSubcommand <= 0xFF))
+        else if ((setFeaturesSubcommand >= 0xF0 /* && setFeaturesSubcommand <= 0xFF */))
         {
             //reserved for CFA
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reserved for CFA (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
@@ -5204,7 +5214,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
     }
 }
 
-void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t zmAction = M_Nibble0(features);
     uint8_t featuresActionSpecific = M_Byte1(features);
@@ -5278,7 +5288,7 @@ void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t command
     }
 }
 
-void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t zmAction = M_Nibble0(features);
     uint8_t featuresActionSpecific = M_Byte1(features);
@@ -6123,7 +6133,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
             || (commandOpCode >= 0xC0 && commandOpCode <= 0xC3)
             || commandOpCode == 0xF0
             || commandOpCode == 0xF7
-            || (commandOpCode >= 0xFA && commandOpCode <= 0xFF)
+            || (commandOpCode >= 0xFA /* && commandOpCode <= 0xFF */)
             )
         {
             //NOTE: The above if is far from perfect...there are some commands that were once VU in old standards that have been defined in newer ones...this is as close as I care to get this.
@@ -6295,7 +6305,7 @@ bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 #define ATA_ERROR_INFO_MAX_LENGTH UINT8_C(4096) //making this bigger than we need for the moment
 #define ATA_ERROR_MESSAGE_MAX_LENGTH UINT8_C(256) //making this bigger than we need for the moment
 #define ATA_STATUS_MESSAGE_MAX_LENGTH UINT8_C(256) //making this bigger than we need for the moment
-void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceReg, uint8_t status, uint8_t error, uint16_t count, uint64_t lba, uint8_t device, uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
+void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceReg, uint8_t status, uint8_t error, M_ATTR_UNUSED uint16_t count, uint64_t lba, uint8_t device, M_ATTR_UNUSED uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
 {
     //bool isDMAQueued = is_DMA_Queued_Command(commandOpCodeThatCausedError);
     bool isStream = is_Stream_Command(commandOpCodeThatCausedError);
