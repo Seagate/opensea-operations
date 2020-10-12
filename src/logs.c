@@ -858,8 +858,9 @@ int get_DST_Log(tDevice *device, const char * const filePath)
         return get_SCSI_Log(device, LP_SELF_TEST_RESULTS, 0, "Self_Test_Results", "bin", false, NULL, 0, filePath);
     }
 #if !defined (DISABLE_NVME_PASSTHROUGH)
-    else if (device->drive_info.drive_type == NVME_DRIVE) {
-        return pull_Supported_NVMe_Logs(device, 6, pull_Supported_NVMe_Logs);
+    else if (device->drive_info.drive_type == NVME_DRIVE) 
+    {
+        return pull_Supported_NVMe_Logs(device, 6, PULL_LOG_BIN_FILE_MODE);
     }
 #endif
     else
@@ -2463,7 +2464,7 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
     return retStatus;
 }
 
-int pull_Supported_NVMe_Logs(tDevice *device, uint32_t logNum, eLogPullMode mode)
+int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
 {
     //Since 0 is reserved log
     int retStatus=0;
@@ -2501,7 +2502,7 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint32_t logNum, eLogPullMode mode
                         fwrite(logBuffer, sizeof(uint8_t), (size_t)size, pLogFile);
                         fflush(pLogFile);
                         fclose(pLogFile);
-                        if (VERBOSITY_QUIET < VERBOSITY_DEFAULT)
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
                             printf("Created %s with Log Page %" PRId32 " Information\n", fileNameUsed, logNum);
                         }
