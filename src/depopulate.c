@@ -225,7 +225,7 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     }
     //TODO: add another column for rebuild allowed
     printf("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\tRebuild Allowed\n");
-    printf("-------------------------------------------------------------------\n");
+    printf("----------------------------------------------------------------------------------\n");
     for (uint32_t elementIter = 0; elementIter < numberOfElements; ++elementIter)
     {
         char statusString[23] = { 0 };
