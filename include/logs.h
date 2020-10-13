@@ -586,6 +586,10 @@ extern "C" {
 
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
 
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    OPENSEA_OPERATIONS_API int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode);
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

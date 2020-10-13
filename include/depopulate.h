@@ -64,6 +64,7 @@ extern "C" {
         ePhysicalElementType elementType;
         uint8_t elementHealth;
         uint64_t associatedCapacity;
+        bool restorationAllowed;//can run the Restore elements and rebuild and this element will return to use.
     }physicalElement, *ptrPhysicalElement;
 
     //-----------------------------------------------------------------------------
@@ -113,6 +114,36 @@ extern "C" {
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime)
+    //
+    //! \brief   Description: Check if the Restore elements and rebuild commands are supported. Depopulation time is reported for time estimate if the pointer is valid
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[out] depopulationTime = optional. Will hold an approximate time to perform a depopulate.
+    //!
+    //  Exit:
+    //!   \return true = repopulate supported, false = not supported.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  repopulate_Elements(tDevice *device)
+    //
+    //! \brief   Description: Call this function to repopulate (Restore elements and rebuild). NOTE: At least one element must be rebuildable or this will return an error
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //  Exit:
+    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int repopulate_Elements(tDevice *device);
 
 #if defined(__cplusplus)
 }

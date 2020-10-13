@@ -184,6 +184,7 @@ int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsE
                 {
                     byte_Swap_32(&elementList[elementIter].elementIdentifier);
                 }
+                elementList[elementIter].restorationAllowed = (getPhysicalElements[offset + 13] & BIT0) > 0 ? true : false;
                 elementList[elementIter].elementType = getPhysicalElements[offset + 14];
                 elementList[elementIter].elementHealth = getPhysicalElements[offset + 15];
                 //byte swap when we need it (ATA vs SCSI)
@@ -222,14 +223,15 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     {
         printf("Not reported.\n");
     }
-
-    printf("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\n");
-    printf("-------------------------------------------------------------------\n");
+    //TODO: add another column for rebuild allowed
+    printf("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\tRebuild Allowed\n");
+    printf("----------------------------------------------------------------------------------\n");
     for (uint32_t elementIter = 0; elementIter < numberOfElements; ++elementIter)
     {
         char statusString[23] = { 0 };
         char capacityString[21] = { 0 };
         char elementType = 'P';//physical element
+        char rebuildAllowed[4] = { 0 };
         if (/* elementList[elementIter].elementHealth >= 0 && */ elementList[elementIter].elementHealth <= 0x63)
         {
             sprintf(statusString, "In Limit");
@@ -271,8 +273,17 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
         {
             elementType = 'S';
         }
-        printf("%9" PRIu32"\t%c  \t%3" PRIu8" \t%-23s\t%s\n", elementList[elementIter].elementIdentifier, elementType, elementList[elementIter].elementHealth, statusString, capacityString);
+        if (elementList[elementIter].restorationAllowed)
+        {
+            sprintf(rebuildAllowed, "Yes");
+        }
+        else
+        {
+            sprintf(rebuildAllowed, "No");
+        }
+        printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%s\t%s\n", elementList[elementIter].elementIdentifier, elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);
     }
+    printf("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
     return;
 }
 
@@ -286,6 +297,92 @@ int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, u
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = scsi_Remove_And_Truncate(device, requestedMaxLBA, elementDescriptorID);
+    }
+    return ret;
+}
+
+bool is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //support is listed in the ID Data log, supported capabilities page
+        uint8_t supportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
+        {
+            uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4], supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
+            if (supportedCapabilitiesQWord0 & BIT63 && M_GETBITRANGE(supportedCapabilitiesQWord0, 23, 16) == 0x03)//make sure required bits/fields are there...checking for bit63 to be 1 and page number to be 3
+            {
+                uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(supportedCapabilities[159], supportedCapabilities[158], supportedCapabilities[157], supportedCapabilities[156], supportedCapabilities[155], supportedCapabilities[154], supportedCapabilities[153], supportedCapabilities[152]);
+                if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
+                {
+                    if (supportedCapabilitiesQWord18 & BIT3)
+                    {
+                        supported = true;
+                    }
+                }
+                //get depopulation execution time
+                if (depopulationTime)
+                {
+                    uint64_t supportedCapabilitiesQWord19 = M_BytesTo8ByteValue(supportedCapabilities[167], supportedCapabilities[166], supportedCapabilities[165], supportedCapabilities[164], supportedCapabilities[163], supportedCapabilities[162], supportedCapabilities[161], supportedCapabilities[160]);
+                    if (supportedCapabilitiesQWord19 & BIT63)//check for validity
+                    {
+                        *depopulationTime = supportedCapabilitiesQWord19 & UINT64_C(0x7FFFFFFFFFFFFFFF);
+                    }
+                    else
+                    {
+                        *depopulationTime = UINT64_MAX;//so we can set the timeout on the command or say "time not reported"
+                    }
+                }
+            }
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        //send some report supported operation code commands to figure it out
+        uint8_t reportOpCodes[20] = { 0 };
+        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x19, 20, reportOpCodes))
+        {
+            switch (reportOpCodes[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                supported = true;
+                break;
+            default:
+                break;
+            }
+        }
+        if (supported)
+        {
+            supported = true;
+            if (depopulationTime)
+            {
+                *depopulationTime = UINT64_MAX;
+                uint8_t blockDeviceCharacteristics[VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN] = { 0 };
+                if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                {
+                    *depopulationTime = M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13], blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+                }
+            }
+        }
+    }
+    return supported;
+}
+
+int repopulate_Elements(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Restore_Elements_And_Rebuild(device);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        ret = scsi_Restore_Elements_And_Rebuild(device);
     }
     return ret;
 }
