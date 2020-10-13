@@ -628,8 +628,10 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 ret = BAD_PARAMETER;
                 return ret;
             }
-			if (ret == SUCCESS)
-				ret = send_DST(device, DSTType, captiveForeground, commandTimeout);
+            if (ret == SUCCESS)
+            {
+                ret = send_DST(device, DSTType, captiveForeground, commandTimeout);
+            }
             //now poll for progress if it was requested
             if ((ret == SUCCESS || ret == IN_PROGRESS) && pollForProgress && !captiveForeground)
             {
