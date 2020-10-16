@@ -574,7 +574,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
         {
             ret = IN_PROGRESS;
         }
-        if (ret == SUCCESS)
+        if (ret == SUCCESS || ret == IN_PROGRESS)
         {
             //time to start the DST
             switch (DSTType)
@@ -628,9 +628,12 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 ret = BAD_PARAMETER;
                 return ret;
             }
-            ret = send_DST(device, DSTType, captiveForeground, commandTimeout);
+            if (ret == SUCCESS)
+            {
+                ret = send_DST(device, DSTType, captiveForeground, commandTimeout);
+            }
             //now poll for progress if it was requested
-            if (ret == SUCCESS && pollForProgress && !captiveForeground)
+            if ((ret == SUCCESS || ret == IN_PROGRESS) && pollForProgress && !captiveForeground)
             {
                 delay_Seconds(1);//delay for a second before starting to poll for progress to give it time to start
                 //set status to 0x08 before the loop or it will not get entered
@@ -641,7 +644,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 uint8_t timeExtensionCount = 0;
                 char *overTimeWarningMessage = "WARNING: DST is taking longer than expected.";
                 bool showTimeWarning = false;
-                while (status == 0x0F && ret == SUCCESS)
+                while (status == 0x0F && (ret == SUCCESS || ret == IN_PROGRESS))
                 {
                     lastProgressIndication = percentComplete;
                     ret = get_DST_Progress(device, &percentComplete, &status);
