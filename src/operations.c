@@ -2316,12 +2316,15 @@ int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8
 uint8_t get_LUN_Count(tDevice *device)
 {
     uint8_t lunCount = 1;//assume 1 since we are talking over a lun right now. - TJE
-    uint8_t luns[4] = { 0 };
-    uint8_t selectReport = 0x02;//or 0????
-    if (SUCCESS == scsi_Report_Luns(device, selectReport, 4, luns))
+    if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
     {
-        uint32_t lunListLength = M_BytesTo4ByteValue(luns[0], luns[1], luns[2], luns[3]);
-        lunCount = C_CAST(uint8_t, lunListLength / UINT32_C(8));
+        uint8_t luns[4] = { 0 };
+        uint8_t selectReport = 0x02;//or 0????
+        if (SUCCESS == scsi_Report_Luns(device, selectReport, 4, luns))
+        {
+            uint32_t lunListLength = M_BytesTo4ByteValue(luns[0], luns[1], luns[2], luns[3]);
+            lunCount = C_CAST(uint8_t, lunListLength / UINT32_C(8));
+        }
     }
     return lunCount;
 }
