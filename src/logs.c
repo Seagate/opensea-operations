@@ -2470,6 +2470,7 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
     int retStatus=0;
     uint64_t size = 0;
     uint8_t * logBuffer = NULL;
+#if !defined(DISABLE_NVME_PASSTHROUGH)
     nvmeGetLogPageCmdOpts cmdOpts;
     if ((nvme_Get_Log_Size(logNum, &size) == SUCCESS) && size) {
         memset(&cmdOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
@@ -2578,6 +2579,9 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
             retStatus = 3;
             break;
     }*/
+#else
+retStatus = NOT_SUPPORTED;
+#endif
     return retStatus;
 }
     
