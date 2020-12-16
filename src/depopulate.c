@@ -316,7 +316,7 @@ bool is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime
                 uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(supportedCapabilities[159], supportedCapabilities[158], supportedCapabilities[157], supportedCapabilities[156], supportedCapabilities[155], supportedCapabilities[154], supportedCapabilities[153], supportedCapabilities[152]);
                 if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
                 {
-                    if (supportedCapabilitiesQWord18 & BIT3)
+                    if (supportedCapabilitiesQWord18 & BIT2)
                     {
                         supported = true;
                     }
