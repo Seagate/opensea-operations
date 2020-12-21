@@ -1134,8 +1134,17 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         }
         seatimer_t ataSecureEraseTimer;
         memset(&ataSecureEraseTimer, 0, sizeof(seatimer_t));
+        uint32_t timeout = 0;
+        if (os_Is_Infinite_Timeout_Supported())
+        {
+            timeout = INFINITE_TIMEOUT_VALUE;
+        }
+        else
+        {
+            timeout = MAX_CMD_TIMEOUT_SECONDS;
+        }
         start_Timer(&ataSecureEraseTimer);
-        int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, UINT32_MAX, satATASecuritySupported);
+        int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
         stop_Timer(&ataSecureEraseTimer);
         //before we read the bitfield again...try requesting sense data to see if that says there was a reset on the bus. (6h/29h/00h)
         bool hostResetDuringErase = false;

@@ -887,7 +887,14 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
         uint32_t timeoutSeconds = SEAGATE_IDD_TIMEOUT;//make this super long just in case...
         if (captiveForeground)
         {
-            timeoutSeconds = UINT32_MAX;
+            if (os_Is_Infinite_Timeout_Supported())
+            {
+                timeoutSeconds = INFINITE_TIMEOUT_VALUE;
+            }
+            else
+            {
+                timeoutSeconds = MAX_CMD_TIMEOUT_SECONDS;
+            }
         }
         switch (iddOperation)
         {
@@ -932,7 +939,14 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             }
             if (captiveForeground)
             {
-                commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
+                if (os_Is_Infinite_Timeout_Supported())
+                {
+                    commandTimeoutSeconds = INFINITE_TIMEOUT_VALUE;
+                }
+                else
+                {
+                    commandTimeoutSeconds = MAX_CMD_TIMEOUT_SECONDS;
+                }
                 iddDiagPage[1] |= BIT4;
             }
             else

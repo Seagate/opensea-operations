@@ -454,7 +454,14 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
     int ret = NOT_SUPPORTED;
     if (commandTimeout == 0)
     {
-        commandTimeout = UINT32_MAX;
+        if (os_Is_Infinite_Timeout_Supported())
+        {
+            commandTimeout = INFINITE_TIMEOUT_VALUE;
+        }
+        else
+        {
+            commandTimeout = MAX_CMD_TIMEOUT_SECONDS;
+        }
     }
     switch (device->drive_info.drive_type)
     {
