@@ -3270,14 +3270,14 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
         {
             if (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0)//checking that SMART error logging is supported
             {
+                uint32_t compErrLogSize = 0;
                 //now check for GPL summort so we know if we are reading the ext log or not
-                if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !forceSMARTLog)
+                if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !forceSMARTLog && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false) && compErrLogSize > 0)
                 {
                     //extended comprehensive SMART error log
                     //We will read each sector of the log as we need it to help with some USB compatibility (and so we don't read more than we need)
                     uint8_t errorLog[512] = { 0 };
                     uint16_t pageNumber = 0;
-                    uint32_t compErrLogSize = 0;
                     get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false);
                     uint16_t maxPage = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
                     uint16_t pageIter = 0;
@@ -3406,11 +3406,10 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                         }
                     }
                 }
-                else
+                else //GPL log was not available or did not read correctly.
                 {
                     //comprehensive SMART error log
                     //read the first sector to get index and device error count. Will read the full thing if those are non-zero
-                    uint32_t compErrLogSize = 0;
                     get_ATA_Log_Size(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, false, true);
                     if (compErrLogSize > 0)
                     {
