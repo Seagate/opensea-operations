@@ -758,28 +758,42 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 else
                 {
 #endif
-                    dstLogEntries logEntries;
-                    memset(&logEntries, 0, sizeof(dstLogEntries));
-                    //read the DST log for the result to avoid any SATL issues...
-                    if (SUCCESS == get_DST_Log_Entries(device, &logEntries))
-                    {
-                        if (0 == M_Nibble1(logEntries.dstEntry[0].selfTestExecutionStatus))
-                        {
-                            ret = SUCCESS;
-                        }
-                        else if (0xF == M_Nibble1(logEntries.dstEntry[0].selfTestExecutionStatus))
-                        {
-                            //NOTE: this shouldn't ever happen, but I've seen weird things before...-TJE
-                            ret = IN_PROGRESS;
-                        }
-                        else
-                        {
-                            ret = FAILURE;
-                        }
-                    }
-                    else
-                    {
-                        ret = UNKNOWN;
+                    //if the LBA registers have C2-4F or 2C-F4, then we have pass vs fail results.
+                    if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
+            		{
+                		ret = SUCCESS;
+            		}
+            		else if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_BAD_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_BAD_SIG_HI)
+            		{
+                		//SMART is tripped
+                		ret = FAILURE;
+            		}
+            		else //SCSI drive, or ATA rtfrs not available
+            		{
+                    	//otherwise, read the DST log to figure out the results
+                    	dstLogEntries logEntries;
+                    	memset(&logEntries, 0, sizeof(dstLogEntries));
+                    	//read the DST log for the result to avoid any SATL issues...
+                    	if (SUCCESS == get_DST_Log_Entries(device, &logEntries))
+                    	{
+                        	if (0 == M_Nibble1(logEntries.dstEntry[0].selfTestExecutionStatus))
+                        	{
+                            	ret = SUCCESS;
+                        	}
+                        	else if (0xF == M_Nibble1(logEntries.dstEntry[0].selfTestExecutionStatus))
+                        	{
+                            	//NOTE: this shouldn't ever happen, but I've seen weird things before...-TJE
+                            	ret = IN_PROGRESS;
+                        	}
+                        	else
+                        	{
+                            	ret = FAILURE;
+                        	}
+                    	}
+                    	else
+                    	{
+                        	ret = UNKNOWN;
+                    	}
                     }
 #if !defined (DISABLE_NVME_PASSTHORUGH)
                 }
@@ -924,12 +938,13 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
 bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
+    uint32_t logSize = 0;
     uint8_t *selfTestResults = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!selfTestResults)
     {
         return false;
     }
-    if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
+    if (device->drive_info.ata_Options.generalPurposeLoggingSupported && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
     {
         //read the extended self test results log with read log ext
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
@@ -979,7 +994,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
             }
         }
     }
-    else
+    else if(is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
     {
         //read the self tests results log with SMART read log
         if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_SMART_SELF_TEST_LOG, selfTestResults, LEGACY_DRIVE_SEC_SIZE))
@@ -1368,8 +1383,9 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
     uint8_t *selfTestResults = NULL;
+    uint32_t logSize = 0;//used for compatibility purposes with drives that may have GPL, but not support the ext log...
     //device->drive_info.ata_Options.generalPurposeLoggingSupported = false;//for debugging SMART log version
-    if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
+    if (device->drive_info.ata_Options.generalPurposeLoggingSupported && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
     {
         uint32_t extLogSize = LEGACY_DRIVE_SEC_SIZE;
         if(SUCCESS != get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &extLogSize, true, false))
@@ -1534,7 +1550,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             }
         }
     }
-    else
+    else if (is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
     {
         selfTestResults = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!selfTestResults)
