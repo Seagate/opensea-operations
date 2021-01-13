@@ -212,6 +212,42 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         //now get the Transport specs supported.
         specsBits = wordPtr[222];
         uint8_t transportType = M_Nibble3(specsBits);//0 = parallel, 1 = serial, e = PCIe
+        if (specsBits & BIT10)
+        {
+            if (transportType == 0x01)
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "SATA 3.5");
+            }
+            else
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "Reserved");
+            }
+            driveInfo->numberOfSpecificationsSupported++;
+        }
+        if (specsBits & BIT9)
+        {
+            if (transportType == 0x01)
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "SATA 3.4");
+            }
+            else
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "Reserved");
+            }
+            driveInfo->numberOfSpecificationsSupported++;
+        }
+        if (specsBits & BIT8)
+        {
+            if (transportType == 0x01)
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "SATA 3.3");
+            }
+            else
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "Reserved");
+            }
+            driveInfo->numberOfSpecificationsSupported++;
+        }
         if (specsBits & BIT7)
         {
             if (transportType == 0x01)
