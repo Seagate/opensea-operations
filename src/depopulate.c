@@ -539,12 +539,14 @@ int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *
     return ret;
 }
 
-void show_Depop_Repop_Progress(tDevice *device)
+int show_Depop_Repop_Progress(tDevice *device)
 {
+    int ret = NOT_SUPPORTED;
     eDepopStatus depopStatus = DEPOP_NOT_IN_PROGRESS;
     double progress = 0.0;
     if (SUCCESS == get_Depopulate_Progress(device, &depopStatus, &progress))
     {
+        ret = SUCCESS;
         switch (depopStatus)
         {
         case DEPOP_NOT_IN_PROGRESS:
@@ -560,6 +562,7 @@ void show_Depop_Repop_Progress(tDevice *device)
             {
                 printf("%0.02f%%\n", progress);
             }
+            ret = IN_PROGRESS;
             break;
         case DEPOP_REPOP_IN_PROGRESS:
             printf("Repopulation in progress: ");
@@ -571,6 +574,7 @@ void show_Depop_Repop_Progress(tDevice *device)
             {
                 printf("%0.02f%%\n", progress);
             }
+            ret = IN_PROGRESS;
             break;
         case DEPOP_FAILED:
             printf("Depopulation failed.\n");
@@ -588,9 +592,10 @@ void show_Depop_Repop_Progress(tDevice *device)
     }
     else
     {
+        ret = FAILURE;
         printf("A failure was encountered when checking for progress on depopulation/repopulation.\n");
     }
-    return;
+    return ret;
 }
 
 int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA, bool pollForProgress)

@@ -181,10 +181,10 @@ extern "C" {
     //  Entry:
     //!   \param[in] device = file descriptor
     //  Exit:
-    //!   \return void
+    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void show_Depop_Repop_Progress(tDevice *device);
+    OPENSEA_OPERATIONS_API int show_Depop_Repop_Progress(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
