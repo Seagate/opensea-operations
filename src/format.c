@@ -110,6 +110,13 @@ int show_Format_Unit_Progress(tDevice *device)
     if (ret == IN_PROGRESS)
     {
         printf("\tFormat Unit Progress = %3.2f%% \n", percentComplete);
+        if (percentComplete >= 100.0)
+        {
+            printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
+            printf("\t         that a format is still in progress! Please wait an additional\n");
+            printf("\t         30 seconds and check again to see when the sense data no longer\n");
+            printf("\t         indicates that a format is in progress!\n");
+        }
     }
     else if (ret == SUCCESS)
     {
