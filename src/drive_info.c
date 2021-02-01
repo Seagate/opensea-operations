@@ -1451,8 +1451,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                             if (supportedCapabilitiesQWord & BIT46)
                             {
                                 dlcSupported = true;
-                                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
-                                driveInfo->numberOfFeaturesSupported++;
                             }
                         }
                         //Download capabilities
