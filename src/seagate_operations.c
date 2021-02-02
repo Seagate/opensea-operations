@@ -86,33 +86,33 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         return NOT_SUPPORTED;
     }
-    uint16_t phyControlLength = 116;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + 8 bytes for beginning of the page. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
-    uint8_t *sasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + phyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint16_t phyControlLength = 104 + MODE_PARAMETER_HEADER_10_LEN;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + then add 8 bytes for mode parameter header. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
+    uint8_t *sasPhyControl = (uint8_t*)calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!sasPhyControl)
     {
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), 0x01, true, true, MPC_CURRENT_VALUES, sasPhyControl))
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
     {
         //make sure we got the header as we expect it, then validate we got all the data we needed.
-        uint16_t modeDataLength = M_BytesTo2ByteValue(sasPhyControl[0], sasPhyControl[1]);
+        //uint16_t modeDataLength = M_BytesTo2ByteValue(sasPhyControl[0], sasPhyControl[1]);
         uint16_t blockDescriptorLength = M_BytesTo2ByteValue(sasPhyControl[6], sasPhyControl[7]);
         //validate we got the right page
         if ((sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x01 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & BIT6) > 0)
         {
-            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]) + 4;
+            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]) + 4;//add 4 for first 4 bytes of page before descriptors
             //check that we were able to read the full page! If we didn't get the entire thing, we need to reread it and adjust the phyControlLength variable!
-            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN) > (modeDataLength - 6) || pageLength > phyControlLength)
+            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength) > phyControlLength)
             {
                 //reread the page for the larger length
-                phyControlLength = pageLength + 4 + MODE_PARAMETER_HEADER_10_LEN;
+                phyControlLength = pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
                 uint8_t *temp = realloc_aligned(sasPhyControl, 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
                     return MEMORY_FAILURE;
                 }
                 sasPhyControl = temp;
-                if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), 0x01, true, true, MPC_CURRENT_VALUES, sasPhyControl))
+                if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
                 {
                     safe_Free_aligned(sasPhyControl);
                     return FAILURE;
@@ -121,8 +121,8 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
             if ((sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 5] & 0x0F) == 6)//make sure it's the SAS protocol page
             {
                 uint8_t numberOfPhys = sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
-                uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
-                for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys; ++phyIter, phyDescriptorOffset += 48)
+                uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginning of the phy descriptors so that when looping through them, it is easier code to read.
+                for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && phyDescriptorOffset < phyControlLength; ++phyIter, phyDescriptorOffset += 48)
                 {
                     uint8_t phyIdentifier = sasPhyControl[phyDescriptorOffset + 1];
                     //check if the caller requested changing all phys or a specific phy and only modify it's descriptor if either of those are true.
@@ -163,7 +163,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                     }
                 }
                 //we've finished making our changes to the mode page, so it's time to write it back!
-                if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), true, true, false, sasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength)))
+                if (SUCCESS != scsi_Mode_Select_10(device, phyControlLength, true, true, false, sasPhyControl, phyControlLength))
                 {
                     ret = FAILURE;
                 }
