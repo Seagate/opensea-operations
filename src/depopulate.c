@@ -684,7 +684,7 @@ int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescrip
                         {
                             //valid data
                             uint64_t currentSettingsQWord = M_BytesTo8ByteValue(currentSettings[15], currentSettings[14], currentSettings[13], currentSettings[12], currentSettings[11], currentSettings[10], currentSettings[9], currentSettings[8]);
-                            if (currentSettingsQWord & BIT63 && currentSettingsQWord && BIT19)
+                            if (currentSettingsQWord & BIT63 && currentSettingsQWord & BIT19)
                             {
                                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                                 {
@@ -992,7 +992,7 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
                         {
                             //valid data
                             uint64_t currentSettingsQWord = M_BytesTo8ByteValue(currentSettings[15], currentSettings[14], currentSettings[13], currentSettings[12], currentSettings[11], currentSettings[10], currentSettings[9], currentSettings[8]);
-                            if (currentSettingsQWord & BIT63 && currentSettingsQWord && BIT19)
+                            if (currentSettingsQWord & BIT63 && currentSettingsQWord & BIT19)
                             {
                                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                                 {
