@@ -15,6 +15,7 @@
 #include "format.h"
 #include "logs.h"
 #include "nvme_helper_func.h"
+#include "platform_helper.h"
 
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
@@ -1515,6 +1516,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             printf("It should complete in under 5 minutes, but interrupting it may make\n");
             printf("the drive unusable or require performing this command again!!\n");
         }
+        os_Lock_Device(device);
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             uint16_t descriptorCheck = 0;
@@ -1551,6 +1553,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             }
             ret = run_Format_Unit(device, formatUnitParameters, false);
         }
+        os_Unlock_Device(device);
     }
     return ret;
 }

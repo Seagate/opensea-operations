@@ -19,6 +19,7 @@
 #include "logs.h"
 #include "cmds.h"
 #include <stdlib.h>
+#include "platform_helper.h"
 
 int ata_Abort_DST(tDevice *device)
 {
@@ -463,6 +464,7 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
             commandTimeout = MAX_CMD_TIMEOUT_SECONDS;
         }
     }
+    os_Lock_Device(device);
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
@@ -558,6 +560,7 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
         ret = NOT_SUPPORTED;
         break;
     }
+    os_Unlock_Device(device);
     return ret;
 }
 

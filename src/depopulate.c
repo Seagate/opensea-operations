@@ -14,6 +14,7 @@
 
 #include "depopulate.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
+#include "platform_helper.h"
 
 bool is_Depopulation_Feature_Supported(tDevice *device, uint64_t *depopulationTime)
 {
@@ -299,6 +300,7 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
 int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
     int ret = NOT_SUPPORTED;
+    os_Lock_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Remove_Element_And_Truncate(device, elementDescriptorID, requestedMaxLBA);
@@ -307,6 +309,7 @@ int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, u
     {
         ret = scsi_Remove_And_Truncate(device, requestedMaxLBA, elementDescriptorID);
     }
+    os_Unlock_Device(device);
     return ret;
 }
 
@@ -896,6 +899,7 @@ bool is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime
 int repopulate_Elements(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
+    os_Lock_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Restore_Elements_And_Rebuild(device);
@@ -904,6 +908,7 @@ int repopulate_Elements(tDevice *device)
     {
         ret = scsi_Restore_Elements_And_Rebuild(device);
     }
+    os_Unlock_Device(device);
     return ret;
 }
 

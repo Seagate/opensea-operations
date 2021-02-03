@@ -16,6 +16,7 @@
 #include "operations_Common.h"
 #include "ata_Security.h"
 #include <ctype.h>
+#include "platform_helper.h"
 
 bool sat_ATA_Security_Protocol_Supported(tDevice *device)
 {
@@ -1143,9 +1144,11 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         {
             timeout = MAX_CMD_TIMEOUT_SECONDS;
         }
+        os_Lock_Device(device);
         start_Timer(&ataSecureEraseTimer);
         int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
         stop_Timer(&ataSecureEraseTimer);
+        os_Unlock_Device(device);
         //before we read the bitfield again...try requesting sense data to see if that says there was a reset on the bus. (6h/29h/00h)
         bool hostResetDuringErase = false;
         if (!satATASecuritySupported) //Only do the code below if we aren't using the SAT security protocol to perform the erase.

@@ -22,6 +22,7 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 #include <float.h> //for DBL_MAX
+#include "platform_helper.h"
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
@@ -979,6 +980,7 @@ void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool
 int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveForeground)
 {
     int ret = NOT_SUPPORTED;
+    os_Lock_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t iddTestNumber = 0;
@@ -1013,7 +1015,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
         default:
             return NOT_SUPPORTED;
         }
-        return ata_SMART_Offline(device, iddTestNumber, timeoutSeconds);
+        ret = ata_SMART_Offline(device, iddTestNumber, timeoutSeconds);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -1033,6 +1035,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
                 break;
             default:
                 safe_Free(iddDiagPage);
+                os_Unlock_Device(device);
                 return NOT_SUPPORTED;
             }
             if (captiveForeground)
@@ -1062,6 +1065,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             ret = MEMORY_FAILURE;
         }
     }
+    os_Unlock_Device(device);
     return ret;
 }
 
