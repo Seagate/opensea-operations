@@ -111,7 +111,10 @@ int show_Format_Unit_Progress(tDevice *device)
     if (ret == IN_PROGRESS)
     {
         printf("\tFormat Unit Progress = %3.2f%% \n", percentComplete);
-        if (percentComplete >= 100.0)
+	//add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
+	//we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
+	//with the format
+        if (percentComplete + 0.005 >= 100.0)
         {
             printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
             printf("\t         that a format is still in progress! Please wait an additional\n");
