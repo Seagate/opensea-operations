@@ -621,6 +621,8 @@ int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescrip
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
                 printf("\n");
             }
+            printf("Do not remove power or attempt other access as interrupting it may make\n");
+            printf("the drive unusable or require performing this command again!!\n");
         }
         ret = depopulate_Physical_Element(device, elementDescriptorID, requestedMaxLBA);
         if (ret != SUCCESS)
@@ -932,6 +934,8 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
                 printf("\n");
             }
+            printf("Do not remove power or attempt other access as interrupting it may make\n");
+            printf("the drive unusable or require performing this command again!!\n");
         }
         ret = repopulate_Elements(device);
         if (ret != SUCCESS)

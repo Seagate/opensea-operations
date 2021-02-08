@@ -426,6 +426,13 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
                 formatCommandTimeout = MAX_CMD_TIMEOUT_SECONDS;
             }
         }
+        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+        {
+            printf("Performing SCSI drive format.\n");
+            printf("Depending on the format request, this could take minutes to hours or days.\n");
+            printf("Do not remove power or attempt other access as interrupting it may make\n");
+            printf("the drive unusable or require performing this command again!!\n");
+        }
         //send the format command
         if (formatParameters.defaultFormat && formatParameters.disableImmediate)
         {
@@ -437,7 +444,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         }
 
         //poll for progress
-        if (pollForProgress && ret == SUCCESS)
+        if (pollForProgress && ret == SUCCESS && !formatParameters.disableImmediate)
         {
             double progress = 0;
             uint32_t delayTimeSeconds = 300;
