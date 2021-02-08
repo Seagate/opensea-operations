@@ -1428,7 +1428,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
     {
         //doubles for end statistics of measurement
         double sum5v = 0, sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
-        double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Concert from milliseconds to something else???
+        double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Convert from milliseconds to something else???
 
         printf("Power Telemetry\n");
         printf("\tSerial Number: %s\n", pwrTelData->serialNumber);
