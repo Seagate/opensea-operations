@@ -958,7 +958,6 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
                 else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x2C && ascq == 0x00)//command sequence error means all depopulated elements do not allow restoration (at least one needs to support this)
                 {
                     ret = FAILURE;
-                    determineInvalidElementOrMaxLBA = true;
                 }
             }
             else if (device->drive_info.drive_type == ATA_DRIVE)
