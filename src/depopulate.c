@@ -940,7 +940,6 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
         ret = repopulate_Elements(device);
         if (ret != SUCCESS)
         {
-            bool determineInvalidElementOrMaxLBA = false;
             if (device->drive_info.drive_type == SCSI_DRIVE)
             {
                 //On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers do this for us and make this impossible to retrieve...so we need to work around this
