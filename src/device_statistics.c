@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@
 #include "logs.h"
 
 //this is ued to determine which device statistic is being talked about by the DSN log on ata
+/*
 int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = FAILURE;
@@ -25,6 +26,7 @@ int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *devi
     }
     return ret;
 }
+*/
 void scsi_Threshold_Comparison(statistic *ptrStatistic);//prototype
 
 int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
@@ -38,9 +40,9 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     //need to get the device statistics log
     if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true))
     {
-        bool dsnFeatureSupported = device->drive_info.IdentifyData.ata.Word119 & BIT9;
-        bool dsnFeatureEnabled = device->drive_info.IdentifyData.ata.Word120 & BIT9;
-        uint8_t *deviceStatsLog = (uint8_t*)calloc(deviceStatsSize, sizeof(uint8_t));
+        bool dsnFeatureSupported = device->drive_info.IdentifyData.ata.Word119 & BIT9 ? true : false;
+        bool dsnFeatureEnabled = device->drive_info.IdentifyData.ata.Word120 & BIT9 ? true : false;
+        uint8_t *deviceStatsLog = (uint8_t*)calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!deviceStatsLog)
         {
             return MEMORY_FAILURE;
@@ -48,8 +50,8 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         //this is to get the threshold stuff
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
-            uint8_t *devStatsNotificationsLog = (uint8_t*)calloc(deviceStatsNotificationsSize, sizeof(uint8_t));
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0))
+            uint8_t *devStatsNotificationsLog = (uint8_t*)calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0,0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
                 //increment by 2 qwords and go through each statistic and it's condition individually
@@ -474,26 +476,114 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             break;
                         }
                         break;
+                    case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
+                        switch (statisticByteOffset)
+                        {
+                        case 8://maximum open zones
+                            deviceStats->sataStatistics.maximumOpenZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumOpenZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumOpenZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumOpenZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumOpenZones.threshold = thresholdValue;
+                            break;
+                        case 16://maximum explicitly open zones
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshold = thresholdValue;
+                            break;
+                        case 24://maximum implicitly open zones
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshold = thresholdValue;
+                            break;
+                        case 32://minimum empty zones
+                            deviceStats->sataStatistics.minimumEmptyZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.minimumEmptyZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.minimumEmptyZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.minimumEmptyZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.minimumEmptyZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.minimumEmptyZones.threshold = thresholdValue;
+                            break;
+                        case 40://maximum non-sequential zones
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isThresholdValid = true;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.threshold = thresholdValue;
+                            break;
+                        case 48://zones emptied
+                            deviceStats->sataStatistics.zonesEmptied.isThresholdValid = true;
+                            deviceStats->sataStatistics.zonesEmptied.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.zonesEmptied.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.zonesEmptied.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.zonesEmptied.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.zonesEmptied.threshold = thresholdValue;
+                            break;
+                        case 56://suboptimal write commands
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isThresholdValid = true;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.threshold = thresholdValue;
+                            break;
+                        case 64://commands exceeding optimal limit
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isThresholdValid = true;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshold = thresholdValue;
+                            break;
+                        case 72://failed explicit opens
+                            deviceStats->sataStatistics.failedExplicitOpens.isThresholdValid = true;
+                            deviceStats->sataStatistics.failedExplicitOpens.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.failedExplicitOpens.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.failedExplicitOpens.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.failedExplicitOpens.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.failedExplicitOpens.threshold = thresholdValue;
+                            break;
+                        case 80://read rule violations
+                            deviceStats->sataStatistics.readRuleViolations.isThresholdValid = true;
+                            deviceStats->sataStatistics.readRuleViolations.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.readRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.readRuleViolations.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.readRuleViolations.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.readRuleViolations.threshold = thresholdValue;
+                            break;
+                        case 88://write rule violations
+                            deviceStats->sataStatistics.writeRuleViolations.isThresholdValid = true;
+                            deviceStats->sataStatistics.writeRuleViolations.thresholdNotificationEnabled = notificationEnabled;
+                            deviceStats->sataStatistics.writeRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.writeRuleViolations.nonValidityTrigger = nonValidityTrigger;
+                            deviceStats->sataStatistics.writeRuleViolations.validityTrigger = validityTrigger;
+                            deviceStats->sataStatistics.writeRuleViolations.threshold = thresholdValue;
+                            break;
+                        default:
+                            break;
+                        }
                     default:
                         //unknown page, break
                         break;
                     }
                 }
             }
-            safe_Free(devStatsNotificationsLog);
+            safe_Free_aligned(devStatsNotificationsLog);
         }
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0,0))
         {
             ret = SUCCESS;
             uint32_t offset = 0;//start offset 1 sector to get to the general statistics
             uint64_t *qwordPtrDeviceStatsLog = NULL;
-            /*
-            //THIS LOOP IS BASED ON THE IDENTIFIER FOR NUMBER OF PAGES SUPPORTED EXPECTING AN EXACT LIST
             for (uint8_t pageIter = 0; pageIter < deviceStatsLog[8]; ++pageIter)
-            /*/
-            //THIS LOOP IS A HACK TO ITERATE OVER EVERYTHING
-            for (uint16_t pageIter = 0; pageIter < (LEGACY_DRIVE_SEC_SIZE - 8); ++pageIter)
-                //*
             {
                 //statistics flags:
                 //bit 63 = supported
@@ -509,6 +599,13 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     break;
                 }
                 qwordPtrDeviceStatsLog = (uint64_t*)&deviceStatsLog[offset];
+#if defined (__BIG_ENDIAN__)
+                //TODO: Find a better way to change this code, but for now, on big endian systems, we need to byte swap all qwords of the buffer to make the code below work properly
+               for(uint8_t qwordBSwapIter = 0; qwordBSwapIter < 64; ++qwordBSwapIter)
+               {
+                    byte_Swap_64(&qwordPtrDeviceStatsLog[qwordBSwapIter]);
+                }
+#endif
                 switch (deviceStatsLog[9 + pageIter])
                 {
                 case 0://supported pages page...
@@ -975,153 +1072,124 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         }
                     }
                     break;
-                case 8://SMR (currently Seagate specific) (fallthrough for now)
-                case 0xFF://vendor specific
-                    if (is_Seagate_Family(device) == SEAGATE && device->drive_info.zonedType == ZONED_TYPE_HOST_AWARE && (0x08 == M_Byte2(qwordPtrDeviceStatsLog[0]) || 0xFF == M_Byte2(qwordPtrDeviceStatsLog[0])))
+                case 8://ZAC statistics
+                    if (0x08 == M_Byte2(qwordPtrDeviceStatsLog[0]))
                     {
-                        deviceStats->sataStatistics.smrStatisticsSupported = true;
+                        deviceStats->sataStatistics.zonedDeviceStatisticsSupported = true;
                         if (qwordPtrDeviceStatsLog[1] & BIT63)
                         {
-                            deviceStats->sataStatistics.maximumNumberOfOpenZones.isSupported = true;
-                            deviceStats->sataStatistics.maximumNumberOfOpenZones.isValueValid = qwordPtrDeviceStatsLog[1] & BIT62;
-                            deviceStats->sataStatistics.maximumNumberOfOpenZones.isNormalized = qwordPtrDeviceStatsLog[1] & BIT61;
-                            deviceStats->sataStatistics.maximumNumberOfOpenZones.supportsNotification = qwordPtrDeviceStatsLog[1] & BIT60;
-                            deviceStats->sataStatistics.maximumNumberOfOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[1] & BIT59;
-                            deviceStats->sataStatistics.maximumNumberOfOpenZones.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[1]);
+                            deviceStats->sataStatistics.maximumOpenZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumOpenZones.isValueValid = qwordPtrDeviceStatsLog[1] & BIT62;
+                            deviceStats->sataStatistics.maximumOpenZones.isNormalized = qwordPtrDeviceStatsLog[1] & BIT61;
+                            deviceStats->sataStatistics.maximumOpenZones.supportsNotification = qwordPtrDeviceStatsLog[1] & BIT60;
+                            deviceStats->sataStatistics.maximumOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[1] & BIT59;
+                            deviceStats->sataStatistics.maximumOpenZones.statisticValue = qwordPtrDeviceStatsLog[1] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[2] & BIT63)
                         {
-                            deviceStats->sataStatistics.maximumNumberOfExplicitlyOpenZones.isSupported = true;
-                            deviceStats->sataStatistics.maximumNumberOfExplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[2] & BIT62;
-                            deviceStats->sataStatistics.maximumNumberOfExplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[2] & BIT61;
-                            deviceStats->sataStatistics.maximumNumberOfExplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[2] & BIT60;
-                            deviceStats->sataStatistics.maximumNumberOfExplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[2] & BIT59;
-                            deviceStats->sataStatistics.maximumNumberOfExplicitlyOpenZones.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[2]);
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[2] & BIT62;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[2] & BIT61;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[2] & BIT60;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[2] & BIT59;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.statisticValue = qwordPtrDeviceStatsLog[2] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[3] & BIT63)
                         {
-                            deviceStats->sataStatistics.maximumNumberOfImplicitlyOpenZones.isSupported = true;
-                            deviceStats->sataStatistics.maximumNumberOfImplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[3] & BIT62;
-                            deviceStats->sataStatistics.maximumNumberOfImplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[3] & BIT61;
-                            deviceStats->sataStatistics.maximumNumberOfImplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[3] & BIT60;
-                            deviceStats->sataStatistics.maximumNumberOfImplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[3] & BIT59;
-                            deviceStats->sataStatistics.maximumNumberOfImplicitlyOpenZones.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[3]);
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isValueValid = qwordPtrDeviceStatsLog[3] & BIT62;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isNormalized = qwordPtrDeviceStatsLog[3] & BIT61;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.supportsNotification = qwordPtrDeviceStatsLog[3] & BIT60;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.monitoredConditionMet = qwordPtrDeviceStatsLog[3] & BIT59;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.statisticValue = qwordPtrDeviceStatsLog[3] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[4] & BIT63)
                         {
-                            deviceStats->sataStatistics.numberOfCommandsCausingOpenAboveAdvisoryLimits.isSupported = true;
-                            deviceStats->sataStatistics.numberOfCommandsCausingOpenAboveAdvisoryLimits.isValueValid = qwordPtrDeviceStatsLog[4] & BIT62;
-                            deviceStats->sataStatistics.numberOfCommandsCausingOpenAboveAdvisoryLimits.isNormalized = qwordPtrDeviceStatsLog[4] & BIT61;
-                            deviceStats->sataStatistics.numberOfCommandsCausingOpenAboveAdvisoryLimits.supportsNotification = qwordPtrDeviceStatsLog[4] & BIT60;
-                            deviceStats->sataStatistics.numberOfCommandsCausingOpenAboveAdvisoryLimits.monitoredConditionMet = qwordPtrDeviceStatsLog[4] & BIT59;
-                            deviceStats->sataStatistics.numberOfCommandsCausingOpenAboveAdvisoryLimits.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[4]);
+                            deviceStats->sataStatistics.minimumEmptyZones.isSupported = true;
+                            deviceStats->sataStatistics.minimumEmptyZones.isValueValid = qwordPtrDeviceStatsLog[4] & BIT62;
+                            deviceStats->sataStatistics.minimumEmptyZones.isNormalized = qwordPtrDeviceStatsLog[4] & BIT61;
+                            deviceStats->sataStatistics.minimumEmptyZones.supportsNotification = qwordPtrDeviceStatsLog[4] & BIT60;
+                            deviceStats->sataStatistics.minimumEmptyZones.monitoredConditionMet = qwordPtrDeviceStatsLog[4] & BIT59;
+                            deviceStats->sataStatistics.minimumEmptyZones.statisticValue = qwordPtrDeviceStatsLog[4] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[5] & BIT63)
                         {
-                            deviceStats->sataStatistics.maximumNumberOfConcurrentZonesWithRandomAccess.isSupported = true;
-                            deviceStats->sataStatistics.maximumNumberOfConcurrentZonesWithRandomAccess.isValueValid = qwordPtrDeviceStatsLog[5] & BIT62;
-                            deviceStats->sataStatistics.maximumNumberOfConcurrentZonesWithRandomAccess.isNormalized = qwordPtrDeviceStatsLog[5] & BIT61;
-                            deviceStats->sataStatistics.maximumNumberOfConcurrentZonesWithRandomAccess.supportsNotification = qwordPtrDeviceStatsLog[5] & BIT60;
-                            deviceStats->sataStatistics.maximumNumberOfConcurrentZonesWithRandomAccess.monitoredConditionMet = qwordPtrDeviceStatsLog[5] & BIT59;
-                            deviceStats->sataStatistics.maximumNumberOfConcurrentZonesWithRandomAccess.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[5]);
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isSupported = true;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isValueValid = qwordPtrDeviceStatsLog[5] & BIT62;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.isNormalized = qwordPtrDeviceStatsLog[5] & BIT61;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.supportsNotification = qwordPtrDeviceStatsLog[5] & BIT60;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.monitoredConditionMet = qwordPtrDeviceStatsLog[5] & BIT59;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.statisticValue = qwordPtrDeviceStatsLog[5] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[6] & BIT63)
                         {
-                            deviceStats->sataStatistics.minimumNumberOfEmptyZones.isSupported = true;
-                            deviceStats->sataStatistics.minimumNumberOfEmptyZones.isValueValid = qwordPtrDeviceStatsLog[6] & BIT62;
-                            deviceStats->sataStatistics.minimumNumberOfEmptyZones.isNormalized = qwordPtrDeviceStatsLog[6] & BIT61;
-                            deviceStats->sataStatistics.minimumNumberOfEmptyZones.supportsNotification = qwordPtrDeviceStatsLog[6] & BIT60;
-                            deviceStats->sataStatistics.minimumNumberOfEmptyZones.monitoredConditionMet = qwordPtrDeviceStatsLog[6] & BIT59;
-                            deviceStats->sataStatistics.minimumNumberOfEmptyZones.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[6]);
+                            deviceStats->sataStatistics.zonesEmptied.isSupported = true;
+                            deviceStats->sataStatistics.zonesEmptied.isValueValid = qwordPtrDeviceStatsLog[6] & BIT62;
+                            deviceStats->sataStatistics.zonesEmptied.isNormalized = qwordPtrDeviceStatsLog[6] & BIT61;
+                            deviceStats->sataStatistics.zonesEmptied.supportsNotification = qwordPtrDeviceStatsLog[6] & BIT60;
+                            deviceStats->sataStatistics.zonesEmptied.monitoredConditionMet = qwordPtrDeviceStatsLog[6] & BIT59;
+                            deviceStats->sataStatistics.zonesEmptied.statisticValue = qwordPtrDeviceStatsLog[6] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[7] & BIT63)
                         {
-                            deviceStats->sataStatistics.numberOfZonesReset.isSupported = true;
-                            deviceStats->sataStatistics.numberOfZonesReset.isValueValid = qwordPtrDeviceStatsLog[7] & BIT62;
-                            deviceStats->sataStatistics.numberOfZonesReset.isNormalized = qwordPtrDeviceStatsLog[7] & BIT61;
-                            deviceStats->sataStatistics.numberOfZonesReset.supportsNotification = qwordPtrDeviceStatsLog[7] & BIT60;
-                            deviceStats->sataStatistics.numberOfZonesReset.monitoredConditionMet = qwordPtrDeviceStatsLog[7] & BIT59;
-                            deviceStats->sataStatistics.numberOfZonesReset.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[7]);
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isSupported = true;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isValueValid = qwordPtrDeviceStatsLog[7] & BIT62;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.isNormalized = qwordPtrDeviceStatsLog[7] & BIT61;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.supportsNotification = qwordPtrDeviceStatsLog[7] & BIT60;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.monitoredConditionMet = qwordPtrDeviceStatsLog[7] & BIT59;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.statisticValue = qwordPtrDeviceStatsLog[7] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[8] & BIT63)
                         {
-                            deviceStats->sataStatistics.numberOfZonesFinished.isSupported = true;
-                            deviceStats->sataStatistics.numberOfZonesFinished.isValueValid = qwordPtrDeviceStatsLog[8] & BIT62;
-                            deviceStats->sataStatistics.numberOfZonesFinished.isNormalized = qwordPtrDeviceStatsLog[8] & BIT61;
-                            deviceStats->sataStatistics.numberOfZonesFinished.supportsNotification = qwordPtrDeviceStatsLog[8] & BIT60;
-                            deviceStats->sataStatistics.numberOfZonesFinished.monitoredConditionMet = qwordPtrDeviceStatsLog[8] & BIT59;
-                            deviceStats->sataStatistics.numberOfZonesFinished.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[8]);
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isSupported = true;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isValueValid = qwordPtrDeviceStatsLog[8] & BIT62;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isNormalized = qwordPtrDeviceStatsLog[8] & BIT61;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.supportsNotification = qwordPtrDeviceStatsLog[8] & BIT60;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.monitoredConditionMet = qwordPtrDeviceStatsLog[8] & BIT59;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.statisticValue = qwordPtrDeviceStatsLog[8] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[9] & BIT63)
                         {
-                            deviceStats->sataStatistics.numberOfZonesThatHaveBecomeFull.isSupported = true;
-                            deviceStats->sataStatistics.numberOfZonesThatHaveBecomeFull.isValueValid = qwordPtrDeviceStatsLog[9] & BIT62;
-                            deviceStats->sataStatistics.numberOfZonesThatHaveBecomeFull.isNormalized = qwordPtrDeviceStatsLog[9] & BIT61;
-                            deviceStats->sataStatistics.numberOfZonesThatHaveBecomeFull.supportsNotification = qwordPtrDeviceStatsLog[9] & BIT60;
-                            deviceStats->sataStatistics.numberOfZonesThatHaveBecomeFull.monitoredConditionMet = qwordPtrDeviceStatsLog[9] & BIT59;
-                            deviceStats->sataStatistics.numberOfZonesThatHaveBecomeFull.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[9]);
+                            deviceStats->sataStatistics.failedExplicitOpens.isSupported = true;
+                            deviceStats->sataStatistics.failedExplicitOpens.isValueValid = qwordPtrDeviceStatsLog[9] & BIT62;
+                            deviceStats->sataStatistics.failedExplicitOpens.isNormalized = qwordPtrDeviceStatsLog[9] & BIT61;
+                            deviceStats->sataStatistics.failedExplicitOpens.supportsNotification = qwordPtrDeviceStatsLog[9] & BIT60;
+                            deviceStats->sataStatistics.failedExplicitOpens.monitoredConditionMet = qwordPtrDeviceStatsLog[9] & BIT59;
+                            deviceStats->sataStatistics.failedExplicitOpens.statisticValue = qwordPtrDeviceStatsLog[9] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[10] & BIT63)
                         {
-                            deviceStats->sataStatistics.numberOfCommandsAtWritePointer.isSupported = true;
-                            deviceStats->sataStatistics.numberOfCommandsAtWritePointer.isValueValid = qwordPtrDeviceStatsLog[10] & BIT62;
-                            deviceStats->sataStatistics.numberOfCommandsAtWritePointer.isNormalized = qwordPtrDeviceStatsLog[10] & BIT61;
-                            deviceStats->sataStatistics.numberOfCommandsAtWritePointer.supportsNotification = qwordPtrDeviceStatsLog[10] & BIT60;
-                            deviceStats->sataStatistics.numberOfCommandsAtWritePointer.monitoredConditionMet = qwordPtrDeviceStatsLog[10] & BIT59;
-                            deviceStats->sataStatistics.numberOfCommandsAtWritePointer.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[10]);
+                            deviceStats->sataStatistics.readRuleViolations.isSupported = true;
+                            deviceStats->sataStatistics.readRuleViolations.isValueValid = qwordPtrDeviceStatsLog[10] & BIT62;
+                            deviceStats->sataStatistics.readRuleViolations.isNormalized = qwordPtrDeviceStatsLog[10] & BIT61;
+                            deviceStats->sataStatistics.readRuleViolations.supportsNotification = qwordPtrDeviceStatsLog[10] & BIT60;
+                            deviceStats->sataStatistics.readRuleViolations.monitoredConditionMet = qwordPtrDeviceStatsLog[10] & BIT59;
+                            deviceStats->sataStatistics.readRuleViolations.statisticValue = qwordPtrDeviceStatsLog[10] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                         if (qwordPtrDeviceStatsLog[11] & BIT63)
                         {
-                            deviceStats->sataStatistics.numberOfCommandsNotAtWritePointer.isSupported = true;
-                            deviceStats->sataStatistics.numberOfCommandsNotAtWritePointer.isValueValid = qwordPtrDeviceStatsLog[11] & BIT62;
-                            deviceStats->sataStatistics.numberOfCommandsNotAtWritePointer.isNormalized = qwordPtrDeviceStatsLog[11] & BIT61;
-                            deviceStats->sataStatistics.numberOfCommandsNotAtWritePointer.supportsNotification = qwordPtrDeviceStatsLog[11] & BIT60;
-                            deviceStats->sataStatistics.numberOfCommandsNotAtWritePointer.monitoredConditionMet = qwordPtrDeviceStatsLog[11] & BIT59;
-                            deviceStats->sataStatistics.numberOfCommandsNotAtWritePointer.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[11]);
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (qwordPtrDeviceStatsLog[12] & BIT63)
-                        {
-                            deviceStats->sataStatistics.numberOfTimesInNonPerformantState.isSupported = true;
-                            deviceStats->sataStatistics.numberOfTimesInNonPerformantState.isValueValid = qwordPtrDeviceStatsLog[12] & BIT62;
-                            deviceStats->sataStatistics.numberOfTimesInNonPerformantState.isNormalized = qwordPtrDeviceStatsLog[12] & BIT61;
-                            deviceStats->sataStatistics.numberOfTimesInNonPerformantState.supportsNotification = qwordPtrDeviceStatsLog[12] & BIT60;
-                            deviceStats->sataStatistics.numberOfTimesInNonPerformantState.monitoredConditionMet = qwordPtrDeviceStatsLog[12] & BIT59;
-                            deviceStats->sataStatistics.numberOfTimesInNonPerformantState.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[12]);
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (qwordPtrDeviceStatsLog[13] & BIT63)
-                        {
-                            deviceStats->sataStatistics.lastLBANotAtWritePointer.isSupported = true;
-                            deviceStats->sataStatistics.lastLBANotAtWritePointer.isValueValid = qwordPtrDeviceStatsLog[13] & BIT62;
-                            deviceStats->sataStatistics.lastLBANotAtWritePointer.isNormalized = qwordPtrDeviceStatsLog[13] & BIT61;
-                            deviceStats->sataStatistics.lastLBANotAtWritePointer.supportsNotification = qwordPtrDeviceStatsLog[13] & BIT60;
-                            deviceStats->sataStatistics.lastLBANotAtWritePointer.monitoredConditionMet = qwordPtrDeviceStatsLog[13] & BIT59;
-                            deviceStats->sataStatistics.lastLBANotAtWritePointer.statisticValue = qwordPtrDeviceStatsLog[13] & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (qwordPtrDeviceStatsLog[14] & BIT63)
-                        {
-                            deviceStats->sataStatistics.numberOfWriteCommandsInNonWritePointerZone.isSupported = true;
-                            deviceStats->sataStatistics.numberOfWriteCommandsInNonWritePointerZone.isValueValid = qwordPtrDeviceStatsLog[14] & BIT62;
-                            deviceStats->sataStatistics.numberOfWriteCommandsInNonWritePointerZone.isNormalized = qwordPtrDeviceStatsLog[14] & BIT61;
-                            deviceStats->sataStatistics.numberOfWriteCommandsInNonWritePointerZone.supportsNotification = qwordPtrDeviceStatsLog[14] & BIT60;
-                            deviceStats->sataStatistics.numberOfWriteCommandsInNonWritePointerZone.monitoredConditionMet = qwordPtrDeviceStatsLog[14] & BIT59;
-                            deviceStats->sataStatistics.numberOfWriteCommandsInNonWritePointerZone.statisticValue = M_DoubleWord0(qwordPtrDeviceStatsLog[14]);
+                            deviceStats->sataStatistics.writeRuleViolations.isSupported = true;
+                            deviceStats->sataStatistics.writeRuleViolations.isValueValid = qwordPtrDeviceStatsLog[11] & BIT62;
+                            deviceStats->sataStatistics.writeRuleViolations.isNormalized = qwordPtrDeviceStatsLog[11] & BIT61;
+                            deviceStats->sataStatistics.writeRuleViolations.supportsNotification = qwordPtrDeviceStatsLog[11] & BIT60;
+                            deviceStats->sataStatistics.writeRuleViolations.monitoredConditionMet = qwordPtrDeviceStatsLog[11] & BIT59;
+                            deviceStats->sataStatistics.writeRuleViolations.statisticValue = qwordPtrDeviceStatsLog[11] & MAX_48_BIT_LBA;
                             ++deviceStats->sataStatistics.statisticsPopulated;
                         }
                     }
-                    else if (0xFF == M_Byte2(qwordPtrDeviceStatsLog[0]))
+                    break;
+                case 0xFF://vendor specific
+                    if (is_Seagate_Family(device) == SEAGATE && 0xFF == M_Byte2(qwordPtrDeviceStatsLog[0]))
                     {
                         deviceStats->sataStatistics.vendorSpecificStatisticsSupported = true;
                         for (uint8_t vendorSpecificIter = 1; vendorSpecificIter < 64; ++vendorSpecificIter)
@@ -1145,7 +1213,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                 }
             }
         }
-        safe_Free(deviceStatsLog)
+        safe_Free_aligned(deviceStatsLog)
     }
     return ret;
 }
@@ -1354,46 +1422,46 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
-                        case 2://total
-                            deviceStats->sasStatistics.writeTotal.isSupported = true;
-                            deviceStats->sasStatistics.writeTotal.isValueValid = true;
+                        case 2://total rewrites
+                            deviceStats->sasStatistics.writeTotalReWrites.isSupported = true;
+                            deviceStats->sasStatistics.writeTotalReWrites.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.writeTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.writeTotalReWrites.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.writeTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.writeTotalReWrites.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.writeTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.writeTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.writeTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.writeTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.writeTotalReWrites.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.writeTotal.isValueValid = false;
+                                deviceStats->sasStatistics.writeTotalReWrites.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -1586,8 +1654,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -1648,29 +1716,29 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                                 break;
                             case 2://total
-                                deviceStats->sasStatistics.writeTotal.supportsNotification = true;
+                                deviceStats->sasStatistics.writeTotalReWrites.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.writeTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.writeTotalReWrites.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.writeTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.writeTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.writeTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.writeTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.writeTotalReWrites.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.writeTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.writeTotalReWrites.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.writeTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.writeTotalReWrites);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -1895,45 +1963,45 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://total
-                            deviceStats->sasStatistics.readTotal.isSupported = true;
-                            deviceStats->sasStatistics.readTotal.isValueValid = true;
+                            deviceStats->sasStatistics.readTotalRereads.isSupported = true;
+                            deviceStats->sasStatistics.readTotalRereads.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.readTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.readTotalRereads.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.readTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.readTotalRereads.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.readTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.readTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.readTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.readTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.readTotalRereads.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.readTotal.isValueValid = false;
+                                deviceStats->sasStatistics.readTotalRereads.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -2126,8 +2194,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -2188,29 +2256,29 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                                 break;
                             case 2://total
-                                deviceStats->sasStatistics.readTotal.supportsNotification = true;
+                                deviceStats->sasStatistics.readTotalRereads.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.readTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.readTotalRereads.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.readTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.readTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.readTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.readTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.readTotalRereads.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.readTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.readTotalRereads.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readTotalRereads);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -2434,45 +2502,45 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://total
-                            deviceStats->sasStatistics.readReverseTotal.isSupported = true;
-                            deviceStats->sasStatistics.readReverseTotal.isValueValid = true;
+                            deviceStats->sasStatistics.readReverseTotalReReads.isSupported = true;
+                            deviceStats->sasStatistics.readReverseTotalReReads.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.readReverseTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.readReverseTotalReReads.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.readReverseTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.readReverseTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.readReverseTotalReReads.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.readReverseTotal.isValueValid = false;
+                                deviceStats->sasStatistics.readReverseTotalReReads.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -2665,8 +2733,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -2727,29 +2795,29 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                                 break;
                             case 2://total
-                                deviceStats->sasStatistics.readReverseTotal.supportsNotification = true;
+                                deviceStats->sasStatistics.readReverseTotalReReads.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.readReverseTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.readReverseTotalReReads.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.readReverseTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.readReverseTotalReReads.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.readReverseTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.readReverseTotalReReads.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readReverseTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.readReverseTotalReReads);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -2972,46 +3040,46 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
-                        case 2://total
-                            deviceStats->sasStatistics.verifyTotal.isSupported = true;
-                            deviceStats->sasStatistics.verifyTotal.isValueValid = true;
+                        case 2://total revverifies
+                            deviceStats->sasStatistics.verifyTotalReVerifies.isSupported = true;
+                            deviceStats->sasStatistics.verifyTotalReVerifies.isValueValid = true;
                             //check if thresholds supported, etc
-                            deviceStats->sasStatistics.verifyTotal.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            deviceStats->sasStatistics.verifyTotalReVerifies.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
                             if (tempLogBuf[iter + 2] & BIT4)
                             {
                                 switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
                                 {
                                 case 3:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
                                     break;
                                 case 2:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
                                     break;
                                 case 1:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
                                     break;
                                 case 0:
                                 default:
-                                    deviceStats->sasStatistics.verifyTotal.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
                                     break;
                                 }
                             }
                             switch (parameterLength)
                             {
                             case 1://single byte
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = tempLogBuf[iter + 4];
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = tempLogBuf[iter + 4];
                                 break;
                             case 2://word
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                 break;
                             case 4://double word
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                 break;
                             case 8://quad word
-                                deviceStats->sasStatistics.verifyTotal.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                deviceStats->sasStatistics.verifyTotalReVerifies.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                deviceStats->sasStatistics.verifyTotal.isValueValid = false;
+                                deviceStats->sasStatistics.verifyTotalReVerifies.isValueValid = false;
                                 break;
                             }
                             ++deviceStats->sasStatistics.statisticsPopulated;
@@ -3204,8 +3272,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -3265,30 +3333,30 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                     scsi_Threshold_Comparison(&deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays);
                                 }
                                 break;
-                            case 2://total
-                                deviceStats->sasStatistics.verifyTotal.supportsNotification = true;
+                            case 2://total reverifies
+                                deviceStats->sasStatistics.verifyTotalReVerifies.supportsNotification = true;
                                 if (tempLogBuf[iter + 2] & BIT4)
                                 {
-                                    deviceStats->sasStatistics.verifyTotal.isThresholdValid = true;
+                                    deviceStats->sasStatistics.verifyTotalReVerifies.isThresholdValid = true;
                                     switch (parameterLength)
                                     {
                                     case 1://single byte
-                                        deviceStats->sasStatistics.verifyTotal.threshold = tempLogBuf[iter + 4];
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = tempLogBuf[iter + 4];
                                         break;
                                     case 2://word
-                                        deviceStats->sasStatistics.verifyTotal.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
                                         break;
                                     case 4://double word
-                                        deviceStats->sasStatistics.verifyTotal.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
                                         break;
                                     case 8://quad word
-                                        deviceStats->sasStatistics.verifyTotal.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.threshold = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                                         break;
                                     default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                        deviceStats->sasStatistics.verifyTotal.isThresholdValid = false;
+                                        deviceStats->sasStatistics.verifyTotalReVerifies.isThresholdValid = false;
                                         break;
                                     }
-                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.verifyTotal);
+                                    scsi_Threshold_Comparison(&deviceStats->sasStatistics.verifyTotalReVerifies);
                                 }
                                 break;
                             case 3://total errors corrected
@@ -3478,8 +3546,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -3727,8 +3795,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4044,8 +4112,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4200,8 +4268,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4753,8 +4821,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -4907,8 +4975,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5003,8 +5071,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5081,8 +5149,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5175,8 +5243,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5258,8 +5326,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5371,8 +5439,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5686,8 +5754,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -5998,8 +6066,8 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
+                        pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
                         for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
                         {
@@ -6071,6 +6139,106 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         }
                     }
                 }
+            default:
+                break;
+            }
+            break;
+        case LP_ZONED_DEVICE_STATISTICS://subpage 1
+            switch (subpageCode)
+            {
+            case 0x01://ZBD statistics
+            {
+                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    deviceStats->sasStatistics.cacheMemoryStatisticsSupported = true;
+                    uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                    uint8_t parameterLength = 0;
+                    //loop through the data and gather the data from each parameter we care about getting.
+                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    {
+                        uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
+                        parameterLength = tempLogBuf[iter + 3];
+                        switch (parameterCode)
+                        {
+                        case 0://maximum open zones
+                            deviceStats->sasStatistics.maximumOpenZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumOpenZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 1://maximum explicitly open zones
+                            deviceStats->sasStatistics.maximumExplicitlyOpenZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumExplicitlyOpenZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumExplicitlyOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 2://maximum implicitly open zones
+                            deviceStats->sasStatistics.maximumImplicitlyOpenZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumImplicitlyOpenZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumImplicitlyOpenZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 3://minimum empty zones
+                            deviceStats->sasStatistics.minimumEmptyZones.isSupported = true;
+                            deviceStats->sasStatistics.minimumEmptyZones.isValueValid = true;
+                            deviceStats->sasStatistics.minimumEmptyZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 4://maximum non-sequential zones
+                            deviceStats->sasStatistics.maximumNonSequentialZones.isSupported = true;
+                            deviceStats->sasStatistics.maximumNonSequentialZones.isValueValid = true;
+                            deviceStats->sasStatistics.maximumNonSequentialZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 5://zones emptied
+                            deviceStats->sasStatistics.zonesEmptied.isSupported = true;
+                            deviceStats->sasStatistics.zonesEmptied.isValueValid = true;
+                            deviceStats->sasStatistics.zonesEmptied.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 6://suboptimal write commands
+                            deviceStats->sasStatistics.suboptimalWriteCommands.isSupported = true;
+                            deviceStats->sasStatistics.suboptimalWriteCommands.isValueValid = true;
+                            deviceStats->sasStatistics.suboptimalWriteCommands.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 7://commands exceeding optimal limit
+                            deviceStats->sasStatistics.commandsExceedingOptimalLimit.isSupported = true;
+                            deviceStats->sasStatistics.commandsExceedingOptimalLimit.isValueValid = true;
+                            deviceStats->sasStatistics.commandsExceedingOptimalLimit.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 8://failed explicit opens
+                            deviceStats->sasStatistics.failedExplicitOpens.isSupported = true;
+                            deviceStats->sasStatistics.failedExplicitOpens.isValueValid = true;
+                            deviceStats->sasStatistics.failedExplicitOpens.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 9://read rule violations
+                            deviceStats->sasStatistics.readRuleViolations.isSupported = true;
+                            deviceStats->sasStatistics.readRuleViolations.isValueValid = true;
+                            deviceStats->sasStatistics.readRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 10://write rule violations
+                            deviceStats->sasStatistics.writeRuleViolations.isSupported = true;
+                            deviceStats->sasStatistics.writeRuleViolations.isValueValid = true;
+                            deviceStats->sasStatistics.writeRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        default:
+                            break;
+                        }
+                        if (parameterLength == 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+                //Thresholds are not defined/obsolete so no need to read them or attempt to read them.
+            }
+                break;
             default:
                 break;
             }
@@ -6510,7 +6678,7 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
         if (theStatistic.isValueValid)
         {
             uint8_t resourceValue = M_Byte0(theStatistic.statisticValue);
-            if (resourceValue >= 0 && resourceValue <= 0x7F)
+            if (/* resourceValue >= 0 && */ resourceValue <= 0x7F)
             {
                 printf("Within nominal bounds (%" PRIX8 "h)", resourceValue);
             }
@@ -6867,8 +7035,16 @@ void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            char year[5] = { M_Byte3(theStatistic.statisticValue), M_Byte2(theStatistic.statisticValue), M_Byte1(theStatistic.statisticValue), M_Byte0(theStatistic.statisticValue), 0 };
-            char week[3] = { M_Byte5(theStatistic.statisticValue), M_Byte4(theStatistic.statisticValue), 0 };
+            char week[3] = { 0 };
+            char year[5] = { 0 };
+            year[0] = M_Byte3(theStatistic.statisticValue);
+            year[1] = M_Byte2(theStatistic.statisticValue);
+            year[2] = M_Byte1(theStatistic.statisticValue);
+            year[3] = M_Byte0(theStatistic.statisticValue);
+            year[4] = '\0';
+            week[0] = M_Byte5(theStatistic.statisticValue);
+            week[1] = M_Byte4(theStatistic.statisticValue);
+            week[2] = '\0';
             if (strcmp(year, "    ") == 0 && strcmp(week, "  ") == 0)
             {
                 printf("Not set");
@@ -7039,7 +7215,7 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            if (theStatistic.statisticValue >= 0 && theStatistic.statisticValue <= 100)
+            if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
             {
                 printf("%"PRIu8"", (uint8_t)theStatistic.statisticValue);
             }
@@ -7142,24 +7318,20 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         printf("\n---Solid State Device Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.percentageUsedIndicator, "Percent Used Indicator", "%");
     }
-    if (deviceStats->sataStatistics.smrStatisticsSupported)
+    if (deviceStats->sataStatistics.zonedDeviceStatisticsSupported)
     {
         printf("\n---Zoned Device Statistics---\n");
-        printf("\t*subject to change pending adoption into ZAC2\n");
-        print_Count_Statistic(deviceStats->sataStatistics.maximumNumberOfOpenZones, "Maximum Number Of Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumNumberOfExplicitlyOpenZones, "Maximum Number Of Explicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumNumberOfImplicitlyOpenZones, "Maximum Number Of Implicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfCommandsCausingOpenAboveAdvisoryLimits, "Number Of Commands Causing Open Above Advisory Limits", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumNumberOfConcurrentZonesWithRandomAccess, "Maximum Number Of Concurrent Zones With Random Access", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.minimumNumberOfEmptyZones, "Minimum Number Of Empty Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfZonesReset, "Number Of Zones Reset", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfZonesFinished, "Number Of Zones Finished", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfZonesThatHaveBecomeFull, "Number Of Zones That Have Become Full", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfCommandsAtWritePointer, "Number Of Commands At Write Pointer", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfCommandsNotAtWritePointer, "Number Of Commands Not At Write Pointer", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfTimesInNonPerformantState, "Number Of Times In Non-Performant State", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.lastLBANotAtWritePointer, "Last LBA Not At Write Pointer", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfWriteCommandsInNonWritePointerZone, "Number Of Write Commands In Non Write Pointer Zone", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.zonesEmptied, "Zones Emptied", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", NULL);
     }
     if (deviceStats->sataStatistics.vendorSpecificStatisticsSupported)
     {
@@ -7200,7 +7372,7 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     return ret;
 }
 
-int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = SUCCESS;
     if (!deviceStats)
@@ -7218,7 +7390,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
         printf("\n---Write Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay, "Write Errors Corrected Without Substantial Delay", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithPossibleDelays, "Write Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotal, "Write Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalReWrites, "Write Total Rewrites", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrected, "Write Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed, "Write Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeTotalBytesProcessed, "Write Total Bytes Processed", NULL);
@@ -7228,7 +7400,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
     {
         printf("\n---Read Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrectedWithPossibleDelays, "Read Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotal, "Read Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalRereads, "Read Total Rereads", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrected, "Read Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed, "Read Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readTotalBytesProcessed, "Read Total Bytes Processed", NULL);
@@ -7239,7 +7411,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
         printf("\n---Read Reverse Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay, "Read Reverse Errors Corrected Without Substantial Delay", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays, "Read Reverse Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotal, "Read Reverse Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalReReads, "Read Reverse Total Rereads", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrected, "Read Reverse Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed, "Read Reverse Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalBytesProcessed, "Read Reverse Total Bytes Processed", NULL);
@@ -7250,7 +7422,7 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
         printf("\n---Verify Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay, "Verify Errors Corrected Without Substantial Delay", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays, "Verify Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotal, "Verify Total", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalReVerifies, "Verify Total Rereads", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrected, "Verify Errors Corrected", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed, "Verify Total Times Corrective Algorithm Processed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.verifyTotalBytesProcessed, "Verify Total Bytes Processed", NULL);
@@ -7399,6 +7571,21 @@ int print_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats
     {
         printf("\n---Timestamp---\n");
         print_Date_And_Time_Timestamp_Statistic(deviceStats->sasStatistics.dateAndTimeTimestamp, "Date And Time Timestamp");
+    }
+    if (deviceStats->sasStatistics.zonedDeviceStatisticsSupported)
+    {
+        printf("\n---Zoned Device Statistics---\n");
+        print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.zonesEmptied, "Zones Emptied", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
     }
     return ret;
 }

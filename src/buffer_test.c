@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -117,7 +117,10 @@ int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSiz
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return ata_Read_Buffer(device, ptrData, device->drive_info.ata_Options.readBufferDMASupported);
+        //return ata_Read_Buffer(device, ptrData, device->drive_info.ata_Options.readBufferDMASupported);
+        //Switching to this new function since it will automatically try DMA mode if supported by the drive.
+        //If the controller or driver don't like issuing DMA mode, this will detect it and retry the command with PIO mode.
+        return send_ATA_Read_Buffer_Cmd(device, ptrData);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -133,11 +136,14 @@ int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSi
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return ata_Write_Buffer(device, ptrData, device->drive_info.ata_Options.writeBufferDMASupported);
+        //return ata_Write_Buffer(device, ptrData, device->drive_info.ata_Options.writeBufferDMASupported);
+        //Switching to this new function since it will automatically try DMA mode if supported by the drive.
+        //If the controller or driver don't like issuing DMA mode, this will detect it and retry the command with PIO mode.
+        return send_ATA_Write_Buffer_Cmd(device, ptrData);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        return scsi_Write_Buffer(device, 0x02, 0, 0, 0, dataSize, ptrData);
+        return scsi_Write_Buffer(device, 0x02, 0, 0, 0, dataSize, ptrData, false, false, 0);
     }
     else
     {
@@ -311,8 +317,8 @@ void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t devic
 //Function for Walking 1's/0's test
 void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
-    uint8_t *patternBuffer = (uint8_t*)calloc(deviceBufferSize, sizeof(uint8_t));//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc(deviceBufferSize);//only receive this from the drive
+    uint8_t *patternBuffer = (uint8_t*)calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment);//only send this to the drive
+    uint8_t *returnBuffer = (uint8_t*)malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment);//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t bitNumber = 0, byteNumber = 0; byteNumber < deviceBufferSize; ++bitNumber)
@@ -409,8 +415,8 @@ void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBuf
             }
         }
     }
-    safe_Free(patternBuffer);
-    safe_Free(returnBuffer);
+    safe_Free_aligned(patternBuffer);
+    safe_Free_aligned(returnBuffer);
 }
 //Function for random data pattern test
 void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
@@ -565,8 +571,6 @@ int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
 
 void print_Cable_Test_Results(cableTestResults testResults)
 {
-    int tempverbosity = g_verbosity;
-    g_verbosity = VERBOSITY_COMMAND_VERBOSE;
     printf("Test Results:\n");
     printf("=============\n");
     printf("Total test time: ");
@@ -595,7 +599,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.fTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.fTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.fTest[count].totalTimeNS);
         printf("\n");
     }
     printf("55h Test Pattern:\n");
@@ -608,7 +612,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.fivesTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.fivesTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.fivesTest[count].totalTimeNS);
         printf("\n");
     }
     printf("AAh Test Pattern:\n");
@@ -621,7 +625,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.aTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.aTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.aTest[count].totalTimeNS);
         printf("\n");
     }
     printf("00FF55AAh Test Pattern:\n");
@@ -634,7 +638,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.zeroF5ATest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.zeroF5ATest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.zeroF5ATest[count].totalTimeNS);
         printf("\n");
     }
     printf("Walking 1's Test:\n");
@@ -647,7 +651,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.walking1sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.walking1sTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.walking1sTest[count].totalTimeNS);
         printf("\n");
     }
     printf("Walking 0's Test:\n");
@@ -660,7 +664,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.walking0sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.walking0sTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.walking0sTest[count].totalTimeNS);
         printf("\n");
     }
     printf("Random Pattern Test:\n");
@@ -673,8 +677,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.randomTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.randomTest[count].totalBufferMiscompares);
         printf("        Test time: ");
-        print_Command_Time(testResults.zerosTest[count].totalTimeNS);
+        print_Command_Time(testResults.randomTest[count].totalTimeNS);
         printf("\n");
     }
-    g_verbosity = tempverbosity;
 }

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,26 +14,27 @@
 
 #pragma once
 
+#include "operations.h"
 #include "operations_Common.h"
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
-	typedef struct _firmwareUpdateData {
-		bool useDMA; //set to true to use DMA command (93h). Only set this when the drive supports the command
-		eDownloadMode	dlMode; //how to do the download. Full, Segmented, Deferred, etc
-		uint16_t		segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
-		uint8_t			*firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
-		uint32_t		firmwareMemoryLength; //length of the memory the firmware file was read into. This should be a multiple of 512B sizes...
-		uint64_t		avgSegmentDlTime; //stores the average segment time for the download
-		uint64_t		activateFWTime; //stores the amount of time it took to issue the last segment and activate the new code (on segmented). On deferred this is only the time to activate.
+    typedef struct _firmwareUpdateData {
+        eDownloadMode   dlMode; //how to do the download. Full, Segmented, Deferred, etc
+        uint16_t        segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
+        uint8_t         *firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
+        uint32_t        firmwareMemoryLength; //length of the memory the firmware file was read into. This should be a multiple of 512B sizes...
+        uint64_t        avgSegmentDlTime; //stores the average segment time for the download
+        uint64_t        activateFWTime; //stores the amount of time it took to issue the last segment and activate the new code (on segmented). On deferred this is only the time to activate.
         union
         {
             uint8_t firmwareSlot;//NVMe
             uint8_t bufferID;//SCSI
         };
-	} firmwareUpdateData;
+        bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
+    } firmwareUpdateData;
     //-----------------------------------------------------------------------------
     //
     //  firmware_Download()
@@ -48,7 +49,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API int firmware_Download(tDevice *device, firmwareUpdateData * options);
+    OPENSEA_OPERATIONS_API int firmware_Download(tDevice *device, firmwareUpdateData * options);
 
     //See extended inquiry VPD page in SPC spec for details
     typedef enum _eSCSIMicrocodeActivation
@@ -96,6 +97,7 @@ extern "C"
         bool deferredVendorSpecificActivationSupported;//SAS only
         SCSIMicrocodeActivation codeActivation;//SAS Only
         firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
+        eMLU multipleLogicalUnitsAffected;//This will only be set for multi-lun devices. NVMe will set this since firmware affects all namespaces on the controller
     }supportedDLModes, *ptrSupportedDLModes;
 
     //-----------------------------------------------------------------------------

@@ -1,0 +1,45 @@
+language: c
+branches:
+  only:
+  - master
+  - develop
+matrix:
+  include:
+  - os: linux
+    sudo: false
+    compiler: gcc
+    dist: xenial
+    before_script:
+    - git clone https://github.com/Seagate/opensea-common.git
+    - git clone https://github.com/Seagate/opensea-transport.git
+    - mv opensea-common ../
+    - mv opensea-transport ../
+    - cd Make/gcc
+    script: make
+    after_success:
+    - cd "$TRAVIS_BUILD_DIR"
+    - "./update-version.sh"
+    - git config --global user.email "opensea-build@seagate.com"
+    - git config --global user.name "Travis CI"
+    - git checkout develop
+    - git commit -am "[skip travis] version changed"
+    - git push -q https://${GH_TOKEN}@github.com/Seagate/opensea-operations.git
+  - os: windows
+    env:
+    - MSBUILD_PATH="c:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin"
+    before_script:
+    - git clone https://github.com/Seagate/opensea-common.git
+    - git clone https://github.com/Seagate/opensea-transport.git
+    - mv opensea-common ../
+    - mv opensea-transport ../
+    script:
+    - export PATH=$MSBUILD_PATH:$PATH
+    - cd "..\opensea-common\Make\VS.2017\opensea-common"
+    - MSBuild.exe //p:Configuration=Static-Release //p:Platform=x64
+    - cd "..\..\..\..\opensea-transport\Make\VS.2017\opensea-transport"
+    - MSBuild.exe //p:Configuration=Static-Release //p:Platform=x64
+    - cd "..\..\..\..\opensea-operations\Make\VS.2017\opensea-operations"
+    - MSBuild.exe //p:Configuration=Static-Release //p:Platform=x64
+
+env:
+  secure: u5uYBfMxrlBtqyalur37uA7nnyEBLdIItdFre8IfGkfnl67Zx1yx/9qleKTgxPlGI8me8vAhAZNEmkJYC+lfchXBt2K7xNKtBYQZAx8xLvbU9V/9NdhqiUBFkCdONBqDPOm7Nm+b/w+V3odiTcfS0WdnJxH0nmbIooot2Uq2Q0Uf+ntjG8OZxBE8JO2JoHvIsPx8IVzwKvwvkuA9WiIj70aQi5sCVnMsxLsGJYpYC+DNph3DQiLmdPLYhNGYG12OO/JgKc7JFeG71z/x6pAdavxgCESWubUP61o9uAvTI5YLnLi9sim/izZzuPofwTmbB4e06Tpl+GSWk6Qsb/3PPzcnu6sVvBB3UaxMmfULuYg0yoSF9+jIRg8N124rkm4Qm7V52lCo2eheEhO4YP9oIqQHPNtbryQCet9ivRBLYHLoY0fAlHWa0wYKJouDhmqPpDDEgs9Xjr30WPmjl4vcn6dzaOVotCKFpdb+DzPXH+f3ZsX3reYZc7ayz1VakSTED1fP/rQFD/jAJy/Od4wFe2nizcMMQ+KHAwgB0R65ZtzW0IvHUOUiFIIq9IXUIQ6R9f3oaUH/7HZ2EuFCMuZ1tu14hGQQJVKeHVtwPOo+tHTaYfYuOQOM62zdybhX2xxxzXlrYiX884hZwh33YFzJ+Fblclx1IB4KUf31fsDf13A=

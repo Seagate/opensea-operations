@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,25 +36,25 @@ extern "C"
         bool seagateDeferredPowerCycleRequired;//When this is set, a segmented download is treated as a deferred download, requiring a power cycle, in the Seagate drive's firmware.
     }firmwareDownloadSupport;
 
-	typedef struct _humidityInformation //all values are relative humidity percentages from 0% to 100%
-	{
-		bool humidityDataValid;
-		uint8_t currentHumidity;
+    typedef struct _humidityInformation //all values are relative humidity percentages from 0% to 100%
+    {
+        bool humidityDataValid;
+        uint8_t currentHumidity;
         bool highestValid;
-		uint8_t highestHumidity;//lifetime measured highest
+        uint8_t highestHumidity;//lifetime measured highest
         bool lowestValid;
-		uint8_t lowestHumidity;//lifetime measured lowest
-	}humidityInformation;
+        uint8_t lowestHumidity;//lifetime measured lowest
+    }humidityInformation;
 
-	typedef struct _temperatureInformation //all values in degrees celsius
-	{
-		bool temperatureDataValid;
-		int16_t currentTemperature;
+    typedef struct _temperatureInformation //all values in degrees celsius
+    {
+        bool temperatureDataValid;
+        int16_t currentTemperature;
         bool highestValid;
-		int16_t highestTemperature;//lifetime measured highest
+        int16_t highestTemperature;//lifetime measured highest
         bool lowestValid;
-		int16_t lowestTemperature;//lifetime measured lowest
-	}temperatureInformation;
+        int16_t lowestTemperature;//lifetime measured lowest
+    }temperatureInformation;
 
     typedef struct _lastDSTInformation
     {
@@ -126,36 +126,56 @@ extern "C"
         };
     }interfaceSpeed;
 
+    //This struct is only for ATA drives...more specifically legacy drives. Can be used if any ATA drive that populates these fields.
+    typedef struct _legacyCHSInfo
+    {
+        bool legacyCHSValid;
+        uint16_t numberOfLogicalCylinders;//Word 1
+        uint8_t numberOfLogicalHeads;//Word 3
+        uint8_t numberOfLogicalSectorsPerTrack;//Word 6
+        bool currentInfoconfigurationValid;//Must be true for the following parts of this structure
+        uint16_t numberOfCurrentLogicalCylinders;//Word 54
+        uint8_t numberOfCurrentLogicalHeads;//Word 55
+        uint8_t numberOfCurrentLogicalSectorsPerTrack;//Word 56
+        uint32_t currentCapacityInSectors;//Word 57:58
+    }legacyCHSInfo;
+
     #define MAX_FEATURES UINT8_C(50) //change this number if we need to capture more feature support
     #define MAX_FEATURE_LENGTH UINT8_C(50) //maximum number of characters to allow for use when storing feature names.
+
+    #define MAX_SPECS UINT8_C(30)
+    #define MAX_SPEC_LENGTH UINT8_C(40)
 
     typedef struct _driveInformationSAS_SATA
     {
         char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
         char serialNumber[SERIAL_NUM_LEN + 1];//Null terminated
+        char pcbaSerialNumber[SERIAL_NUM_LEN + 1];//Unique to Seagate drives at this time.
         char firmwareRevision[FW_REV_LEN + 1];//Null terminated
         char vendorID[T10_VENDOR_ID_LEN + 1];//This is the T10 vendor ID. ATA will be set to "ATA", NVMe will be set to "NVMe"
-		char satVendorID[T10_VENDOR_ID_LEN + 1];//Holds the SATL vendor ID
-		char satProductID[MODEL_NUM_LEN + 1];//Holds the SATL product ID
-		char satProductRevision[FW_REV_LEN + 1];//Holds the SATL product revision
+        char satVendorID[T10_VENDOR_ID_LEN + 1];//Holds the SATL vendor ID
+        char satProductID[MODEL_NUM_LEN + 1];//Holds the SATL product ID
+        char satProductRevision[FW_REV_LEN + 1];//Holds the SATL product revision
         bool copyrightValid;
         char copyrightInfo[50];//Seagate Specific
         uint64_t worldWideName;
         bool worldWideNameSupported;//set to true when worldWideName contains valid data
         uint64_t worldWideNameExtension;
         bool worldWideNameExtensionValid;//NAA = 6
-		temperatureInformation temperatureData;
-		humidityInformation humidityData;//SCSI only. Only available when SBC4 or SPC5 are supported
+        temperatureInformation temperatureData;
+        humidityInformation humidityData;//SCSI only. Only available when SBC4 or SPC5 are supported
         uint64_t powerOnMinutes;
         uint64_t maxLBA;
         uint64_t nativeMaxLBA;//ATA Only since SCSI doesn't have a way to get the native max without changing the drive (not ok to do for this function) if set to 0, or UINT64_MAX, then the value is invalid
+        legacyCHSInfo ataLegacyCHSInfo;
+        bool isFormatCorrupt;//SAS only
         uint32_t logicalSectorSize;//bytes
         uint32_t physicalSectorSize;//bytes
         uint16_t sectorAlignment;//first logical sector offset within the first physical sector
         uint16_t rotationRate;//Value matches the spec. 0 = not reported. 1 = SSD, everything else is an RPM
         uint8_t formFactor;//matches SBC and ACS specs
         uint8_t numberOfSpecificationsSupported;//number of specifications added to the list in the next field
-        char specificationsSupported[30][30];//30 specs supported max, and each one can be 15 characters long in name at max
+        char specificationsSupported[MAX_SPECS][MAX_SPEC_LENGTH];
         eEncryptionSupport encryptionSupport;
         bool trustedCommandsBeingBlocked;//Linux blocks ATA trusted send/receive commands by default. So this bool is a going to be true on most linux systems that haven't had the kernel boot parameter to allow them set. All other systems will likely see this allowed
         uint64_t cacheSize;//Bytes
@@ -164,8 +184,8 @@ extern "C"
         uint64_t totalLBAsRead;//LBA count, will need to be multiplied by the logical Sector size in order to know number of bytes
         uint64_t totalLBAsWritten;//LBA count, will need to be multiplied by the logical Sector size in order to know number of bytes
         uint64_t totalWritesToFlash;//SSD Only (SATA only). This is used for calculating write amplification
-		uint64_t totalBytesRead;
-		uint64_t totalBytesWritten;
+        uint64_t totalBytesRead;
+        uint64_t totalBytesWritten;
         double deviceReportedUtilizationRate;//ACS4 or SBC4 required for this to be valid
         //interface speed (SATA or SAS only)
         interfaceSpeed interfaceSpeedInfo;
@@ -173,14 +193,23 @@ extern "C"
         char featuresSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
         firmwareDownloadSupport fwdlSupport;
         ataSecurityStatus ataSecurityInformation;
+        bool readLookAheadSupported;
         bool readLookAheadEnabled;
+        bool writeCacheSupported;
         bool writeCacheEnabled;
+        bool nvCacheSupported;//SAS only
+        bool nvCacheEnabled;//SAS only
         uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work)
         uint8_t zonedDevice;//set to 0 for non-zoned devices (SMR). If non-zero, then this matches the latest ATA/SCSI specs for zoned devices
         lastDSTInformation dstInfo;
         bool lowCurrentSpinupValid;//will be set to true for ATA, set to false for SAS
-        bool lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
-    }driveInformationSAS_SATA, *ptrDriveInformationSAS_Sata;
+        bool lowCurrentSpinupViaSCT;
+        int lowCurrentSpinupEnabled;//only valid when lowCurrentSpinupValid is set to true
+        uint64_t longDSTTimeMinutes;//This is the drive's reported Long DST time (if supported). This can be used as an approximate time to read the whole drive on HDD. Not sure this is reliable on SSD since the access isn't limited in the same way a HDD is.
+        bool isWriteProtected;//Not available on SATA!
+        adapterInfo adapterInformation;//Not populated on all OSs. This is only obtainable from low-level OS calls and copied from the tDevice structure.
+        uint8_t lunCount;//for help detecting multi-actuator drives. Will be zero if not checked for, and an invalid value. Will be 1 or more when checked. Each lun represents and actuator today. - TJE
+    }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe
     {
@@ -217,11 +246,14 @@ extern "C"
             eEncryptionSupport encryptionSupport;
             uint16_t numberOfControllerFeatures;
             char controllerFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
+            uint64_t longDSTTimeMinutes;
+            uint8_t numberOfPowerStatesSupported;
         }controllerData;
         //smart log data (controller, not per namespace)
         struct {
             bool valid;
             uint8_t smartStatus; //0 = good, 1 = bad, 2 = unknown (unknown will happen on many USB drives, everything else should work) (this is to be similar to ATA and SCSI-TJE
+            bool mediumIsReadOnly;//same as write protect on SCSI
             uint16_t compositeTemperatureKelvin;
             uint8_t percentageUsed;
             uint8_t availableSpacePercent;
@@ -283,7 +315,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo);
+    OPENSEA_OPERATIONS_API int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -299,7 +331,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_Sata driveInfo);
+    OPENSEA_OPERATIONS_API int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
     OPENSEA_OPERATIONS_API int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo);
 
@@ -318,11 +350,13 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_Sata externalDriveInfo, ptrDriveInformationSAS_Sata scsiDriveInfo, ptrDriveInformationSAS_Sata ataDriveInfo);
+    OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationSAS_SATA ataDriveInfo);
+
+    OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationNVMe nvmeDriveInfo);
 
     //-----------------------------------------------------------------------------
     //
-    //  print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo)
+    //  print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     //
     //! \brief   Description:  This function is generic and prints out the data in the driveInfo structure to the screen for SAS/SATA drive information type
     //
@@ -333,7 +367,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_Sata driveInfo);
+    OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo);
 
     OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo);
 
@@ -405,7 +439,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     void get_SAS_Interface_Speeds(tDevice *device, char **scsiport0negSpeed, char **scsiport1negSpeed, char **scsiport0maxSpeed, char **scsiport1maxSpeed);
 
-	char * print_drive_type(tDevice *device);
+    char * print_drive_type(tDevice *device);
 
 #if !defined(DISABLE_NVME_PASSTHROUGH)
     //-----------------------------------------------------------------------------

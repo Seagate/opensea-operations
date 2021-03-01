@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -47,13 +47,13 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
 {
     int ret = SUCCESS;
     uint8_t *reportZones = NULL;
-    uint32_t sectorCount = 64;
+    uint32_t sectorCount = get_Sector_Count_For_512B_Based_XFers(device);
     uint32_t dataBytesToRequest = (((numberOfZoneDescriptors * 64 + 64) + 511) / LEGACY_DRIVE_SEC_SIZE) * LEGACY_DRIVE_SEC_SIZE;//rounds to nearest 512B
     if (!zoneDescriptors || numberOfZoneDescriptors == 0)
     {
         return BAD_PARAMETER;
     }
-    reportZones = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE * sectorCount * sizeof(uint8_t), sizeof(uint8_t));
+    reportZones = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!reportZones)
     {
         return MEMORY_FAILURE;
@@ -71,7 +71,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
         }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
-            ret = ata_Report_Zones_Ext(device, reportingOptions, true, M_Min(dataBytesToRequest / LEGACY_DRIVE_SEC_SIZE, sectorCount), nextZoneLBA, reportZones, (LEGACY_DRIVE_SEC_SIZE * sectorCount));
+            ret = ata_Report_Zones_Ext(device, reportingOptions, true, C_CAST(uint16_t, M_Min(dataBytesToRequest / LEGACY_DRIVE_SEC_SIZE, sectorCount)), nextZoneLBA, reportZones, (LEGACY_DRIVE_SEC_SIZE * sectorCount));
             localListLength = M_BytesTo4ByteValue(reportZones[3], reportZones[2], reportZones[1], reportZones[0]);
             zoneMaxLBA = M_BytesTo8ByteValue(reportZones[15], reportZones[14], reportZones[13], reportZones[12], reportZones[11], reportZones[10], reportZones[9], reportZones[8]);
         }
@@ -83,7 +83,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
         }
         else
         {
-            safe_Free(reportZones);
+            safe_Free_aligned(reportZones);
             return NOT_SUPPORTED;
         }
         if (ret != SUCCESS)
@@ -120,7 +120,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
             break;
         }
     }
-    safe_Free(reportZones);
+    safe_Free_aligned(reportZones);
     return SUCCESS;
 }
 

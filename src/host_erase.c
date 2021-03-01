@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,13 +24,13 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseRangeStart);
-    uint8_t *writeBuffer = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
+    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase range");
         return MEMORY_FAILURE;
     }
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
@@ -55,7 +55,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
             {
                 memset(&writeBuffer[adjustmentBytes], 0, dataLength - adjustmentBytes);
             }
-            if (VERBOSITY_QUIET < g_verbosity && !hideLBACounter)
+            if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {
                 printf("\rWriting LBA: %-20"PRIu64" (aligned write)", alignedLBA);
                 fflush(stdout);
@@ -96,7 +96,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                     }
                 }
             }
-            if (VERBOSITY_QUIET < g_verbosity &&!hideLBACounter)
+            if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
             {
                 printf("\rWriting LBA: %-40"PRIu64"", iter);
                 fflush(stdout);
@@ -108,7 +108,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                 break;
             }
         }
-        if (VERBOSITY_QUIET < g_verbosity && FAILURE != ret && !hideLBACounter)
+        if (VERBOSITY_QUIET < device->deviceVerbosity && FAILURE != ret && !hideLBACounter)
         {
             if (eraseRangeEnd > device->drive_info.deviceMaxLba)
             {
@@ -122,11 +122,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
         }
     }
     flush_Cache(device);
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
-    safe_Free(writeBuffer);
+    safe_Free_aligned(writeBuffer);
     return ret;
 }
 
@@ -139,7 +139,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseStartLBA);
-    uint8_t *writeBuffer = (uint8_t*)calloc(dataLength, sizeof(uint8_t));
+    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase time");
@@ -150,7 +150,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
         safe_Free(writeBuffer);
         return NOT_SUPPORTED;
     }
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
@@ -177,7 +177,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             {
                 memset(&writeBuffer[adjustmentBytes], 0, dataLength - adjustmentBytes);
             }
-            if (VERBOSITY_QUIET < g_verbosity && !hideLBACounter)
+            if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {
                 printf("\rWriting LBA: %-20"PRIu64" (aligned write)", alignedLBA);
                 fflush(stdout);
@@ -198,7 +198,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             sectors = (uint16_t)(device->drive_info.deviceMaxLba - iter);
             dataLength = sectors * device->drive_info.deviceBlockSize;
         }
-        if (VERBOSITY_QUIET < g_verbosity &&!hideLBACounter)
+        if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
         {
             printf("\rWriting LBA: %-40"PRIu64"", iter);
             fflush(stdout);
@@ -216,10 +216,10 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             sectors = get_Sector_Count_For_Read_Write(device);
         }
     }
-    if (VERBOSITY_QUIET < g_verbosity)
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
-    safe_Free(writeBuffer);
+    safe_Free_aligned(writeBuffer);
     return ret;
 }

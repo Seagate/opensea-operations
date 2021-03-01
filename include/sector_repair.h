@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -70,45 +70,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  create_Random_Uncorrectables()
-    //
-    //! \brief   Description:  This function creates random uncorrectable errors on the drive. All errors created are written to the entire physical sector of the drive. If the read flag is not set to true, these errors may not end up being logged in the Pending Defect list
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] numberOfRandomLBAs = number of random errors to create
-    //!   \param[in] readUncorrectables = Flag to specify whether or not to issue read commands to the created error. This should always be set to true unless you know what you're doing
-    //!   \param[in] updateFunction = callback function to update UI
-    //!   \param[in] updateData = hidden data to pass to the callback function
-    //!
-    //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, custom_Update updateFunction, void *updateData);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  create_Uncorrectables()
-    //
-    //! \brief   Description:  This function creates a range of uncorrectable errors on the drive. All errors created are written to the entire physical sector of the drive, so if it's a 512/4k drive and the range specified is 16, this will create an error for 8 LBAs at LBA 1000 and 1008. If the read flag is not set to true, these errors may not end up being logged in the Pending Defect list
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] startingLBA = LBA to start writing errors at
-    //!   \param[in] range = number of LBAs after the starting LBA to write errors to
-    //!   \param[in] readUncorrectables = Flag to specify whether or not to issue read commands to the created error. This should always be set to true unless you know what you're doing
-    //!   \param[in] updateFunction = callback function to update UI
-    //!   \param[in] updateData = hidden data to pass to the callback function
-    //!
-    //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData);
 
     OPENSEA_OPERATIONS_API int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled);
 

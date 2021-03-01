@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,7 @@ int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
     {
         ret = ata_Get_Native_Max_Address_Ext(device, nativeMaxLBA);
     }
-    else if (device->drive_info.IdentifyData.ata.CommandsAndFeaturesSupported1 & BIT10) //HPA feature set
+    else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
     {
         ret = ata_Read_Native_Max_Address(device, nativeMaxLBA, device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported);
     }
@@ -53,7 +53,7 @@ int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
     int ret = UNKNOWN;
-    uint8_t *scsiDataBuffer = (uint8_t*)calloc(0x18, sizeof(uint8_t));//this should be big enough to get back the block descriptor we care about
+    uint8_t *scsiDataBuffer = (uint8_t*)calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment);//this should be big enough to get back the block descriptor we care about
     if (scsiDataBuffer == NULL)
     {
         perror("calloc failure");
@@ -62,6 +62,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     //always do a mode sense command to get back a block descriptor. Always request default values because if we are doing a reset, we just send it right back, otherwise we will overwrite the returned data ourselves
     if (SUCCESS == scsi_Mode_Sense_10(device, 0, 0x18, 0, false, true, MPC_DEFAULT_VALUES, scsiDataBuffer))
     {
+        newMaxLBA += 1;//Need to add 1 for SCSI so that this will match the -i report. If this is not done, then  we end up with 1 less than the value provided.
         scsiDataBuffer[0] = 0;
         scsiDataBuffer[1] = 0;//clear out the mode datalen
         scsiDataBuffer[3] = 0;//clear the device specific parameter
@@ -92,7 +93,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
             scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 7] = 0xFF;
         }
         //now issue the mode select 10 command
-        ret = scsi_Mode_Select_10(device, 0x18, true, true, scsiDataBuffer, 0x18);
+        ret = scsi_Mode_Select_10(device, 0x18, true, true, false, scsiDataBuffer, 0x18);
         if (ret == SUCCESS)
         {
             if (reset)
@@ -129,23 +130,23 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Failed to retrieve block descriptor from device!\n");
         }
         ret = FAILURE;
     }
-    free(scsiDataBuffer);
+    safe_Free_aligned(scsiDataBuffer);
     return ret;
 }
 
 int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
-    int ret = UNKNOWN;
+    int ret = NOT_SUPPORTED;
     //first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable address feature set)
     uint64_t nativeMaxLBA = 0;
     //always get the native max first (even if that's only a restriction of the HPA feature set)
-    if (SUCCESS == get_Native_Max_LBA(device, &nativeMaxLBA))
+    if (SUCCESS == (ret = get_Native_Max_LBA(device, &nativeMaxLBA)))
     {
         if (reset == true)
         {
@@ -156,7 +157,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
             //accessible Max Address Configuration feature set supported
             ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA);
         }
-        else if (device->drive_info.IdentifyData.ata.CommandsAndFeaturesSupported1 & BIT10) //HPA feature set
+        else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
         {
             if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
             {
@@ -176,7 +177,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         else //shouldn't even get here right now...
         {
-            if (VERBOSITY_QUIET < g_verbosity)
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("Setting max LBA is not supported on this device\n");
             }
@@ -192,7 +193,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 
 int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
-    int ret = UNKNOWN;
+    int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = scsi_Set_Max_LBA(device, newMaxLBA, reset);
@@ -203,7 +204,7 @@ int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     }
     else
     {
-        if (VERBOSITY_QUIET < g_verbosity)
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             printf("Setting the max LBA is not supported on this device type at this time\n");
         }

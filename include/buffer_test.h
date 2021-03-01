@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,8 +53,35 @@ extern "C"
         patternTestResults randomTest[RANDOM_TEST_COUNT];
     }cableTestResults, *ptrCableTestResults;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
+    //
+    //! \brief   Description: Perform a cable/buffer test using read/write buffer commands to check for mismatches and other bus errors
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] testResults = pointer to structure that holds results
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
     int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Cable_Test_Results(cableTestResults testResults)
+    //
+    //! \brief   Description: Print the cable/buffer test results after running a test.
+    //
+    //  Entry:
+    //!   \param[in] testResults = structure that holds results from a cable/buffer test
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
     void print_Cable_Test_Results(cableTestResults testResults);
 
 #if defined (__cplusplus)

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -106,22 +106,19 @@ extern "C"
         //solid state device statistics
         bool ssdStatisticsSupported;
         statistic percentageUsedIndicator;
-        //smr (seagate vendor specific for now)
-        bool smrStatisticsSupported;
-        statistic maximumNumberOfOpenZones;
-        statistic maximumNumberOfExplicitlyOpenZones;
-        statistic maximumNumberOfImplicitlyOpenZones;
-        statistic numberOfCommandsCausingOpenAboveAdvisoryLimits;
-        statistic maximumNumberOfConcurrentZonesWithRandomAccess;
-        statistic minimumNumberOfEmptyZones;
-        statistic numberOfZonesReset;
-        statistic numberOfZonesFinished;
-        statistic numberOfZonesThatHaveBecomeFull;
-        statistic numberOfCommandsAtWritePointer;
-        statistic numberOfCommandsNotAtWritePointer;
-        statistic numberOfTimesInNonPerformantState;
-        statistic lastLBANotAtWritePointer;
-        statistic numberOfWriteCommandsInNonWritePointerZone;
+        //Zoned device statistics (ZAC2)
+        bool zonedDeviceStatisticsSupported;
+        statistic maximumOpenZones;
+        statistic maximumExplicitlyOpenZones;
+        statistic maximumImplicitlyOpenZones;
+        statistic minimumEmptyZones;
+        statistic maximumNonSequentialZones;
+        statistic zonesEmptied;
+        statistic suboptimalWriteCommands;
+        statistic commandsExceedingOptimalLimit;
+        statistic failedExplicitOpens;
+        statistic readRuleViolations;
+        statistic writeRuleViolations;
         //vendor specific
         bool vendorSpecificStatisticsSupported;
         uint8_t vendorSpecificStatisticsPopulated;
@@ -135,7 +132,7 @@ extern "C"
         bool writeErrorCountersSupported;
         statistic writeErrorsCorrectedWithoutSubstantialDelay;
         statistic writeErrorsCorrectedWithPossibleDelays;
-        statistic writeTotal;
+        statistic writeTotalReWrites;
         statistic writeErrorsCorrected;
         statistic writeTotalTimeCorrectionAlgorithmProcessed;
         statistic writeTotalBytesProcessed;
@@ -144,7 +141,7 @@ extern "C"
         bool readErrorCountersSupported;
         statistic readErrorsCorrectedWithoutSubstantialDelay;
         statistic readErrorsCorrectedWithPossibleDelays;
-        statistic readTotal;
+        statistic readTotalRereads;
         statistic readErrorsCorrected;
         statistic readTotalTimeCorrectionAlgorithmProcessed;
         statistic readTotalBytesProcessed;
@@ -153,7 +150,7 @@ extern "C"
         bool readReverseErrorCountersSupported;
         statistic readReverseErrorsCorrectedWithoutSubstantialDelay;
         statistic readReverseErrorsCorrectedWithPossibleDelays;
-        statistic readReverseTotal;
+        statistic readReverseTotalReReads;
         statistic readReverseErrorsCorrected;
         statistic readReverseTotalTimeCorrectionAlgorithmProcessed;
         statistic readReverseTotalBytesProcessed;
@@ -162,7 +159,7 @@ extern "C"
         bool verifyErrorCountersSupported;
         statistic verifyErrorsCorrectedWithoutSubstantialDelay;
         statistic verifyErrorsCorrectedWithPossibleDelays;
-        statistic verifyTotal;
+        statistic verifyTotalReVerifies;
         statistic verifyErrorsCorrected;
         statistic verifyTotalTimeCorrectionAlgorithmProcessed;
         statistic verifyTotalBytesProcessed;
@@ -280,6 +277,19 @@ extern "C"
         //timestamp
         bool timeStampSupported;
         statistic dateAndTimeTimestamp;
+        //ZBC Statistics (ZBC2)
+        bool zonedDeviceStatisticsSupported;
+        statistic maximumOpenZones;
+        statistic maximumExplicitlyOpenZones;
+        statistic maximumImplicitlyOpenZones;
+        statistic minimumEmptyZones;
+        statistic maximumNonSequentialZones;
+        statistic zonesEmptied;
+        statistic suboptimalWriteCommands;
+        statistic commandsExceedingOptimalLimit;
+        statistic failedExplicitOpens;
+        statistic readRuleViolations;
+        statistic writeRuleViolations;
     }sasDeviceStatitics;
 
     //access the proper stats in the union based on device->drive_info.drive_type

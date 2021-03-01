@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2017 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,7 +33,7 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
-        uint8_t *writeSameSupported = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+        uint8_t *writeSameSupported = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!writeSameSupported)
         {
             perror("Error allocating memory to check write same support");
@@ -42,9 +42,9 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
         supported = true;//assume it'll work for now, really need to add a a check for it though
         //add code to parse the buffer and look for the write same command support
 
-        safe_Free(writeSameSupported);
+        safe_Free_aligned(writeSameSupported);
         //also check the block limits vpd page to see what the maximum number of logical blocks is so that we don't get in a trouble spot...(we may need chunk the write same command...ugh).
-        uint8_t *blockLimits = (uint8_t*)calloc(64, sizeof(uint8_t));
+        uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!blockLimits)
         {
             perror("Error allocating memory to check block limits VPD page");
@@ -71,7 +71,7 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
                 supported = false;
             }
         }
-        safe_Free(blockLimits);
+        safe_Free_aligned(blockLimits);
     }
     return supported;
 }
@@ -84,12 +84,12 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //need to get status from SCT status command data
-        uint8_t *sctStatusBuf = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+        uint8_t *sctStatusBuf = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!sctStatusBuf)
         {
             return MEMORY_FAILURE;
         }
-        ret = ata_SCT_Status(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
+        ret = send_ATA_SCT_Status(device, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
         if (ret == SUCCESS)
         {
             uint16_t sctStatus = M_BytesTo2ByteValue(sctStatusBuf[15], sctStatusBuf[14]);
@@ -122,7 +122,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
                 *writeSameInProgress = false;
             }
         }
-        safe_Free(sctStatusBuf);
+        safe_Free_aligned(sctStatusBuf);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -131,7 +131,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         //asc = 0x04, ascq = 0x07 - Logical Unit Not Ready, Operation In Progress
         //asc = 0x00, ascq = 0x16 - Operation In Progress
         //if the progress is reported, then we just have to return it... i think...
-        uint8_t *senseData = (uint8_t*)calloc(SPC3_SENSE_LEN, sizeof(uint8_t));
+        uint8_t *senseData = (uint8_t*)calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!senseData)
         {
             return MEMORY_FAILURE;
@@ -139,7 +139,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         uint8_t asc = 0, ascq = 0, senseKey = 0, fru = 0;
         ret = scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
         get_Sense_Key_ASC_ASCQ_FRU(&senseData[0], SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-        if (VERBOSITY_BUFFERS <= g_verbosity)
+        if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
         {
             printf("\n\tSense Data:\n");
             print_Data_Buffer(&senseData[0], SPC3_SENSE_LEN, false);
@@ -175,12 +175,12 @@ int show_Write_Same_Current_LBA(tDevice *device)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //need to get status from SCT status command data
-        uint8_t *sctStatusBuf = (uint8_t*)calloc(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t));
+        uint8_t *sctStatusBuf = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!sctStatusBuf)
         {
             return MEMORY_FAILURE;
         }
-        ret = ata_SCT_Status(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
+        ret = send_ATA_SCT_Status(device, sctStatusBuf, LEGACY_DRIVE_SEC_SIZE);
         if (ret == SUCCESS)
         {
             sctStatus = M_BytesTo2ByteValue(sctStatusBuf[15], sctStatusBuf[14]);
@@ -206,7 +206,7 @@ int show_Write_Same_Current_LBA(tDevice *device)
                 ret = NOT_SUPPORTED;
             }
         }
-        safe_Free(sctStatusBuf);
+        safe_Free_aligned(sctStatusBuf);
     }
     else //SCSI Drive doesn't tell us
     {
@@ -266,7 +266,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
         {
             //only allocate this memory for SCSI drives because they need a sector telling what to use as a pattern, whereas ATA has a feature that does not require this, and why bother sending an extra command/data transfer when it isn't neded for our application
             zeroPatternBufLen = device->drive_info.deviceBlockSize;
-            zeroPatternBuf = (uint8_t*)calloc(zeroPatternBufLen, sizeof(uint8_t));
+            zeroPatternBuf = (uint8_t*)calloc_aligned(zeroPatternBufLen, sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!zeroPatternBuf)
             {
                 perror("Error allocating logical sector sized buffer for zero pattern\n");
@@ -279,11 +279,11 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
         //start the write same for the requested range
         if (pattern && patternLength == device->drive_info.deviceBlockSize)
         {
-            ret = write_Same(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, startingLba, numberOfLogicalBlocks, pattern);//null for the pattern means we'll write a bunch of zeros
+            ret = write_Same(device, startingLba, numberOfLogicalBlocks, pattern);//null for the pattern means we'll write a bunch of zeros
         }
         else
         {
-            ret = write_Same(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, device->drive_info.ata_Options.readLogWriteLogDMASupported, startingLba, numberOfLogicalBlocks, zeroPatternBuf);//null for the pattern means we'll write a bunch of zeros
+            ret = write_Same(device, startingLba, numberOfLogicalBlocks, zeroPatternBuf);//null for the pattern means we'll write a bunch of zeros
         }
         //if the user wants us to poll for progress, then start polling
         if (pollForProgress && device->drive_info.drive_type == ATA_DRIVE)
@@ -307,7 +307,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                     delayTime = 600;//once every ten minutes
                 }
             }
-            if (g_verbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 uint8_t minutes = 0, seconds = 0;
                 printf("Write same progress will be updated every");
@@ -322,7 +322,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 ret = get_Writesame_Progress(device, &percentComplete, &writeSameInProgress, startingLba, numberOfLogicalBlocks);
                 if (SUCCESS == ret)
                 {
-                    if (g_verbosity > VERBOSITY_QUIET)
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         if (lastPercentComplete > 0 && writeSameInProgress == false)
                         {
@@ -340,7 +340,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 }
             }
         }
-        safe_Free(zeroPatternBuf);
+        safe_Free_aligned(zeroPatternBuf);
     }
     else
     {
