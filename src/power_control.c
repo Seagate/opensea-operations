@@ -2423,28 +2423,37 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
         return BAD_PARAMETER;
     }
     bool gotFullPageLength = false;
-    uint16_t enhPhyControlLength = 0;
-    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    bool alreadyHaveAllData = false;
+    uint16_t enhPhyControlLength = MODE_PARAMETER_HEADER_10_LEN + 8 + 40;//first 8 bytes are a "header" followed by 20 bytes per phy and setting this for 2 phys since that is most common right now. -TJE
+    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned(enhPhyControlLength * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
     }
     //read first 4 bytes to get total mode page length, then re-read the part with all the data
-    if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl)))
+    if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, enhPhyControlLength, 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl)))
     {
-        //parse the header to figure out full page length
-        enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
-        gotFullPageLength = true;
-        uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
-        if (!temp)
+        if (enhPhyControlLength < M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]))
         {
-            return MEMORY_FAILURE;
+            //parse the header to figure out full page length
+            enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            gotFullPageLength = true;
+            uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
+            if (!temp)
+            {
+                return MEMORY_FAILURE;
+            }
+            enhSasPhyControl = temp;
         }
-        enhSasPhyControl = temp;
+        else
+        {
+            gotFullPageLength = true;
+            alreadyHaveAllData = true;
+        }
     }
     if (gotFullPageLength)
     {
-        if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl))
+        if (alreadyHaveAllData || SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, enhPhyControlLength, 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl))
         {
             //make sure we got the header as we expect it, then validate we got all the data we needed.
             //uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
@@ -2457,7 +2466,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                     uint8_t numberOfPhys = enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
                     uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
                     uint16_t descriptorLength = 19;
-                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys; ++phyIter, phyDescriptorOffset += descriptorLength)
+                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && phyDescriptorOffset < enhPhyControlLength; ++phyIter, phyDescriptorOffset += descriptorLength)
                     {
                         uint8_t phyIdentifier = enhSasPhyControl[phyDescriptorOffset + 1];
                         descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]);
@@ -2491,7 +2500,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                         }
                     }
                     //we've finished making our changes to the mode page, so it's time to write it back!
-                    if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), true, true, false, enhSasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength)))
+                    if (SUCCESS != scsi_Mode_Select_10(device, enhPhyControlLength, true, true, false, enhSasPhyControl, enhPhyControlLength))
                     {
                         ret = FAILURE;
                     }

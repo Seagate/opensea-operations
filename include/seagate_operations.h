@@ -377,6 +377,24 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool justRanDST)
+    //
+    //! \brief   Description: Translates the status code from IDD to a string. NOTE: This is basically the same as the DST translation. This may be able to be improved in the future.
+    //
+    //  Entry:
+    //!   \param[in] status = status code from last run IDD (from log or elsewhere)
+    //!   \param[out] translatedString = pointer to memory to set the information string about IDD that needs to be printed
+    //!   \param[in] justRanDST = set to true if IDD just finished running. Set to false if not known
+    //!
+    //  Exit:
+    //!   \return VOID
+    //
+    //-----------------------------------------------------------------------------
+    #define MAX_IDD_STATUS_STRING_LENGTH 160
+    OPENSEA_OPERATIONS_API void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool justRanDST);
+
 #if defined (__cplusplus)
 }
 #endif

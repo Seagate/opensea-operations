@@ -15,6 +15,7 @@
 #include "format.h"
 #include "logs.h"
 #include "nvme_helper_func.h"
+#include "platform_helper.h"
 
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
@@ -110,6 +111,16 @@ int show_Format_Unit_Progress(tDevice *device)
     if (ret == IN_PROGRESS)
     {
         printf("\tFormat Unit Progress = %3.2f%% \n", percentComplete);
+	//add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
+	//we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
+	//with the format
+        if (percentComplete + 0.005 >= 100.0)
+        {
+            printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
+            printf("\t         that a format is still in progress! Please wait an additional\n");
+            printf("\t         30 seconds and check again to see when the sense data no longer\n");
+            printf("\t         indicates that a format is in progress!\n");
+        }
     }
     else if (ret == SUCCESS)
     {
@@ -406,14 +417,21 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         uint32_t formatCommandTimeout = 15;
         if (formatParameters.disableImmediate)
         {
-            if (formatParameters.formatType != FORMAT_STD_FORMAT)
+            if (os_Is_Infinite_Timeout_Supported())
             {
-                formatCommandTimeout = 3600;//fast format should complete in a few minutes, but setting a 1 hour timeout leaves plenty of room for error.
+                formatCommandTimeout = INFINITE_TIMEOUT_VALUE;
             }
             else
             {
-                formatCommandTimeout = 86400;//setting to 1 day worth of time...nothing should take this long...yet. Doing this because Windows doesn't like setting a max time like we were. UINT32_MAX;
+                formatCommandTimeout = MAX_CMD_TIMEOUT_SECONDS;
             }
+        }
+        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+        {
+            printf("Performing SCSI drive format.\n");
+            printf("Depending on the format request, this could take minutes to hours or days.\n");
+            printf("Do not remove power or attempt other access as interrupting it may make\n");
+            printf("the drive unusable or require performing this command again!!\n");
         }
         //send the format command
         if (formatParameters.defaultFormat && formatParameters.disableImmediate)
@@ -426,7 +444,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         }
 
         //poll for progress
-        if (pollForProgress && ret == SUCCESS)
+        if (pollForProgress && ret == SUCCESS && !formatParameters.disableImmediate)
         {
             double progress = 0;
             uint32_t delayTimeSeconds = 300;
@@ -1508,6 +1526,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             printf("It should complete in under 5 minutes, but interrupting it may make\n");
             printf("the drive unusable or require performing this command again!!\n");
         }
+        os_Lock_Device(device);
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             uint16_t descriptorCheck = 0;
@@ -1544,6 +1563,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             }
             ret = run_Format_Unit(device, formatUnitParameters, false);
         }
+        os_Unlock_Device(device);
     }
     return ret;
 }

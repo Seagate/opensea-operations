@@ -145,6 +145,79 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int repopulate_Elements(tDevice *device);
 
+    typedef enum _eDepopStatus
+    {
+        DEPOP_NOT_IN_PROGRESS,
+        DEPOP_IN_PROGRESS,
+        DEPOP_REPOP_IN_PROGRESS,
+        DEPOP_FAILED,
+        DEPOP_REPOP_FAILED,
+        DEPOP_INVALID_FIELD,
+        DEPOP_MICROCODE_NEEDS_ACTIVATION
+    }eDepopStatus;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *progress)
+    //
+    //! \brief   Description: Returns the depopulate status and progress info. Also used for repopulate.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[out] depopStatus = pointer to the depopulate status enum to know what is going on. [Required]
+    //!   \param[out] progress = percentage completed progress. NOTE: This is only available on SAS drives. If a progress > 100 is returned, it is invalid. SATA will return 255% complete to indicate progress is not available.
+    //  Exit:
+    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *progress);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  show_Depop_Repop_Progress(tDevice *device)
+    //
+    //! \brief   Description: Gets and shows the depop or repop status and progress to stdout
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //  Exit:
+    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int show_Depop_Repop_Progress(tDevice *device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA, bool pollForProgress)
+    //
+    //! \brief   Description: This function performs a full proccess of starting depopulation and checks to see if command was accepted or not and reasons for failure. Will also poll for progress until completed if specified.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] elementDescriptorID = descriptor ID of the element to depopulate
+    //!   \param[in] requestedMaxLBA = a max LBA requested for the drive after an element has been depopulated. This may or may not be accepted by the drive. If unsure, use zero to let the drive decide.
+    //!   \param[in] pollForProgress = when set to true, this function will poll for progress and update the screen while still running.
+    //  Exit:
+    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA, bool pollForProgress);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
+    //
+    //! \brief   Description: This function performs a full start of repopulation and check to see if command was accepted or not and reasons for failure. Will also poll for progress until completed if specified.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] pollForProgress = when set to true, this function will poll for progress and update the screen while still running.
+    //  Exit:
+    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress);
+
 #if defined(__cplusplus)
 }
 #endif

@@ -16,6 +16,7 @@
 #include "firmware_download.h"
 #include "logs.h"
 #include "common_platform.h"
+#include "platform_helper.h"
 
 //int firmware_Download(tDevice *device, bool useDMA, eDownloadMode dlMode, uint16_t segmentSize, uint8_t *firmwareFileMem, uint32_t firmwareMemoryLength)
 
@@ -33,6 +34,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             //Activating with slot 0 is only allowed for letting the controller choose an image for replacing after sending it to the drive. Not applicable for switching slots
             return NOT_SUPPORTED;
         }
+        os_Lock_Device(device);
         ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60);//giving 60 seconds to activate the firmware
         options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
@@ -48,6 +50,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             device->os_info.fwdlIOsupport.fwdlIOSupported = true;
         }
 #endif
+        os_Unlock_Device(device);
         return ret; 
     }
     if (options->firmwareMemoryLength == 0)
@@ -60,9 +63,11 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     }
     if (options->dlMode == DL_FW_FULL || options->dlMode == DL_FW_TEMP)
     {
+        os_Lock_Device(device);
         //single command to do the whole download
         ret = firmware_Download_Command(device, options->dlMode, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID, false, true, true, 60);
         options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+        os_Unlock_Device(device);
     }
     else
     {
@@ -104,7 +109,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         }
 #endif
 #endif
-
+        os_Lock_Device(device);
         //start the download
         for (currentDownloadBlock = 0; currentDownloadBlock < downloadBlocks; currentDownloadBlock++, downloadOffset += downloadSize)
         {
@@ -241,7 +246,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false, false, false, 60);
             options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
         }
-
+        os_Unlock_Device(device);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("\n");
