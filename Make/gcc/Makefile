@@ -29,23 +29,6 @@ AR ?= ar
 CFLAGS ?= -Wall -Wextra 
 CFLAGS += -c -fPIC -I. -std=gnu99
 
-#determine the proper NVMe include file. SEA_NVME_IOCTL_H, SEA_NVME_H, or SEA_UAPI_NVME_H
-NVME_IOCTL_H = /usr/include/linux/nvme_ioctl.h 
-NVME_H = /usr/include/linux/nvme.h 
-UAPI_NVME_H = /usr/include/uapi/nvme.h 
-
-ifeq ($(shell test -f $(NVME_IOCTL_H) && echo -n yes),yes)
-	PROJECT_DEFINES += -DSEA_NVME_IOCTL_H
-else
-	ifeq ($(shell test -f $(NVME_H) && echo -n yes),yes)
-		PROJECT_DEFINES += -DSEA_NVME_H
-	else
-		ifeq ($(shell test -f $(UAPI_NVME_H) && echo -n yes),yes)
-			PROJECT_DEFINES += -DSEA_UAPI_NVME_H
-		endif
-	endif
-endif
-
 LFLAGS ?= -Wl,-Map,output.map -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
 LIB_SRC_FILES = \
 	$(SRC_DIR)ata_Security.c \
@@ -73,7 +56,43 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)defect.c\
 	$(SRC_DIR)nvme_operations.c
 
-#Only define public stuff 
+
+ifeq ($(UNAME),Linux)
+	LIB_SRC_FILES += $(SRC_DIR)sg_helper.c
+	#determine the proper NVMe include file. SEA_NVME_IOCTL_H, SEA_NVME_H, or SEA_UAPI_NVME_H
+	NVME_IOCTL_H = /usr/include/linux/nvme_ioctl.h 
+	NVME_H = /usr/include/linux/nvme.h 
+	UAPI_NVME_H = /usr/include/uapi/nvme.h 
+
+	ifeq ($(shell test -f $(NVME_IOCTL_H) && printf "yes"),yes)
+		PROJECT_DEFINES += -DSEA_NVME_IOCTL_H
+	else
+		ifeq ($(shell test -f $(NVME_H) && printf "yes"),yes)
+			PROJECT_DEFINES += -DSEA_NVME_H
+		else
+			ifeq ($(shell test -f $(UAPI_NVME_H) && printf "yes"),yes)
+				PROJECT_DEFINES += -DSEA_UAPI_NVME_H
+			else
+				PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
+			endif
+		endif
+	endif
+endif
+
+ifeq ($(UNAME),SunOS)
+    LIB_SRC_FILES += $(SRC_DIR)uscsi_helper.c
+	PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
+endif
+
+ifeq ($(UNAME),FreeBSD)
+    LIB_SRC_FILES += $(SRC_DIR)cam_helper.c
+	FREEBSD_NVME_H = /usr/include/dev/nvme/nvme.h
+	ifneq ($(shell test -f $(FREEBSD_NVME_H) && printf "yes"),yes)
+		PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
+	endif
+endif
+
+
 PROJECT_DEFINES += #-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
 
 #All of the source files have associated object files
