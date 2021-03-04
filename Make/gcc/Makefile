@@ -58,7 +58,6 @@ LIB_SRC_FILES = \
 
 
 ifeq ($(UNAME),Linux)
-	LIB_SRC_FILES += $(SRC_DIR)sg_helper.c
 	#determine the proper NVMe include file. SEA_NVME_IOCTL_H, SEA_NVME_H, or SEA_UAPI_NVME_H
 	NVME_IOCTL_H = /usr/include/linux/nvme_ioctl.h 
 	NVME_H = /usr/include/linux/nvme.h 
@@ -80,12 +79,10 @@ ifeq ($(UNAME),Linux)
 endif
 
 ifeq ($(UNAME),SunOS)
-    LIB_SRC_FILES += $(SRC_DIR)uscsi_helper.c
 	PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
 endif
 
 ifeq ($(UNAME),FreeBSD)
-    LIB_SRC_FILES += $(SRC_DIR)cam_helper.c
 	FREEBSD_NVME_H = /usr/include/dev/nvme/nvme.h
 	ifneq ($(shell test -f $(FREEBSD_NVME_H) && printf "yes"),yes)
 		PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
