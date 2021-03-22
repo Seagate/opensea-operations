@@ -27,6 +27,8 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     int ret = SUCCESS;
     time_t currentTime = 0;
     char currentTimeString[64] = { 0 };
+    struct tm logTime;
+    memset(&logTime, 0, sizeof(struct tm));
     #ifdef _DEBUG
     printf("%s: Drive SN: %s#\n",__FUNCTION__, device->drive_info.serialNumber);
     #endif
@@ -45,7 +47,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         //get current date and time
         currentTime = time(NULL);
         memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&currentTime));
+        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //set up the log file name
         strcat(*logFileNameUsed, serialNumber);
         strcat(*logFileNameUsed, "_");
@@ -81,6 +83,8 @@ int create_And_Open_Log_File(tDevice *device,\
     char *filename = &name[0];
     char *pathAndFileName = NULL;
     bool nullLogFileNameUsed = false;
+    struct tm logTime;
+    memset(&logTime, 0, sizeof(struct tm));
     #ifdef _DEBUG
     printf("%s: -->\n",__FUNCTION__);
     #endif
@@ -183,7 +187,7 @@ int create_And_Open_Log_File(tDevice *device,\
         //append timestamp
         currentTime = time(NULL);
         memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&currentTime));
+        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //Append timestamp to the log file name
         strcat(*logFileNameUsed, "_");
         strcat(*logFileNameUsed, &currentTimeString[0]);

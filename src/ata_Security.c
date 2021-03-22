@@ -1110,11 +1110,13 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                     time_t currentTime = time(NULL);
                     time_t futureTime = get_Future_Date_And_Time(currentTime, eraseTimeMinutes * 60);
                     uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+                    char timeFormat[TIME_STRING_LENGTH] = { 0 };
                     convert_Seconds_To_Displayable_Time(erasemaxSeconds, NULL, &days, &hours, &minutes, &seconds);
-                    printf("\n\tCurrent Time: %s\tDrive reported completion time: >", ctime((const time_t*)&currentTime));
+                    printf("\n\tCurrent Time: %s\tDrive reported completion time: >", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
                     print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
                     printf("from now.\n");
-                    printf("\tEstimated completion Time : sometime after %s", ctime((const time_t *)&futureTime));
+                    memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
+                    printf("\tEstimated completion Time : sometime after %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
                 }
             }
             else
@@ -1122,11 +1124,13 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                 time_t currentTime = time(NULL);
                 time_t futureTime = get_Future_Date_And_Time(currentTime, eraseTimeMinutes * 60);
                 uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+                char timeFormat[TIME_STRING_LENGTH] = { 0 };
                 convert_Seconds_To_Displayable_Time(eraseTimeMinutes * 60, NULL, &days, &hours, &minutes, &seconds);
-                printf("\n\tCurrent Time: %s\tDrive reported completion time: ", ctime((const time_t*)&currentTime));
+                printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
                 printf("from now.\n");
-                printf("\tEstimated completion Time : %s", ctime((const time_t *)&futureTime));
+                memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
+                printf("\tEstimated completion Time : %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
             }
             printf("\n\tPlease DO NOT remove power to the drive during the erase\n");
             printf("\tas this will leave it in an uninitialized state with the password set.\n");
