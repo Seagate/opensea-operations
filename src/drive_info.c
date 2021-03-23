@@ -425,7 +425,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
         //cache size (legacy method - from ATA 1/2)
-        driveInfo->cacheSize = M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A]) * driveInfo->logicalSectorSize;
+        driveInfo->cacheSize = C_CAST(uint64_t, M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
         if (transportType == 0xE)
         {
             driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PCIE;
@@ -951,7 +951,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
         //NV Cache Size logical blocks - needs testing against different drives to make sure the value is correct
-        driveInfo->hybridNANDSize = M_WordsTo4ByteValue(wordPtr[215], wordPtr[216]) * driveInfo->logicalSectorSize;
+        driveInfo->hybridNANDSize = C_CAST(uint64_t, M_WordsTo4ByteValue(wordPtr[215], wordPtr[216])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
         //create a list of supported features
         if (driveInfo->trustedCommandsBeingBlocked == true)
         {
