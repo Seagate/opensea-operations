@@ -1077,7 +1077,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
             //don't check return status since we expect this to fail after creating the error
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Reading Corrupted LBA %-20"PRIu64"\n", iterator);
+                printf("Reading Corrupted LBA %-20" PRIu64 "\n", iterator);
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
