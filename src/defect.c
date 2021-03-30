@@ -873,11 +873,11 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_READ_LONG, corruptLBA, data, dataSize, &numberOfECCCRCBytes, &numberOfBlocksRequested);
             if (ret == SUCCESS)
             {
-                seed_64(time(NULL));
+                //seed_64(time(NULL));
                 //modify the user data to cause a uncorrectable error
                 for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                 {
-                    data[iter] = C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+                    data[iter] = M_2sCOMPLEMENT(data[iter]);// C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                 }
                 if (numberOfBlocksRequested)
                 {
@@ -919,11 +919,11 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
                     if (ret == SUCCESS)
                     {
-                        seed_64(time(NULL));
+                        //seed_64(time(NULL));
                         //modify the user data to cause a uncorrectable error
                         for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                         {
-                            data[iter] = C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+                            data[iter] = M_2sCOMPLEMENT(data[iter]); //C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                         }
                         ret = ata_Legacy_Write_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
                     }
@@ -938,11 +938,11 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 ret = ata_Legacy_Read_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
                 if (ret == SUCCESS)
                 {
-                    seed_64(time(NULL));
+                    //seed_64(time(NULL));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                     {
-                        data[iter] = C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+                        data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                     }
                     ret = ata_Legacy_Write_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
                 }
@@ -1004,11 +1004,12 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
                 else
                 {
-                    seed_64(time(NULL));
+                    //seed_64(time(NULL));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1); ++iter)
                     {
-                        dataBuffer[iter] = C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+                        //Originally using random values, but it was recommended to do 2's compliment of the original data instead.
+                        dataBuffer[iter] = M_2sCOMPLEMENT(dataBuffer[iter]); //C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                     }
                     //write it back to the drive
                     if (device->drive_info.deviceMaxLba > UINT32_MAX)
