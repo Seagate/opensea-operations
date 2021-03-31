@@ -2370,7 +2370,7 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t m
                 {
                     modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
                     //Now loop through and find the requested page
-                    for (uint16_t vpdMPOffset = 4; vpdMPOffset < modePagePolicyLength; vpdMPOffset += 4)
+                    for (uint32_t vpdMPOffset = 4; vpdMPOffset < UINT16_MAX && vpdMPOffset < modePagePolicyLength; vpdMPOffset += 4)
                     {
                         if (modePage == M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) && subPage == vpdModePagePolicy[vpdMPOffset + 1])
                         {

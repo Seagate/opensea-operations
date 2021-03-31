@@ -379,7 +379,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0, protocolList, LEGACY_DRIVE_SEC_SIZE))
                     {
                         uint16_t listLength = M_BytesTo2ByteValue(protocolList[7], protocolList[6]);
-                        for (uint16_t offset = 8; offset < (listLength + 8) && offset < LEGACY_DRIVE_SEC_SIZE; ++offset)
+                        for (uint16_t offset = UINT16_C(8); offset < (listLength + UINT16_C(8)) && offset < LEGACY_DRIVE_SEC_SIZE; ++offset)
                         {
                             switch (protocolList[offset])
                             {
@@ -2534,12 +2534,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //we get the active phy from the low byte of the WWN when we find the association field set to 01b
                     uint64_t accotiatedWWN = 0;
                     uint8_t association = 0;
-                    uint8_t deviceIdentificationIter = 4;
+                    uint16_t deviceIdentificationIter = 4;
                     uint16_t pageLength = M_BytesTo2ByteValue(deviceIdentification[2], deviceIdentification[3]);
                     uint8_t designatorLength = 0;
                     uint8_t protocolIdentifier = 0;
                     uint8_t designatorType = 0;
-                    for (; deviceIdentificationIter < INQ_RETURN_DATA_LENGTH && deviceIdentificationIter < pageLength; deviceIdentificationIter += designatorLength)
+                    for (; deviceIdentificationIter < (pageLength + UINT16_C(4)); deviceIdentificationIter += designatorLength)
                     {
                         association = (deviceIdentification[deviceIdentificationIter + 1] >> 4) & 0x03;
                         designatorLength = deviceIdentification[deviceIdentificationIter + 3] + 4;
@@ -2648,7 +2648,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                                 {
                                     //loop through and find supported protection types...
-                                    for (uint16_t offset = 4; offset < (supportedBlockSizesAndProtectionTypesLength + 4); offset += 8)
+                                    for (uint16_t offset = UINT16_C(4); offset < (supportedBlockSizesAndProtectionTypesLength + UINT16_C(4)); offset += UINT16_C(8))
                                     {
                                         if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
                                         {
@@ -4842,7 +4842,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     if (version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
     {
         uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
-        for (uint16_t iter = 4; iter < (pageLength + 4); ++iter)
+        for (uint16_t iter = UINT16_C(4); iter < (pageLength + UINT16_C(4)); ++iter)
         {
             switch (supportedDiagnostics[iter])
             {

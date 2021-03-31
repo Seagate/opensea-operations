@@ -202,7 +202,7 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         uint8_t deallocate[4096] = { 0 };//This will hold the maximum number of ranges/descriptors we can.
         uint32_t deallocateRange = (uint32_t)M_Min(M_Min(range, UINT32_MAX), maxLBACount);
         uint64_t finalLBA = startLBA + range;
-        uint16_t descriptorCount = 0;
+        uint32_t descriptorCount = 0;
         for (uint64_t deallocateLBA = startLBA, offset = 0; deallocateLBA < finalLBA && descriptorCount <= maxTrimOrUnmapBlockDescriptors; deallocateLBA += deallocateRange, offset += 16)
         {
             //context attributes

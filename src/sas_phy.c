@@ -16,12 +16,12 @@
 
 bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
 {
-    uint8_t supportedDiagnosticPages[50];
+    uint8_t supportedDiagnosticPages[50] = { 0 };
     if (SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 50, supportedDiagnosticPages, 50, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x00, 50, supportedDiagnosticPages, 15))
     {
         //check that page 3F is supported.
         uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnosticPages[2], supportedDiagnosticPages[3]);
-        for (uint16_t iter = 4; iter < (pageLength + 4) && iter < 50; ++iter)
+        for (uint16_t iter = 4; iter < (pageLength + UINT16_C(4)) && iter < UINT16_C(50); ++iter)
         {
             switch (supportedDiagnosticPages[iter])
             {

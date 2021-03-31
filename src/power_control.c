@@ -1249,8 +1249,8 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
                 ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
                 identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
-                uint16_t pcIter = 4, counter = 0;
-                for (; pcIter < powerConsumptionLength; pcIter += 4, counter++)
+                uint32_t pcIter = 4, counter = 0;
+                for (; pcIter < powerConsumptionLength && pcIter < (identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
                 {
                     identifiers->identifiers[counter].identifierValue = powerConsumptionPage[pcIter];
                     identifiers->identifiers[counter].units = powerConsumptionPage[pcIter + 1] & 0x07;

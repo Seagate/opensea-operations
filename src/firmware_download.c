@@ -784,7 +784,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                                     if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs))
                                     {
                                         //loop through the data and check for the commands and service actions we are interested in.
-                                        uint16_t supportedCmdsIter = 4;
+                                        uint32_t supportedCmdsIter = 4;
                                         uint16_t cmdDescriptorLength = 8;
                                         uint32_t supportedCmdsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
                                         for (; supportedCmdsIter < supportedCmdsLength; supportedCmdsIter += cmdDescriptorLength)

@@ -1399,7 +1399,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         pwrTelData->totalMeasurementTimeRequested = M_BytesTo2ByteValue(powerTelemetryLog[33], powerTelemetryLog[32]);
         uint16_t dataLength = M_BytesTo2ByteValue(powerTelemetryLog[35], powerTelemetryLog[34]);
         pwrTelData->numberOfMeasurements = M_BytesTo2ByteValue(powerTelemetryLog[37], powerTelemetryLog[36]);
-        uint16_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
+        uint32_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
         pwrTelData->measurementFormat = powerTelemetryLog[40];
         pwrTelData->temperatureCelcius = powerTelemetryLog[41];
         pwrTelData->measurementWindowTimeMilliseconds = M_BytesTo2ByteValue(powerTelemetryLog[43], powerTelemetryLog[42]);
