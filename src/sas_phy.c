@@ -21,7 +21,7 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
     {
         //check that page 3F is supported.
         uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnosticPages[2], supportedDiagnosticPages[3]);
-        for (uint32_t iter = 4; iter < (pageLength + UINT16_C(4)) && iter < UINT16_C(50); ++iter)
+        for (uint32_t iter = 4; iter < C_CAST(uint32_t, pageLength + UINT16_C(4)) && iter < UINT16_C(50); ++iter)
         {
             switch (supportedDiagnosticPages[iter])
             {

@@ -1683,7 +1683,7 @@ int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
         ret = SUCCESS;
         entries->logType = DST_LOG_TYPE_SCSI;
         entries->numberOfEntries = 0;
-        for (uint32_t offset = 4; offset < (pageLength + UINT16_C(4)) && offset < LP_SELF_TEST_RESULTS_LEN && entries->numberOfEntries < MAX_DST_ENTRIES; offset += 20)
+        for (uint32_t offset = 4; offset < C_CAST(uint32_t, pageLength + UINT16_C(4)) && offset < LP_SELF_TEST_RESULTS_LEN && entries->numberOfEntries < MAX_DST_ENTRIES; offset += 20)
         {
             if (memcmp(&dstLog[offset + 4], zeroCompare, 16))//if this doesn't match, we have an entry...-TJE
             {

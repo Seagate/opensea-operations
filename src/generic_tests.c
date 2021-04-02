@@ -1401,7 +1401,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
 int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     uint8_t *dataBuf = NULL;
-    size_t dataBufSize = NULL;
+    size_t dataBufSize = 0;
     time_t startTime = 0;
     uint64_t IDStartLBA = 0;
     uint64_t ODEndingLBA = 0;
