@@ -1547,17 +1547,17 @@ bool is_Seagate_Quick_Format_Supported(tDevice *device)
                     }
                 }
             }
-        }
 
-        if (!supported)
-        {
-            //This above support bit was discontinued, so need to check for support of other features..This is not a guaranteed "it will work" but it is what we have to work with.
-            bool stdDepopSupported = is_Depopulation_Feature_Supported(device, NULL);
-            //bool stdRepopSupported = is_Repopulate_Feature_Supported(device, NULL);
-            //TODO: Should checking for set sector configuration bit be here??? it's not clear if drives with this, but not depop will work or not at this time.
-            if (stdDepopSupported /*&& !stdRepopSupported*/)
+            if (!supported)
             {
-                supported = true;
+                //This above support bit was discontinued, so need to check for support of other features..This is not a guaranteed "it will work" but it is what we have to work with.
+                bool stdDepopSupported = is_Depopulation_Feature_Supported(device, NULL);
+                //bool stdRepopSupported = is_Repopulate_Feature_Supported(device, NULL);
+                //TODO: Should checking for set sector configuration bit be here??? it's not clear if drives with this, but not depop will work or not at this time.
+                if (stdDepopSupported /*&& !stdRepopSupported*/)
+                {
+                    supported = true;
+                }
             }
         }
     }
