@@ -32,46 +32,140 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
-        uint8_t *writeSameSupported = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
-        if (!writeSameSupported)
-        {
-            perror("Error allocating memory to check write same support");
-            return false;
-        }
-        supported = true;//assume it'll work for now, really need to add a a check for it though
-        //add code to parse the buffer and look for the write same command support
+        //SCSI 2 added write same 10.
+        //SBC3 added max write same length to the block limits VPD page.
+        //Can use report supported opcodes & MAYBE older inquiry cmdDT to try to figure out if the device definitely supports the command or not.
+        //  NOTE: SPC added cmdDT. SPC3 obsoletes this for report supported operation codes
+        //Can use these to get a good idea if the command is supported or not for the request.
 
-        safe_Free_aligned(writeSameSupported);
-        //also check the block limits vpd page to see what the maximum number of logical blocks is so that we don't get in a trouble spot...(we may need chunk the write same command...ugh).
-        uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
-        if (!blockLimits)
+        //If SCSI 2, just say supported and we'll check sense data for an error later.
+        //Otherwise try getting the report about if it is supported from cmdDT/report supported op.
+        //  If these complete and show definitive support or definitive no support, we can easily decide how to proceed.
+        //  If these don't work (not supported), then try checking the block limits page to see what it says.
+        //If block limits shows zeros, assume support and report support/lack of support based on trying the command.
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SCSI2)//SCSI 2 or higher
         {
-            perror("Error allocating memory to check block limits VPD page");
-            return false;
-        }
-        if (SUCCESS == scsi_Inquiry(device, blockLimits, VPD_BLOCK_LIMITS_LEN, BLOCK_LIMITS, true, false) && maxNumberOfLogicalBlocksPerCommand)
-        {
-            *maxNumberOfLogicalBlocksPerCommand = M_BytesTo8ByteValue(blockLimits[36], blockLimits[37], blockLimits[38], blockLimits[39], blockLimits[40], blockLimits[41], blockLimits[42], blockLimits[43]);
-            if (*maxNumberOfLogicalBlocksPerCommand > requesedNumberOfLogicalBlocks && (device->drive_info.deviceMaxLba - startingLBA) >= requesedNumberOfLogicalBlocks)
+            bool driveReportsSupport = false;//This tracks if the report supported opcodes or cmdDT reports with absolute certainty that the drive supports the command.
+            if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
             {
-                //check if the WSNZ bit is set or not
-                if (blockLimits[4] & BIT0)
+                //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
+                uint32_t supportLengthCheck = 20;//enough space to read all support data bytes for 16B version
+                uint8_t *writeSameSupported = (uint8_t*)calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!writeSameSupported)
                 {
-                    supported = false;
+                    perror("Error allocating memory to check write same support");
+                    return false;
                 }
-                else
+                bool gotData = false;
+                if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, WRITE_SAME_16_CMD, 0, supportLengthCheck, writeSameSupported))
                 {
-                    supported = true;
-                    maxNumberOfLogicalBlocksPerCommand = 0;
+                    gotData = true;
                 }
+                if (!driveReportsSupport && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, WRITE_SAME_10_CMD, 0, supportLengthCheck, writeSameSupported))
+                {
+                    gotData = true;
+                }
+                if (gotData)
+                {
+                    uint8_t support = M_GETBITRANGE(writeSameSupported[1], 2, 0);
+                    switch (support)
+                    {
+                    case 3:
+                        driveReportsSupport = true;
+                        supported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                safe_Free_aligned(writeSameSupported);
+            }
+            else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3)
+            {
+                //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
+                uint32_t supportLengthCheck = 22;//enough space to read all support data bytes for 16B version with CmdDT
+                uint8_t *writeSameSupported = (uint8_t*)calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!writeSameSupported)
+                {
+                    perror("Error allocating memory to check write same support");
+                    return false;
+                }
+                bool gotData = false;
+                if (SUCCESS == scsi_Inquiry(device, writeSameSupported, supportLengthCheck, WRITE_SAME_16_CMD, false, true))
+                {
+                    gotData = true;
+                }
+                if (!driveReportsSupport && SUCCESS == scsi_Inquiry(device, writeSameSupported, supportLengthCheck, WRITE_SAME_10_CMD, false, true))
+                {
+                    gotData = true;
+                }
+                if (gotData)
+                {
+                    uint8_t support = M_GETBITRANGE(writeSameSupported[1], 2, 0);
+                    switch (support)
+                    {
+                    case 3:
+                        driveReportsSupport = true;
+                        supported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                safe_Free_aligned(writeSameSupported);
             }
             else
             {
-                supported = false;
+                //Assume supported for SCSI 2
+                supported = true;
+            }
+
+            //SPC4 will have full block limits. Check for SPC2 and up since it's ambiguous about when exactly the fields we want to check may have been supported by a given drive
+            if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_2 && maxNumberOfLogicalBlocksPerCommand)
+            {
+                //also check the block limits vpd page to see what the maximum number of logical blocks is so that we don't get in a trouble spot...(we may need chunk the write same command...ugh).
+                uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!blockLimits)
+                {
+                    perror("Error allocating memory to check block limits VPD page");
+                    return false;
+                }
+                if (SUCCESS == scsi_Inquiry(device, blockLimits, VPD_BLOCK_LIMITS_LEN, BLOCK_LIMITS, true, false))
+                {
+                    uint16_t pageLength = M_BytesTo2ByteValue(blockLimits[2], blockLimits[3]);
+                    if (pageLength >= 0x3C)//earlier specs, this page was shorter
+                    {
+                        *maxNumberOfLogicalBlocksPerCommand = M_BytesTo8ByteValue(blockLimits[36], blockLimits[37], blockLimits[38], blockLimits[39], blockLimits[40], blockLimits[41], blockLimits[42], blockLimits[43]);
+                        if (*maxNumberOfLogicalBlocksPerCommand >= requesedNumberOfLogicalBlocks)
+                        {
+                            supported = true;
+                            //TODO: Should WSNZ be checked??? removed this for now since it was not making much sense, but it may need to be added back in.
+                        }
+                        else if (*maxNumberOfLogicalBlocksPerCommand == 0)
+                        {
+                            //Device does not report a limit. This can be a backwards-compatible thing, or it could mean the device supports any length.
+                            //Because of this, call it supported since we don't have any reason to otherwise think write same is not supported.
+                            supported = true;
+                            //TODO: also check if WSNZ is set? Because that MAY mean there is a limit, but the device doesn't say....not checking for now - TJE
+                        }
+                        else
+                        {
+                            //This case should only be hit when the requested range is larger than the device supports
+                            supported = false;
+                        }
+                    }
+                    else
+                    {
+                        maxNumberOfLogicalBlocksPerCommand = 0;//We don't know so set zero
+                    }
+                }
+                safe_Free_aligned(blockLimits);
+            }
+            else if (maxNumberOfLogicalBlocksPerCommand)
+            {
+                *maxNumberOfLogicalBlocksPerCommand = 0;//setting this since we just don't know - TJE
             }
         }
-        safe_Free_aligned(blockLimits);
     }
     return supported;
 }
@@ -124,6 +218,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         }
         safe_Free_aligned(sctStatusBuf);
     }
+    /*
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //request sense...hopefully we get something here....we don't, FYI. The drive doesn't report the write same progress at all. I'll leave this code in place anyways in case someone ever is interested in it, or progress reporting is added. - TJE
@@ -160,6 +255,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         }
         safe_Free(senseData);
     }
+    */
     else
     {
         ret = NOT_SUPPORTED;
