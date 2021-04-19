@@ -14,7 +14,7 @@
 
 #include "writesame.h"
 
-bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t requesedNumberOfLogicalBlocks, uint64_t *maxNumberOfLogicalBlocksPerCommand)
+bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA, uint64_t requesedNumberOfLogicalBlocks, uint64_t *maxNumberOfLogicalBlocksPerCommand)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -33,10 +33,12 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //SCSI 2 added write same 10.
+        //SBC2 added write same 16
         //SBC3 added max write same length to the block limits VPD page.
         //Can use report supported opcodes & MAYBE older inquiry cmdDT to try to figure out if the device definitely supports the command or not.
         //  NOTE: SPC added cmdDT. SPC3 obsoletes this for report supported operation codes
         //Can use these to get a good idea if the command is supported or not for the request.
+        //16B max range is UINT32 (unless you can set zero as the range). 10B max range is UINT16 (unless zero can be used as the range)
 
         //If SCSI 2, just say supported and we'll check sense data for an error later.
         //Otherwise try getting the report about if it is supported from cmdDT/report supported op.
@@ -60,10 +62,18 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, WRITE_SAME_16_CMD, 0, supportLengthCheck, writeSameSupported))
                 {
                     gotData = true;
+                    if (*maxNumberOfLogicalBlocksPerCommand)
+                    {
+                        *maxNumberOfLogicalBlocksPerCommand = UINT32_MAX;
+                    }
                 }
                 if (!driveReportsSupport && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, WRITE_SAME_10_CMD, 0, supportLengthCheck, writeSameSupported))
                 {
                     gotData = true;
+                    if (*maxNumberOfLogicalBlocksPerCommand)
+                    {
+                        *maxNumberOfLogicalBlocksPerCommand = UINT16_MAX;
+                    }
                 }
                 if (gotData)
                 {
@@ -75,6 +85,10 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
                         supported = true;
                         break;
                     default:
+                        if (*maxNumberOfLogicalBlocksPerCommand)
+                        {
+                            *maxNumberOfLogicalBlocksPerCommand = 0;
+                        }
                         break;
                     }
                 }
@@ -94,10 +108,18 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
                 if (SUCCESS == scsi_Inquiry(device, writeSameSupported, supportLengthCheck, WRITE_SAME_16_CMD, false, true))
                 {
                     gotData = true;
+                    if (*maxNumberOfLogicalBlocksPerCommand)
+                    {
+                        *maxNumberOfLogicalBlocksPerCommand = UINT32_MAX;
+                    }
                 }
                 if (!driveReportsSupport && SUCCESS == scsi_Inquiry(device, writeSameSupported, supportLengthCheck, WRITE_SAME_10_CMD, false, true))
                 {
                     gotData = true;
+                    if (*maxNumberOfLogicalBlocksPerCommand)
+                    {
+                        *maxNumberOfLogicalBlocksPerCommand = UINT16_MAX;
+                    }
                 }
                 if (gotData)
                 {
@@ -109,6 +131,10 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
                         supported = true;
                         break;
                     default:
+                        if (*maxNumberOfLogicalBlocksPerCommand)
+                        {
+                            *maxNumberOfLogicalBlocksPerCommand = 0;
+                        }
                         break;
                     }
                 }
@@ -118,6 +144,11 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
             {
                 //Assume supported for SCSI 2
                 supported = true;
+                if (*maxNumberOfLogicalBlocksPerCommand)
+                {
+                    *maxNumberOfLogicalBlocksPerCommand = UINT16_MAX;
+                }
+                //TODO: we also need a way to set that a range of zero is supported...
             }
 
             //SPC4 will have full block limits. Check for SPC2 and up since it's ambiguous about when exactly the fields we want to check may have been supported by a given drive
@@ -135,35 +166,34 @@ bool is_Write_Same_Supported(tDevice *device, uint64_t startingLBA, uint64_t req
                     uint16_t pageLength = M_BytesTo2ByteValue(blockLimits[2], blockLimits[3]);
                     if (pageLength >= 0x3C)//earlier specs, this page was shorter
                     {
+                        bool wsnz = (blockLimits[4] & BIT0) ? true : false;
                         *maxNumberOfLogicalBlocksPerCommand = M_BytesTo8ByteValue(blockLimits[36], blockLimits[37], blockLimits[38], blockLimits[39], blockLimits[40], blockLimits[41], blockLimits[42], blockLimits[43]);
                         if (*maxNumberOfLogicalBlocksPerCommand >= requesedNumberOfLogicalBlocks)
                         {
-                            supported = true;
-                            //TODO: Should WSNZ be checked??? removed this for now since it was not making much sense, but it may need to be added back in.
+                            if (*maxNumberOfLogicalBlocksPerCommand > UINT32_MAX && wsnz)
+                            {
+                                //this case is that the drive supports a range LARGER than is allowed in a single command and a range must be specified...which is weird, but stupid.
+                                supported = false;
+                            }
+                            else
+                            {
+                                supported = true;
+                            }
                         }
-                        else if (*maxNumberOfLogicalBlocksPerCommand == 0)
+                        else if (*maxNumberOfLogicalBlocksPerCommand == 0 && !wsnz)//checking for write-same non-zero bit. If this is set, then there SHOULD be a limit listed. If not, then I guess this is not supported on this device-TJE
                         {
                             //Device does not report a limit. This can be a backwards-compatible thing, or it could mean the device supports any length.
                             //Because of this, call it supported since we don't have any reason to otherwise think write same is not supported.
                             supported = true;
-                            //TODO: also check if WSNZ is set? Because that MAY mean there is a limit, but the device doesn't say....not checking for now - TJE
                         }
                         else
                         {
-                            //This case should only be hit when the requested range is larger than the device supports
+                            //This case should only be hit when the requested range is larger than the device supports, or no max range was reported AND the WSNZ bit is set (meaning the command is not really supported)
                             supported = false;
                         }
                     }
-                    else
-                    {
-                        maxNumberOfLogicalBlocksPerCommand = 0;//We don't know so set zero
-                    }
                 }
                 safe_Free_aligned(blockLimits);
-            }
-            else if (maxNumberOfLogicalBlocksPerCommand)
-            {
-                *maxNumberOfLogicalBlocksPerCommand = 0;//setting this since we just don't know - TJE
             }
         }
     }
@@ -354,18 +384,27 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
     int ret = UNKNOWN;
     uint64_t maxWriteSameRange = 0;
     //first check if the device supports the write same command
-    if (is_Write_Same_Supported(device, startingLba, numberOfLogicalBlocks, &maxWriteSameRange) && (maxWriteSameRange >= numberOfLogicalBlocks || maxWriteSameRange == 0))
+    if (is_Write_Same_Supported(device, startingLba, numberOfLogicalBlocks, &maxWriteSameRange) && (maxWriteSameRange >= numberOfLogicalBlocks || maxWriteSameRange == 0 || (startingLba + numberOfLogicalBlocks) == device->drive_info.deviceMaxLba))
     {
         uint32_t zeroPatternBufLen = 0;
         uint8_t *zeroPatternBuf = NULL;
-        if (device->drive_info.drive_type != ATA_DRIVE && !pattern && patternLength != device->drive_info.deviceBlockSize)
+        if (device->drive_info.drive_type != ATA_DRIVE)
         {
-            //only allocate this memory for SCSI drives because they need a sector telling what to use as a pattern, whereas ATA has a feature that does not require this, and why bother sending an extra command/data transfer when it isn't neded for our application
-            zeroPatternBufLen = device->drive_info.deviceBlockSize;
-            zeroPatternBuf = (uint8_t*)calloc_aligned(zeroPatternBufLen, sizeof(uint8_t), device->os_info.minimumAlignment);
-            if (!zeroPatternBuf)
+            if (!pattern && patternLength != device->drive_info.deviceBlockSize)
             {
-                perror("Error allocating logical sector sized buffer for zero pattern\n");
+                //only allocate this memory for SCSI drives because they need a sector telling what to use as a pattern, whereas ATA has a feature that does not require this, and why bother sending an extra command/data transfer when it isn't neded for our application
+                zeroPatternBufLen = device->drive_info.deviceBlockSize;
+                zeroPatternBuf = (uint8_t*)calloc_aligned(zeroPatternBufLen, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!zeroPatternBuf)
+                {
+                    perror("Error allocating logical sector sized buffer for zero pattern\n");
+                }
+            }
+            if ((startingLba + numberOfLogicalBlocks) == device->drive_info.deviceMaxLba)
+            {
+                //in this case, erasing the whole drive is requested. To do this on SAS/SCSI, set the range to zero.
+                //NOTE: This *might* not work, but it's not super straight forward to check this. - TJE
+                numberOfLogicalBlocks = 0;
             }
         }
         //start the write same for the requested range
