@@ -384,7 +384,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
     int ret = UNKNOWN;
     uint64_t maxWriteSameRange = 0;
     //first check if the device supports the write same command
-    if (is_Write_Same_Supported(device, startingLba, numberOfLogicalBlocks, &maxWriteSameRange) && (maxWriteSameRange >= numberOfLogicalBlocks || maxWriteSameRange == 0 || (startingLba + numberOfLogicalBlocks) == device->drive_info.deviceMaxLba))
+    if (is_Write_Same_Supported(device, startingLba, numberOfLogicalBlocks, &maxWriteSameRange) && (maxWriteSameRange >= numberOfLogicalBlocks || maxWriteSameRange == 0 || (startingLba + numberOfLogicalBlocks) == (device->drive_info.deviceMaxLba + UINT64_C(1))))
     {
         uint32_t zeroPatternBufLen = 0;
         uint8_t *zeroPatternBuf = NULL;
@@ -400,7 +400,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                     perror("Error allocating logical sector sized buffer for zero pattern\n");
                 }
             }
-            if ((startingLba + numberOfLogicalBlocks) == device->drive_info.deviceMaxLba)
+            if ((startingLba + numberOfLogicalBlocks) == (device->drive_info.deviceMaxLba + UINT64_C(1)))//adding 1 since a FULL write same should be every sector including the maxLBA due to zero indexing.
             {
                 //in this case, erasing the whole drive is requested. To do this on SAS/SCSI, set the range to zero.
                 //NOTE: This *might* not work, but it's not super straight forward to check this. - TJE
