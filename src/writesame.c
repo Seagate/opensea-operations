@@ -367,10 +367,6 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
             {
                 perror("Error allocating logical sector sized buffer for zero pattern\n");
             }
-            if (maxWriteSameRange == 0)
-            {
-                numberOfLogicalBlocks = 0;//if we are here and is_Write_Same_Supported returned true, then this value means we will write same to the whole drive
-            }
         }
         //start the write same for the requested range
         if (pattern && patternLength == device->drive_info.deviceBlockSize)
