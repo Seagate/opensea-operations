@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -848,7 +848,7 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             formats->protectionInformationSupported.deviceSupportsProtection = false;
             uint32_t numberOfSizes = formats->numberOfSectorSizes;
             formats->numberOfSectorSizes = 0;
-            for (uint16_t iter = 0, sectorSizeCounter = 0; iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < numberOfSizes; iter += 16, ++sectorSizeCounter)
+            for (uint32_t iter = 0, sectorSizeCounter = 0; iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < UINT16_MAX && sectorSizeCounter < numberOfSizes; iter += 16, ++sectorSizeCounter)
             {
                 formats->sectorSizes[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(sectorConfigurationLog[7 + iter], sectorConfigurationLog[6 + iter], sectorConfigurationLog[5 + iter], sectorConfigurationLog[4 + iter]) * 2;
                 formats->sectorSizes[sectorSizeCounter].ataSetSectorFields.descriptorCheck = M_BytesTo2ByteValue(sectorConfigurationLog[3 + iter], sectorConfigurationLog[2 + iter]);
@@ -862,7 +862,7 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                     }
                     ++(formats->numberOfSectorSizes);
                 }
-                formats->sectorSizes[sectorSizeCounter].ataSetSectorFields.descriptorIndex = (uint8_t)(iter / 16);
+                formats->sectorSizes[sectorSizeCounter].ataSetSectorFields.descriptorIndex = C_CAST(uint8_t, iter / 16);
             }
             ret = SUCCESS;
         }
@@ -1472,7 +1472,7 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
         ret = get_Supported_Formats(device, formats);
         if (SUCCESS == ret)
         {
-            for (uint8_t sectorSizeIter = 0; sectorSizeIter < formats->numberOfSectorSizes && sectorSizeIter < numberOfSupportedFormats; ++sectorSizeIter)
+            for (uint32_t sectorSizeIter = 0; sectorSizeIter < formats->numberOfSectorSizes && sectorSizeIter < numberOfSupportedFormats; ++sectorSizeIter)
             {
                 if (!formats->sectorSizes[sectorSizeIter].valid)
                 {

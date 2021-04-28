@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -1683,7 +1683,7 @@ int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
         ret = SUCCESS;
         entries->logType = DST_LOG_TYPE_SCSI;
         entries->numberOfEntries = 0;
-        for (uint16_t offset = 4; offset < (pageLength + 4) && offset < LP_SELF_TEST_RESULTS_LEN && entries->numberOfEntries < MAX_DST_ENTRIES; offset += 20)
+        for (uint32_t offset = 4; offset < C_CAST(uint32_t, pageLength + UINT16_C(4)) && offset < LP_SELF_TEST_RESULTS_LEN && entries->numberOfEntries < MAX_DST_ENTRIES; offset += 20)
         {
             if (memcmp(&dstLog[offset + 4], zeroCompare, 16))//if this doesn't match, we have an entry...-TJE
             {

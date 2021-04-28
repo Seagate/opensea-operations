@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -1249,8 +1249,8 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
                 ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
                 identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
-                uint16_t pcIter = 4, counter = 0;
-                for (; pcIter < powerConsumptionLength; pcIter += 4, counter++)
+                uint32_t pcIter = 4, counter = 0;
+                for (; pcIter < powerConsumptionLength && pcIter < C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
                 {
                     identifiers->identifiers[counter].identifierValue = powerConsumptionPage[pcIter];
                     identifiers->identifiers[counter].units = powerConsumptionPage[pcIter + 1] & 0x07;

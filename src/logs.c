@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,6 +27,8 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     int ret = SUCCESS;
     time_t currentTime = 0;
     char currentTimeString[64] = { 0 };
+    struct tm logTime;
+    memset(&logTime, 0, sizeof(struct tm));
     #ifdef _DEBUG
     printf("%s: Drive SN: %s#\n",__FUNCTION__, device->drive_info.serialNumber);
     #endif
@@ -45,7 +47,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         //get current date and time
         currentTime = time(NULL);
         memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&currentTime));
+        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //set up the log file name
         strcat(*logFileNameUsed, serialNumber);
         strcat(*logFileNameUsed, "_");
@@ -81,6 +83,8 @@ int create_And_Open_Log_File(tDevice *device,\
     char *filename = &name[0];
     char *pathAndFileName = NULL;
     bool nullLogFileNameUsed = false;
+    struct tm logTime;
+    memset(&logTime, 0, sizeof(struct tm));
     #ifdef _DEBUG
     printf("%s: -->\n",__FUNCTION__);
     #endif
@@ -183,7 +187,7 @@ int create_And_Open_Log_File(tDevice *device,\
         //append timestamp
         currentTime = time(NULL);
         memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", localtime(&currentTime));
+        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //Append timestamp to the log file name
         strcat(*logFileNameUsed, "_");
         strcat(*logFileNameUsed, &currentTimeString[0]);
@@ -365,9 +369,9 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
     if (SUCCESS == scsi_Inquiry(device, vpdBuffer, vpdBufferLength, SUPPORTED_VPD_PAGES, true, false))
     {
         //now search the returned buffer for the requested page code
-        uint16_t vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH;
+        uint32_t vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH;
         uint16_t pageLength = M_BytesTo2ByteValue(vpdBuffer[2], vpdBuffer[3]);
-        for (vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH; vpdIter <= (pageLength + SCSI_VPD_PAGE_HEADER_LENGTH) && vpdIter < vpdBufferLength; vpdIter++)
+        for (vpdIter = SCSI_VPD_PAGE_HEADER_LENGTH; vpdIter < UINT16_MAX && vpdIter <= C_CAST(uint32_t, pageLength + SCSI_VPD_PAGE_HEADER_LENGTH) && vpdIter < vpdBufferLength; vpdIter++)
         {
             if (vpdBuffer[vpdIter] == vpdPage)
             {

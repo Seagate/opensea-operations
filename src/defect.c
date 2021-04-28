@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         uint16_t generationCode = 0;
         uint8_t returnedDefectListFormat = UINT8_MAX;
         uint32_t dataLength = 8;
-        uint8_t *defectData = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *defectData = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint32_t defectListLength = 0;
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
         {
@@ -95,7 +95,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                         {
                             dataLength = UINT16_MAX; //we cannot pull more than this with this command. - TJE
                         }
-                        uint8_t *temp = (uint8_t*)realloc(defectData, dataLength);
+                        uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
                         if (temp)
                         {
                             defectData = temp;
@@ -108,7 +108,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                 listHasGrownDescriptors = defectData[1] & BIT3;
                                 returnedDefectListFormat = M_GETBITRANGE(defectData[1], 2, 0);
                                 //now allocate our list to return to the caller!
-                                *defects = (ptrSCSIDefectList)malloc(sizeof(scsiDefectList) + defectAlloc);
+                                *defects = C_CAST(ptrSCSIDefectList, malloc(sizeof(scsiDefectList) + defectAlloc));
                                 if (*defects)
                                 {
                                     ptrSCSIDefectList ptrDefects = *defects;
@@ -210,12 +210,12 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                         {
                             //read the list in multiple commands! Do this in 64k chunks.
                             dataLength = 65536;//this is 64k
-                            uint8_t *temp = (uint8_t*)realloc(defectData, dataLength);
+                            uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
                             if (temp)
                             {
                                 defectData = temp;
                                 memset(defectData, 0, dataLength);
-                                *defects = (ptrSCSIDefectList)malloc(sizeof(scsiDefectList) + defectAlloc);
+                                *defects = C_CAST(ptrSCSIDefectList, malloc(sizeof(scsiDefectList) + defectAlloc));
                                 if (*defects)
                                 {
                                     uint32_t elementNumber = 0;
@@ -331,7 +331,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                             {
                                 dataLength += defectListLength;
                             }
-                            uint8_t *temp = (uint8_t*)realloc(defectData, dataLength);
+                            uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
                             if (temp)
                             {
                                 defectData = temp;
@@ -345,7 +345,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     returnedDefectListFormat = M_GETBITRANGE(defectData[1], 2, 0);
                                     generationCode = M_BytesTo2ByteValue(defectData[2], defectData[3]);
                                     //now allocate our list to return to the caller!
-                                    *defects = (ptrSCSIDefectList)malloc(sizeof(scsiDefectList) + defectAlloc);
+                                    *defects = C_CAST(ptrSCSIDefectList, malloc(sizeof(scsiDefectList) + defectAlloc));
                                     if (*defects)
                                     {
                                         ptrSCSIDefectList ptrDefects = *defects;
@@ -421,7 +421,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
             else
             {
                 //defect list length is zero, so we don't have anything else to do but allocate the struct and populate the data, then return it
-                *defects = (ptrSCSIDefectList)calloc(1, sizeof(scsiDefectList));
+                *defects = C_CAST(ptrSCSIDefectList, calloc(1, sizeof(scsiDefectList)));
                 if (*defects)
                 {
                     ptrSCSIDefectList temp = *defects;
@@ -683,7 +683,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Creating Uncorrectable error at LBA %-20"PRIu64"\n", iterator);
+            printf("Creating Uncorrectable error at LBA %-20" PRIu64 "\n", iterator);
         }
         if (wue)
         {
@@ -703,7 +703,8 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
         }
         if (readUncorrectables)
         {
-            uint8_t *dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t), device->os_info.minimumAlignment);
+            size_t dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, logicalPerPhysicalSectors);
+            uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!dataBuf)
             {
                 return MEMORY_FAILURE;
@@ -734,7 +735,7 @@ int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, M
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Flagging Uncorrectable error at LBA %-20"PRIu64"\n", iterator);
+                printf("Flagging Uncorrectable error at LBA %-20" PRIu64 "\n", iterator);
             }
             ret = write_Flagged_Uncorrectable_Error(device, iterator);
             if (ret != SUCCESS)
@@ -844,7 +845,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
 {
     int ret = NOT_SUPPORTED;
     bool multipleLogicalPerPhysical = false;//used to set the physical block bit when applicable
-    uint16_t logicalPerPhysicalBlocks = (uint16_t)(device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
+    uint16_t logicalPerPhysicalBlocks = C_CAST(uint16_t, (device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize));
     if (logicalPerPhysicalBlocks > 1)
     {
         //since this device has multiple logical blocks per physical block, we also need to adjust the LBA to be at the start of the physical block
@@ -864,7 +865,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             uint16_t numberOfECCCRCBytes = 0;
             uint16_t numberOfBlocksRequested = 0;
             uint32_t dataSize = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
-            uint8_t *data = (uint8_t*)calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *data = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!data)
             {
                 return MEMORY_FAILURE;
@@ -872,11 +873,11 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_READ_LONG, corruptLBA, data, dataSize, &numberOfECCCRCBytes, &numberOfBlocksRequested);
             if (ret == SUCCESS)
             {
-                seed_64(time(NULL));
+                //seed_64(time(NULL));
                 //modify the user data to cause a uncorrectable error
                 for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                 {
-                    data[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                    data[iter] = M_2sCOMPLEMENT(data[iter]);// C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                 }
                 if (numberOfBlocksRequested)
                 {
@@ -900,7 +901,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
             }
             uint32_t dataSize = device->drive_info.deviceBlockSize + device->drive_info.IdentifyData.ata.Word022;
-            uint8_t *data = (uint8_t*)calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *data = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!data)
             {
                 return MEMORY_FAILURE;
@@ -913,16 +914,16 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 uint16_t cylinder = 0;
                 uint8_t head = 0;
                 uint8_t sector = 0;
-                if (SUCCESS == convert_LBA_To_CHS(device, (uint32_t)corruptLBA, &cylinder, &head, &sector))
+                if (SUCCESS == convert_LBA_To_CHS(device, C_CAST(uint32_t, corruptLBA), &cylinder, &head, &sector))
                 {
                     ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
                     if (ret == SUCCESS)
                     {
-                        seed_64(time(NULL));
+                        //seed_64(time(NULL));
                         //modify the user data to cause a uncorrectable error
                         for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                         {
-                            data[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                            data[iter] = M_2sCOMPLEMENT(data[iter]); //C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                         }
                         ret = ata_Legacy_Write_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
                     }
@@ -934,16 +935,16 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             }
             else
             {
-                ret = ata_Legacy_Read_Long(device, true, (uint32_t)corruptLBA, data, dataSize);
+                ret = ata_Legacy_Read_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
                 if (ret == SUCCESS)
                 {
-                    seed_64(time(NULL));
+                    //seed_64(time(NULL));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                     {
-                        data[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                        data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                     }
-                    ret = ata_Legacy_Write_Long(device, true, (uint32_t)corruptLBA, data, dataSize);
+                    ret = ata_Legacy_Write_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
                 }
             }
             if (setFeaturesToChangeECCBytes)
@@ -962,7 +963,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         senseDataFields senseFields;
         memset(&senseFields, 0, sizeof(senseDataFields));
         uint16_t dataLength = C_CAST(uint16_t, device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks);//start with this size for now...
-        uint8_t *dataBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
         {
             ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
@@ -984,7 +985,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             {
                 dataLength += C_CAST(uint16_t, M_2sCOMPLEMENT(senseFields.descriptorInformation));//length different is a twos compliment value since we requested less than is available.
             }
-            uint8_t *temp = (uint8_t*)realloc(dataBuffer, dataLength);
+            uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(dataBuffer, 0, dataLength, device->os_info.minimumAlignment));
             if (temp)
             {
                 dataBuffer = temp;
@@ -1003,11 +1004,12 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
                 else
                 {
-                    seed_64(time(NULL));
+                    //seed_64(time(NULL));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1); ++iter)
                     {
-                        dataBuffer[iter] = (uint8_t)random_Range_64(0, UINT8_MAX);
+                        //Originally using random values, but it was recommended to do 2's compliment of the original data instead.
+                        dataBuffer[iter] = M_2sCOMPLEMENT(dataBuffer[iter]); //C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                     }
                     //write it back to the drive
                     if (device->drive_info.deviceMaxLba > UINT32_MAX)
@@ -1016,7 +1018,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     }
                     else
                     {
-                        ret = scsi_Write_Long_10(device, false, false, multipleLogicalPerPhysical, (uint32_t)corruptLBA, dataLength, dataBuffer);
+                        ret = scsi_Write_Long_10(device, false, false, multipleLogicalPerPhysical, C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
                     }
                 }
             }
@@ -1051,7 +1053,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Creating Uncorrectable error at LBA %-20"PRIu64"\n", iterator);
+            printf("Creating Uncorrectable error at LBA %-20" PRIu64 "\n", iterator);
         }
         if (readWriteLong)
         {
@@ -1067,7 +1069,8 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
         }
         if (readCorruptedLBAs)
         {
-            uint8_t *dataBuf = (uint8_t*)calloc_aligned(device->drive_info.deviceBlockSize * logicalPerPhysicalSectors, sizeof(uint8_t), device->os_info.minimumAlignment);
+            size_t dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, logicalPerPhysicalSectors);
+            uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!dataBuf)
             {
                 return MEMORY_FAILURE;
@@ -1075,7 +1078,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
             //don't check return status since we expect this to fail after creating the error
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Reading Corrupted LBA %-20"PRIu64"\n", iterator);
+                printf("Reading Corrupted LBA %-20" PRIu64 "\n", iterator);
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);

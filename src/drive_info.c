@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -379,7 +379,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0, protocolList, LEGACY_DRIVE_SEC_SIZE))
                     {
                         uint16_t listLength = M_BytesTo2ByteValue(protocolList[7], protocolList[6]);
-                        for (uint16_t offset = 8; offset < (listLength + 8) && offset < LEGACY_DRIVE_SEC_SIZE; ++offset)
+                        for (uint32_t offset = UINT16_C(8); offset < C_CAST(uint32_t, listLength + UINT16_C(8)) && offset < LEGACY_DRIVE_SEC_SIZE; ++offset)
                         {
                             switch (protocolList[offset])
                             {
@@ -425,7 +425,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
         //cache size (legacy method - from ATA 1/2)
-        driveInfo->cacheSize = M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A]) * driveInfo->logicalSectorSize;
+        driveInfo->cacheSize = C_CAST(uint64_t, M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
         if (transportType == 0xE)
         {
             driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PCIE;
@@ -951,7 +951,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
         //NV Cache Size logical blocks - needs testing against different drives to make sure the value is correct
-        driveInfo->hybridNANDSize = M_WordsTo4ByteValue(wordPtr[215], wordPtr[216]) * driveInfo->logicalSectorSize;
+        driveInfo->hybridNANDSize = C_CAST(uint64_t, M_WordsTo4ByteValue(wordPtr[215], wordPtr[216])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
         //create a list of supported features
         if (driveInfo->trustedCommandsBeingBlocked == true)
         {
@@ -2534,12 +2534,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //we get the active phy from the low byte of the WWN when we find the association field set to 01b
                     uint64_t accotiatedWWN = 0;
                     uint8_t association = 0;
-                    uint8_t deviceIdentificationIter = 4;
+                    uint32_t deviceIdentificationIter = 4;
                     uint16_t pageLength = M_BytesTo2ByteValue(deviceIdentification[2], deviceIdentification[3]);
                     uint8_t designatorLength = 0;
                     uint8_t protocolIdentifier = 0;
                     uint8_t designatorType = 0;
-                    for (; deviceIdentificationIter < INQ_RETURN_DATA_LENGTH && deviceIdentificationIter < pageLength; deviceIdentificationIter += designatorLength)
+                    for (; deviceIdentificationIter < C_CAST(uint32_t, pageLength + UINT16_C(4)); deviceIdentificationIter += designatorLength)
                     {
                         association = (deviceIdentification[deviceIdentificationIter + 1] >> 4) & 0x03;
                         designatorLength = deviceIdentification[deviceIdentificationIter + 3] + 4;
@@ -2648,7 +2648,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                                 {
                                     //loop through and find supported protection types...
-                                    for (uint16_t offset = 4; offset < (supportedBlockSizesAndProtectionTypesLength + 4); offset += 8)
+                                    for (uint32_t offset = UINT16_C(4); offset < C_CAST(uint32_t, supportedBlockSizesAndProtectionTypesLength + UINT16_C(4)); offset += UINT16_C(8))
                                     {
                                         if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
                                         {
@@ -4842,7 +4842,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     if (version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
     {
         uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
-        for (uint16_t iter = 4; iter < (pageLength + 4); ++iter)
+        for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)); ++iter)
         {
             switch (supportedDiagnostics[iter])
             {

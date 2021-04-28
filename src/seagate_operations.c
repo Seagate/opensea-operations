@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,7 @@
 #include "vendor/seagate/seagate_scsi_types.h"
 #include <float.h> //for DBL_MAX
 #include "platform_helper.h"
+#include "depopulate.h"
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
@@ -1399,7 +1400,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         pwrTelData->totalMeasurementTimeRequested = M_BytesTo2ByteValue(powerTelemetryLog[33], powerTelemetryLog[32]);
         uint16_t dataLength = M_BytesTo2ByteValue(powerTelemetryLog[35], powerTelemetryLog[34]);
         pwrTelData->numberOfMeasurements = M_BytesTo2ByteValue(powerTelemetryLog[37], powerTelemetryLog[36]);
-        uint16_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
+        uint32_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
         pwrTelData->measurementFormat = powerTelemetryLog[40];
         pwrTelData->temperatureCelcius = powerTelemetryLog[41];
         pwrTelData->measurementWindowTimeMilliseconds = M_BytesTo2ByteValue(powerTelemetryLog[43], powerTelemetryLog[42]);
@@ -1522,4 +1523,64 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         }
     }
     return;
+}
+
+bool is_Seagate_Quick_Format_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)//This is only available on SATA drives.
+    {
+        eSeagateFamily family = is_Seagate_Family(device);
+        if (family == SEAGATE)
+        {
+            if (device->drive_info.drive_type == ATA_DRIVE)
+            {
+                if (is_SMART_Enabled(device))
+                {
+                    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+                    if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        if (smartData[0x1EE] & BIT3)
+                        {
+                            supported = true;
+                        }
+                    }
+                }
+            }
+
+            if (!supported)
+            {
+                //This above support bit was discontinued, so need to check for support of other features..This is not a guaranteed "it will work" but it is what we have to work with.
+                bool stdDepopSupported = is_Depopulation_Feature_Supported(device, NULL);
+                //bool stdRepopSupported = is_Repopulate_Feature_Supported(device, NULL);
+                //TODO: Should checking for set sector configuration bit be here??? it's not clear if drives with this, but not depop will work or not at this time.
+                if (stdDepopSupported /*&& !stdRepopSupported*/)
+                {
+                    supported = true;
+                }
+            }
+        }
+    }
+    return supported;
+}
+
+int seagate_Quick_Format(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint32_t timeout = 0;
+        if (os_Is_Infinite_Timeout_Supported())
+        {
+            timeout = INFINITE_TIMEOUT_VALUE;
+        }
+        else
+        {
+            timeout = MAX_CMD_TIMEOUT_SECONDS;
+        }
+        os_Lock_Device(device);
+        ret = ata_SMART_Command(device, ATA_SMART_EXEC_OFFLINE_IMM, 0xD3, NULL, 0, timeout, false, 0);
+        os_Unlock_Device(device);
+    }
+    return ret;
 }
