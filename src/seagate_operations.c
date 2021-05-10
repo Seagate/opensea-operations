@@ -685,7 +685,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                     //On these drives, we can check to make sure the changable fields apply to the active mode field, but NOT the power condition identifier.
                     if (supported)
                     {
-                        supported = true;
+                        *supported = true;
                     }
                     //read current values to get enabled/disabled
                     memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
