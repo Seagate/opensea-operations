@@ -695,11 +695,11 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                         uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
                         if (activeLevel == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 && enabled)
                         {
-                            *enabled = false;
+                            *enabled = true;
                         }
                         else if (activeLevel == 1 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 && enabled)
                         {
-                            *enabled = true;
+                            *enabled = false;
                         }
                         else if(enabled)
                         {
