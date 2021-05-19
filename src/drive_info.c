@@ -5047,6 +5047,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         //check write buffer (firmware download) call info firmware download.h for this information.
         supportedDLModes supportedDLModes;
         memset(&supportedDLModes, 0, sizeof(supportedDLModes));
+        supportedDLModes.size = sizeof(supportedDLModes);
+        supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
         //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
         int tempDevType = device->drive_info.drive_type;
         device->drive_info.drive_type = SCSI_DRIVE;
