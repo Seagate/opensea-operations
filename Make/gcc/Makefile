@@ -56,6 +56,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)defect.c\
 	$(SRC_DIR)nvme_operations.c
 
+UNAME := $(shell uname)
 
 ifeq ($(UNAME),Linux)
 	#determine the proper NVMe include file. SEA_NVME_IOCTL_H, SEA_NVME_H, or SEA_UAPI_NVME_H
