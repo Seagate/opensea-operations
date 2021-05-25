@@ -632,14 +632,19 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
     else if(device->drive_info.drive_type == SCSI_DRIVE)
     {
         //NOTE: this uses the standard spec power consumption mode page.
-        //      This feature conflicts with use other use of this page.
+        //      This feature conflicts with use other use of this page, at least on old drives.
+        //      New drives use the active power mode identifier and the "highest" means disabled and "lowest" means enabled for this feature - TJE
         if (is_Seagate_Family(device) == SEAGATE)
         {
             uint32_t powerConsumptionLength = 0;
             if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
             {
                 //If this page is supported, we're calling power balance on SAS not supported.
-                *supported = false;
+                //Note: This may need changing in the future, but right now this is still accurate - TJE
+                if (supported)
+                {
+                    *supported = false;
+                }
                 return SUCCESS;
             }
             uint8_t *pcModePage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment);
@@ -652,21 +657,56 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
             {
                 ret = SUCCESS;
                 //This is as close as I can figure the best way to check for power balance support - TJE
-                //Active mode cannot be changable, then the power consumption VPD page must also not be supported.
-                if ((pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] & BIT0) == 1 && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6],2, 0) == 0))
+                ///Active mode cannot be changable, then the power consumption VPD page must also not be supported.
+                //The above comment was true for OLD drives. New ones now use the active power mode field to enable/disable this feature
+                if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7]  == 0xFF && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6],2, 0) == 0))
                 {
-                    *supported = true;
+                    //If in here, this is an old drive since it doesn't allow setting the active power mode.
+                    if (supported)
+                    {
+                        *supported = true;
+                    }
                     //read current values to get enabled/disabled
                     memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
                     {
-                        ret = SUCCESS;
                         //check the active level to make sure it is zero
                         uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                        if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1)
+                        if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1 && enabled)
                         {
                             *enabled = true;
                         }
+                        ret = SUCCESS;
+                    }
+                }
+                else if(M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0)
+                {
+                    //if in here, this is a new drive which only allows this change via the active mode field.
+                    //On these drives, we can check to make sure the changable fields apply to the active mode field, but NOT the power condition identifier.
+                    if (supported)
+                    {
+                        *supported = true;
+                    }
+                    //read current values to get enabled/disabled
+                    memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+                    if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
+                    {
+                        //check the active level to make sure it is zero
+                        uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+                        if (activeLevel == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 && enabled)
+                        {
+                            *enabled = true;
+                        }
+                        else if (activeLevel == 1 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 && enabled)
+                        {
+                            *enabled = false;
+                        }
+                        else if(enabled)
+                        {
+                            //I guess say it's off???
+                            *enabled = false;
+                        }
+                        ret = SUCCESS;
                     }
                 }
             }
@@ -692,21 +732,49 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
+        bool oldMethod = false;
         uint8_t *pcModePage = (uint8_t*)calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!pcModePage)
         {
             return MEMORY_FAILURE;
         }
+        //First, need to read changable values page to see if this is a drive needing the old method, or the new one. - TJE
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CHANGABLE_VALUES, pcModePage))
+        {
+            //Detect the old method by seeing if active mode is not changable, but power condition identifier is.
+            if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0xFF && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
+            {
+                oldMethod = true;
+            }
+            //Assume for now that otherwise this is changable by modifying the active field.
+        }
+        //not read and modify the page to enable or disable this feature.
         if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, 16 + MODE_PARAMETER_HEADER_10_LEN, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
         {
             pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
-            if (enable)
+            if (oldMethod)
             {
-                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
+                //Active field is NOT used, only the power condition identifier, which must be 0 or 1.
+                if (enable)
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
+                }
+                else
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 0;
+                }
             }
             else
             {
-                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 0;
+                //Active field IS used and must be set to highest (disabled) or lowest (enabled)
+                if (enable)
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] = 3;
+                }
+                else
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] = 1;
+                }
             }
             //now do mode select with the data for the mode to set
             ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
