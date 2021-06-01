@@ -99,9 +99,9 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         else
         {
             eDownloadMode specifiedDLMode = options->dlMode;
-            uint32_t downloadSize = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
-            uint32_t downloadBlocks = options->firmwareMemoryLength / downloadSize;
-            uint32_t downloadRemainder = options->firmwareMemoryLength % downloadSize;
+            uint32_t downloadSize = 0;
+            uint32_t downloadBlocks = 0;
+            uint32_t downloadRemainder = 0;
             uint32_t downloadOffset = 0;
             uint32_t currentDownloadBlock = 0;
             if (device->drive_info.drive_type == NVME_DRIVE)
@@ -114,6 +114,9 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 options->segmentSize = 64;
             }
+            downloadSize = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
+            downloadBlocks = options->firmwareMemoryLength / downloadSize;
+            downloadRemainder = options->firmwareMemoryLength % downloadSize;
 
 #if defined (_WIN32) && defined(WINVER)
 #if WINVER >= SEA_WIN32_WINNT_WIN10
