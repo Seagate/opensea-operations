@@ -18,7 +18,29 @@
 #include "common_platform.h"
 #include "platform_helper.h"
 
-//int firmware_Download(tDevice *device, bool useDMA, eDownloadMode dlMode, uint16_t segmentSize, uint8_t *firmwareFileMem, uint32_t firmwareMemoryLength)
+//In order to be able to validate the data on any CPU, we don't want to hardcode any lengths in case things get packed or aligned differently.
+//So define each struct version here internally so we can do sizeof(v1), etc to check it.
+//Each time the structure changes, add a new one that we can use to verify size, version, length, etc
+
+#define FIRMWARE_UPDATE_DATA_VERSION_V1 1
+
+typedef struct _firmwareUpdateDataV1 {
+    size_t size; //set to sizeof(firmwareUpdateData)
+    uint32_t version; //set to FIRMWARE_UPDATE_DATA_VERSION
+    eDownloadMode   dlMode; //how to do the download. Full, Segmented, Deferred, etc
+    uint16_t        segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
+    uint8_t         *firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
+    uint32_t        firmwareMemoryLength; //length of the memory the firmware file was read into. This should be a multiple of 512B sizes...
+    uint64_t        avgSegmentDlTime; //stores the average segment time for the download
+    uint64_t        activateFWTime; //stores the amount of time it took to issue the last segment and activate the new code (on segmented). On deferred this is only the time to activate.
+    union
+    {
+        uint8_t firmwareSlot;//NVMe
+        uint8_t bufferID;//SCSI
+    };
+    bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
+    bool ignoreStatusOfFinalSegment;//This is a legacy compatibility option. Some old drives do not return status on the last segment, but the download is successful and this ignores the failing status from the OS and reports SUCCESS when set to true.
+} firmwareUpdateDataV1;
 
 int firmware_Download(tDevice *device, firmwareUpdateData * options)
 {
@@ -26,202 +48,141 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 #ifdef _DEBUG
     printf("--> %s\n",__FUNCTION__);
 #endif
-    if (options->dlMode == DL_FW_ACTIVATE)
+
+    //first verify the provided structure info to make sure it is compatible.
+    if (options && options->version >= FIRMWARE_UPDATE_DATA_VERSION_V1 && options->size >= sizeof(firmwareUpdateDataV1))
     {
-        if (device->drive_info.drive_type == NVME_DRIVE && options->existingFirmwareImage && options->firmwareSlot == 0)
+        //NOTE: No further validation is required at this time for the update data structure v1. If v2 is added, more may be necessary
+        if (options->dlMode == DL_FW_ACTIVATE)
         {
-            //cannot activate slot 0 for an existing image. Value should be between 1 and 7
-            //Activating with slot 0 is only allowed for letting the controller choose an image for replacing after sending it to the drive. Not applicable for switching slots
-            return NOT_SUPPORTED;
-        }
-        os_Lock_Device(device);
-        ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60);//giving 60 seconds to activate the firmware
-        options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-#if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
-        if (device->drive_info.drive_type != NVME_DRIVE && ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
-        {
-            //This means that we encountered a driver that is not allowing us to issue the Win10 API Firmware activate call for some unknown reason. 
-            //This doesn't happen with Microsoft's AHCI driver though...
-            //Instead, we should disable the use of the API and retry with passthrough to perform the activation. This is not preferred at all. 
-            //We want to use the Win10 API whenever possible so the system is ready for the changes to the bus and drive information so that it is less likely to BSOD like we used to see in older versions of Windows.
-            device->os_info.fwdlIOsupport.fwdlIOSupported = false;
-            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60);
+            if (device->drive_info.drive_type == NVME_DRIVE && options->existingFirmwareImage && options->firmwareSlot == 0)
+            {
+                //cannot activate slot 0 for an existing image. Value should be between 1 and 7
+                //Activating with slot 0 is only allowed for letting the controller choose an image for replacing after sending it to the drive. Not applicable for switching slots
+                return NOT_SUPPORTED;
+            }
+            os_Lock_Device(device);
+            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60);//giving 60 seconds to activate the firmware
             options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-            device->os_info.fwdlIOsupport.fwdlIOSupported = true;
-        }
-#endif
-        os_Unlock_Device(device);
-        return ret; 
-    }
-    if (options->firmwareMemoryLength == 0)
-    {
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
-        {
-            printf("Error: empty file\n");
-        }
-        return FAILURE;
-    }
-    if (options->dlMode == DL_FW_FULL || options->dlMode == DL_FW_TEMP)
-    {
-        os_Lock_Device(device);
-        //single command to do the whole download
-        ret = firmware_Download_Command(device, options->dlMode, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID, false, true, true, 60);
-        options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-        os_Unlock_Device(device);
-    }
-    else
-    {
-        eDownloadMode specifiedDLMode = options->dlMode;
-        if (device->drive_info.drive_type == NVME_DRIVE)
-        {
-            //switch to deferred and we'll send the activate at the end
-            options->dlMode = DL_FW_DEFERRED;
-        }
-        //multiple commands needed to do the download (segmented)
-        if (options->segmentSize == 0)
-        {
-            options->segmentSize = 64;
-        }
-        uint32_t downloadSize = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
-        uint32_t downloadBlocks = options->firmwareMemoryLength / downloadSize;
-        uint32_t downloadRemainder = options->firmwareMemoryLength % downloadSize;
-        uint32_t downloadOffset = 0;
-        uint32_t currentDownloadBlock = 0;
-
-#if defined (_WIN32) && defined(WINVER)
-#if WINVER >= SEA_WIN32_WINNT_WIN10
-        //saving this for later since we may need to turn it off...
-        bool deviceSupportsWinAPI = device->os_info.fwdlIOsupport.fwdlIOSupported;
-        if (device->drive_info.drive_type != NVME_DRIVE && deviceSupportsWinAPI && options->dlMode == DL_FW_DEFERRED)
-        {
-            //check if alignment requirements will be met
-            if (options->firmwareMemoryLength % device->os_info.fwdlIOsupport.payloadAlignment)
+#if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+            if (device->drive_info.drive_type != NVME_DRIVE && ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
             {
-                //turn off use of the windows API since this file cannot meet the alignment requirements for the whole download
+                //This means that we encountered a driver that is not allowing us to issue the Win10 API Firmware activate call for some unknown reason. 
+                //This doesn't happen with Microsoft's AHCI driver though...
+                //Instead, we should disable the use of the API and retry with passthrough to perform the activation. This is not preferred at all. 
+                //We want to use the Win10 API whenever possible so the system is ready for the changes to the bus and drive information so that it is less likely to BSOD like we used to see in older versions of Windows.
                 device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+                ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60);
+                options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+                device->os_info.fwdlIOsupport.fwdlIOSupported = true;
             }
-            //check if transfer size requirements will be met
-            else if (downloadSize > device->os_info.fwdlIOsupport.maxXferSize || downloadRemainder > device->os_info.fwdlIOsupport.maxXferSize)
-            {
-                //transfer size for download or remainder are greater than the API can handle, so just turn it off... (Unlikely to happen)
-                device->os_info.fwdlIOsupport.fwdlIOSupported = false;
-            }
+#endif
+            os_Unlock_Device(device);
+            return ret;
         }
-#endif
-#endif
-        os_Lock_Device(device);
-        //start the download
-        for (currentDownloadBlock = 0; currentDownloadBlock < downloadBlocks; currentDownloadBlock++, downloadOffset += downloadSize)
+        if (options->firmwareMemoryLength == 0)
         {
-            bool lastSegment = false;
-            bool firstSegment = false;
-            uint32_t fwdlTimeout = 0;
-            if (currentDownloadBlock + 1 == downloadBlocks && downloadRemainder == 0)
-            {
-                lastSegment = true;
-                fwdlTimeout = 60;
-            }
-            else if (currentDownloadBlock == 0)
-            {
-                firstSegment = true;
-            }
-            ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID, false, firstSegment, lastSegment, fwdlTimeout);
-            options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
-
-#if defined(DISABLE_NVME_PASSTHROUGH)//Remove it later if someone wants to. -X
-            if (currentDownloadBlock % 20 == 0)
-#endif
-            {
-                if (device->deviceVerbosity > VERBOSITY_QUIET)
-                {
-                    printf(".");
-                    fflush(stdout);
-                }
-            }
-            if (ret != SUCCESS)
-            {
-                break;
-            }
-        }
-
-        if (!downloadRemainder)
-        {
-            options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
-        }
-
-        //check to make sure we haven't had a failure yet
-        if (ret != SUCCESS)
-        {
-            if (options->dlMode == DL_FW_SEGMENTED && downloadRemainder == 0 && (currentDownloadBlock + 1) == downloadBlocks)
-            {
-                //this means that we had an error on the last sector, which is a drive bug in old products.
-                //Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
-                //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
-                if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
-                {
-                    uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-                    get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-                    if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
-                    {
-                        ret = SUCCESS;
-                    }
-                }
-            }
-        }
-
-        //download remaining data
-        if (downloadRemainder > 0 && ret == SUCCESS)
-        {
-            if (device->drive_info.drive_type == ATA_DRIVE)
-            {
-                //round the remainder to the nearest sector since ATA talks in terms of sectors
-                downloadRemainder = ((downloadRemainder + LEGACY_DRIVE_SEC_SIZE) - 1) / LEGACY_DRIVE_SEC_SIZE;
-                //convert number of sectors back to bytes
-                downloadRemainder *= LEGACY_DRIVE_SEC_SIZE;
-            }
-#if defined (_WIN32) && defined(WINVER)
-#if WINVER >= SEA_WIN32_WINNT_WIN10
-            //If we are here, then this is windows and the Windows 10 API may be being used below.
-            //Because of this, there are additional allignment requirements for the segments that we must meet.
-            //So now we are going to check if this meets those requirements...if not, we need to allocate a different buffer that meets the requirements, copy the data to it, then send the command. - TJE
-            if (device->drive_info.drive_type != NVME_DRIVE && device->os_info.fwdlIOsupport.fwdlIOSupported && options->dlMode == DL_FW_DEFERRED)//checking to see if Windows says the FWDL API is supported
-            {
-                if (downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize && (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment == 0))
-                {
-                    //we're fine, just issue the command
-                    ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
-                }
-                else if (!(downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize))
-                {
-                    //This shouldn't happen. We should catch that the individual chunks or remainder are too big and shouldn't fall into here...
-                    ret = OS_PASSTHROUGH_FAILURE;
-                }
-                else if (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment)
-                {
-                    //This SHOULDN'T happen. We should catch that this won't work earlier when we check if the file meets alignment requirements or not.
-                    ret = OS_PASSTHROUGH_FAILURE;
-                }
-            }
-            else //not supported, so nothing else needs to be done other than issue the command
-            {
-                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
-            }
-#else
-            //not windows 10 API, so just issue the command
-            ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
-#endif
-#else
-            //not windows 10 API, so just issue the command
-            ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
-#endif
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf(".");
-                fflush(stdout);
+                printf("Error: empty file\n");
             }
-            if (ret != SUCCESS)
+            return FAILURE;
+        }
+        if (options->dlMode == DL_FW_FULL || options->dlMode == DL_FW_TEMP)
+        {
+            os_Lock_Device(device);
+            //single command to do the whole download
+            ret = firmware_Download_Command(device, options->dlMode, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID, false, true, true, 60);
+            options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+            os_Unlock_Device(device);
+        }
+        else
+        {
+            eDownloadMode specifiedDLMode = options->dlMode;
+            uint32_t downloadSize = 0;
+            uint32_t downloadBlocks = 0;
+            uint32_t downloadRemainder = 0;
+            uint32_t downloadOffset = 0;
+            uint32_t currentDownloadBlock = 0;
+            if (device->drive_info.drive_type == NVME_DRIVE)
             {
-                if (options->dlMode == DL_FW_SEGMENTED)
+                //switch to deferred and we'll send the activate at the end
+                options->dlMode = DL_FW_DEFERRED;
+            }
+            //multiple commands needed to do the download (segmented)
+            if (options->segmentSize == 0)
+            {
+                options->segmentSize = 64;
+            }
+            downloadSize = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
+            downloadBlocks = options->firmwareMemoryLength / downloadSize;
+            downloadRemainder = options->firmwareMemoryLength % downloadSize;
+
+#if defined (_WIN32) && defined(WINVER)
+#if WINVER >= SEA_WIN32_WINNT_WIN10
+            //saving this for later since we may need to turn it off...
+            bool deviceSupportsWinAPI = device->os_info.fwdlIOsupport.fwdlIOSupported;
+            if (device->drive_info.drive_type != NVME_DRIVE && deviceSupportsWinAPI && options->dlMode == DL_FW_DEFERRED)
+            {
+                //check if alignment requirements will be met
+                if (options->firmwareMemoryLength % device->os_info.fwdlIOsupport.payloadAlignment)
+                {
+                    //turn off use of the windows API since this file cannot meet the alignment requirements for the whole download
+                    device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+                }
+                //check if transfer size requirements will be met
+                else if (downloadSize > device->os_info.fwdlIOsupport.maxXferSize || downloadRemainder > device->os_info.fwdlIOsupport.maxXferSize)
+                {
+                    //transfer size for download or remainder are greater than the API can handle, so just turn it off... (Unlikely to happen)
+                    device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+                }
+            }
+#endif
+#endif
+            os_Lock_Device(device);
+            //start the download
+            for (currentDownloadBlock = 0; currentDownloadBlock < downloadBlocks; currentDownloadBlock++, downloadOffset += downloadSize)
+            {
+                bool lastSegment = false;
+                bool firstSegment = false;
+                uint32_t fwdlTimeout = 0;
+                if (currentDownloadBlock + 1 == downloadBlocks && downloadRemainder == 0)
+                {
+                    lastSegment = true;
+                    fwdlTimeout = 60;
+                }
+                else if (currentDownloadBlock == 0)
+                {
+                    firstSegment = true;
+                }
+                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID, false, firstSegment, lastSegment, fwdlTimeout);
+                options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
+
+#if defined(DISABLE_NVME_PASSTHROUGH)//Remove it later if someone wants to. -X
+                if (currentDownloadBlock % 20 == 0)
+#endif
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        printf(".");
+                        fflush(stdout);
+                    }
+                }
+                if (ret != SUCCESS)
+                {
+                    break;
+                }
+            }
+
+            if (!downloadRemainder)
+            {
+                options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
+            }
+
+            //check to make sure we haven't had a failure yet
+            if (options->ignoreStatusOfFinalSegment && ret != SUCCESS)
+            {
+                if (options->dlMode == DL_FW_SEGMENTED && downloadRemainder == 0 && (currentDownloadBlock + 1) == downloadBlocks)
                 {
                     //this means that we had an error on the last sector, which is a drive bug in old products.
                     //Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
@@ -237,27 +198,101 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                     }
                 }
             }
-            options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
-            options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
-        }
-        if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
-        {
-            //send an activate command (not an existing slot, this is a new image activation)
-            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false, false, false, 60);
-            options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-        }
-        os_Unlock_Device(device);
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
-        {
-            printf("\n");
-        }
-        options->avgSegmentDlTime /= (currentDownloadBlock + 1);
+
+            //download remaining data
+            if (downloadRemainder > 0 && ret == SUCCESS)
+            {
+                if (device->drive_info.drive_type == ATA_DRIVE)
+                {
+                    //round the remainder to the nearest sector since ATA talks in terms of sectors
+                    downloadRemainder = ((downloadRemainder + LEGACY_DRIVE_SEC_SIZE) - 1) / LEGACY_DRIVE_SEC_SIZE;
+                    //convert number of sectors back to bytes
+                    downloadRemainder *= LEGACY_DRIVE_SEC_SIZE;
+                }
 #if defined (_WIN32) && defined(WINVER)
 #if WINVER >= SEA_WIN32_WINNT_WIN10
-        //restore this value back to what it was (if it was ever even changed)
-        device->os_info.fwdlIOsupport.fwdlIOSupported = deviceSupportsWinAPI;
+                //If we are here, then this is windows and the Windows 10 API may be being used below.
+                //Because of this, there are additional allignment requirements for the segments that we must meet.
+                //So now we are going to check if this meets those requirements...if not, we need to allocate a different buffer that meets the requirements, copy the data to it, then send the command. - TJE
+                if (device->drive_info.drive_type != NVME_DRIVE && device->os_info.fwdlIOsupport.fwdlIOSupported && options->dlMode == DL_FW_DEFERRED)//checking to see if Windows says the FWDL API is supported
+                {
+                    if (downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize && (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment == 0))
+                    {
+                        //we're fine, just issue the command
+                        ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+                    }
+                    else if (!(downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize))
+                    {
+                        //This shouldn't happen. We should catch that the individual chunks or remainder are too big and shouldn't fall into here...
+                        ret = OS_PASSTHROUGH_FAILURE;
+                    }
+                    else if (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment)
+                    {
+                        //This SHOULDN'T happen. We should catch that this won't work earlier when we check if the file meets alignment requirements or not.
+                        ret = OS_PASSTHROUGH_FAILURE;
+                    }
+                }
+                else //not supported, so nothing else needs to be done other than issue the command
+                {
+                    ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+                }
+#else
+                //not windows 10 API, so just issue the command
+                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+#endif
+#else
+                //not windows 10 API, so just issue the command
+                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+#endif
+                if (device->deviceVerbosity > VERBOSITY_QUIET)
+                {
+                    printf(".");
+                    fflush(stdout);
+                }
+                if (options->ignoreStatusOfFinalSegment && ret != SUCCESS)
+                {
+                    if (options->dlMode == DL_FW_SEGMENTED)
+                    {
+                        //this means that we had an error on the last sector, which is a drive bug in old products.
+                        //Check that we don't have RTFRs from the last command and that the sense data does not say "unaligned write command"
+                        //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
+                        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
+                        {
+                            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
+                            {
+                                ret = SUCCESS;
+                            }
+                        }
+                    }
+                }
+                options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
+                options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
+            }
+            if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
+            {
+                //send an activate command (not an existing slot, this is a new image activation)
+                ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false, false, false, 60);
+                options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+            }
+            os_Unlock_Device(device);
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                printf("\n");
+            }
+            options->avgSegmentDlTime /= (currentDownloadBlock + 1);
+#if defined (_WIN32) && defined(WINVER)
+#if WINVER >= SEA_WIN32_WINNT_WIN10
+            //restore this value back to what it was (if it was ever even changed)
+            device->os_info.fwdlIOsupport.fwdlIOSupported = deviceSupportsWinAPI;
 #endif
 #endif
+        }
+    }
+    else //invalid or incompatible update structure.
+    {
+        ret = BAD_PARAMETER;
     }
 
 #ifdef _DEBUG
@@ -266,10 +301,38 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     return ret;
 }
 
+#define SUPPORTED_FWDL_MODES_VERSION_V1 1
+
+typedef struct _supportedDLModesV1
+{
+    size_t size;//set to sizeof(supportedDLModes)
+    uint32_t version;// set to SUPPORTED_FWDL_MODES_VERSION
+    bool downloadMicrocodeSupported;//should always be true unless it's a super old drive that doesn't support a download command
+    bool fullBuffer;
+    bool segmented;
+    bool deferred;//includes activate command (mode Eh only!)
+    bool deferredSelectActivation;//SAS Only! (mode Dh)
+    bool seagateDeferredPowerCycleActivate;
+    bool firmwareDownloadDMACommandSupported;
+    bool scsiInfoPossiblyIncomplete;
+    bool deferredPowerCycleActivationSupported;//SATA will always set this to true!
+    bool deferredHardResetActivationSupported;//SAS only
+    bool deferredVendorSpecificActivationSupported;//SAS only
+    uint32_t minSegmentSize;//in 512B blocks...May not be accurate for SAS Value of 0 means there is no minumum
+    uint32_t maxSegmentSize;//in 512B blocks...May not be accurate for SAS. Value of all F's means there is no maximum
+    uint16_t recommendedSegmentSize;//in 512B blocks...check SAS
+    uint8_t driveOffsetBoundary;//this is 2^<value>
+    uint32_t driveOffsetBoundaryInBytes;//This is the bytes value from the PO2 calculation in the comment above.
+    eDownloadMode recommendedDownloadMode;
+    SCSIMicrocodeActivation codeActivation;//SAS Only
+    eMLU multipleLogicalUnitsAffected;//This will only be set for multi-lun devices. NVMe will set this since firmware affects all namespaces on the controller
+    firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
+}supportedDLModesV1, *ptrSupportedDLModesV1;
+
 int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
 {
     int ret = SUCCESS;
-    if (supportedModes)
+    if (supportedModes && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 && supportedModes->size >= sizeof(supportedDLModesV1))
     {
         switch (device->drive_info.drive_type)
         {
@@ -962,7 +1025,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
 
 void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
 {
-    if (supportedModes && device)
+    if (supportedModes && device && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 && supportedModes->size >= sizeof(supportedDLModesV1))
     {
         printf("===Download Support information===\n");
         if (device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE)

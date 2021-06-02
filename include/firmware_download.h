@@ -21,7 +21,12 @@
 extern "C"
 {
 #endif
+
+#define FIRMWARE_UPDATE_DATA_VERSION 1
+
     typedef struct _firmwareUpdateData {
+        size_t size; //set to sizeof(firmwareUpdateData)
+        uint32_t version; //set to FIRMWARE_UPDATE_DATA_VERSION
         eDownloadMode   dlMode; //how to do the download. Full, Segmented, Deferred, etc
         uint16_t        segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
         uint8_t         *firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
@@ -34,6 +39,7 @@ extern "C"
             uint8_t bufferID;//SCSI
         };
         bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
+        bool ignoreStatusOfFinalSegment;//This is a legacy compatibility option. Some old drives do not return status on the last segment, but the download is successful and this ignores the failing status from the OS and reports SUCCESS when set to true.
     } firmwareUpdateData;
     //-----------------------------------------------------------------------------
     //
@@ -75,9 +81,14 @@ extern "C"
         uint8_t nextSlotToBeActivated;//only valid if non-zero
         firmwareSlotRevision slotRevisionInfo[7];//up to 7 slots supported in NVMe spec. (I figured this would be more readable than a 2 dimensional array - TJE)
     }firmwareSlotInfo;
+    //NOTE: If firmware slot info changes, the supported modes data structure below must change version and size since this is only used in there right now-TJE
+
+    #define SUPPORTED_FWDL_MODES_VERSION 1
 
     typedef struct _supportedDLModes
     {
+        size_t size;//set to sizeof(supportedDLModes)
+        uint32_t version;// set to SUPPORTED_FWDL_MODES_VERSION
         bool downloadMicrocodeSupported;//should always be true unless it's a super old drive that doesn't support a download command
         bool fullBuffer;
         bool segmented;
@@ -86,18 +97,18 @@ extern "C"
         bool seagateDeferredPowerCycleActivate;
         bool firmwareDownloadDMACommandSupported;
         bool scsiInfoPossiblyIncomplete;
-        uint16_t minSegmentSize;//in 512B blocks...May not be accurate for SAS Value of 0 means there is no minumum
-        uint32_t maxSegmentSize;//in 512B blocks...May not be accurate for SAS. Value of all F's means there is no maximum
-        uint16_t recommendedSegmentSize;//in 512B blocks...check SAS
-        eDownloadMode recommendedDownloadMode;
-        uint8_t driveOffsetBoundary;//this is 2^<value>
-        uint32_t driveOffsetBoundaryInBytes;//This is the bytes value from the PO2 calculation in the comment above.
         bool deferredPowerCycleActivationSupported;//SATA will always set this to true!
         bool deferredHardResetActivationSupported;//SAS only
         bool deferredVendorSpecificActivationSupported;//SAS only
+        uint32_t minSegmentSize;//in 512B blocks...May not be accurate for SAS Value of 0 means there is no minumum
+        uint32_t maxSegmentSize;//in 512B blocks...May not be accurate for SAS. Value of all F's means there is no maximum
+        uint16_t recommendedSegmentSize;//in 512B blocks...check SAS
+        uint8_t driveOffsetBoundary;//this is 2^<value>
+        uint32_t driveOffsetBoundaryInBytes;//This is the bytes value from the PO2 calculation in the comment above.
+        eDownloadMode recommendedDownloadMode;
         SCSIMicrocodeActivation codeActivation;//SAS Only
-        firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
         eMLU multipleLogicalUnitsAffected;//This will only be set for multi-lun devices. NVMe will set this since firmware affects all namespaces on the controller
+        firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
     }supportedDLModes, *ptrSupportedDLModes;
 
     //-----------------------------------------------------------------------------
