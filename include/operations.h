@@ -453,6 +453,55 @@ extern "C"
     //If true, then the specified mode page affects multiple logical units, otherwise it is not reported whether multiple are affected or not.
     OPENSEA_OPERATIONS_API bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t modePage, uint8_t subPage);
 
+    #define CONCURRENT_RANGES_VERSION 1
+
+    typedef struct _concurrentRangeDescription
+    {
+        uint8_t rangeNumber;
+        uint8_t numberOfStorageElements;//if zero, then this is not reported by the device
+        uint64_t lowestLBA;
+        uint64_t numberOfLBAs;
+    }concurrentRangeDescription;
+
+    typedef struct _concurrentRanges
+    {
+        size_t size;
+        uint32_t version;
+        uint8_t numberOfRanges;
+        concurrentRangeDescription range[15];//maximum of 15 concurrent ranges per ACS5
+    }concurrentRanges, *ptrConcurrentRanges;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
+    //
+    //! \brief   Use this to read the concurrent positioing ranges (actuator info) from a SAS or SATA drive. 
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param ranges - pointer to a structure to hold the concurrent positioning information. This should have the size and version set before this function is called.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully read concurrent positioning data, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
+    //
+    //! \brief   Use this to print the concurrent positioing ranges (actuator info) from a SAS or SATA drive to the screen (stdout)
+    //
+    //  Entry:
+    //!   \param ranges - pointer to a structure filled in with the concurrent positioning information from a device.
+    //!
+    //  Exit:
+    //!   \return void
+    //
+    //-----------------------------------------------------------------------------
+    void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);
+
     #if defined (__cplusplus)
 }
     #endif
