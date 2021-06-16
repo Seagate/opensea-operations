@@ -404,6 +404,7 @@ int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *
                 {
                     //loop through and check associatedCapacity and elementIdentifiers
                     bool foundStatus = false;
+                    ret = SUCCESS;
                     for (uint32_t elementID = 0; !foundStatus && elementID < numberOfDescriptors; ++elementID)
                     {
                         switch (elementList[elementID].elementHealth)
