@@ -1355,7 +1355,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     if (gotLogDirectory)
     {
         //check for log sizes we are interested in
-        uint32_t devStatsSize = 0, idDataLog = 0, hybridInfoSize = 0, smartSelfTest = 0, extSelfTest = 0, hostlogging = 0, sctStatus = 0;
+        uint32_t devStatsSize = 0, idDataLog = 0, hybridInfoSize = 0, smartSelfTest = 0, extSelfTest = 0, hostlogging = 0, sctStatus = 0, concurrentRangesSize = 0;
         devStatsSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2) + 1], logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         idDataLog = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         hybridInfoSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2) + 1], logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2)]) * LEGACY_DRIVE_SEC_SIZE;
@@ -1363,6 +1363,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         extSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         sctStatus = M_BytesTo2ByteValue(logBuffer[(ATA_SCT_COMMAND_STATUS * 2) + 1], logBuffer[(ATA_SCT_COMMAND_STATUS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         hostlogging = M_BytesTo2ByteValue(logBuffer[(0x80 * 2) + 1], logBuffer[(0x80 * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+        concurrentRangesSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2) + 1], logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         if (hostlogging > 0)
         {
             sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Host Logging");
@@ -2030,6 +2031,15 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         break;
                     }
                 }
+            }
+        }
+        if (gplSupported && concurrentRangesSize)
+        {
+            memset(logBuffer, 0, logBufferSize);
+            //NOTE: Only reading first 512B since this has the counter we need. Max log size is 1024 in ACS5 - TJE
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+            {
+                driveInfo->concurrentPositioningRanges = logBuffer[0];
             }
         }
     }
@@ -2769,6 +2779,22 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 }
                 safe_Free_aligned(ataInformation);
                 break;
+            }
+            case CONCURRENT_POSITIONING_RANGES:
+            {
+                uint32_t concurrentRangesLength = (15 * 32) + 64;//max of 15 ranges at 32 bytes each, plus 64 bytes that show ahead as a "header"
+                uint8_t *concurrentRanges = (uint8_t*)calloc_aligned(concurrentRangesLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!concurrentRanges)
+                {
+                    perror("Error allocating memory to read concurrent positioning ranges VPD page");
+                    continue;
+                }
+                if(SUCCESS == scsi_Inquiry(device, concurrentRanges, concurrentRangesLength, CONCURRENT_POSITIONING_RANGES, true, false))
+                {
+                    //calculate how many ranges are being reported by the device.
+                    driveInfo->concurrentPositioningRanges = (M_BytesTo2ByteValue(concurrentRanges[2], concurrentRanges[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
+                }
+                safe_Free_aligned(concurrentRanges);
             }
             default:
                 break;
@@ -5047,6 +5073,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         //check write buffer (firmware download) call info firmware download.h for this information.
         supportedDLModes supportedDLModes;
         memset(&supportedDLModes, 0, sizeof(supportedDLModes));
+        supportedDLModes.size = sizeof(supportedDLModes);
+        supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
         //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
         int tempDevType = device->drive_info.drive_type;
         device->drive_info.drive_type = SCSI_DRIVE;
@@ -6686,6 +6714,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->lunCount > 0)
     {
         printf("\tNumber of Logical Units: %" PRIu8 "\n", driveInfo->lunCount);
+    }
+    if (driveInfo->concurrentPositioningRanges > 0)
+    {
+        printf("\tNumber of Concurrent Ranges: %" PRIu8 "\n", driveInfo->concurrentPositioningRanges);
     }
     //Specifications Supported
     printf("\tSpecifications Supported:\n");

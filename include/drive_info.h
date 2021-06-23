@@ -209,6 +209,7 @@ extern "C"
         bool isWriteProtected;//Not available on SATA!
         adapterInfo adapterInformation;//Not populated on all OSs. This is only obtainable from low-level OS calls and copied from the tDevice structure.
         uint8_t lunCount;//for help detecting multi-actuator drives. Will be zero if not checked for, and an invalid value. Will be 1 or more when checked. Each lun represents and actuator today. - TJE
+        uint8_t concurrentPositioningRanges;//For multi-actuator drives with multiple actuators per LUN, this will be set to a value greater than zero, if zero then this is not supported.
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe

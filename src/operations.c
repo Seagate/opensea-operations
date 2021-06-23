@@ -2397,3 +2397,114 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t m
     }
     return mlus;
 }
+
+#define CONCURRENT_RANGES_VERSION_V1 1
+
+typedef struct _concurrentRangeDescriptionV1
+{
+    uint8_t rangeNumber;
+    uint8_t numberOfStorageElements;
+    uint64_t lowestLBA;
+    uint64_t numberOfLBAs;
+}concurrentRangeDescriptionV1;
+
+typedef struct _concurrentRangesV1
+{
+    size_t size;
+    uint32_t version;
+    uint8_t numberOfRanges;
+    concurrentRangeDescriptionV1 range[15];//maximum of 15 concurrent ranges per ACS5
+}concurrentRangesV1, *ptrConcurrentRangesV1;
+
+int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
+{
+    int ret = NOT_SUPPORTED;
+    if (ranges && ranges->size >= sizeof(concurrentRangesV1) && ranges->version >= CONCURRENT_RANGES_VERSION_V1)
+    {
+        if (device->drive_info.drive_type == ATA_DRIVE)
+        {
+            uint32_t concurrentLogSizeBytes = 0;//NOTE: spec currently says this is at most 1024 bytes, but may be as low as 512
+            if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, &concurrentLogSizeBytes, true, false) && concurrentLogSizeBytes > 0)
+            {
+                uint8_t *concurrentRangeLog = (uint8_t*)calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!concurrentRangeLog)
+                {
+                    return MEMORY_FAILURE;
+                }
+                if (SUCCESS == get_ATA_Log(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, NULL, NULL, true, false, true, concurrentRangeLog, concurrentLogSizeBytes, NULL, 0, 0))
+                {
+                    ret = SUCCESS;
+                    //header is first 64bytes
+                    ranges->numberOfRanges = concurrentRangeLog[0];
+                    //now loop through descriptors
+                    for (uint32_t offset = 64, rangeCounter = 0; offset < concurrentLogSizeBytes && rangeCounter < ranges->numberOfRanges && rangeCounter < 15; offset += 32, ++rangeCounter)
+                    {
+                        ranges->range[rangeCounter].rangeNumber = concurrentRangeLog[offset + 0];
+                        ranges->range[rangeCounter].numberOfStorageElements = concurrentRangeLog[offset + 1];
+                        //ATA QWords are little endian!
+                        ranges->range[rangeCounter].lowestLBA = M_BytesTo8ByteValue(0, 0, concurrentRangeLog[offset + 13], concurrentRangeLog[offset + 12], concurrentRangeLog[offset + 11], concurrentRangeLog[offset + 10], concurrentRangeLog[offset + 9], concurrentRangeLog[offset + 8]);
+                        ranges->range[rangeCounter].numberOfLBAs = M_BytesTo8ByteValue(concurrentRangeLog[offset + 23], concurrentRangeLog[offset + 22], concurrentRangeLog[offset + 21], concurrentRangeLog[offset + 20], concurrentRangeLog[offset + 19], concurrentRangeLog[offset + 18], concurrentRangeLog[offset + 17], concurrentRangeLog[offset + 16]);
+                    }
+                }
+                safe_Free_aligned(concurrentRangeLog);
+            }
+        }
+        else if (device->drive_info.drive_type == SCSI_DRIVE)
+        {
+            uint32_t concurrentLogSizeBytes = 0;
+            if (SUCCESS == get_SCSI_VPD_Page_Size(device, CONCURRENT_POSITIONING_RANGES, &concurrentLogSizeBytes) && concurrentLogSizeBytes > 0)
+            {
+                uint8_t *concurrentRangeVPD = (uint8_t*)calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!concurrentRangeVPD)
+                {
+                    return MEMORY_FAILURE;
+                }
+                if (SUCCESS == get_SCSI_VPD(device, CONCURRENT_POSITIONING_RANGES, NULL, NULL, true, concurrentRangeVPD, concurrentLogSizeBytes, NULL))
+                {
+                    ret = SUCCESS;
+                    //calculate number of ranges based on page length
+                    ranges->numberOfRanges = (M_BytesTo2ByteValue(concurrentRangeVPD[2], concurrentRangeVPD[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
+                    //loop through descriptors
+                    for (uint32_t offset = 64, rangeCounter = 0; offset < concurrentLogSizeBytes && rangeCounter < ranges->numberOfRanges && rangeCounter < 15; offset += 32, ++rangeCounter)
+                    {
+                        ranges->range[rangeCounter].rangeNumber = concurrentRangeVPD[offset + 0];
+                        ranges->range[rangeCounter].numberOfStorageElements = concurrentRangeVPD[offset + 1];
+                        //SCSI is big endian
+                        ranges->range[rangeCounter].lowestLBA = M_BytesTo8ByteValue(concurrentRangeVPD[offset + 8], concurrentRangeVPD[offset + 9], concurrentRangeVPD[offset + 10], concurrentRangeVPD[offset + 11], concurrentRangeVPD[offset + 12], concurrentRangeVPD[offset + 13], concurrentRangeVPD[offset + 14], concurrentRangeVPD[offset + 15]);
+                        ranges->range[rangeCounter].numberOfLBAs = M_BytesTo8ByteValue(concurrentRangeVPD[offset + 16], concurrentRangeVPD[offset + 17], concurrentRangeVPD[offset + 18], concurrentRangeVPD[offset + 19], concurrentRangeVPD[offset + 20], concurrentRangeVPD[offset + 21], concurrentRangeVPD[offset + 22], concurrentRangeVPD[offset + 23]);
+                    }
+                }
+                safe_Free_aligned(concurrentRangeVPD);
+            }
+        }
+    }
+    else
+    {
+        ret = BAD_PARAMETER;
+    }
+    return ret;
+}
+
+void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
+{
+    if (ranges && ranges->size >= sizeof(concurrentRangesV1) && ranges->version >= CONCURRENT_RANGES_VERSION_V1)
+    {
+        printf("====Concurrent Positioning Ranges====\n");
+        printf("\nRange#\t#Elements\t          Lowest LBA     \t   # of LBAs      \n");
+        for (uint8_t rangeCounter = 0; rangeCounter < ranges->numberOfRanges && rangeCounter < 15; ++rangeCounter)
+        {
+            if (ranges->range[rangeCounter].numberOfStorageElements)
+            {
+                printf("  %2" PRIu8 "  \t   %3" PRIu8 "   \t%20" PRIu64 "\t%20" PRIu64"\n", ranges->range[rangeCounter].rangeNumber, ranges->range[rangeCounter].numberOfStorageElements, ranges->range[rangeCounter].lowestLBA, ranges->range[rangeCounter].numberOfLBAs);
+            }
+            else
+            {
+                printf("  %2" PRIu8 "  \t   N/A   \t%20" PRIu64 "\t%20" PRIu64"\n", ranges->range[rangeCounter].rangeNumber, ranges->range[rangeCounter].lowestLBA, ranges->range[rangeCounter].numberOfLBAs);
+            }
+        }
+    }
+    else
+    {
+        printf("ERROR: Incompatible concurrent ranges data structure. Cannot print the data.\n");
+    }
+}

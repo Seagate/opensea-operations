@@ -2977,31 +2977,61 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     return retStatus;
 }
 
-int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory)
+int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress)
 {
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE)
-    {
-           //FARM pull Factory subpages   
-           //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-           //1 � Generate and report new FARM data and save to disc(~45ms)(SATA only)
-           //2 � Report previous FARM data from disc(~20ms)(SATA only)
-           //3 � Report FARM factory data from disc(~20ms)(SATA only)
-        if (issueFactory == 1)
+    {        
+        switch (logAddress)
         {
-            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "P_AND_S_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_GENERATE_NEW_AND_SAVE);
-        }
-        else if (issueFactory == 2)
-        {
-            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "PREVIOUS_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_REPORT_SAVED);
-        }
-        else if (issueFactory == 3)
-        {
-            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "FACTORY_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA);
-        }
-        else
-        {
-            ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_CURRENT);
+            case SEAGATE_ATA_LOG_FARM_TIME_SERIES:
+            {
+                //FARM pull time series subpages   
+                //1 (feature register 0) - Default: Report all FARM frames from disc (~250ms) (SATA only)
+                //2 (feature register 1) - Report all FARM data (~250ms)(SATA only)
+                //3 (feature register 2) - Return WLTR data (SATA only)
+
+                if (issueFactory == 2)
+                {
+                    ret = get_ATA_Log(device, logAddress, "FARM_TIME_SERIES_FLASH", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH);
+                }
+                else if (issueFactory == 3)
+                {
+                    ret = get_ATA_Log(device, logAddress, "FARM_WLTR", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR);
+                }               
+                else
+                {
+                    ret = get_ATA_Log(device, logAddress, "FARM_TIME_SERIES_DISC", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC);
+                }
+
+                break;
+            }
+            default:
+            {
+                //FARM pull Factory subpages   
+                //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+                //1 � Generate and report new FARM data and save to disc(~45ms)(SATA only)
+                //2 � Report previous FARM data from disc(~20ms)(SATA only)
+                //3 � Report FARM factory data from disc(~20ms)(SATA only)
+                if (issueFactory == 1)
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "P_AND_S_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_GENERATE_NEW_AND_SAVE);
+                }
+                else if (issueFactory == 2)
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "PREVIOUS_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_REPORT_SAVED);
+                }
+                else if (issueFactory == 3)
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "FACTORY_FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA);
+                }
+                else
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, "FARM", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_CURRENT);
+                }
+                break;
+            }
+
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -3045,6 +3075,27 @@ bool is_FARM_Log_Supported(tDevice *device)
     //else currently not supported on NVMe. 
 #ifdef _DEBUG
     printf("%s <-- (%d)\n",__FUNCTION__, supported);
+#endif
+
+    return supported;
+
+}
+
+bool is_FARM_Time_Series_Log_Supported(tDevice *device)
+{
+    bool supported = false;
+    uint32_t logSize = 0;
+#ifdef _DEBUG
+    printf("%s -->\n", __FUNCTION__);
+#endif
+
+    if ((device->drive_info.drive_type == ATA_DRIVE) && (get_ATA_Log_Size(device, 0xC6, &logSize, true, false) == SUCCESS))
+    {
+        supported = true;
+    }
+    //else currently not supported on SAS or NVMe. 
+#ifdef _DEBUG
+    printf("%s <-- (%d)\n", __FUNCTION__, supported);
 #endif
 
     return supported;
