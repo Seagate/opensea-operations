@@ -1584,8 +1584,11 @@ int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
         {
             if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
             {
-                *percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
-                ret = IN_PROGRESS;
+                if (M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0) != 0)
+                {
+                    *percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
+                    ret = IN_PROGRESS;
+                }
             }
         }
     }
