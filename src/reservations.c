@@ -345,7 +345,7 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
         prCapabilities->compatibleReservationHandling = false;
         prCapabilities->specifyInitiatorPortCapable = false;
         prCapabilities->allTargetPortsCapable = true;
-        prCapabilities->persistThroughPowerLossCapable = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT0) > 0 ? true : false;
+        prCapabilities->persistThroughPowerLossCapable = M_ToBool(device->drive_info.IdentifyData.nvme.ns.rescap & BIT0);
         //need to do get features to figure out if persist through power loss activated is true or false
         prCapabilities->allowedCommandsInfo.allowedCommandsRawValue = 0;
         prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_ALLOWED_NO_INFO;
@@ -358,14 +358,14 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
         prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_ALLOWED_NO_INFO;
         prCapabilities->reservationTypesSupportedValid = true;
         prCapabilities->reservationsCapabilities.readShared = false;
-        prCapabilities->reservationsCapabilities.writeExclusive = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT1) > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.writeExclusive = M_ToBool(device->drive_info.IdentifyData.nvme.ns.rescap & BIT1);
         prCapabilities->reservationsCapabilities.readExclusive = false;
-        prCapabilities->reservationsCapabilities.exclusiveAccess = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT2) > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.exclusiveAccess = M_ToBool(device->drive_info.IdentifyData.nvme.ns.rescap & BIT2);
         prCapabilities->reservationsCapabilities.sharedAccess = false;
-        prCapabilities->reservationsCapabilities.writeExclusiveRegistrantsOnly = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT3) > 0 ? true : false;
-        prCapabilities->reservationsCapabilities.exclusiveAccessRegistrantsOnly = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT4) > 0 ? true : false;
-        prCapabilities->reservationsCapabilities.writeExclusiveAllRegistrants = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT5) > 0 ? true : false;
-        prCapabilities->reservationsCapabilities.exclusiveAccessAllRegistrants = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT6) > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.writeExclusiveRegistrantsOnly = M_ToBool(device->drive_info.IdentifyData.nvme.ns.rescap & BIT3);
+        prCapabilities->reservationsCapabilities.exclusiveAccessRegistrantsOnly = M_ToBool(device->drive_info.IdentifyData.nvme.ns.rescap & BIT4);
+        prCapabilities->reservationsCapabilities.writeExclusiveAllRegistrants = M_ToBool(device->drive_info.IdentifyData.nvme.ns.rescap & BIT5);
+        prCapabilities->reservationsCapabilities.exclusiveAccessAllRegistrants = M_ToBool(device->drive_info.IdentifyData.nvme.ns.rescap & BIT6);
         prCapabilities->reservationsCapabilities.reserved9h = false;
         prCapabilities->reservationsCapabilities.reservedAh = false;
         prCapabilities->reservationsCapabilities.reservedBh = false;
@@ -376,7 +376,7 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
         if (SUCCESS == (ret = nvme_Get_Features(device, &getReservatinPersistence)))
         {
             //in dw0 completion
-            prCapabilities->persistThroughPowerLossActivated = (device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0) > 0 ? true : false;
+            prCapabilities->persistThroughPowerLossActivated = M_ToBool(device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0);
         }
     }
 #endif
@@ -993,8 +993,8 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                     //set the data to return
                     ++fullReservation->numberOfKeys;
                     fullReservation->reservationKey[keyIter].key = M_BytesTo8ByteValue(fullStatusData[offset + 0], fullStatusData[offset + 1], fullStatusData[offset + 2], fullStatusData[offset + 3], fullStatusData[offset + 4], fullStatusData[offset + 5], fullStatusData[offset + 6], fullStatusData[offset + 7]);
-                    fullReservation->reservationKey[keyIter].allTargetPorts = (fullStatusData[offset + 12] & BIT1) > 0 ? true : false;
-                    fullReservation->reservationKey[keyIter].reservationHolder = (fullStatusData[offset + 12] & BIT0) > 0 ? true : false;
+                    fullReservation->reservationKey[keyIter].allTargetPorts = M_ToBool(fullStatusData[offset + 12] & BIT1);
+                    fullReservation->reservationKey[keyIter].reservationHolder = M_ToBool(fullStatusData[offset + 12] & BIT0);
                     fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier = M_BytesTo2ByteValue(fullStatusData[offset + 18], fullStatusData[offset + 19]);
                     switch (M_GETBITRANGE(fullStatusData[offset + 13], 7, 4))
                     {
@@ -1139,7 +1139,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                 fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier = M_BytesTo2ByteValue(nvmeFullData[offset + 1], nvmeFullData[offset + 2]);
                 fullReservation->reservationKey[keyIter].scope = RESERVATION_SCOPE_LOGICAL_UNIT;//all nvme scops are like this
                 fullReservation->reservationKey[keyIter].allTargetPorts = true;
-                fullReservation->reservationKey[keyIter].reservationHolder = (nvmeFullData[offset + 2] & BIT2) > 0 ? true : false;
+                fullReservation->reservationKey[keyIter].reservationHolder = M_ToBool(nvmeFullData[offset + 2] & BIT2);
                 if (fullReservation->reservationKey[keyIter].reservationHolder)
                 {
                     //set the reservation scope and type...only 1 reservation allowed at a time per namespace, so check offset 4 for this information.
