@@ -345,7 +345,7 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
         prCapabilities->compatibleReservationHandling = false;
         prCapabilities->specifyInitiatorPortCapable = false;
         prCapabilities->allTargetPortsCapable = true;
-        prCapabilities->persistThroughPowerLossCapable = device->drive_info.IdentifyData.nvme.ns.rescap & BIT0 > 0 ? true : false;
+        prCapabilities->persistThroughPowerLossCapable = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT0) > 0 ? true : false;
         //need to do get features to figure out if persist through power loss activated is true or false
         prCapabilities->allowedCommandsInfo.allowedCommandsRawValue = 0;
         prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_ALLOWED_NO_INFO;
@@ -358,14 +358,14 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
         prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_ALLOWED_NO_INFO;
         prCapabilities->reservationTypesSupportedValid = true;
         prCapabilities->reservationsCapabilities.readShared = false;
-        prCapabilities->reservationsCapabilities.writeExclusive = device->drive_info.IdentifyData.nvme.ns.rescap & BIT1 > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.writeExclusive = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT1) > 0 ? true : false;
         prCapabilities->reservationsCapabilities.readExclusive = false;
-        prCapabilities->reservationsCapabilities.exclusiveAccess = device->drive_info.IdentifyData.nvme.ns.rescap & BIT2 > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.exclusiveAccess = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT2) > 0 ? true : false;
         prCapabilities->reservationsCapabilities.sharedAccess = false;
-        prCapabilities->reservationsCapabilities.writeExclusiveRegistrantsOnly = device->drive_info.IdentifyData.nvme.ns.rescap & BIT3 > 0 ? true : false;
-        prCapabilities->reservationsCapabilities.exclusiveAccessRegistrantsOnly = device->drive_info.IdentifyData.nvme.ns.rescap & BIT4 > 0 ? true : false;
-        prCapabilities->reservationsCapabilities.writeExclusiveAllRegistrants = device->drive_info.IdentifyData.nvme.ns.rescap & BIT5 > 0 ? true : false;
-        prCapabilities->reservationsCapabilities.exclusiveAccessAllRegistrants = device->drive_info.IdentifyData.nvme.ns.rescap & BIT6 > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.writeExclusiveRegistrantsOnly = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT3) > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.exclusiveAccessRegistrantsOnly = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT4) > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.writeExclusiveAllRegistrants = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT5) > 0 ? true : false;
+        prCapabilities->reservationsCapabilities.exclusiveAccessAllRegistrants = (device->drive_info.IdentifyData.nvme.ns.rescap & BIT6) > 0 ? true : false;
         prCapabilities->reservationsCapabilities.reserved9h = false;
         prCapabilities->reservationsCapabilities.reservedAh = false;
         prCapabilities->reservationsCapabilities.reservedBh = false;
@@ -376,7 +376,7 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
         if (SUCCESS == (ret = nvme_Get_Features(device, &getReservatinPersistence)))
         {
             //in dw0 completion
-            prCapabilities->persistThroughPowerLossActivated = device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0 > 0 ? true : false;
+            prCapabilities->persistThroughPowerLossActivated = (device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0) > 0 ? true : false;
         }
     }
 #endif
@@ -565,7 +565,7 @@ int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t readKeyCount[8] = { 0 };
-        if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 8, &readKeyCount)))
+        if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 8, readKeyCount)))
         {
             *keyCount = M_BytesTo4ByteValue(readKeyCount[4], readKeyCount[5], readKeyCount[6], readKeyCount[7]) / 8;//each registered key is 8 bytes in length
         }
@@ -608,7 +608,7 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint32_t dataLength = (numberOfKeys * 8) + 8;
+        uint16_t dataLength = (numberOfKeys * 8) + 8;
         uint8_t *registrationKeys = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!registrationKeys)
         {
@@ -724,7 +724,7 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint32_t reservationsLength = (numberReservations * 16) + 8;
+        uint16_t reservationsLength = (numberReservations * 16) + 8;
         uint8_t *reservationKeys = C_CAST(uint8_t*, calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!reservationKeys)
         {
@@ -797,7 +797,7 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
     {
         //due to how the API was written and NVMe works, we need to call this instead to read all the keys. The get reservations key count will only return 0 or 1 since
         //there is at MOST 1 active reservation. But we need to go through and find out how many keys are currently registered to loop through them later.
-        uint32_t totalReservationKeys = 0;
+        uint16_t totalReservationKeys = 0;
         if (SUCCESS == get_Registration_Key_Count(device, &totalReservationKeys))
         {
             uint32_t reservationsLength = (totalReservationKeys * 24) + 24;
@@ -879,7 +879,7 @@ int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
             return MEMORY_FAILURE;
         }
         //check SCSI version and fall back if "new enough" but command doesn't complete successfully???
-        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, fullStatusDataLength, fullStatusData)))
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, C_CAST(uint16_t, M_Min(fullStatusDataLength, UINT16_MAX)), fullStatusData)))
         {
             //since the transport ID can vary in size, we cannot calculate this on length alone, so we need to re-read with the full length of the data just reported and count them.
             fullStatusDataLength = 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
@@ -891,7 +891,7 @@ int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
                 return MEMORY_FAILURE;
             }
             //reread the data
-            if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, fullStatusDataLength, fullStatusData)))
+            if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, C_CAST(uint16_t, M_Min(fullStatusDataLength, UINT16_MAX)), fullStatusData)))
             {
                 //loop through each descriptor to count them.
                 //each will be at least 24 bytes before the transport ID
@@ -968,7 +968,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
             return MEMORY_FAILURE;
         }
         //check SCSI version and fall back if "new enough" but command doesn't complete successfully???
-        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, fullStatusDataLength, fullStatusData)))
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, C_CAST(uint16_t, M_Min(fullStatusDataLength, UINT16_MAX)), fullStatusData)))
         {
             //since the transport ID can vary in size, we cannot calculate this on length alone, so we need to re-read with the full length of the data just reported and count them.
             fullStatusDataLength = 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
@@ -980,7 +980,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                 return MEMORY_FAILURE;
             }
             //reread the data
-            if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, fullStatusDataLength, fullStatusData)))
+            if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_FULL_STATUS, C_CAST(uint16_t, M_Min(fullStatusDataLength, UINT16_MAX)), fullStatusData)))
             {
                 fullReservation->generation = M_BytesTo4ByteValue(fullStatusData[0], fullStatusData[1], fullStatusData[2], fullStatusData[3]);
 
@@ -993,8 +993,8 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                     //set the data to return
                     ++fullReservation->numberOfKeys;
                     fullReservation->reservationKey[keyIter].key = M_BytesTo8ByteValue(fullStatusData[offset + 0], fullStatusData[offset + 1], fullStatusData[offset + 2], fullStatusData[offset + 3], fullStatusData[offset + 4], fullStatusData[offset + 5], fullStatusData[offset + 6], fullStatusData[offset + 7]);
-                    fullReservation->reservationKey[keyIter].allTargetPorts = fullStatusData[offset + 12] & BIT1 > 0 ? true : false;
-                    fullReservation->reservationKey[keyIter].reservationHolder = fullStatusData[offset + 12] & BIT0 > 0 ? true : false;
+                    fullReservation->reservationKey[keyIter].allTargetPorts = (fullStatusData[offset + 12] & BIT1) > 0 ? true : false;
+                    fullReservation->reservationKey[keyIter].reservationHolder = (fullStatusData[offset + 12] & BIT0) > 0 ? true : false;
                     fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier = M_BytesTo2ByteValue(fullStatusData[offset + 18], fullStatusData[offset + 19]);
                     switch (M_GETBITRANGE(fullStatusData[offset + 13], 7, 4))
                     {
@@ -1139,7 +1139,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                 fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier = M_BytesTo2ByteValue(nvmeFullData[offset + 1], nvmeFullData[offset + 2]);
                 fullReservation->reservationKey[keyIter].scope = RESERVATION_SCOPE_LOGICAL_UNIT;//all nvme scops are like this
                 fullReservation->reservationKey[keyIter].allTargetPorts = true;
-                fullReservation->reservationKey[keyIter].reservationHolder = nvmeFullData[offset + 2] & BIT2 > 0 ? true : false;
+                fullReservation->reservationKey[keyIter].reservationHolder = (nvmeFullData[offset + 2] & BIT2) > 0 ? true : false;
                 if (fullReservation->reservationKey[keyIter].reservationHolder)
                 {
                     //set the reservation scope and type...only 1 reservation allowed at a time per namespace, so check offset 4 for this information.
@@ -1177,7 +1177,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                     fullReservation->reservationKey[keyIter].type = RES_TYPE_NO_RESERVATION;
                 }
                 //host id/transport id
-                memcpy(fullReservation->reservationKey[keyIter].transportID, nvmeFullData[offset + 8], 8);
+                memcpy(fullReservation->reservationKey[keyIter].transportID, &nvmeFullData[offset + 8], 8);
                 fullReservation->reservationKey[keyIter].transportIDLength = 8;
                 //finally, the key
                 fullReservation->reservationKey[keyIter].key = M_BytesTo8ByteValue(nvmeFullData[offset + 23], nvmeFullData[offset + 22], nvmeFullData[offset + 21], nvmeFullData[offset + 20], nvmeFullData[offset + 19], nvmeFullData[offset + 18], nvmeFullData[offset + 17], nvmeFullData[offset + 16]);
@@ -1196,7 +1196,7 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
         printf("\tGeneration: %" PRIX32 "h\n", fullReservation->generation);
 
         printf("      Key        | ATP | Res Holder | Scope |        Type        |  RTPID  | Transport ID \n");//TODO: relative target port ID, transport ID
-        for (uint32_t keyIter = 0; keyIter < UINT16_MAX, keyIter < fullReservation->numberOfKeys; ++keyIter)
+        for (uint32_t keyIter = 0; keyIter < UINT16_MAX && keyIter < fullReservation->numberOfKeys; ++keyIter)
         {
             char atp = 'N';
             char resHolder = 'N';
