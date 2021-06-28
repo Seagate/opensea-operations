@@ -64,6 +64,29 @@ typedef struct _reservationTypesSupportedV1
     bool reservedFh;
 }reservationTypesSupportedV1;
 
+typedef enum _eAllowedCommandDetailV1
+{
+    RES_CMD_ALLOWED_NO_INFO_V1,
+    RES_CMD_ALLOWED_WE_AND_EA_V1,
+    RES_CMD_NOT_ALLOWED_WE_V1,
+    RES_CMD_ALLOWED_WE_V1,
+    RES_CMD_PERSIST_ALLOWED_WE_AND_EA_V1,
+    RES_CMD_PERSIST_ALLOWED_WE_V1,
+}eAllowedCommandDetailV1;
+
+typedef struct _allowedCommandsV1
+{
+    uint8_t allowedCommandsRawValue;//0 - 7 as reported by the drive in case the remaining info is not useful enough 
+    eAllowedCommandDetailV1 testUnitReady;
+    eAllowedCommandDetailV1 modeSense;
+    eAllowedCommandDetailV1 readAttribute;
+    eAllowedCommandDetailV1 readBuffer10;
+    eAllowedCommandDetailV1 receiveDiagnosticResults;
+    eAllowedCommandDetailV1 reportSupportedOperationCodes;
+    eAllowedCommandDetailV1 reportSupportedTaskManagementFunctions;
+    eAllowedCommandDetailV1 readDefectData;
+}allowedCommandsV1;
+
 typedef struct _persistentReservationCapabilitiesV1
 {
     size_t size;
@@ -73,7 +96,7 @@ typedef struct _persistentReservationCapabilitiesV1
     bool specifyInitiatorPortCapable;
     bool allTargetPortsCapable;
     bool persistThroughPowerLossCapable;
-    uint8_t allowedCommands;//3 bit wide field that needs to be matched to the spec...there is no way to simplify this
+    allowedCommandsV1 allowedCommandsInfo;
     bool persistThroughPowerLossActivated;
     bool reservationTypesSupportedValid;//If set to true, the device reported the type mask indicating which reservation types are supported (below)
     reservationTypesSupported reservationsCapabilities;
@@ -142,7 +165,87 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
                 {
                     prCapabilities->persistThroughPowerLossCapable = false;
                 }
-                prCapabilities->allowedCommands = M_GETBITRANGE(capabilities[3], 6, 4);
+                prCapabilities->allowedCommandsInfo.allowedCommandsRawValue = M_GETBITRANGE(capabilities[3], 6, 4);
+                switch (prCapabilities->allowedCommandsInfo.allowedCommandsRawValue)
+                {
+                case 0:
+                    //no info for any
+                    prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_ALLOWED_NO_INFO;
+                    break;
+                case 1:
+                    //test unit ready, no further info
+                    prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_ALLOWED_WE_AND_EA;
+                    prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_ALLOWED_NO_INFO;
+                    prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_ALLOWED_NO_INFO;
+                    break;
+                case 2:
+                    //test unit ready supported, all others not allowed.
+                    prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_ALLOWED_WE_AND_EA;
+                    prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_NOT_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_NOT_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_NOT_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_NOT_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_NOT_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_NOT_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_NOT_ALLOWED_WE;
+                    break;
+                case 3:
+                    //test unit ready supported, all others allowed in WE.
+                    prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_ALLOWED_WE_AND_EA;
+                    prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_ALLOWED_WE;
+                    break;
+                case 4:
+                    //same as 3, but persistent
+                    prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_PERSIST_ALLOWED_WE_AND_EA;
+                    prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_PERSIST_ALLOWED_WE;
+                    break;
+                case 5:
+                    //a few more commands than 4 in WE and EA
+                    prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_PERSIST_ALLOWED_WE_AND_EA;
+                    prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_PERSIST_ALLOWED_WE;
+                    prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_PERSIST_ALLOWED_WE_AND_EA;
+                    prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_PERSIST_ALLOWED_WE_AND_EA;
+                    prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_PERSIST_ALLOWED_WE;
+                    break;
+                default:
+                    prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_UNKNOWN;
+                    prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_UNKNOWN;
+                    prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_UNKNOWN;
+                    prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_UNKNOWN;
+                    prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_UNKNOWN;
+                    prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_UNKNOWN;
+                    prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_UNKNOWN;
+                    prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_UNKNOWN;
+                    break;
+                }
+
                 if (capabilities[3] & BIT0)
                 {
                     prCapabilities->persistThroughPowerLossActivated = true;
@@ -244,7 +347,15 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
         prCapabilities->allTargetPortsCapable = true;
         prCapabilities->persistThroughPowerLossCapable = device->drive_info.IdentifyData.nvme.ns.rescap & BIT0 > 0 ? true : false;
         //need to do get features to figure out if persist through power loss activated is true or false
-        prCapabilities->allowedCommands = 0;
+        prCapabilities->allowedCommandsInfo.allowedCommandsRawValue = 0;
+        prCapabilities->allowedCommandsInfo.testUnitReady = RES_CMD_ALLOWED_NO_INFO;
+        prCapabilities->allowedCommandsInfo.modeSense = RES_CMD_ALLOWED_NO_INFO;
+        prCapabilities->allowedCommandsInfo.readAttribute = RES_CMD_ALLOWED_NO_INFO;
+        prCapabilities->allowedCommandsInfo.readBuffer10 = RES_CMD_ALLOWED_NO_INFO;
+        prCapabilities->allowedCommandsInfo.receiveDiagnosticResults = RES_CMD_ALLOWED_NO_INFO;
+        prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes = RES_CMD_ALLOWED_NO_INFO;
+        prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions = RES_CMD_ALLOWED_NO_INFO;
+        prCapabilities->allowedCommandsInfo.readDefectData = RES_CMD_ALLOWED_NO_INFO;
         prCapabilities->reservationTypesSupportedValid = true;
         prCapabilities->reservationsCapabilities.readShared = false;
         prCapabilities->reservationsCapabilities.writeExclusive = device->drive_info.IdentifyData.nvme.ns.rescap & BIT1 > 0 ? true : false;
@@ -270,6 +381,178 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
     }
 #endif
     return ret;
+}
+
+static void show_Allowed_Commands_Value(eAllowedCommandDetail value)
+{
+    switch (value)
+    {
+    case RES_CMD_ALLOWED_NO_INFO:
+        printf("No Information\n");
+        break;
+    case RES_CMD_ALLOWED_WE_AND_EA:
+        printf("Allowed in write exclusive and exclusive access\n");
+        break;
+    case RES_CMD_NOT_ALLOWED_WE:
+        printf("Not allowed in write exclusive\n");
+        break;
+    case RES_CMD_ALLOWED_WE:
+        printf("Allowed in write exclusive\n");
+        break;
+    case RES_CMD_PERSIST_ALLOWED_WE_AND_EA:
+        printf("Allowed in persistent write exclusive and persistent exclusive\n");
+        break;
+    case RES_CMD_PERSIST_ALLOWED_WE:
+        printf("Allowed in persistent write exclusive\n");
+        break;
+    case RES_CMD_UNKNOWN:
+    default:
+        printf("Unknown\n");
+        break;
+    }
+    return;
+}
+
+void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities)
+{
+    if (prCapabilities)
+    {
+        if (!(prCapabilities->version >= PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 && prCapabilities->size >= sizeof(persistentReservationCapabilitiesV1)))
+        {
+            printf("\nPersistent Reservations Capabilities:\n");
+            printf("=====================================\n");
+            printf("\tReplace Lost Reservations Capable: ");
+            if (prCapabilities->replaceLostReservationCapable)
+            {
+                printf("supported\n");
+            }
+            else
+            {
+                printf("not supported\n");
+            }
+            printf("\tCompatible Reservation Handling: ");
+            if(prCapabilities->compatibleReservationHandling)
+            {
+                printf("supported\n");
+            }
+            else
+            {
+                printf("not supported\n");
+            }
+            printf("\tSpecify Initiator Port Capable: ");
+            if(prCapabilities->specifyInitiatorPortCapable)
+            {
+                printf("supported\n");
+            }
+            else
+            {
+                printf("not supported\n");
+            }
+            printf("\tAll Target Ports Capable: ");
+            if (prCapabilities->allTargetPortsCapable)
+            {
+                printf("supported\n");
+            }
+            else
+            {
+                printf("not supported\n");
+            }
+            printf("\tPersist Through Power Loss Capable: ");
+            if(prCapabilities->persistThroughPowerLossCapable)
+            {
+                printf("supported\n");
+            }
+            else
+            {
+                printf("not supported\n");
+            }
+            printf("\tPersist Through Power Loss Activated: ");
+            if (prCapabilities->persistThroughPowerLossActivated)
+            {
+                printf("Enabled\n");
+            }
+            else
+            {
+                printf("Disabled\n");
+            }
+            if (prCapabilities->reservationTypesSupportedValid)
+            {
+                printf("\n\tSupported Reservation Types:\n");
+                printf("\t----------------------------\n");
+                if (prCapabilities->reservationsCapabilities.readShared)
+                {
+                    printf("\t\tRead Shared\n");
+                }
+                if (prCapabilities->reservationsCapabilities.writeExclusive)
+                {
+                    printf("\t\tWrite Exclusive\n");
+                }
+                if (prCapabilities->reservationsCapabilities.readExclusive)
+                {
+                    printf("\t\tRead Exclusive\n");
+                }
+                if (prCapabilities->reservationsCapabilities.exclusiveAccess)
+                {
+                    printf("\t\tExclusive Access\n");
+                }
+                if (prCapabilities->reservationsCapabilities.sharedAccess)
+                {
+                    printf("\t\tShared Access\n");
+                }
+                if (prCapabilities->reservationsCapabilities.writeExclusiveRegistrantsOnly)
+                {
+                    printf("\t\tWrite Exclusive - Registrants Only\n");
+                }
+                if (prCapabilities->reservationsCapabilities.exclusiveAccessRegistrantsOnly)
+                {
+                    printf("\t\tExclusive Access - Registrants Only\n");
+                }
+                if (prCapabilities->reservationsCapabilities.writeExclusiveAllRegistrants)
+                {
+                    printf("\t\tWrite Exclusive - All Registrants\n");
+                }
+                if (prCapabilities->reservationsCapabilities.exclusiveAccessAllRegistrants)
+                {
+                    printf("\t\tExclusive Access - All Registrants\n");
+                }
+            }
+            else
+            {
+                printf("\tDevice does not report supported reservation types.\n");
+            }
+            //TODO: Allowed commands...not sure how to output this nicely at this time.
+            if (prCapabilities->allowedCommandsInfo.allowedCommandsRawValue < 6)//restricted like this since this is reserved at the time of writing this code - TJE
+            {
+                printf("\n\tAllowed Commands Info:\n");
+                printf("\t----------------------\n");
+                printf("\t\tTest Unit Ready: ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.testUnitReady);
+                printf("\t\tMode Sense: ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.modeSense);
+                printf("\t\tRead Attribute: ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.readAttribute);
+                printf("\t\tRead Buffer (10): ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.readBuffer10);
+                printf("\t\tReceive Diagnostic Results: ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.receiveDiagnosticResults);
+                printf("\t\tReport Supported Operation Codes: ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes);
+                printf("\t\tReport Supported Task Management Functions: ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions);
+                printf("\t\tRead Defect Data: ");
+                show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.readDefectData);
+            }
+            else
+            {
+                printf("\tAllowed Commands: Not Reportable. Reserved value reported: %" PRIu8 "\n", prCapabilities->allowedCommandsInfo.allowedCommandsRawValue);
+            }
+        }
+        else
+        {
+            printf("Error: Incorrect reservations capabilities structure version or bad structure size.\n");
+        }
+    }
+    return;
 }
 
 int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
@@ -648,6 +931,7 @@ typedef struct _fullReservationKeyInfoV1
     uint16_t relativeTargetPortIdentifier;
     eReservationScope scope;
     eReservationType type;
+    uint32_t transportIDLength;
     uint8_t transportID[24];//NOTE: This is 24 bytes as that is the common size. iSCSI is variable in size, so it will be truncated in this case -TJE
 }fullReservationKeyInfoV1;
 
@@ -760,6 +1044,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                         fullReservation->reservationKey[keyIter].type = RES_TYPE_UNKNOWN;
                         break;
                     }
+                    fullReservation->reservationKey[keyIter].transportIDLength = offsetAdditionalLength;
                     if (offsetAdditionalLength > 0)
                     {
                         //copy the transport ID, if any, up to 24 bytes
@@ -806,6 +1091,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                         fullReservation->reservationKey[keyIter].allTargetPorts = false;
                         fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier = 0;
                         memset(fullReservation->reservationKey[keyIter].transportID, 0, 24);
+                        fullReservation->reservationKey[keyIter].transportIDLength = 0;
                         //initialize the following fields before we check the reservations data
                         fullReservation->reservationKey[keyIter].reservationHolder = false;
                         fullReservation->reservationKey[keyIter].scope = RESERVATION_SCOPE_LOGICAL_UNIT;
@@ -892,6 +1178,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                 }
                 //host id/transport id
                 memcpy(fullReservation->reservationKey[keyIter].transportID, nvmeFullData[offset + 8], 8);
+                fullReservation->reservationKey[keyIter].transportIDLength = 8;
                 //finally, the key
                 fullReservation->reservationKey[keyIter].key = M_BytesTo8ByteValue(nvmeFullData[offset + 23], nvmeFullData[offset + 22], nvmeFullData[offset + 21], nvmeFullData[offset + 20], nvmeFullData[offset + 19], nvmeFullData[offset + 18], nvmeFullData[offset + 17], nvmeFullData[offset + 16]);
             }
@@ -901,3 +1188,105 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
     return ret;
 }
 
+void show_Full_Status(ptrFullReservationInfo fullReservation)
+{
+    if (!fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1 && !fullReservation->size >= sizeof(fullReservationInfoV1))
+    {
+        printf("Full Reservation Status:\n");
+        printf("\tGeneration: %" PRIX32 "h\n", fullReservation->generation);
+
+        printf("      Key        | ATP | Res Holder | Scope |        Type        |  RTPID  | Transport ID \n");//TODO: relative target port ID, transport ID
+        for (uint32_t keyIter = 0; keyIter < UINT16_MAX, keyIter < fullReservation->numberOfKeys; ++keyIter)
+        {
+            char atp = 'N';
+            char resHolder = 'N';
+            char scopeBuf[9] = { 0 };
+            char *scope = &scopeBuf[0];
+            char typeBuf[21] = { 0 };
+            char *type = &typeBuf[0];
+            if (fullReservation->reservationKey[keyIter].allTargetPorts)
+            {
+                atp = 'Y';
+            }
+            if (fullReservation->reservationKey[keyIter].reservationHolder)
+            {
+                resHolder = 'Y';
+            }
+            switch (fullReservation->reservationKey[keyIter].scope)
+            {
+            case RESERVATION_SCOPE_LOGICAL_UNIT:
+                snprintf(scope, 9, "LU");
+                break;
+            case RESERVATION_SCOPE_EXTENT:
+                snprintf(scope, 9, "Extent");
+                break;
+            case RESERVATION_SCOPE_ELEMENT:
+                snprintf(scope, 9, "Element");
+                break;
+            case RESERVATION_SCOPE_UNKNOWN:
+            default:
+                snprintf(scope, 9, "Unknown");
+                break;
+            }
+            switch (fullReservation->reservationKey[keyIter].type)
+            {
+            case RES_TYPE_NO_RESERVATION:
+                snprintf(type, 21, "None");
+                break;
+            case RES_TYPE_READ_SHARED:
+                snprintf(type, 21, "Read Shared");
+                break;
+            case RES_TYPE_WRITE_EXCLUSIVE:
+                snprintf(type, 21, "Write Exclusive");
+                break;
+            case RES_TYPE_READ_EXCLUSIVE:
+                snprintf(type, 21, "Read Exclusive");
+                break;
+            case RES_TYPE_EXCLUSIVE_ACCESS:
+                snprintf(type, 21, "Exclusive Access");
+                break;
+            case RES_TYPE_SHARED_ACCESS:
+                snprintf(type, 21, "Shared Access");
+                break;
+            case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+                snprintf(type, 21, "Write Exclusive - RO");
+                break;
+            case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+                snprintf(type, 21, "Exclusive Access - RO");
+                break;
+            case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+                snprintf(type, 21, "Write Exclusive - AR");
+                break;
+            case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+                snprintf(type, 21, "Exclusive Access - AR");
+                break;
+            case RES_TYPE_UNKNOWN:
+            default:
+                snprintf(type, 20, "Unknown");
+                break;
+            }
+            printf("%16" PRIX64 "h  %c        %c      %7s  %20s  %08" PRIX16 "h ", fullReservation->reservationKey[keyIter].key, atp, resHolder, scope, type, fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier);
+            if (fullReservation->reservationKey[keyIter].transportIDLength > 0)
+            {
+                for (uint32_t transportIDoffset = 0; transportIDoffset < 24 && transportIDoffset < fullReservation->reservationKey[keyIter].transportIDLength; ++transportIDoffset)
+                {
+                    printf("%02" PRIX8, fullReservation->reservationKey[keyIter].transportID[transportIDoffset]);
+                }
+                if (fullReservation->reservationKey[keyIter].transportIDLength > 24)
+                {
+                    printf("...");
+                }
+                printf("h");
+            }
+            else
+            {
+                printf("     N/A");
+            }
+            printf("\n");
+        }
+    }
+    else
+    {
+        printf("ERROR: Invalid full status structure version or size.\n");
+    }
+}

@@ -71,6 +71,32 @@ extern "C"
 
     #define PERSISTENT_RESERVATION_CAPABILITIES_VERSION 1
 
+    //WE = write exclusive
+    //EA = exclusive access
+    typedef enum _eAllowedCommandDetail
+    {
+        RES_CMD_ALLOWED_NO_INFO,
+        RES_CMD_ALLOWED_WE_AND_EA,
+        RES_CMD_NOT_ALLOWED_WE,
+        RES_CMD_ALLOWED_WE,
+        RES_CMD_PERSIST_ALLOWED_WE_AND_EA,
+        RES_CMD_PERSIST_ALLOWED_WE,
+        RES_CMD_UNKNOWN = 0xFF,//for forward compatibility with values that are currently reserved at the time of writing this code.
+    }eAllowedCommandDetail;
+
+    typedef struct _allowedCommands
+    {
+        uint8_t allowedCommandsRawValue;//0 - 7 as reported by the drive in case the remaining info is not useful enough 
+        eAllowedCommandDetail testUnitReady;
+        eAllowedCommandDetail modeSense;
+        eAllowedCommandDetail readAttribute;
+        eAllowedCommandDetail readBuffer10;
+        eAllowedCommandDetail receiveDiagnosticResults;
+        eAllowedCommandDetail reportSupportedOperationCodes;
+        eAllowedCommandDetail reportSupportedTaskManagementFunctions;
+        eAllowedCommandDetail readDefectData;
+    }allowedCommands;
+
     typedef struct _persistentReservationCapabilities
     {
         size_t size; //set to sizeof(persistentReservationCapabilities)
@@ -80,13 +106,15 @@ extern "C"
         bool specifyInitiatorPortCapable;
         bool allTargetPortsCapable;
         bool persistThroughPowerLossCapable;
-        uint8_t allowedCommands;//3 bit wide field that needs to be matched to the spec...there is no way to simplify this
+        allowedCommands allowedCommandsInfo;
         bool persistThroughPowerLossActivated;
         bool reservationTypesSupportedValid;//If set to true, the device reported the type mask indicating which reservation types are supported (below)
         reservationTypesSupported reservationsCapabilities;
     }persistentReservationCapabilities, *ptrPersistentReservationCapabilities;
 
     OPENSEA_OPERATIONS_API int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReservationCapabilities prCapabilities);
+
+    OPENSEA_OPERATIONS_API void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities);
 
     OPENSEA_OPERATIONS_API int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount);
 
@@ -137,6 +165,7 @@ extern "C"
         uint16_t relativeTargetPortIdentifier;
         eReservationScope scope;
         eReservationType type;
+        uint32_t transportIDLength;
         uint8_t transportID[24];//NOTE: This is 24 bytes as that is the common size. iSCSI is variable in size, so it will be truncated in this case -TJE
     }fullReservationKeyInfo;
 
