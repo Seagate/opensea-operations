@@ -131,6 +131,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistrationKeysData keys);
 
+    OPENSEA_OPERATIONS_API void show_Registration_Keys(ptrRegistrationKeysData keys);
+
     OPENSEA_OPERATIONS_API int get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount);
 
     typedef struct _reservationInfo
@@ -154,6 +156,8 @@ extern "C"
     }reservationsData, *ptrReservationsData;
 
     OPENSEA_OPERATIONS_API int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservationsData reservations);
+
+    OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData reservations);
 
     OPENSEA_OPERATIONS_API int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount);
 
@@ -181,6 +185,8 @@ extern "C"
     }fullReservationInfo, *ptrFullReservationInfo;
 
     OPENSEA_OPERATIONS_API int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation);
+
+    OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInfo fullReservation);
 
 #if defined (__cplusplus)
 }

@@ -417,7 +417,7 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
 {
     if (prCapabilities)
     {
-        if (!(prCapabilities->version >= PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 && prCapabilities->size >= sizeof(persistentReservationCapabilitiesV1)))
+        if ((prCapabilities->version >= PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 && prCapabilities->size >= sizeof(persistentReservationCapabilitiesV1)))
         {
             printf("\nPersistent Reservations Capabilities:\n");
             printf("=====================================\n");
@@ -653,6 +653,25 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
     return ret;
 }
 
+void show_Registration_Keys(ptrRegistrationKeysData keys)
+{
+    if (keys && keys->version >= REGISTRATION_KEY_DATA_VERSION_V1 && keys->size >= sizeof(registrationKeysDataV1))
+    {
+        printf("\nRegistration Keys:\n");
+        printf("==================\n");
+        printf("Generation: %" PRIu32 "\n", keys->generation);
+        printf("------------------------\n");
+        for (uint32_t keyIter = 0; keyIter < UINT16_MAX && keyIter < keys->numberOfKeys; ++keyIter)
+        {
+            printf("%016" PRIX64 "\n", keys->registrationKey[keyIter]);
+        }
+        if (keys->numberOfKeys == 0)
+        {
+            printf("No registration keys to report.\n");
+        }
+    }
+}
+
 //If supporting "extents", multiple can be reported, but this capability is obsolete, so this will likely return 1 or 0
 int get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount)
 {
@@ -860,6 +879,82 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
     }
 #endif
     return ret;
+}
+
+void show_Reservations(ptrReservationsData reservations)
+{
+    if (reservations->version >= RESERVATION_DATA_VERSION_V1 && reservations->size >= sizeof(reservationsDataV1))
+    {
+        printf("Reservations:\n");
+        printf("=============\n");
+        printf("Generation: %" PRIu32 "\n", reservations->generation);
+        printf("      Key        | Scope |        Type        \n");
+        for (uint32_t resIter = 0; resIter < UINT16_MAX && resIter < reservations->numberOfReservations; ++resIter)
+        {
+            char scopeBuf[9] = { 0 };
+            char *scope = &scopeBuf[0];
+            char typeBuf[21] = { 0 };
+            char *type = &typeBuf[0];
+            switch (reservations->reservation[resIter].scope)
+            {
+            case RESERVATION_SCOPE_LOGICAL_UNIT:
+                snprintf(scope, 9, "LU");
+                break;
+            case RESERVATION_SCOPE_EXTENT:
+                snprintf(scope, 9, "Extent");
+                break;
+            case RESERVATION_SCOPE_ELEMENT:
+                snprintf(scope, 9, "Element");
+                break;
+            case RESERVATION_SCOPE_UNKNOWN:
+            default:
+                snprintf(scope, 9, "Unknown");
+                break;
+            }
+            switch (reservations->reservation[resIter].type)
+            {
+            case RES_TYPE_NO_RESERVATION:
+                snprintf(type, 21, "None");
+                break;
+            case RES_TYPE_READ_SHARED:
+                snprintf(type, 21, "Read Shared");
+                break;
+            case RES_TYPE_WRITE_EXCLUSIVE:
+                snprintf(type, 21, "Write Exclusive");
+                break;
+            case RES_TYPE_READ_EXCLUSIVE:
+                snprintf(type, 21, "Read Exclusive");
+                break;
+            case RES_TYPE_EXCLUSIVE_ACCESS:
+                snprintf(type, 21, "Exclusive Access");
+                break;
+            case RES_TYPE_SHARED_ACCESS:
+                snprintf(type, 21, "Shared Access");
+                break;
+            case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+                snprintf(type, 21, "Write Exclusive - RO");
+                break;
+            case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+                snprintf(type, 21, "Exclusive Access - RO");
+                break;
+            case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+                snprintf(type, 21, "Write Exclusive - AR");
+                break;
+            case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+                snprintf(type, 21, "Exclusive Access - AR");
+                break;
+            case RES_TYPE_UNKNOWN:
+            default:
+                snprintf(type, 20, "Unknown");
+                break;
+            }
+            printf("%16" PRIX64 "h  %7s  %20s", reservations->reservation[resIter].reservationKey, scope, type);
+        }
+        if (reservations->numberOfReservations == 0)
+        {
+            printf("No active reservations.\n");
+        }
+    }
 }
 
 int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
@@ -1190,7 +1285,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
 
 void show_Full_Status(ptrFullReservationInfo fullReservation)
 {
-    if (!fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1 && !fullReservation->size >= sizeof(fullReservationInfoV1))
+    if (fullReservation && fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1 && fullReservation->size >= sizeof(fullReservationInfoV1))
     {
         printf("Full Reservation Status:\n");
         printf("\tGeneration: %" PRIX32 "h\n", fullReservation->generation);
@@ -1283,6 +1378,10 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
                 printf("     N/A");
             }
             printf("\n");
+        }
+        if (fullReservation->numberOfKeys == 0)
+        {
+            printf("No reservations or registration keys to report.\n");
         }
     }
     else
