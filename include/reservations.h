@@ -25,6 +25,7 @@ extern "C"
     //The enum below can be used to specify which type of reservation is used. NOTE: These are not defined to values for NVMe or SCSI since they are different so that
     //they can be translated as necessary for the device type.
 
+    //Scopes defined for clarity in reporting, but not supported for actual use since scopes other than logical unit are obsolete.
     typedef enum _eReservationScope
     {
         RESERVATION_SCOPE_LOGICAL_UNIT,
@@ -187,6 +188,19 @@ extern "C"
     OPENSEA_OPERATIONS_API int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation);
 
     OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInfo fullReservation);
+
+    //note: ignore existing may not be supported on older devices.
+    OPENSEA_OPERATIONS_API int register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts, bool persistThroughPowerLoss, bool ignoreExisting);
+
+    OPENSEA_OPERATIONS_API int unregister_Key(tDevice *device, uint64_t currentRegistrationKey);
+
+    OPENSEA_OPERATIONS_API int acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType);
+
+    OPENSEA_OPERATIONS_API int release_Reservation(tDevice *device, uint64_t key, eReservationType resType);
+
+    OPENSEA_OPERATIONS_API int clear_Reservations(tDevice *device, uint64_t key);
+
+    OPENSEA_OPERATIONS_API int preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool abort, eReservationType resType);
 
 #if defined (__cplusplus)
 }

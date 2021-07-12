@@ -1365,7 +1365,7 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
             {
                 for (uint32_t transportIDoffset = 0; transportIDoffset < 24 && transportIDoffset < fullReservation->reservationKey[keyIter].transportIDLength; ++transportIDoffset)
                 {
-                    printf("%02" PRIX8, fullReservation->reservationKey[keyIter].transportID[transportIDoffset]);
+                printf("%02" PRIX8, fullReservation->reservationKey[keyIter].transportID[transportIDoffset]);
                 }
                 if (fullReservation->reservationKey[keyIter].transportIDLength > 24)
                 {
@@ -1375,7 +1375,7 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
             }
             else
             {
-                printf("     N/A");
+            printf("     N/A");
             }
             printf("\n");
         }
@@ -1386,6 +1386,456 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
     }
     else
     {
-        printf("ERROR: Invalid full status structure version or size.\n");
+    printf("ERROR: Invalid full status structure version or size.\n");
     }
 }
+
+typedef struct _persistentReserveOutBasic
+{
+    uint64_t reservationKey;
+    uint64_t serviceActionReservationKey;
+    uint32_t scopeSpecificAddress;//OBSOLETE, for use with older devices
+    bool activatePersistThroughPowerLoss;
+    bool allTargetPorts;
+    bool specifyInitiatorPorts;
+    uint16_t extentLength;//OBSOLETE, for use with older extent reservations
+    uint32_t transportIDLength;//length of the following buffer
+    uint8_t transportID[1];//overallocate to add transport IDs. Length is not needed in this data and is set from the parameter above
+}persistentReserveOutBasic, *ptrPersistentReserveOutBasic;
+
+#define PR_OUT_BASIC_MIN_LENGTH 24
+
+static void format_Basic_Info(uint8_t *ptrData, uint32_t dataLength, ptrPersistentReserveOutBasic basicInfo)
+{
+    if (ptrData && dataLength >= 24 && basicInfo)//24 is minimum length for this buffer
+    {
+        //reservation key
+        ptrData[0] = M_Byte7(basicInfo->reservationKey);
+        ptrData[1] = M_Byte6(basicInfo->reservationKey);
+        ptrData[2] = M_Byte5(basicInfo->reservationKey);
+        ptrData[3] = M_Byte4(basicInfo->reservationKey);
+        ptrData[4] = M_Byte3(basicInfo->reservationKey);
+        ptrData[5] = M_Byte2(basicInfo->reservationKey);
+        ptrData[6] = M_Byte1(basicInfo->reservationKey);
+        ptrData[7] = M_Byte0(basicInfo->reservationKey);
+        //service action reservation key
+        ptrData[8] = M_Byte7(basicInfo->serviceActionReservationKey);
+        ptrData[9] = M_Byte6(basicInfo->serviceActionReservationKey);
+        ptrData[10] = M_Byte5(basicInfo->serviceActionReservationKey);
+        ptrData[11] = M_Byte4(basicInfo->serviceActionReservationKey);
+        ptrData[12] = M_Byte3(basicInfo->serviceActionReservationKey);
+        ptrData[13] = M_Byte2(basicInfo->serviceActionReservationKey);
+        ptrData[14] = M_Byte1(basicInfo->serviceActionReservationKey);
+        ptrData[15] = M_Byte0(basicInfo->serviceActionReservationKey);
+        //(obsolete) scope specific address
+        ptrData[16] = M_Byte3(basicInfo->scopeSpecificAddress);
+        ptrData[17] = M_Byte2(basicInfo->scopeSpecificAddress);
+        ptrData[18] = M_Byte1(basicInfo->scopeSpecificAddress);
+        ptrData[19] = M_Byte0(basicInfo->scopeSpecificAddress);
+        //clear our 20 & 21, then set the bits needed
+        ptrData[20] = UINT8_C(0);
+        ptrData[21] = UINT8_C(0);
+        if (basicInfo->activatePersistThroughPowerLoss)
+        {
+            ptrData[20] |= BIT0;
+        }
+        if (basicInfo->allTargetPorts)
+        {
+            ptrData[20] |= BIT2;
+        }
+        if (basicInfo->specifyInitiatorPorts)
+        {
+            ptrData[20] |= BIT3;
+        }
+        //(obsolete) extent length
+        ptrData[22] = M_Byte1(basicInfo->extentLength);
+        ptrData[23] = M_Byte0(basicInfo->extentLength);
+        //additional info (transport IDs)
+        if (basicInfo->transportIDLength > 0 && (basicInfo->transportIDLength + 24 /*length of basic data buffer before transport IDs*/ + 4 /*for the length that is setbefore the transport ids start */) >= dataLength)
+        {
+            ptrData[24] = M_Byte3(basicInfo->transportIDLength);
+            ptrData[25] = M_Byte2(basicInfo->transportIDLength);
+            ptrData[26] = M_Byte1(basicInfo->transportIDLength);
+            ptrData[27] = M_Byte0(basicInfo->transportIDLength);
+            //now copy remaining data to the buffer...already checked the size above
+            memcpy(&ptrData[28], basicInfo->transportID, basicInfo->transportIDLength);
+        }
+    }
+}
+
+int register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts, bool persistThroughPowerLoss, bool ignoreExisting)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t registerData[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        persistentReserveOutBasic prData;
+        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        prData.reservationKey = 0;//when registering, set this to zero to begin.
+        prData.serviceActionReservationKey = registrationKey;
+        prData.allTargetPorts = allTargetPorts;
+        prData.activatePersistThroughPowerLoss = persistThroughPowerLoss;
+        //NOTE: Not currently supporting the specifiy initiator ports field and transport IDs, but the data formatter does support creating that buffer.
+
+        format_Basic_Info(registerData, PR_OUT_BASIC_MIN_LENGTH, &prData);
+        ret = scsi_Persistent_Reserve_Out(device, ignoreExisting ? SCSI_PERSISTENT_RESERVE_OUT_REGISTER_AND_IGNORE_EXISTING_KEY : SCSI_PERSISTENT_RESERVE_OUT_REGISTER, 0, 0, PR_OUT_BASIC_MIN_LENGTH, registerData);
+    }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint8_t registerData[16] = { 0 };
+        registerData[8] = M_Byte0(registrationKey);
+        registerData[9] = M_Byte1(registrationKey);
+        registerData[10] = M_Byte2(registrationKey);
+        registerData[11] = M_Byte3(registrationKey);
+        registerData[12] = M_Byte4(registrationKey);
+        registerData[13] = M_Byte5(registrationKey);
+        registerData[14] = M_Byte6(registrationKey);
+        registerData[15] = M_Byte7(registrationKey);
+        //NOTE: SCSI translation mentions sending set features first if persist through power loss is not already activated...not sure if this is needed or not in this case since translation is not being used...don't really see it in the spec- TJE
+        ret = nvme_Reservation_Register(device, persistThroughPowerLoss ? 3 : 2, ignoreExisting, 0, registerData, 16);//TODO: Move values to enums/definitions
+    }
+#endif
+    return ret;
+}
+
+int unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t registerData[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        persistentReserveOutBasic prData;
+        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        prData.reservationKey = currentRegistrationKey;
+        prData.serviceActionReservationKey = 0;
+        format_Basic_Info(registerData, PR_OUT_BASIC_MIN_LENGTH, &prData);
+        ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_REGISTER, 0, 0, PR_OUT_BASIC_MIN_LENGTH, registerData);
+
+    }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint8_t registerData[16] = { 0 };
+        registerData[0] = M_Byte0(currentRegistrationKey);
+        registerData[1] = M_Byte1(currentRegistrationKey);
+        registerData[2] = M_Byte2(currentRegistrationKey);
+        registerData[3] = M_Byte3(currentRegistrationKey);
+        registerData[4] = M_Byte4(currentRegistrationKey);
+        registerData[5] = M_Byte5(currentRegistrationKey);
+        registerData[6] = M_Byte6(currentRegistrationKey);
+        registerData[7] = M_Byte7(currentRegistrationKey);
+        ret = nvme_Reservation_Register(device, 0, 0, 1, registerData, 16);//TODO: Move values to enums/definitions
+    }
+#endif
+    return ret;
+}
+
+int acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t acquireRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        uint8_t scsiReservationType = 0;
+        persistentReserveOutBasic prData;
+        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        prData.reservationKey = key;
+        format_Basic_Info(acquireRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
+        switch (resType)
+        {
+        case RES_TYPE_READ_SHARED:
+            scsiReservationType = 0;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE:
+            scsiReservationType = 1;
+            break;
+        case RES_TYPE_READ_EXCLUSIVE://obsolete - old scsi only
+            scsiReservationType = 2;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS:
+            scsiReservationType = 3;
+            break;
+        case RES_TYPE_SHARED_ACCESS://obsolete - old SCSI only
+            scsiReservationType = 4;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+            scsiReservationType = 5;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+            scsiReservationType = 6;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+            scsiReservationType = 7;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+            scsiReservationType = 8;
+            break;
+        case RES_TYPE_NO_RESERVATION:
+        default:
+            return BAD_PARAMETER;
+        }
+        ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_RESERVE, 0, scsiReservationType, PR_OUT_BASIC_MIN_LENGTH, acquireRes);
+    }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint8_t acquireRes[16] = { 0 };
+        uint8_t nvmeReservationType = 0;
+        acquireRes[0] = M_Byte0(key);
+        acquireRes[1] = M_Byte1(key);
+        acquireRes[2] = M_Byte2(key);
+        acquireRes[3] = M_Byte3(key);
+        acquireRes[4] = M_Byte4(key);
+        acquireRes[5] = M_Byte5(key);
+        acquireRes[6] = M_Byte6(key);
+        acquireRes[7] = M_Byte7(key);
+        switch (resType)
+        {
+        case RES_TYPE_WRITE_EXCLUSIVE:
+            nvmeReservationType = 1;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS:
+            nvmeReservationType = 2;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+            nvmeReservationType = 3;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+            nvmeReservationType = 4;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+            nvmeReservationType = 5;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+            nvmeReservationType = 6;
+            break;
+        case RES_TYPE_NO_RESERVATION:
+        default:
+            return BAD_PARAMETER;
+        }
+        ret = nvme_Reservation_Acquire(device, nvmeReservationType, false, 0 /*acquire*/, acquireRes, 16);
+    }
+#endif
+    return ret;
+}
+
+int release_Reservation(tDevice *device, uint64_t key, eReservationType resType)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t releaseRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        uint8_t scsiReservationType = 0;
+        persistentReserveOutBasic prData;
+        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        prData.reservationKey = key;
+        format_Basic_Info(releaseRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
+        switch (resType)
+        {
+        case RES_TYPE_READ_SHARED:
+            scsiReservationType = 0;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE:
+            scsiReservationType = 1;
+            break;
+        case RES_TYPE_READ_EXCLUSIVE://obsolete - old scsi only
+            scsiReservationType = 2;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS:
+            scsiReservationType = 3;
+            break;
+        case RES_TYPE_SHARED_ACCESS://obsolete - old SCSI only
+            scsiReservationType = 4;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+            scsiReservationType = 5;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+            scsiReservationType = 6;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+            scsiReservationType = 7;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+            scsiReservationType = 8;
+            break;
+        case RES_TYPE_NO_RESERVATION:
+        default:
+            return BAD_PARAMETER;
+        }
+        ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_RELEASE, 0, scsiReservationType, PR_OUT_BASIC_MIN_LENGTH, releaseRes);
+    }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint8_t releaseRes[8] = { 0 };
+        uint8_t nvmeReservationType = 0;
+        releaseRes[0] = M_Byte0(key);
+        releaseRes[1] = M_Byte1(key);
+        releaseRes[2] = M_Byte2(key);
+        releaseRes[3] = M_Byte3(key);
+        releaseRes[4] = M_Byte4(key);
+        releaseRes[5] = M_Byte5(key);
+        releaseRes[6] = M_Byte6(key);
+        releaseRes[7] = M_Byte7(key);
+        switch (resType)
+        {
+        case RES_TYPE_WRITE_EXCLUSIVE:
+            nvmeReservationType = 1;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS:
+            nvmeReservationType = 2;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+            nvmeReservationType = 3;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+            nvmeReservationType = 4;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+            nvmeReservationType = 5;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+            nvmeReservationType = 6;
+            break;
+        case RES_TYPE_NO_RESERVATION:
+        default:
+            return BAD_PARAMETER;
+        }
+        ret = nvme_Reservation_Release(device, nvmeReservationType, false, 0 /*release*/, releaseRes, 8);
+    }
+#endif
+    return ret;
+}
+
+int clear_Reservations(tDevice *device, uint64_t key)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t clearRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        persistentReserveOutBasic prData;
+        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        prData.reservationKey = key;
+        format_Basic_Info(clearRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
+        ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_CLEAR, 0, 0, PR_OUT_BASIC_MIN_LENGTH, clearRes);
+    }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint8_t clearRes[8] = { 0 };
+        clearRes[0] = M_Byte0(key);
+        clearRes[1] = M_Byte1(key);
+        clearRes[2] = M_Byte2(key);
+        clearRes[3] = M_Byte3(key);
+        clearRes[4] = M_Byte4(key);
+        clearRes[5] = M_Byte5(key);
+        clearRes[6] = M_Byte6(key);
+        clearRes[7] = M_Byte7(key);
+        ret = nvme_Reservation_Release(device, 0, false, 1 /*clear*/, clearRes, 8);
+    }
+#endif
+    return ret;
+}
+
+int preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool abort, eReservationType resType)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint8_t preemptRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        uint8_t scsiReservationType = 0;
+        persistentReserveOutBasic prData;
+        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        prData.reservationKey = key;
+        prData.serviceActionReservationKey = preemptKey;
+        format_Basic_Info(preemptRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
+        switch (resType)
+        {
+        case RES_TYPE_READ_SHARED:
+            scsiReservationType = 0;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE:
+            scsiReservationType = 1;
+            break;
+        case RES_TYPE_READ_EXCLUSIVE://obsolete - old scsi only
+            scsiReservationType = 2;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS:
+            scsiReservationType = 3;
+            break;
+        case RES_TYPE_SHARED_ACCESS://obsolete - old SCSI only
+            scsiReservationType = 4;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+            scsiReservationType = 5;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+            scsiReservationType = 6;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+            scsiReservationType = 7;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+            scsiReservationType = 8;
+            break;
+        case RES_TYPE_NO_RESERVATION:
+        default:
+            return BAD_PARAMETER;
+        }
+        ret = scsi_Persistent_Reserve_Out(device, abort ? SCSI_PERSISTENT_RESERVE_OUT_PREEMPT_AND_ABORT : SCSI_PERSISTENT_RESERVE_OUT_PREEMPT, 0, scsiReservationType, PR_OUT_BASIC_MIN_LENGTH, preemptRes);
+    }
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint8_t preemptRes[16] = { 0 };
+        uint8_t nvmeReservationType = 0;
+        preemptRes[0] = M_Byte0(key);
+        preemptRes[1] = M_Byte1(key);
+        preemptRes[2] = M_Byte2(key);
+        preemptRes[3] = M_Byte3(key);
+        preemptRes[4] = M_Byte4(key);
+        preemptRes[5] = M_Byte5(key);
+        preemptRes[6] = M_Byte6(key);
+        preemptRes[7] = M_Byte7(key);
+        preemptRes[8] = M_Byte0(preemptKey);
+        preemptRes[9] = M_Byte1(preemptKey);
+        preemptRes[10] = M_Byte2(preemptKey);
+        preemptRes[11] = M_Byte3(preemptKey);
+        preemptRes[12] = M_Byte4(preemptKey);
+        preemptRes[13] = M_Byte5(preemptKey);
+        preemptRes[14] = M_Byte6(preemptKey);
+        preemptRes[15] = M_Byte7(preemptKey);
+        switch (resType)
+        {
+        case RES_TYPE_WRITE_EXCLUSIVE:
+            nvmeReservationType = 1;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS:
+            nvmeReservationType = 2;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
+            nvmeReservationType = 3;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
+            nvmeReservationType = 4;
+            break;
+        case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
+            nvmeReservationType = 5;
+            break;
+        case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
+            nvmeReservationType = 6;
+            break;
+        case RES_TYPE_NO_RESERVATION:
+        default:
+            return BAD_PARAMETER;
+        }
+        ret = nvme_Reservation_Acquire(device, nvmeReservationType, false, abort ? 2 /*preempt & abort*/ : 1 /*preempt*/, preemptRes, 16);
+    }
+#endif
+    return ret;
+}
+
+//TODO: replace lost reservation
+//TODO: register and move: Requires transport ID which there is not a good way to deal with right now with how these tools work-TJE
