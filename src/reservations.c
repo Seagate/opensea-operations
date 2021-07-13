@@ -967,7 +967,7 @@ int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
     *keyCount = 0;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint32_t fullStatusDataLength = 8;
+        uint32_t fullStatusDataLength = 32;//some drive FW have a bug where if this is read as 8 bytes, it returns that there are no keys, even when there are...-TJE
         uint8_t *fullStatusData = C_CAST(uint8_t*, calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!fullStatusData)
         {
@@ -1056,7 +1056,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint32_t fullStatusDataLength = 8;
+        uint32_t fullStatusDataLength = 32;//some drive FW have a bug where if this is read as 8 bytes, it returns that there are no keys, even when there are...-TJE
         uint8_t *fullStatusData = C_CAST(uint8_t*, calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!fullStatusData)
         {
@@ -1109,7 +1109,14 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
                     switch (M_GETBITRANGE(fullStatusData[offset + 13], 3, 0))
                     {
                     case 0:
-                        fullReservation->reservationKey[keyIter].type = RES_TYPE_READ_SHARED;
+                        if (fullReservation->reservationKey[keyIter].reservationHolder)
+                        {
+                            fullReservation->reservationKey[keyIter].type = RES_TYPE_READ_SHARED;
+                        }
+                        else
+                        {
+                            fullReservation->reservationKey[keyIter].type = RES_TYPE_NO_RESERVATION;
+                        }
                         break;
                     case 1:
                         fullReservation->reservationKey[keyIter].type = RES_TYPE_WRITE_EXCLUSIVE;
@@ -1290,14 +1297,14 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
         printf("Full Reservation Status:\n");
         printf("\tGeneration: %" PRIX32 "h\n", fullReservation->generation);
 
-        printf("      Key        | ATP | Res Holder | Scope |        Type        |  RTPID  | Transport ID \n");//TODO: relative target port ID, transport ID
+        printf("      Key        | ATP | Res Holder | Scope |         Type         |  RTPID  | Transport ID \n");//TODO: relative target port ID, transport ID
         for (uint32_t keyIter = 0; keyIter < UINT16_MAX && keyIter < fullReservation->numberOfKeys; ++keyIter)
         {
             char atp = 'N';
             char resHolder = 'N';
             char scopeBuf[9] = { 0 };
             char *scope = &scopeBuf[0];
-            char typeBuf[21] = { 0 };
+            char typeBuf[23] = { 0 };
             char *type = &typeBuf[0];
             if (fullReservation->reservationKey[keyIter].allTargetPorts)
             {
@@ -1326,44 +1333,44 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
             switch (fullReservation->reservationKey[keyIter].type)
             {
             case RES_TYPE_NO_RESERVATION:
-                snprintf(type, 21, "None");
+                snprintf(type, 23, "None");
                 break;
             case RES_TYPE_READ_SHARED:
-                snprintf(type, 21, "Read Shared");
+                snprintf(type, 23, "Read Shared");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE:
-                snprintf(type, 21, "Write Exclusive");
+                snprintf(type, 23, "Write Exclusive");
                 break;
             case RES_TYPE_READ_EXCLUSIVE:
-                snprintf(type, 21, "Read Exclusive");
+                snprintf(type, 23, "Read Exclusive");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS:
-                snprintf(type, 21, "Exclusive Access");
+                snprintf(type, 23, "Exclusive Access");
                 break;
             case RES_TYPE_SHARED_ACCESS:
-                snprintf(type, 21, "Shared Access");
+                snprintf(type, 23, "Shared Access");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
-                snprintf(type, 21, "Write Exclusive - RO");
+                snprintf(type, 23, "Write Exclusive - RO");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
-                snprintf(type, 21, "Exclusive Access - RO");
+                snprintf(type, 23, "Exclusive Access - RO");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
-                snprintf(type, 21, "Write Exclusive - AR");
+                snprintf(type, 23, "Write Exclusive - AR");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
-                snprintf(type, 21, "Exclusive Access - AR");
+                snprintf(type, 23, "Exclusive Access - AR");
                 break;
             case RES_TYPE_UNKNOWN:
             default:
-                snprintf(type, 20, "Unknown");
+                snprintf(type, 23, "Unknown");
                 break;
             }
-            printf("%16" PRIX64 "h  %c        %c      %7s  %20s  %08" PRIX16 "h ", fullReservation->reservationKey[keyIter].key, atp, resHolder, scope, type, fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier);
+            printf("%16" PRIX64 "h  %c        %c      %7s  %23s  %08" PRIX16 "h ", fullReservation->reservationKey[keyIter].key, atp, resHolder, scope, type, fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier);
             if (fullReservation->reservationKey[keyIter].transportIDLength > 0)
             {
-                for (uint32_t transportIDoffset = 0; transportIDoffset < 24 && transportIDoffset < fullReservation->reservationKey[keyIter].transportIDLength; ++transportIDoffset)
+                for (uint32_t transportIDoffset = 0; transportIDoffset <= 24 && transportIDoffset <= fullReservation->reservationKey[keyIter].transportIDLength; ++transportIDoffset)
                 {
                 printf("%02" PRIX8, fullReservation->reservationKey[keyIter].transportID[transportIDoffset]);
                 }
@@ -1451,7 +1458,7 @@ static void format_Basic_Info(uint8_t *ptrData, uint32_t dataLength, ptrPersiste
         ptrData[22] = M_Byte1(basicInfo->extentLength);
         ptrData[23] = M_Byte0(basicInfo->extentLength);
         //additional info (transport IDs)
-        if (basicInfo->transportIDLength > 0 && (basicInfo->transportIDLength + 24 /*length of basic data buffer before transport IDs*/ + 4 /*for the length that is setbefore the transport ids start */) >= dataLength)
+        if (basicInfo->transportIDLength > 0 && (basicInfo->transportIDLength + 24 /*length of basic data buffer before transport IDs*/ + 4 /*for the length that is set before the transport ids start */) >= dataLength)
         {
             ptrData[24] = M_Byte3(basicInfo->transportIDLength);
             ptrData[25] = M_Byte2(basicInfo->transportIDLength);
