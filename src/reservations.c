@@ -602,7 +602,7 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
     {
         return BAD_PARAMETER;
     }
-    if (!keys->version >= REGISTRATION_KEY_DATA_VERSION_V1 && !keys->size >= sizeof(registrationKeysDataV1))
+    if (!(keys->version >= REGISTRATION_KEY_DATA_VERSION_V1) && !(keys->size >= sizeof(registrationKeysDataV1)))
     {
         return BAD_PARAMETER;
     }
@@ -737,7 +737,7 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
     {
         return BAD_PARAMETER;
     }
-    if (!reservations->version >= RESERVATION_DATA_VERSION_V1 && !reservations->size >= sizeof(reservationsDataV1))
+    if (!(reservations->version >= RESERVATION_DATA_VERSION_V1) && !(reservations->size >= sizeof(reservationsDataV1)))
     {
         return BAD_PARAMETER;
     }
@@ -893,7 +893,7 @@ void show_Reservations(ptrReservationsData reservations)
         {
             char scopeBuf[9] = { 0 };
             char *scope = &scopeBuf[0];
-            char typeBuf[21] = { 0 };
+            char typeBuf[23] = { 0 };
             char *type = &typeBuf[0];
             switch (reservations->reservation[resIter].scope)
             {
@@ -914,38 +914,38 @@ void show_Reservations(ptrReservationsData reservations)
             switch (reservations->reservation[resIter].type)
             {
             case RES_TYPE_NO_RESERVATION:
-                snprintf(type, 21, "None");
+                snprintf(type, 23, "None");
                 break;
             case RES_TYPE_READ_SHARED:
-                snprintf(type, 21, "Read Shared");
+                snprintf(type, 23, "Read Shared");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE:
-                snprintf(type, 21, "Write Exclusive");
+                snprintf(type, 23, "Write Exclusive");
                 break;
             case RES_TYPE_READ_EXCLUSIVE:
-                snprintf(type, 21, "Read Exclusive");
+                snprintf(type, 23, "Read Exclusive");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS:
-                snprintf(type, 21, "Exclusive Access");
+                snprintf(type, 23, "Exclusive Access");
                 break;
             case RES_TYPE_SHARED_ACCESS:
-                snprintf(type, 21, "Shared Access");
+                snprintf(type, 23, "Shared Access");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
-                snprintf(type, 21, "Write Exclusive - RO");
+                snprintf(type, 23, "Write Exclusive - RO");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
-                snprintf(type, 21, "Exclusive Access - RO");
+                snprintf(type, 23, "Exclusive Access - RO");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
-                snprintf(type, 21, "Write Exclusive - AR");
+                snprintf(type, 23, "Write Exclusive - AR");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
-                snprintf(type, 21, "Exclusive Access - AR");
+                snprintf(type, 23, "Exclusive Access - AR");
                 break;
             case RES_TYPE_UNKNOWN:
             default:
-                snprintf(type, 20, "Unknown");
+                snprintf(type, 23, "Unknown");
                 break;
             }
             printf("%16" PRIX64 "h  %7s  %20s", reservations->reservation[resIter].reservationKey, scope, type);
@@ -1050,7 +1050,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
     {
         return BAD_PARAMETER;
     }
-    if (!fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1 && !fullReservation->size >= sizeof(fullReservationInfoV1))
+    if (!(fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1) && !(fullReservation->size >= sizeof(fullReservationInfoV1)))
     {
         return BAD_PARAMETER;
     }
