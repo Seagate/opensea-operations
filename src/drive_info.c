@@ -3071,6 +3071,16 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     }
     driveInfo->percentEnduranceUsed = -1;//set to this to filter out later
 
+    if (version >= 2)
+    {
+        //Check for persistent reservation support
+        if (SUCCESS == scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 0, NULL))
+        {
+            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Persistent Reservations");
+            driveInfo->numberOfFeaturesSupported++;
+        }
+    }
+
     bool smartStatusRead = false;
     if (version >= 2 && peripheralDeviceType != PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE && !device->drive_info.passThroughHacks.scsiHacks.noLogPages)//SCSI2 introduced log pages
     {
@@ -5449,6 +5459,12 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             sprintf(driveInfo->namespaceData.namespaceFeaturesSupported[driveInfo->namespaceData.numberOfNamespaceFeatures], "Write Zeros");
             ++(driveInfo->namespaceData.numberOfNamespaceFeatures);
         }
+        if (nvmeIdentifyData[520] & BIT5)
+        {
+            sprintf(driveInfo->namespaceData.namespaceFeaturesSupported[driveInfo->namespaceData.numberOfNamespaceFeatures], "Persistent Reservations");
+            driveInfo->namespaceData.numberOfNamespaceFeatures++;
+        }
+
         
         memset(nvmeIdentifyData, 0, NVME_IDENTIFY_DATA_LEN);
         if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.namespaceID, 0))
