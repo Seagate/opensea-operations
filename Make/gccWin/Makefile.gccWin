@@ -80,7 +80,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)trim_unmap.c\
 	$(SRC_DIR)writesame.c \
 	$(SRC_DIR)zoned_operations.c\
-	$(SRC_DIR)nvme_operations.c
+	$(SRC_DIR)nvme_operations.c\
+	$(SRC_DIR)reservations.c
 
 PROJECT_DEFINES += -DSTATIC_OPENSEA_OPERATIONS -DSTATIC_OPENSEA_TRANSPORT
 PROJECT_DEFINES += -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE

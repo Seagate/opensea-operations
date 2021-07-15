@@ -43,6 +43,7 @@
   include/trim_unmap.h
   include/writesame.h
   include/zoned_operations.h
+  include/reservations.h
   src/ata_Security.c
   src/buffer_test.c
   src/defect.c
@@ -67,6 +68,7 @@
   src/trim_unmap.c
   src/writesame.c
   src/zoned_operations.c
+  src/reservations.c
 
 [Packages]
   StdLib/StdLib.dec
