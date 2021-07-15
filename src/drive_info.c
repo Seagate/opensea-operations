@@ -26,6 +26,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     bool gplSupported = false;
     bool smartErrorLoggingSupported = false;
     bool smartStatusFromSCTStatusLog = false;
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
     memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata, LEGACY_DRIVE_SEC_SIZE))
@@ -2254,6 +2258,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
 int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo)
 {
     int ret = SUCCESS;
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
     memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     //start with standard inquiry data
     uint8_t version = 0;
@@ -5156,6 +5164,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
 int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo)
 {
     int ret = NOT_SUPPORTED;
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
     memset(driveInfo, 0, sizeof(driveInformationNVMe));
 #if !defined(DISABLE_NVME_PASSTHROUGH)
     //changing ret to success since we have passthrough available
