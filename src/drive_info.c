@@ -3836,16 +3836,16 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     if (pageRead)
                     {
                         //NV_DIS
-                        driveInfo->nvCacheEnabled = cachingPage[headerLength + 13] & BIT0 ? false : true;//bit being set means disabled the cache, being set to 0 means cache is enabled.
+                        driveInfo->nvCacheEnabled = !M_ToBool(cachingPage[headerLength + 13] & BIT0);//bit being set means disabled the cache, being set to 0 means cache is enabled.
 
                         //WCE
-                        driveInfo->writeCacheEnabled = cachingPage[headerLength + 2] & BIT2 ? true : false;
+                        driveInfo->writeCacheEnabled = M_ToBool(cachingPage[headerLength + 2] & BIT2);
                         if (driveInfo->writeCacheEnabled)
                         {
                             driveInfo->writeCacheSupported = true;
                         }
                         //DRA
-                        driveInfo->readLookAheadEnabled = cachingPage[headerLength + 12] & BIT5 ? false : true;
+                        driveInfo->readLookAheadEnabled = !M_ToBool(cachingPage[headerLength + 12] & BIT5);
                         if (driveInfo->readLookAheadEnabled)
                         {
                             driveInfo->readLookAheadSupported = true;

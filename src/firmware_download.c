@@ -554,14 +554,14 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         supportedModes->downloadMicrocodeSupported = true;
                         //bit 7 = dm_md_4 - temporary...not saving at this time since it's rarely used.
                         //bit 6 = dm_md_5
-                        supportedModes->fullBuffer = extendedInq[19] & BIT6 ? true : false;
+                        supportedModes->fullBuffer = M_ToBool(extendedInq[19] & BIT6);
                         //bit 5 = dm_md_6 - segmented temporary...not saving at this time since it's rarely used
                         //bit 4 = dm_md_7
-                        supportedModes->segmented = extendedInq[19] & BIT4 ? true : false;
+                        supportedModes->segmented = M_ToBool(extendedInq[19] & BIT4);
                         //bit 3 = dm_md_d - deferred, select activation
-                        supportedModes->deferredSelectActivation = extendedInq[19] & BIT3 ? true : false;
+                        supportedModes->deferredSelectActivation = M_ToBool(extendedInq[19] & BIT3);
                         //bit 2 = dm_md_e - deferred
-                        supportedModes->deferred = extendedInq[19] & BIT2 ? true : false;
+                        supportedModes->deferred = M_ToBool(extendedInq[19] & BIT2);
                         //bit 1 = dm_md_f - activate deferred code (part of mode e. If mode e is supported, so should f - TJE
                     }
                 }
@@ -854,7 +854,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                                         {
                                             uint8_t operationCode = reportAllOPs[supportedCmdsIter];
                                             uint16_t serviceAction = M_BytesTo2ByteValue(reportAllOPs[supportedCmdsIter + 2], reportAllOPs[supportedCmdsIter + 3]);
-                                            bool serviceActionValid = reportAllOPs[supportedCmdsIter + 5] & BIT0 ? true : false;
+                                            bool serviceActionValid = M_ToBool(reportAllOPs[supportedCmdsIter + 5] & BIT0);
                                             eMLU mlu = M_GETBITRANGE(reportAllOPs[supportedCmdsIter + 5], 5, 4);
                                             cmdDescriptorLength = reportAllOPs[supportedCmdsIter + 5] & BIT1 ? 20 : 8;
                                             switch (operationCode)

@@ -166,7 +166,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                     uint16_t pageLength = M_BytesTo2ByteValue(blockLimits[2], blockLimits[3]);
                     if (pageLength >= 0x3C)//earlier specs, this page was shorter
                     {
-                        bool wsnz = (blockLimits[4] & BIT0) ? true : false;
+                        bool wsnz = M_ToBool(blockLimits[4] & BIT0);
                         *maxNumberOfLogicalBlocksPerCommand = M_BytesTo8ByteValue(blockLimits[36], blockLimits[37], blockLimits[38], blockLimits[39], blockLimits[40], blockLimits[41], blockLimits[42], blockLimits[43]);
                         if (*maxNumberOfLogicalBlocksPerCommand >= requesedNumberOfLogicalBlocks)
                         {

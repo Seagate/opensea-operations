@@ -4490,11 +4490,11 @@ void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
 {
     uint16_t subcommand = features;
     uint32_t signature = M_DoubleWord0(lba);//TODO: may need to byte swap this //NOTE: for overwrite, this is the pattern. 47:32 contain a signature
-    bool zoneNoReset = count & BIT15 ? true : false;
-    bool invertBetweenPasses = count & BIT7;//overwrite only
-    bool definitiveEndingPattern = count & BIT6;//overwrite only
-    bool failure = count & BIT4;
-    bool clearSanitizeOperationFailed = count & BIT0;//status only
+    bool zoneNoReset = M_ToBool(count & BIT15);
+    bool invertBetweenPasses = M_ToBool(count & BIT7);//overwrite only
+    bool definitiveEndingPattern = M_ToBool(count & BIT6);//overwrite only
+    bool failure = M_ToBool(count & BIT4);
+    bool clearSanitizeOperationFailed = M_ToBool(count & BIT0);//status only
     uint8_t overwritePasses = M_Nibble0(count);//overwrite only
     uint32_t overwritePattern = M_DoubleWord0(lba);//overwrite only
     uint16_t overwriteSignature = M_Word2(lba);

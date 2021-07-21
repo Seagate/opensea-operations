@@ -626,7 +626,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 if (powerConditions->idle_a.powerConditionValid && powerConditions->idle_a.restoreToDefault)
                 {
                     powerConditions->idle_a.enableValid = true;
-                    powerConditions->idle_a.enable = (powerConditionsPage[mpStartOffset + 3] & BIT1) > 0 ? true : false;
+                    powerConditions->idle_a.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT1);
                     powerConditions->idle_a.timerValid = true;
                     powerConditions->idle_a.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 4], powerConditionsPage[mpStartOffset + 5], powerConditionsPage[mpStartOffset + 6], powerConditionsPage[mpStartOffset + 7]);
                     powerConditions->idle_a.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -634,7 +634,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 if (powerConditions->standby_z.powerConditionValid && powerConditions->standby_z.restoreToDefault)
                 {
                     powerConditions->standby_z.enableValid = true;
-                    powerConditions->standby_z.enable = (powerConditionsPage[mpStartOffset + 3] & BIT0) > 0 ? true : false;
+                    powerConditions->standby_z.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT0);
                     powerConditions->standby_z.timerValid = true;
                     powerConditions->standby_z.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 8], powerConditionsPage[mpStartOffset + 9], powerConditionsPage[mpStartOffset + 10], powerConditionsPage[mpStartOffset + 11]);
                     powerConditions->standby_z.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -649,7 +649,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     if (powerConditions->idle_b.powerConditionValid && powerConditions->idle_b.restoreToDefault)
                     {
                         powerConditions->idle_b.enableValid = true;
-                        powerConditions->idle_b.enable = (powerConditionsPage[mpStartOffset + 3] & BIT2) > 0 ? true : false;
+                        powerConditions->idle_b.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT2);
                         powerConditions->idle_b.timerValid = true;
                         powerConditions->idle_b.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 12], powerConditionsPage[mpStartOffset + 13], powerConditionsPage[mpStartOffset + 14], powerConditionsPage[mpStartOffset + 15]);
                         powerConditions->idle_b.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -657,7 +657,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     if (powerConditions->idle_c.powerConditionValid && powerConditions->idle_c.restoreToDefault)
                     {
                         powerConditions->idle_c.enableValid = true;
-                        powerConditions->idle_c.enable = (powerConditionsPage[mpStartOffset + 3] & BIT3) > 0 ? true : false;
+                        powerConditions->idle_c.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT3);
                         powerConditions->idle_c.timerValid = true;
                         powerConditions->idle_c.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 16], powerConditionsPage[mpStartOffset + 17], powerConditionsPage[mpStartOffset + 18], powerConditionsPage[mpStartOffset + 19]);
                         powerConditions->idle_c.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -665,7 +665,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     if (powerConditions->standby_y.powerConditionValid && powerConditions->standby_y.restoreToDefault)
                     {
                         powerConditions->standby_y.enableValid = true;
-                        powerConditions->standby_y.enable = (powerConditionsPage[mpStartOffset + 2] & BIT0) > 0 ? true : false;
+                        powerConditions->standby_y.enable = M_ToBool(powerConditionsPage[mpStartOffset + 2] & BIT0);
                         powerConditions->standby_y.timerValid = true;
                         powerConditions->standby_y.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 20], powerConditionsPage[mpStartOffset + 21], powerConditionsPage[mpStartOffset + 22], powerConditionsPage[mpStartOffset + 23]);
                         powerConditions->standby_y.restoreToDefault = false;//turn this off now that we have the other settings stored.

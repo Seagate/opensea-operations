@@ -117,7 +117,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     ptrDefects->containsGrownList = listHasGrownDescriptors;
                                     ptrDefects->containsPrimaryList = listHasPrimaryDescriptors;
                                     ptrDefects->format = returnedDefectListFormat;
-                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
                                     uint8_t increment = 0;
                                     switch (returnedDefectListFormat)
                                     {
@@ -225,7 +225,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     bool filledInListInfo = false;
                                     memset(ptrDefects, 0, sizeof(scsiDefectList) + defectAlloc);
                                     ptrDefects->numberOfElements = numberOfElements;
-                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
                                     while (elementNumber < numberOfElements)
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
@@ -430,7 +430,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     temp->containsPrimaryList = listHasPrimaryDescriptors;
                     temp->generation = generationCode;
                     temp->format = returnedDefectListFormat;
-                    temp->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
+                    temp->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
                     ret = SUCCESS;
                 }
                 else

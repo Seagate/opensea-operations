@@ -185,7 +185,7 @@ int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsE
                 {
                     byte_Swap_32(&elementList[elementIter].elementIdentifier);
                 }
-                elementList[elementIter].restorationAllowed = (getPhysicalElements[offset + 13] & BIT0) > 0 ? true : false;
+                elementList[elementIter].restorationAllowed = M_ToBool(getPhysicalElements[offset + 13] & BIT0);
                 elementList[elementIter].elementType = getPhysicalElements[offset + 14];
                 elementList[elementIter].elementHealth = getPhysicalElements[offset + 15];
                 //byte swap when we need it (ATA vs SCSI)

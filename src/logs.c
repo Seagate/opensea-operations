@@ -327,7 +327,7 @@ int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint
             //validate the page code and subpage code
             uint8_t pageCode = M_GETBITRANGE(logBuffer[0], 5, 0);
             uint8_t subpageCode = logBuffer[1];
-            bool spf = (logBuffer[0] & BIT6) > 0 ? true : false;
+            bool spf = M_ToBool(logBuffer[0] & BIT6);
             if (logSubPage != 0 && spf && pageCode == logPage && subpageCode == logSubPage)
             {
                 *logFileSize = (uint32_t)(M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH);
@@ -2495,7 +2495,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             }
             if (smartLogSize > 0 || gplLogSize > 0)
             {
-                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), smartLogSize > 0 ? true : false, gplLogSize > 0 ? true : false, bug);
+                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), M_ToBool(smartLogSize), M_ToBool(gplLogSize), bug);
             }
         }
         bug = false;
@@ -2517,7 +2517,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             }
             if (smartLogSize > 0 || gplLogSize > 0)
             {
-                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), smartLogSize > 0 ? true : false, gplLogSize > 0 ? true : false, bug);
+                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), M_ToBool(smartLogSize), M_ToBool(gplLogSize), bug);
             }
         }
         printf("\t\t------------------\n");
@@ -2538,7 +2538,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             }
             if (smartLogSize > 0 || gplLogSize > 0)
             {
-                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), smartLogSize > 0 ? true : false, gplLogSize > 0 ? true : false, bug);
+                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), M_ToBool(smartLogSize), M_ToBool(gplLogSize), bug);
             }
         }
         printf("\t\t------------------\n");
@@ -2557,7 +2557,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             }
             if (smartLogSize > 0 || gplLogSize > 0)
             {
-                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), smartLogSize > 0 ? true : false, gplLogSize > 0 ? true : false, bug);
+                format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), M_ToBool(smartLogSize), M_ToBool(gplLogSize), bug);
             }
         }
         safe_Free_aligned(smartLogBuffer);
