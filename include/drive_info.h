@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -209,6 +209,7 @@ extern "C"
         bool isWriteProtected;//Not available on SATA!
         adapterInfo adapterInformation;//Not populated on all OSs. This is only obtainable from low-level OS calls and copied from the tDevice structure.
         uint8_t lunCount;//for help detecting multi-actuator drives. Will be zero if not checked for, and an invalid value. Will be 1 or more when checked. Each lun represents and actuator today. - TJE
+        uint8_t concurrentPositioningRanges;//For multi-actuator drives with multiple actuators per LUN, this will be set to a value greater than zero, if zero then this is not supported.
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe

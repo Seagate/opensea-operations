@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -376,6 +376,54 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool justRanDST)
+    //
+    //! \brief   Description: Translates the status code from IDD to a string. NOTE: This is basically the same as the DST translation. This may be able to be improved in the future.
+    //
+    //  Entry:
+    //!   \param[in] status = status code from last run IDD (from log or elsewhere)
+    //!   \param[out] translatedString = pointer to memory to set the information string about IDD that needs to be printed
+    //!   \param[in] justRanDST = set to true if IDD just finished running. Set to false if not known
+    //!
+    //  Exit:
+    //!   \return VOID
+    //
+    //-----------------------------------------------------------------------------
+    #define MAX_IDD_STATUS_STRING_LENGTH 160
+    OPENSEA_OPERATIONS_API void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool justRanDST);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_Seagate_Quick_Format_Supported(tDevice *device)
+    //
+    //! \brief   Description:  This function checks if the Seagate SATA quick format command is supported
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure.
+    //!
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_Seagate_Quick_Format_Supported(tDevice *device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  seagate_Quick_Format(tDevice *device)
+    //
+    //! \brief   Description:  This function issues the Seagate SATA quick format command. This is a captive operation, so you must wait for it to complete, no matter how long it takes, but should be a couple minutes at most
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure.
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED not supported on this device. This only happens on non-sata right now. - TJE
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int seagate_Quick_Format(tDevice *device);
 
 #if defined (__cplusplus)
 }

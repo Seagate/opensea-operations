@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -557,16 +557,16 @@ extern "C" {
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
     //!   \param[in] issueFactory = if set 0-4 issue the command with the factory feature. 
     //!                             FARM pull Factory subpages   
-    //!                             0 – Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-    //!                             1 – Generate and report new FARM data and save to disc(~45ms)(SATA only)
-    //!                             2 – Report previous FARM data from disc(~20ms)(SATA only)
-    //!                             3 – Report FARM factory data from disc(~20ms)(SATA only)
+    //!                             0 - Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+    //!                             1 - Generate and report new FARM data and save to disc(~45ms)(SATA only)
+    //!                             2 - Report previous FARM data from disc(~20ms)(SATA only)
+    //!                             3 - Report FARM factory data from disc(~20ms)(SATA only)
     //!                             4 - factory subpage (SAS only)
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory);
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress);
 
     //-----------------------------------------------------------------------------
     //

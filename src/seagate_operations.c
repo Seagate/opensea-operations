@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,8 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 #include <float.h> //for DBL_MAX
+#include "platform_helper.h"
+#include "depopulate.h"
 
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
@@ -86,33 +88,33 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         return NOT_SUPPORTED;
     }
-    uint16_t phyControlLength = 116;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + 8 bytes for beginning of the page. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
-    uint8_t *sasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + phyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint16_t phyControlLength = 104 + MODE_PARAMETER_HEADER_10_LEN;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + then add 8 bytes for mode parameter header. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
+    uint8_t *sasPhyControl = (uint8_t*)calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!sasPhyControl)
     {
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), 0x01, true, true, MPC_CURRENT_VALUES, sasPhyControl))
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
     {
         //make sure we got the header as we expect it, then validate we got all the data we needed.
-        uint16_t modeDataLength = M_BytesTo2ByteValue(sasPhyControl[0], sasPhyControl[1]);
+        //uint16_t modeDataLength = M_BytesTo2ByteValue(sasPhyControl[0], sasPhyControl[1]);
         uint16_t blockDescriptorLength = M_BytesTo2ByteValue(sasPhyControl[6], sasPhyControl[7]);
         //validate we got the right page
         if ((sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x01 && (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & BIT6) > 0)
         {
-            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]) + 4;
+            uint16_t pageLength = M_BytesTo2ByteValue(sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 2], sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 3]) + 4;//add 4 for first 4 bytes of page before descriptors
             //check that we were able to read the full page! If we didn't get the entire thing, we need to reread it and adjust the phyControlLength variable!
-            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN) > (modeDataLength - 6) || pageLength > phyControlLength)
+            if ((pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength) > phyControlLength)
             {
                 //reread the page for the larger length
-                phyControlLength = pageLength + 4 + MODE_PARAMETER_HEADER_10_LEN;
+                phyControlLength = pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
                 uint8_t *temp = realloc_aligned(sasPhyControl, 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
                     return MEMORY_FAILURE;
                 }
                 sasPhyControl = temp;
-                if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), 0x01, true, true, MPC_CURRENT_VALUES, sasPhyControl))
+                if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
                 {
                     safe_Free_aligned(sasPhyControl);
                     return FAILURE;
@@ -121,8 +123,8 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
             if ((sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 5] & 0x0F) == 6)//make sure it's the SAS protocol page
             {
                 uint8_t numberOfPhys = sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
-                uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
-                for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys; ++phyIter, phyDescriptorOffset += 48)
+                uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginning of the phy descriptors so that when looping through them, it is easier code to read.
+                for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && phyDescriptorOffset < phyControlLength; ++phyIter, phyDescriptorOffset += 48)
                 {
                     uint8_t phyIdentifier = sasPhyControl[phyDescriptorOffset + 1];
                     //check if the caller requested changing all phys or a specific phy and only modify it's descriptor if either of those are true.
@@ -163,7 +165,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                     }
                 }
                 //we've finished making our changes to the mode page, so it's time to write it back!
-                if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength), true, true, false, sasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + phyControlLength)))
+                if (SUCCESS != scsi_Mode_Select_10(device, phyControlLength, true, true, false, sasPhyControl, phyControlLength))
                 {
                     ret = FAILURE;
                 }
@@ -630,14 +632,19 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
     else if(device->drive_info.drive_type == SCSI_DRIVE)
     {
         //NOTE: this uses the standard spec power consumption mode page.
-        //      This feature conflicts with use other use of this page.
+        //      This feature conflicts with use other use of this page, at least on old drives.
+        //      New drives use the active power mode identifier and the "highest" means disabled and "lowest" means enabled for this feature - TJE
         if (is_Seagate_Family(device) == SEAGATE)
         {
             uint32_t powerConsumptionLength = 0;
             if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
             {
                 //If this page is supported, we're calling power balance on SAS not supported.
-                *supported = false;
+                //Note: This may need changing in the future, but right now this is still accurate - TJE
+                if (supported)
+                {
+                    *supported = false;
+                }
                 return SUCCESS;
             }
             uint8_t *pcModePage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment);
@@ -650,21 +657,56 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
             {
                 ret = SUCCESS;
                 //This is as close as I can figure the best way to check for power balance support - TJE
-                //Active mode cannot be changable, then the power consumption VPD page must also not be supported.
-                if ((pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] & BIT0) == 1 && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6],2, 0) == 0))
+                ///Active mode cannot be changable, then the power consumption VPD page must also not be supported.
+                //The above comment was true for OLD drives. New ones now use the active power mode field to enable/disable this feature
+                if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7]  == 0xFF && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6],2, 0) == 0))
                 {
-                    *supported = true;
+                    //If in here, this is an old drive since it doesn't allow setting the active power mode.
+                    if (supported)
+                    {
+                        *supported = true;
+                    }
                     //read current values to get enabled/disabled
                     memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
                     {
-                        ret = SUCCESS;
                         //check the active level to make sure it is zero
                         uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                        if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1)
+                        if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1 && enabled)
                         {
                             *enabled = true;
                         }
+                        ret = SUCCESS;
+                    }
+                }
+                else if(M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0)
+                {
+                    //if in here, this is a new drive which only allows this change via the active mode field.
+                    //On these drives, we can check to make sure the changable fields apply to the active mode field, but NOT the power condition identifier.
+                    if (supported)
+                    {
+                        *supported = true;
+                    }
+                    //read current values to get enabled/disabled
+                    memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+                    if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
+                    {
+                        //check the active level to make sure it is zero
+                        uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+                        if (activeLevel == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 && enabled)
+                        {
+                            *enabled = true;
+                        }
+                        else if (activeLevel == 1 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 && enabled)
+                        {
+                            *enabled = false;
+                        }
+                        else if(enabled)
+                        {
+                            //I guess say it's off???
+                            *enabled = false;
+                        }
+                        ret = SUCCESS;
                     }
                 }
             }
@@ -690,21 +732,49 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
+        bool oldMethod = false;
         uint8_t *pcModePage = (uint8_t*)calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!pcModePage)
         {
             return MEMORY_FAILURE;
         }
+        //First, need to read changable values page to see if this is a drive needing the old method, or the new one. - TJE
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CHANGABLE_VALUES, pcModePage))
+        {
+            //Detect the old method by seeing if active mode is not changable, but power condition identifier is.
+            if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0xFF && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
+            {
+                oldMethod = true;
+            }
+            //Assume for now that otherwise this is changable by modifying the active field.
+        }
+        //not read and modify the page to enable or disable this feature.
         if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, 16 + MODE_PARAMETER_HEADER_10_LEN, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
         {
             pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
-            if (enable)
+            if (oldMethod)
             {
-                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
+                //Active field is NOT used, only the power condition identifier, which must be 0 or 1.
+                if (enable)
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
+                }
+                else
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 0;
+                }
             }
             else
             {
-                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 0;
+                //Active field IS used and must be set to highest (disabled) or lowest (enabled)
+                if (enable)
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] = 3;
+                }
+                else
+                {
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] = 1;
+                }
             }
             //now do mode select with the data for the mode to set
             ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
@@ -878,16 +948,122 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
     return ret;
 }
 
+//NOTE: If IDD is ever supported on NVMe, this may need updates.
+//TODO: It may be possible to read the DST log to return slightly better messages about IDD
+void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool justRanDST)
+{
+    if (!translatedString)
+    {
+        return;
+    }
+    switch (status)
+    {
+    case 0x00:
+        if (justRanDST)
+        {
+            sprintf(translatedString, "The IDD routine completed without error.");
+        }
+        else
+        {
+            sprintf(translatedString, "The previous IDD routine completed without error or no IDD has ever been run.");
+        }
+        break;
+    case 0x01:
+
+        sprintf(translatedString, "The IDD routine was aborted by the host.");
+        break;
+    case 0x02:
+        sprintf(translatedString, "The IDD routine was interrupted by the host with a hardware or software reset.");
+        break;
+    case 0x03:
+        sprintf(translatedString, "A fatal error or unknown test error occurred while the device was executing its IDD routine and the device was unable to complete the IDD routine.");
+        break;
+    case 0x04:
+        if (justRanDST)
+        {
+            sprintf(translatedString, "The IDD completed having a test element that failed and the test element that failed is not known.");
+        }
+        else
+        {
+            sprintf(translatedString, "The previous IDD completed having a test element that failed and the test element that failed is not known.");
+        }
+        break;
+    case 0x05:
+        if (justRanDST)
+        {
+            sprintf(translatedString, "The IDD completed having the electrical element of the test failed.");
+        }
+        else
+        {
+            sprintf(translatedString, "The previous IDD completed having the electrical element of the test failed.");
+        }
+        break;
+    case 0x06:
+        if (justRanDST)
+        {
+            sprintf(translatedString, "The IDD completed having the servo (and/or seek) test element of the test failed.");
+        }
+        else
+        {
+            sprintf(translatedString, "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
+        }
+        break;
+    case 0x07:
+        if (justRanDST)
+        {
+            sprintf(translatedString, "The IDD completed having the read element of the test failed.");
+        }
+        else
+        {
+            sprintf(translatedString, "The previous IDD completed having the read element of the test failed.");
+        }
+        break;
+    case 0x08:
+        if (justRanDST)
+        {
+            sprintf(translatedString, "The IDD completed having a test element that failed and the device is suspected of having handling damage.");
+        }
+        else
+        {
+            sprintf(translatedString, "The previous IDD completed having a test element that failed and the device is suspected of having handling damage.");
+        }
+        break;
+    case 0x09:
+    case 0x0A:
+    case 0x0B:
+    case 0x0C:
+    case 0x0D:
+    case 0x0E:
+        sprintf(translatedString, "Reserved Status.");
+        break;
+    case 0x0F:
+        sprintf(translatedString, "IDD in progress.");
+        break;
+    default:
+        sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
+    }
+    return;
+}
+
+
 int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveForeground)
 {
     int ret = NOT_SUPPORTED;
+    os_Lock_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t iddTestNumber = 0;
         uint32_t timeoutSeconds = SEAGATE_IDD_TIMEOUT;//make this super long just in case...
         if (captiveForeground)
         {
-            timeoutSeconds = UINT32_MAX;
+            if (os_Is_Infinite_Timeout_Supported())
+            {
+                timeoutSeconds = INFINITE_TIMEOUT_VALUE;
+            }
+            else
+            {
+                timeoutSeconds = MAX_CMD_TIMEOUT_SECONDS;
+            }
         }
         switch (iddOperation)
         {
@@ -908,7 +1084,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
         default:
             return NOT_SUPPORTED;
         }
-        return ata_SMART_Offline(device, iddTestNumber, timeoutSeconds);
+        ret = ata_SMART_Offline(device, iddTestNumber, timeoutSeconds);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -928,11 +1104,19 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
                 break;
             default:
                 safe_Free(iddDiagPage);
+                os_Unlock_Device(device);
                 return NOT_SUPPORTED;
             }
             if (captiveForeground)
             {
-                commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;// UINT32_MAX; switching to 300 since windows doesn't like us doing an "infinite" timeout
+                if (os_Is_Infinite_Timeout_Supported())
+                {
+                    commandTimeoutSeconds = INFINITE_TIMEOUT_VALUE;
+                }
+                else
+                {
+                    commandTimeoutSeconds = MAX_CMD_TIMEOUT_SECONDS;
+                }
                 iddDiagPage[1] |= BIT4;
             }
             else
@@ -950,6 +1134,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             ret = MEMORY_FAILURE;
         }
     }
+    os_Unlock_Device(device);
     return ret;
 }
 
@@ -1283,7 +1468,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         pwrTelData->totalMeasurementTimeRequested = M_BytesTo2ByteValue(powerTelemetryLog[33], powerTelemetryLog[32]);
         uint16_t dataLength = M_BytesTo2ByteValue(powerTelemetryLog[35], powerTelemetryLog[34]);
         pwrTelData->numberOfMeasurements = M_BytesTo2ByteValue(powerTelemetryLog[37], powerTelemetryLog[36]);
-        uint16_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
+        uint32_t measurementOffset = M_BytesTo2ByteValue(powerTelemetryLog[39], powerTelemetryLog[38]);
         pwrTelData->measurementFormat = powerTelemetryLog[40];
         pwrTelData->temperatureCelcius = powerTelemetryLog[41];
         pwrTelData->measurementWindowTimeMilliseconds = M_BytesTo2ByteValue(powerTelemetryLog[43], powerTelemetryLog[42]);
@@ -1312,7 +1497,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
     {
         //doubles for end statistics of measurement
         double sum5v = 0, sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
-        double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Concert from milliseconds to something else???
+        double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Convert from milliseconds to something else???
 
         printf("Power Telemetry\n");
         printf("\tSerial Number: %s\n", pwrTelData->serialNumber);
@@ -1406,4 +1591,64 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         }
     }
     return;
+}
+
+bool is_Seagate_Quick_Format_Supported(tDevice *device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)//This is only available on SATA drives.
+    {
+        eSeagateFamily family = is_Seagate_Family(device);
+        if (family == SEAGATE)
+        {
+            if (device->drive_info.drive_type == ATA_DRIVE)
+            {
+                if (is_SMART_Enabled(device))
+                {
+                    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+                    if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        if (smartData[0x1EE] & BIT3)
+                        {
+                            supported = true;
+                        }
+                    }
+                }
+            }
+
+            if (!supported)
+            {
+                //This above support bit was discontinued, so need to check for support of other features..This is not a guaranteed "it will work" but it is what we have to work with.
+                bool stdDepopSupported = is_Depopulation_Feature_Supported(device, NULL);
+                //bool stdRepopSupported = is_Repopulate_Feature_Supported(device, NULL);
+                //TODO: Should checking for set sector configuration bit be here??? it's not clear if drives with this, but not depop will work or not at this time.
+                if (stdDepopSupported /*&& !stdRepopSupported*/)
+                {
+                    supported = true;
+                }
+            }
+        }
+    }
+    return supported;
+}
+
+int seagate_Quick_Format(tDevice *device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint32_t timeout = 0;
+        if (os_Is_Infinite_Timeout_Supported())
+        {
+            timeout = INFINITE_TIMEOUT_VALUE;
+        }
+        else
+        {
+            timeout = MAX_CMD_TIMEOUT_SECONDS;
+        }
+        os_Lock_Device(device);
+        ret = ata_SMART_Command(device, ATA_SMART_EXEC_OFFLINE_IMM, 0xD3, NULL, 0, timeout, false, 0);
+        os_Unlock_Device(device);
+    }
+    return ret;
 }

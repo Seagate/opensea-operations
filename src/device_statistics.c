@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,8 +40,8 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     //need to get the device statistics log
     if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true))
     {
-        bool dsnFeatureSupported = device->drive_info.IdentifyData.ata.Word119 & BIT9 ? true : false;
-        bool dsnFeatureEnabled = device->drive_info.IdentifyData.ata.Word120 & BIT9 ? true : false;
+        bool dsnFeatureSupported = M_ToBool(device->drive_info.IdentifyData.ata.Word119 & BIT9);
+        bool dsnFeatureEnabled = M_ToBool(device->drive_info.IdentifyData.ata.Word120 & BIT9);
         uint8_t *deviceStatsLog = (uint8_t*)calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!deviceStatsLog)
         {

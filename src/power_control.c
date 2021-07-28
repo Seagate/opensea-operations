@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -626,7 +626,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 if (powerConditions->idle_a.powerConditionValid && powerConditions->idle_a.restoreToDefault)
                 {
                     powerConditions->idle_a.enableValid = true;
-                    powerConditions->idle_a.enable = (powerConditionsPage[mpStartOffset + 3] & BIT1) > 0 ? true : false;
+                    powerConditions->idle_a.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT1);
                     powerConditions->idle_a.timerValid = true;
                     powerConditions->idle_a.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 4], powerConditionsPage[mpStartOffset + 5], powerConditionsPage[mpStartOffset + 6], powerConditionsPage[mpStartOffset + 7]);
                     powerConditions->idle_a.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -634,7 +634,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 if (powerConditions->standby_z.powerConditionValid && powerConditions->standby_z.restoreToDefault)
                 {
                     powerConditions->standby_z.enableValid = true;
-                    powerConditions->standby_z.enable = (powerConditionsPage[mpStartOffset + 3] & BIT0) > 0 ? true : false;
+                    powerConditions->standby_z.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT0);
                     powerConditions->standby_z.timerValid = true;
                     powerConditions->standby_z.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 8], powerConditionsPage[mpStartOffset + 9], powerConditionsPage[mpStartOffset + 10], powerConditionsPage[mpStartOffset + 11]);
                     powerConditions->standby_z.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -649,7 +649,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     if (powerConditions->idle_b.powerConditionValid && powerConditions->idle_b.restoreToDefault)
                     {
                         powerConditions->idle_b.enableValid = true;
-                        powerConditions->idle_b.enable = (powerConditionsPage[mpStartOffset + 3] & BIT2) > 0 ? true : false;
+                        powerConditions->idle_b.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT2);
                         powerConditions->idle_b.timerValid = true;
                         powerConditions->idle_b.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 12], powerConditionsPage[mpStartOffset + 13], powerConditionsPage[mpStartOffset + 14], powerConditionsPage[mpStartOffset + 15]);
                         powerConditions->idle_b.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -657,7 +657,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     if (powerConditions->idle_c.powerConditionValid && powerConditions->idle_c.restoreToDefault)
                     {
                         powerConditions->idle_c.enableValid = true;
-                        powerConditions->idle_c.enable = (powerConditionsPage[mpStartOffset + 3] & BIT3) > 0 ? true : false;
+                        powerConditions->idle_c.enable = M_ToBool(powerConditionsPage[mpStartOffset + 3] & BIT3);
                         powerConditions->idle_c.timerValid = true;
                         powerConditions->idle_c.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 16], powerConditionsPage[mpStartOffset + 17], powerConditionsPage[mpStartOffset + 18], powerConditionsPage[mpStartOffset + 19]);
                         powerConditions->idle_c.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -665,7 +665,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     if (powerConditions->standby_y.powerConditionValid && powerConditions->standby_y.restoreToDefault)
                     {
                         powerConditions->standby_y.enableValid = true;
-                        powerConditions->standby_y.enable = (powerConditionsPage[mpStartOffset + 2] & BIT0) > 0 ? true : false;
+                        powerConditions->standby_y.enable = M_ToBool(powerConditionsPage[mpStartOffset + 2] & BIT0);
                         powerConditions->standby_y.timerValid = true;
                         powerConditions->standby_y.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 20], powerConditionsPage[mpStartOffset + 21], powerConditionsPage[mpStartOffset + 22], powerConditionsPage[mpStartOffset + 23]);
                         powerConditions->standby_y.restoreToDefault = false;//turn this off now that we have the other settings stored.
@@ -1249,8 +1249,8 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
                 ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
                 identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
-                uint16_t pcIter = 4, counter = 0;
-                for (; pcIter < powerConsumptionLength; pcIter += 4, counter++)
+                uint32_t pcIter = 4, counter = 0;
+                for (; pcIter < powerConsumptionLength && pcIter < C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
                 {
                     identifiers->identifiers[counter].identifierValue = powerConsumptionPage[pcIter];
                     identifiers->identifiers[counter].units = powerConsumptionPage[pcIter + 1] & 0x07;
@@ -2423,28 +2423,37 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
         return BAD_PARAMETER;
     }
     bool gotFullPageLength = false;
-    uint16_t enhPhyControlLength = 0;
-    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    bool alreadyHaveAllData = false;
+    uint16_t enhPhyControlLength = MODE_PARAMETER_HEADER_10_LEN + 8 + 40;//first 8 bytes are a "header" followed by 20 bytes per phy and setting this for 2 phys since that is most common right now. -TJE
+    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned(enhPhyControlLength * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
     }
     //read first 4 bytes to get total mode page length, then re-read the part with all the data
-    if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl)))
+    if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, enhPhyControlLength, 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl)))
     {
-        //parse the header to figure out full page length
-        enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
-        gotFullPageLength = true;
-        uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
-        if (!temp)
+        if (enhPhyControlLength < M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]))
         {
-            return MEMORY_FAILURE;
+            //parse the header to figure out full page length
+            enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            gotFullPageLength = true;
+            uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
+            if (!temp)
+            {
+                return MEMORY_FAILURE;
+            }
+            enhSasPhyControl = temp;
         }
-        enhSasPhyControl = temp;
+        else
+        {
+            gotFullPageLength = true;
+            alreadyHaveAllData = true;
+        }
     }
     if (gotFullPageLength)
     {
-        if (SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl))
+        if (alreadyHaveAllData || SUCCESS == scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, enhPhyControlLength, 0x03, true, false, MPC_CURRENT_VALUES, enhSasPhyControl))
         {
             //make sure we got the header as we expect it, then validate we got all the data we needed.
             //uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
@@ -2457,7 +2466,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                     uint8_t numberOfPhys = enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
                     uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
                     uint16_t descriptorLength = 19;
-                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys; ++phyIter, phyDescriptorOffset += descriptorLength)
+                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && phyDescriptorOffset < enhPhyControlLength; ++phyIter, phyDescriptorOffset += descriptorLength)
                     {
                         uint8_t phyIdentifier = enhSasPhyControl[phyDescriptorOffset + 1];
                         descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]);
@@ -2491,7 +2500,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                         }
                     }
                     //we've finished making our changes to the mode page, so it's time to write it back!
-                    if (SUCCESS != scsi_Mode_Select_10(device, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength), true, true, false, enhSasPhyControl, (MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength)))
+                    if (SUCCESS != scsi_Mode_Select_10(device, enhPhyControlLength, true, true, false, enhSasPhyControl, enhPhyControlLength))
                     {
                         ret = FAILURE;
                     }

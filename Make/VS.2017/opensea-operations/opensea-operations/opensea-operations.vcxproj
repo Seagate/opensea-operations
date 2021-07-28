@@ -739,6 +739,7 @@
     <ClInclude Include="..\..\..\..\include\operations.h" />
     <ClInclude Include="..\..\..\..\include\operations_Common.h" />
     <ClInclude Include="..\..\..\..\include\power_control.h" />
+    <ClInclude Include="..\..\..\..\include\reservations.h" />
     <ClInclude Include="..\..\..\..\include\sanitize.h" />
     <ClInclude Include="..\..\..\..\include\sas_phy.h" />
     <ClInclude Include="..\..\..\..\include\seagate_operations.h" />
@@ -765,6 +766,7 @@
     <ClCompile Include="..\..\..\..\src\nvme_operations.c" />
     <ClCompile Include="..\..\..\..\src\operations.c" />
     <ClCompile Include="..\..\..\..\src\power_control.c" />
+    <ClCompile Include="..\..\..\..\src\reservations.c" />
     <ClCompile Include="..\..\..\..\src\sanitize.c" />
     <ClCompile Include="..\..\..\..\src\sas_phy.c" />
     <ClCompile Include="..\..\..\..\src\seagate_operations.c" />

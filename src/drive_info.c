@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     bool gplSupported = false;
     bool smartErrorLoggingSupported = false;
     bool smartStatusFromSCTStatusLog = false;
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
     memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata, LEGACY_DRIVE_SEC_SIZE))
@@ -212,6 +216,42 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         //now get the Transport specs supported.
         specsBits = wordPtr[222];
         uint8_t transportType = M_Nibble3(specsBits);//0 = parallel, 1 = serial, e = PCIe
+        if (specsBits & BIT10)
+        {
+            if (transportType == 0x01)
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "SATA 3.5");
+            }
+            else
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "Reserved");
+            }
+            driveInfo->numberOfSpecificationsSupported++;
+        }
+        if (specsBits & BIT9)
+        {
+            if (transportType == 0x01)
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "SATA 3.4");
+            }
+            else
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "Reserved");
+            }
+            driveInfo->numberOfSpecificationsSupported++;
+        }
+        if (specsBits & BIT8)
+        {
+            if (transportType == 0x01)
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "SATA 3.3");
+            }
+            else
+            {
+                sprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], "Reserved");
+            }
+            driveInfo->numberOfSpecificationsSupported++;
+        }
         if (specsBits & BIT7)
         {
             if (transportType == 0x01)
@@ -343,7 +383,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0, protocolList, LEGACY_DRIVE_SEC_SIZE))
                     {
                         uint16_t listLength = M_BytesTo2ByteValue(protocolList[7], protocolList[6]);
-                        for (uint16_t offset = 8; offset < (listLength + 8) && offset < LEGACY_DRIVE_SEC_SIZE; ++offset)
+                        for (uint32_t offset = UINT16_C(8); offset < C_CAST(uint32_t, listLength + UINT16_C(8)) && offset < LEGACY_DRIVE_SEC_SIZE; ++offset)
                         {
                             switch (protocolList[offset])
                             {
@@ -389,7 +429,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
         //cache size (legacy method - from ATA 1/2)
-        driveInfo->cacheSize = M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A]) * driveInfo->logicalSectorSize;
+        driveInfo->cacheSize = C_CAST(uint64_t, M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
         if (transportType == 0xE)
         {
             driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PCIE;
@@ -915,7 +955,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
         //NV Cache Size logical blocks - needs testing against different drives to make sure the value is correct
-        driveInfo->hybridNANDSize = M_WordsTo4ByteValue(wordPtr[215], wordPtr[216]) * driveInfo->logicalSectorSize;
+        driveInfo->hybridNANDSize = C_CAST(uint64_t, M_WordsTo4ByteValue(wordPtr[215], wordPtr[216])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
         //create a list of supported features
         if (driveInfo->trustedCommandsBeingBlocked == true)
         {
@@ -1319,7 +1359,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     if (gotLogDirectory)
     {
         //check for log sizes we are interested in
-        uint32_t devStatsSize = 0, idDataLog = 0, hybridInfoSize = 0, smartSelfTest = 0, extSelfTest = 0, hostlogging = 0, sctStatus = 0;
+        uint32_t devStatsSize = 0, idDataLog = 0, hybridInfoSize = 0, smartSelfTest = 0, extSelfTest = 0, hostlogging = 0, sctStatus = 0, concurrentRangesSize = 0;
         devStatsSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2) + 1], logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         idDataLog = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         hybridInfoSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2) + 1], logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2)]) * LEGACY_DRIVE_SEC_SIZE;
@@ -1327,6 +1367,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         extSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         sctStatus = M_BytesTo2ByteValue(logBuffer[(ATA_SCT_COMMAND_STATUS * 2) + 1], logBuffer[(ATA_SCT_COMMAND_STATUS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         hostlogging = M_BytesTo2ByteValue(logBuffer[(0x80 * 2) + 1], logBuffer[(0x80 * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+        concurrentRangesSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2) + 1], logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2)]) * LEGACY_DRIVE_SEC_SIZE;
         if (hostlogging > 0)
         {
             sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Host Logging");
@@ -1415,8 +1456,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                             if (supportedCapabilitiesQWord & BIT46)
                             {
                                 dlcSupported = true;
-                                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Device Life Control");
-                                driveInfo->numberOfFeaturesSupported++;
                             }
                         }
                         //Download capabilities
@@ -1998,6 +2037,15 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                 }
             }
         }
+        if (gplSupported && concurrentRangesSize)
+        {
+            memset(logBuffer, 0, logBufferSize);
+            //NOTE: Only reading first 512B since this has the counter we need. Max log size is 1024 in ACS5 - TJE
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+            {
+                driveInfo->concurrentPositioningRanges = logBuffer[0];
+            }
+        }
     }
     safe_Free_aligned(logBuffer);
     
@@ -2210,6 +2258,10 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
 int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo)
 {
     int ret = SUCCESS;
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
     memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     //start with standard inquiry data
     uint8_t version = 0;
@@ -2500,12 +2552,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //we get the active phy from the low byte of the WWN when we find the association field set to 01b
                     uint64_t accotiatedWWN = 0;
                     uint8_t association = 0;
-                    uint8_t deviceIdentificationIter = 4;
+                    uint32_t deviceIdentificationIter = 4;
                     uint16_t pageLength = M_BytesTo2ByteValue(deviceIdentification[2], deviceIdentification[3]);
                     uint8_t designatorLength = 0;
                     uint8_t protocolIdentifier = 0;
                     uint8_t designatorType = 0;
-                    for (; deviceIdentificationIter < INQ_RETURN_DATA_LENGTH && deviceIdentificationIter < pageLength; deviceIdentificationIter += designatorLength)
+                    for (; deviceIdentificationIter < C_CAST(uint32_t, pageLength + UINT16_C(4)); deviceIdentificationIter += designatorLength)
                     {
                         association = (deviceIdentification[deviceIdentificationIter + 1] >> 4) & 0x03;
                         designatorLength = deviceIdentification[deviceIdentificationIter + 3] + 4;
@@ -2614,7 +2666,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
                                 {
                                     //loop through and find supported protection types...
-                                    for (uint16_t offset = 4; offset < (supportedBlockSizesAndProtectionTypesLength + 4); offset += 8)
+                                    for (uint32_t offset = UINT16_C(4); offset < C_CAST(uint32_t, supportedBlockSizesAndProtectionTypesLength + UINT16_C(4)); offset += UINT16_C(8))
                                     {
                                         if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
                                         {
@@ -2735,6 +2787,22 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 }
                 safe_Free_aligned(ataInformation);
                 break;
+            }
+            case CONCURRENT_POSITIONING_RANGES:
+            {
+                uint32_t concurrentRangesLength = (15 * 32) + 64;//max of 15 ranges at 32 bytes each, plus 64 bytes that show ahead as a "header"
+                uint8_t *concurrentRanges = (uint8_t*)calloc_aligned(concurrentRangesLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+                if (!concurrentRanges)
+                {
+                    perror("Error allocating memory to read concurrent positioning ranges VPD page");
+                    continue;
+                }
+                if(SUCCESS == scsi_Inquiry(device, concurrentRanges, concurrentRangesLength, CONCURRENT_POSITIONING_RANGES, true, false))
+                {
+                    //calculate how many ranges are being reported by the device.
+                    driveInfo->concurrentPositioningRanges = (M_BytesTo2ByteValue(concurrentRanges[2], concurrentRanges[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
+                }
+                safe_Free_aligned(concurrentRanges);
             }
             default:
                 break;
@@ -3010,6 +3078,16 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         }
     }
     driveInfo->percentEnduranceUsed = -1;//set to this to filter out later
+
+    if (version >= 2)
+    {
+        //Check for persistent reservation support
+        if (SUCCESS == scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 0, NULL))
+        {
+            sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Persistent Reservations");
+            driveInfo->numberOfFeaturesSupported++;
+        }
+    }
 
     bool smartStatusRead = false;
     if (version >= 2 && peripheralDeviceType != PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE && !device->drive_info.passThroughHacks.scsiHacks.noLogPages)//SCSI2 introduced log pages
@@ -3758,16 +3836,16 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     if (pageRead)
                     {
                         //NV_DIS
-                        driveInfo->nvCacheEnabled = cachingPage[headerLength + 13] & BIT0 ? false : true;//bit being set means disabled the cache, being set to 0 means cache is enabled.
+                        driveInfo->nvCacheEnabled = !M_ToBool(cachingPage[headerLength + 13] & BIT0);//bit being set means disabled the cache, being set to 0 means cache is enabled.
 
                         //WCE
-                        driveInfo->writeCacheEnabled = cachingPage[headerLength + 2] & BIT2 ? true : false;
+                        driveInfo->writeCacheEnabled = M_ToBool(cachingPage[headerLength + 2] & BIT2);
                         if (driveInfo->writeCacheEnabled)
                         {
                             driveInfo->writeCacheSupported = true;
                         }
                         //DRA
-                        driveInfo->readLookAheadEnabled = cachingPage[headerLength + 12] & BIT5 ? false : true;
+                        driveInfo->readLookAheadEnabled = !M_ToBool(cachingPage[headerLength + 12] & BIT5);
                         if (driveInfo->readLookAheadEnabled)
                         {
                             driveInfo->readLookAheadSupported = true;
@@ -4808,7 +4886,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     if (version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
     {
         uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
-        for (uint16_t iter = 4; iter < (pageLength + 4); ++iter)
+        for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)); ++iter)
         {
             switch (supportedDiagnostics[iter])
             {
@@ -5013,6 +5091,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         //check write buffer (firmware download) call info firmware download.h for this information.
         supportedDLModes supportedDLModes;
         memset(&supportedDLModes, 0, sizeof(supportedDLModes));
+        supportedDLModes.size = sizeof(supportedDLModes);
+        supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
         //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
         int tempDevType = device->drive_info.drive_type;
         device->drive_info.drive_type = SCSI_DRIVE;
@@ -5084,6 +5164,10 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
 int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo)
 {
     int ret = NOT_SUPPORTED;
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
     memset(driveInfo, 0, sizeof(driveInformationNVMe));
 #if !defined(DISABLE_NVME_PASSTHROUGH)
     //changing ret to success since we have passthrough available
@@ -5387,6 +5471,12 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
             sprintf(driveInfo->namespaceData.namespaceFeaturesSupported[driveInfo->namespaceData.numberOfNamespaceFeatures], "Write Zeros");
             ++(driveInfo->namespaceData.numberOfNamespaceFeatures);
         }
+        if (nvmeIdentifyData[520] & BIT5)
+        {
+            sprintf(driveInfo->namespaceData.namespaceFeaturesSupported[driveInfo->namespaceData.numberOfNamespaceFeatures], "Persistent Reservations");
+            driveInfo->namespaceData.numberOfNamespaceFeatures++;
+        }
+
         
         memset(nvmeIdentifyData, 0, NVME_IDENTIFY_DATA_LEN);
         if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.namespaceID, 0))
@@ -6653,6 +6743,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
         printf("\tNumber of Logical Units: %" PRIu8 "\n", driveInfo->lunCount);
     }
+    if (driveInfo->concurrentPositioningRanges > 0)
+    {
+        printf("\tNumber of Concurrent Ranges: %" PRIu8 "\n", driveInfo->concurrentPositioningRanges);
+    }
     //Specifications Supported
     printf("\tSpecifications Supported:\n");
     if (driveInfo->numberOfSpecificationsSupported > 0)
@@ -6804,10 +6898,10 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
             externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
             externalDriveInfo->temperatureData.temperatureDataValid = true;
             //Workload (reads, writes)
-            externalDriveInfo->totalBytesRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512);//this is a count of 512B units, so converting to bytes
-            externalDriveInfo->totalLBAsRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
-            externalDriveInfo->totalBytesWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512); //this is a count of 512B units, so converting to bytes
-            externalDriveInfo->totalLBAsWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
+            externalDriveInfo->totalBytesRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 * 1000);//this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 * 1000 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
+            externalDriveInfo->totalBytesWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 * 1000); //this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 * 1000 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
             externalDriveInfo->percentEnduranceUsed = nvmeDriveInfo->smartData.percentageUsed;
             externalDriveInfo->smartStatus = nvmeDriveInfo->smartData.smartStatus;
         }

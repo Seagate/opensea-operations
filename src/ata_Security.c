@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012 - 2020 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@
 #include "operations_Common.h"
 #include "ata_Security.h"
 #include <ctype.h>
+#include "platform_helper.h"
 
 bool sat_ATA_Security_Protocol_Supported(tDevice *device)
 {
@@ -1109,11 +1110,13 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                     time_t currentTime = time(NULL);
                     time_t futureTime = get_Future_Date_And_Time(currentTime, eraseTimeMinutes * 60);
                     uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+                    char timeFormat[TIME_STRING_LENGTH] = { 0 };
                     convert_Seconds_To_Displayable_Time(erasemaxSeconds, NULL, &days, &hours, &minutes, &seconds);
-                    printf("\n\tCurrent Time: %s\tDrive reported completion time: >", ctime((const time_t*)&currentTime));
+                    printf("\n\tCurrent Time: %s\tDrive reported completion time: >", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
                     print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
                     printf("from now.\n");
-                    printf("\tEstimated completion Time : sometime after %s", ctime((const time_t *)&futureTime));
+                    memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
+                    printf("\tEstimated completion Time : sometime after %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
                 }
             }
             else
@@ -1121,11 +1124,13 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                 time_t currentTime = time(NULL);
                 time_t futureTime = get_Future_Date_And_Time(currentTime, eraseTimeMinutes * 60);
                 uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+                char timeFormat[TIME_STRING_LENGTH] = { 0 };
                 convert_Seconds_To_Displayable_Time(eraseTimeMinutes * 60, NULL, &days, &hours, &minutes, &seconds);
-                printf("\n\tCurrent Time: %s\tDrive reported completion time: ", ctime((const time_t*)&currentTime));
+                printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
                 printf("from now.\n");
-                printf("\tEstimated completion Time : %s", ctime((const time_t *)&futureTime));
+                memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
+                printf("\tEstimated completion Time : %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
             }
             printf("\n\tPlease DO NOT remove power to the drive during the erase\n");
             printf("\tas this will leave it in an uninitialized state with the password set.\n");
@@ -1134,9 +1139,20 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         }
         seatimer_t ataSecureEraseTimer;
         memset(&ataSecureEraseTimer, 0, sizeof(seatimer_t));
+        uint32_t timeout = 0;
+        if (os_Is_Infinite_Timeout_Supported())
+        {
+            timeout = INFINITE_TIMEOUT_VALUE;
+        }
+        else
+        {
+            timeout = MAX_CMD_TIMEOUT_SECONDS;
+        }
+        os_Lock_Device(device);
         start_Timer(&ataSecureEraseTimer);
-        int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, UINT32_MAX, satATASecuritySupported);
+        int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
         stop_Timer(&ataSecureEraseTimer);
+        os_Unlock_Device(device);
         //before we read the bitfield again...try requesting sense data to see if that says there was a reset on the bus. (6h/29h/00h)
         bool hostResetDuringErase = false;
         if (!satATASecuritySupported) //Only do the code below if we aren't using the SAT security protocol to perform the erase.
