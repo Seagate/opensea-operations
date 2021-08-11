@@ -1702,7 +1702,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
                         if (pohQword & BIT63 && pohQword & BIT62)
                         {
-                            driveInfo->powerOnMinutes = M_DoubleWord0(pohQword) * 60;
+                            driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
                         }
                         //logical sectors written
                         uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[31], logBuffer[30], logBuffer[29], logBuffer[28], logBuffer[27], logBuffer[26], logBuffer[25], logBuffer[24]);
@@ -1810,7 +1810,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                                                 uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
                                                 if (pohQword & BIT63 && pohQword & BIT62)
                                                 {
-                                                    driveInfo->powerOnMinutes = M_DoubleWord0(pohQword) * 60;
+                                                    driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
                                                 }
                                                 //logical sectors written
                                                 uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[offset + 31], logBuffer[offset + 30], logBuffer[offset + 29], logBuffer[offset + 28], logBuffer[offset + 27], logBuffer[offset + 26], logBuffer[offset + 25], logBuffer[offset + 24]);
@@ -2164,7 +2164,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         strcmp(driveInfo->modelNumber, "ST400FM0052") == 0) &&
                         strcmp(driveInfo->firmwareRevision, "0004") == 0)
                     {
-                        driveInfo->percentEnduranceUsed = 100 - ((currentAttribute.nominal * 100) / 255);
+                        driveInfo->percentEnduranceUsed = 100 - ((C_CAST(uint32_t, currentAttribute.nominal) * 100) / 255);
                     }
                     else
                     {
@@ -3926,6 +3926,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                     //check if DLC is supported or can be changed before checking if they are enabled or not.
                     char *dlcString = NULL;
+                    uint32_t dlcStringLength = 0;
                     uint8_t controlExtensionPage[MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
                     bool pageRead = false, defaultsRead = false;
                     uint8_t headerLength = 0;
@@ -3960,14 +3961,23 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!dlcString)
                             {
-                                dlcString = (char*)calloc(50, sizeof(char));
+                                dlcStringLength = 50;
+                                dlcString = (char*)calloc(dlcStringLength, sizeof(char));
                             }
                             else
                             {
-                                dlcString = (char*)realloc(dlcString, 50 * sizeof(char));
-                                memset(dlcString, 0, 50);
+                                dlcStringLength = 50;
+                                char *temp = (char*)realloc(dlcString, dlcStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    dlcString = temp;
+                                    memset(dlcString, 0, 50);
+                                }
                             }
-                            strcpy(dlcString, "Device Life Control");
+                            if (dlcString && dlcStringLength >= 50)
+                            {
+                                strcpy(dlcString, "Device Life Control");
+                            }
                         }
                     }
                     if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, controlExtensionPage))
@@ -4009,14 +4019,23 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!dlcString)
                             {
-                                dlcString = (char*)calloc(50, sizeof(char));
+                                dlcStringLength = 50;
+                                dlcString = (char*)calloc(dlcStringLength, sizeof(char));
                             }
                             else
                             {
-                                dlcString = (char*)realloc(dlcString, 50 * sizeof(char));
-                                memset(dlcString, 0, 50);
+                                dlcStringLength = 50;
+                                char *temp = (char*)realloc(dlcString, dlcStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    dlcString = temp;
+                                    memset(dlcString, 0, 50);
+                                }
                             }
-                            strcpy(dlcString, "Device Life Control [Enabled]");
+                            if (dlcString && dlcStringLength >= 50)
+                            {
+                                strcpy(dlcString, "Device Life Control [Enabled]");
+                            }
                         }
                     }
                     if (dlcString)
@@ -4517,6 +4536,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 case 0x00://EPC
                 {
                     char *epcFeatureString = NULL;
+                    uint32_t epcFeatureStringLength = 0;
                     //read the default values to check if it's supported...then try the current page...
                     bool readDefaults = false;
                     uint8_t powerConditions[40 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
@@ -4537,27 +4557,45 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!epcFeatureString)
                             {
-                                epcFeatureString = (char*)calloc(4, sizeof(char));
+                                epcFeatureStringLength = 4;
+                                epcFeatureString = (char*)calloc(epcFeatureStringLength, sizeof(char));
                             }
                             else
                             {
-                                epcFeatureString = (char*)realloc(epcFeatureString, 4 * sizeof(char));
-                                memset(epcFeatureString, 0, 4);
+                                epcFeatureStringLength = 4;
+                                char *temp = (char*)realloc(epcFeatureString, epcFeatureStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    epcFeatureString = temp;
+                                    memset(epcFeatureString, 0, epcFeatureStringLength);
+                                }
                             }
-                            strcpy(epcFeatureString, "EPC");
+                            if (epcFeatureString && epcFeatureStringLength >= 4)
+                            {
+                                strcpy(epcFeatureString, "EPC");
+                            }
                         }
                         else
                         {
                             if (!epcFeatureString)
                             {
-                                epcFeatureString = (char*)calloc(17, sizeof(char));
+                                epcFeatureStringLength = 17;
+                                epcFeatureString = (char*)calloc(epcFeatureStringLength, sizeof(char));
                             }
                             else
                             {
-                                epcFeatureString = (char*)realloc(epcFeatureString, 17 * sizeof(char));
-                                memset(epcFeatureString, 0, 17);
+                                epcFeatureStringLength = 17;
+                                char *temp = (char*)realloc(epcFeatureString, epcFeatureStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    epcFeatureString = temp;
+                                    memset(epcFeatureString, 0, epcFeatureStringLength);
+                                }
                             }
-                            strcpy(epcFeatureString, "Power Conditions");
+                            if (epcFeatureString && epcFeatureStringLength >= 17)
+                            {
+                                strcpy(epcFeatureString, "Power Conditions");
+                            }
                         }
                     }
                     //Now read the current page to see if it's more than just supported :)
@@ -4591,27 +4629,45 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!epcFeatureString)
                             {
-                                epcFeatureString = (char*)calloc(14, sizeof(char));
+                                epcFeatureStringLength = 14;
+                                epcFeatureString = (char*)calloc(epcFeatureStringLength, sizeof(char));
                             }
                             else
                             {
-                                epcFeatureString = (char*)realloc(epcFeatureString, 14 * sizeof(char));
-                                memset(epcFeatureString, 0, 14);
+                                epcFeatureStringLength = 14;
+                                char *temp = (char*)realloc(epcFeatureString, epcFeatureStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    epcFeatureString = temp;
+                                    memset(epcFeatureString, 0, epcFeatureStringLength);
+                                }
                             }
-                            strcpy(epcFeatureString, "EPC [Enabled]");
+                            if (epcFeatureString && epcFeatureStringLength >= 14)
+                            {
+                                strcpy(epcFeatureString, "EPC [Enabled]");
+                            }
                         }
                         else if (powerConditions[3 + mpHeaderLen] & BIT0 || powerConditions[3 + mpHeaderLen] & BIT1)
                         {
                             if (!epcFeatureString)
                             {
-                                epcFeatureString = (char*)calloc(27, sizeof(char));
+                                epcFeatureStringLength = 27;
+                                epcFeatureString = (char*)calloc(epcFeatureStringLength, sizeof(char));
                             }
                             else
                             {
-                                epcFeatureString = (char*)realloc(epcFeatureString, 27 * sizeof(char));
-                                memset(epcFeatureString, 0, 27);
+                                epcFeatureStringLength = 27;
+                                char *temp = (char*)realloc(epcFeatureString, epcFeatureStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    epcFeatureString = temp;
+                                    memset(epcFeatureString, 0, 27);
+                                }
                             }
-                            strcpy(epcFeatureString, "Power Conditions [Enabled]");
+                            if (epcFeatureString && epcFeatureStringLength >= 27)
+                            {
+                                strcpy(epcFeatureString, "Power Conditions [Enabled]");
+                            }
                         }
                     }
                     if (epcFeatureString)
@@ -6854,11 +6910,11 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
         //we have a copy of the ata info, now just change the stuff we want to show from scsi info
         memset(externalDriveInfo->vendorID, 0, 8);
         memcpy(externalDriveInfo->vendorID, scsiDriveInfo->vendorID, 8);
-        memset(externalDriveInfo->modelNumber, 0, 40);
+        memset(externalDriveInfo->modelNumber, 0, MODEL_NUM_LEN);
         memcpy(externalDriveInfo->modelNumber, scsiDriveInfo->modelNumber, strlen(scsiDriveInfo->modelNumber));
-        memset(externalDriveInfo->serialNumber, 0, 20);
+        memset(externalDriveInfo->serialNumber, 0, SERIAL_NUM_LEN);
         memcpy(externalDriveInfo->serialNumber, scsiDriveInfo->serialNumber, strlen(scsiDriveInfo->serialNumber));
-        memset(externalDriveInfo->firmwareRevision, 0, 10);
+        memset(externalDriveInfo->firmwareRevision, 0, FW_REV_LEN);
         memcpy(externalDriveInfo->firmwareRevision, scsiDriveInfo->firmwareRevision, strlen(scsiDriveInfo->firmwareRevision));
         externalDriveInfo->maxLBA = scsiDriveInfo->maxLBA;
         externalDriveInfo->nativeMaxLBA = scsiDriveInfo->nativeMaxLBA;

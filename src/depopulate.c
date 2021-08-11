@@ -399,59 +399,62 @@ int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *
             if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
             {
                 ptrPhysicalElement elementList = (ptrPhysicalElement)malloc(numberOfDescriptors * sizeof(physicalElement));
-                memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
-                if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
+                if (elementList)
                 {
-                    //loop through and check associatedCapacity and elementIdentifiers
-                    bool foundStatus = false;
-                    ret = SUCCESS;
-                    for (uint32_t elementID = 0; !foundStatus && elementID < numberOfDescriptors; ++elementID)
+                    memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
+                    if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                     {
-                        switch (elementList[elementID].elementHealth)
+                        //loop through and check associatedCapacity and elementIdentifiers
+                        bool foundStatus = false;
+                        ret = SUCCESS;
+                        for (uint32_t elementID = 0; !foundStatus && elementID < numberOfDescriptors; ++elementID)
                         {
-                        case 0xFB://repop error
-                            *depopStatus = DEPOP_REPOP_FAILED;
-                            if (progress)
+                            switch (elementList[elementID].elementHealth)
                             {
-                                *progress = 0.0;
+                            case 0xFB://repop error
+                                *depopStatus = DEPOP_REPOP_FAILED;
+                                if (progress)
+                                {
+                                    *progress = 0.0;
+                                }
+                                foundStatus = true;
+                                break;
+                            case 0xFC://repop in progress
+                                *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+                                if (progress)
+                                {
+                                    *progress = 255.0;
+                                }
+                                foundStatus = true;
+                                break;
+                            case 0xFD://depop error
+                                *depopStatus = DEPOP_FAILED;
+                                if (progress)
+                                {
+                                    *progress = 0.0;
+                                }
+                                foundStatus = true;
+                                break;
+                            case 0xFE://depop in progress
+                                *depopStatus = DEPOP_IN_PROGRESS;
+                                if (progress)
+                                {
+                                    *progress = 255.0;
+                                }
+                                foundStatus = true;
+                                break;
+                            case 0xFF://depop completed successfully
+                            default:
+                                break;
                             }
-                            foundStatus = true;
-                            break;
-                        case 0xFC://repop in progress
-                            *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-                            if (progress)
-                            {
-                                *progress = 255.0;
-                            }
-                            foundStatus = true;
-                            break;
-                        case 0xFD://depop error
-                            *depopStatus = DEPOP_FAILED;
-                            if (progress)
-                            {
-                                *progress = 0.0;
-                            }
-                            foundStatus = true;
-                            break;
-                        case 0xFE://depop in progress
-                            *depopStatus = DEPOP_IN_PROGRESS;
-                            if (progress)
-                            {
-                                *progress = 255.0;
-                            }
-                            foundStatus = true;
-                            break;
-                        case 0xFF://depop completed successfully
-                        default:
-                            break;
                         }
                     }
+                    else
+                    {
+                        ret = NOT_SUPPORTED;
+                    }
+                    safe_Free(elementList);
                 }
-                else
-                {
-                    ret = NOT_SUPPORTED;
-                }
-                safe_Free(elementList);
             }
             else
             {
@@ -718,31 +721,34 @@ int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescrip
                 if (numberOfDescriptors > 0)
                 {
                     ptrPhysicalElement elementList = (ptrPhysicalElement)malloc(numberOfDescriptors * sizeof(physicalElement));
-                    memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
-                    if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
+                    if (elementList)
                     {
-                        //loop through and check associatedCapacity and elementIdentifiers
-                        bool foundDescriptor = false;
-                        for (uint32_t elementID = 0; elementID < numberOfDescriptors; ++elementID)
+                        memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
+                        if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                         {
-                            if (elementList[elementID].elementIdentifier == elementDescriptorID)
+                            //loop through and check associatedCapacity and elementIdentifiers
+                            bool foundDescriptor = false;
+                            for (uint32_t elementID = 0; elementID < numberOfDescriptors; ++elementID)
                             {
-                                //found the descriptor, so it's not a issue of not finding it
-                                foundDescriptor = true;
-                                //check associated maxLBA
-                                if (elementList[elementID].associatedCapacity != UINT64_MAX && requestedMaxLBA != 0 && requestedMaxLBA > elementList[elementID].associatedCapacity)
+                                if (elementList[elementID].elementIdentifier == elementDescriptorID)
                                 {
-                                    //tried requesting a new capacity greater than what the device can support...so this will trigger an error
-                                    invalidMaxLBA = true;
+                                    //found the descriptor, so it's not a issue of not finding it
+                                    foundDescriptor = true;
+                                    //check associated maxLBA
+                                    if (elementList[elementID].associatedCapacity != UINT64_MAX && requestedMaxLBA != 0 && requestedMaxLBA > elementList[elementID].associatedCapacity)
+                                    {
+                                        //tried requesting a new capacity greater than what the device can support...so this will trigger an error
+                                        invalidMaxLBA = true;
+                                    }
                                 }
                             }
+                            if (!foundDescriptor)
+                            {
+                                invalidElement = true;
+                            }
                         }
-                        if (!foundDescriptor)
-                        {
-                            invalidElement = true;
-                        }
+                        safe_Free(elementList);
                     }
-                    safe_Free(elementList);
                 }
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
@@ -1021,24 +1027,27 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
                         if (numberOfDescriptors > 0)
                         {
                             ptrPhysicalElement elementList = (ptrPhysicalElement)malloc(numberOfDescriptors * sizeof(physicalElement));
-                            memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
-                            if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
+                            if (elementList)
                             {
-                                //figure out if any depopulated elements support being repopulated
-                                
-                                for (uint32_t elementID = 0; elementID < numberOfDescriptors; ++elementID)
+                                memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
+                                if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                                 {
-                                    if (elementList[elementID].elementHealth == 0xFF)//depopulated successfully
+                                    //figure out if any depopulated elements support being repopulated
+
+                                    for (uint32_t elementID = 0; elementID < numberOfDescriptors; ++elementID)
                                     {
-                                        ++currentlyDepopulatedElements;
-                                        if (elementList[elementID].restorationAllowed)
+                                        if (elementList[elementID].elementHealth == 0xFF)//depopulated successfully
                                         {
-                                            ++repopulatableElements;
+                                            ++currentlyDepopulatedElements;
+                                            if (elementList[elementID].restorationAllowed)
+                                            {
+                                                ++repopulatableElements;
+                                            }
                                         }
                                     }
                                 }
+                                safe_Free(elementList);
                             }
-                            safe_Free(elementList);
                         }
                         if (currentlyDepopulatedElements > 0)
                         {
