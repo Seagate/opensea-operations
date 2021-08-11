@@ -2511,9 +2511,9 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                         else
                         {
-                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN + 1, serialNumberLength));
-                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
                             driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
+                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
                         }
                     }
                 }
