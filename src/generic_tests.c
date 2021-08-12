@@ -1115,8 +1115,6 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
             {
                 printf("\nError Found at LBA %"PRIu64"\n", errorList[errorIndex].errorAddress);
             }
-            //set a new start for next time through the loop to 1 lba past the last error LBA
-            startingLBA = errorList[errorIndex].errorAddress + 1;
             if (stopOnError || errorIndex >= errorLimit)
             {
                 errorLimitReached = true;
@@ -1126,8 +1124,19 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
             {
                 repair_LBA(device, &errorList[errorIndex], false, autoWriteReassign, autoReadReassign);
             }
-            errorIndex++;
-            continue;//continuing here since startingLBA will get incremented beyond the error so we pick up where we left off.
+            //set a new start for next time through the loop to 1 lba past the last error LBA
+            if (errorIndex < errorLimit)
+            {
+                startingLBA = errorList[errorIndex].errorAddress + 1;
+                errorIndex++;
+                continue;//continuing here since startingLBA will get incremented beyond the error so we pick up where we left off.
+            }
+            else
+            {
+                errorLimitReached = true;
+                ret = FAILURE;
+                break;
+            }
         }
         startingLBA += sectorCount;
 

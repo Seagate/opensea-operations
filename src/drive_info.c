@@ -3658,6 +3658,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 {
                     char *awreString = NULL;
                     char *arreString = NULL;
+                    uint32_t awreStringLength = 0;
+                    uint32_t arreStringLength = 0;
                     uint8_t readWriteErrorRecovery[12 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
                     bool pageRead = false, defaultsRead = false;
                     uint8_t headerLength = 0;
@@ -3678,28 +3680,46 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!awreString)
                             {
-                                awreString = (char*)calloc(30, sizeof(char));
+                                awreStringLength = 30;
+                                awreString = (char*)calloc(awreStringLength, sizeof(char));
                             }
                             else
                             {
-                                awreString = (char*)realloc(awreString, 30 * sizeof(char));
-                                memset(awreString, 0, 30);
+                                awreStringLength = 30;
+                                char *temp = (char*)realloc(awreString, awreStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    awreString = temp;
+                                    memset(awreString, 0, awreStringLength);
+                                }
                             }
-                            strcpy(awreString, "Automatic Write Reassignment");
+                            if (awreString && awreStringLength >= 30)
+                            {
+                                strcpy(awreString, "Automatic Write Reassignment");
+                            }
                         }
                         //arre
                         if (readWriteErrorRecovery[headerLength + 2] & BIT6)
                         {
                             if (!arreString)
                             {
-                                arreString = (char*)calloc(30, sizeof(char));
+                                arreStringLength = 30;
+                                arreString = (char*)calloc(arreStringLength, sizeof(char));
                             }
                             else
                             {
-                                arreString = (char*)realloc(arreString, 30 * sizeof(char));
-                                memset(arreString, 0, 30);
+                                arreStringLength = 30;
+                                char *temp = (char*)realloc(arreString, arreStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    arreString = temp;
+                                    memset(arreString, 0, arreStringLength);
+                                }
                             }
-                            strcpy(arreString, "Automatic Read Reassignment");
+                            if (arreString && arreStringLength >= 30)
+                            {
+                                strcpy(arreString, "Automatic Read Reassignment");
+                            }
                         }
                     }
                     if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 12 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, readWriteErrorRecovery))
@@ -3727,28 +3747,46 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!awreString)
                             {
-                                awreString = (char*)calloc(40, sizeof(char));
+                                awreStringLength = 40;
+                                awreString = (char*)calloc(awreStringLength, sizeof(char));
                             }
                             else
                             {
-                                awreString = (char*)realloc(awreString, 40 * sizeof(char));
-                                memset(awreString, 0, 40);
+                                awreStringLength = 40;
+                                char *temp = (char*)realloc(awreString, awreStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    awreString = temp;
+                                    memset(awreString, 0, awreStringLength);
+                                }
                             }
-                            strcpy(awreString, "Automatic Write Reassignment [Enabled]");
+                            if (awreString && awreStringLength >= 40)
+                            {
+                                strcpy(awreString, "Automatic Write Reassignment [Enabled]");
+                            }
                         }
                         //arre
                         if (readWriteErrorRecovery[headerLength + 2] & BIT6)
                         {
                             if (!arreString)
                             {
-                                arreString = (char*)calloc(40, sizeof(char));
+                                arreStringLength = 40;
+                                arreString = (char*)calloc(arreStringLength, sizeof(char));
                             }
                             else
                             {
-                                arreString = (char*)realloc(arreString, 40 * sizeof(char));
-                                memset(arreString, 0, 40);
+                                arreStringLength = 40;
+                                char *temp = (char*)realloc(arreString, arreStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    arreString = temp;
+                                    memset(arreString, 0, arreStringLength);
+                                }
                             }
-                            strcpy(arreString, "Automatic Read Reassignment [Enabled]");
+                            if (arreString && arreStringLength >= 40)
+                            {
+                                strcpy(arreString, "Automatic Read Reassignment [Enabled]");
+                            }
                         }
                     }
                     if (awreString)
@@ -4763,6 +4801,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //check if DLC is supported or can be changed before checking if they are enabled or not.
                     char *bmsString = NULL;
                     char *bmsPSString = NULL;
+                    uint32_t bmsStringLength = 0;
+                    uint32_t bmsPSStringLength = 0;
                     uint8_t backgroundControl[16 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
                     bool pageRead = false, defaultsRead = false;
                     uint8_t headerLength = 0;
@@ -4797,28 +4837,46 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!bmsString)
                             {
-                                bmsString = (char*)calloc(50, sizeof(char));
+                                bmsStringLength = 50;
+                                bmsString = (char*)calloc(bmsStringLength, sizeof(char));
                             }
                             else
                             {
-                                bmsString = (char*)realloc(bmsString, 50 * sizeof(char));
-                                memset(bmsString, 0, 50);
+                                bmsStringLength = 50;
+                                char *temp = (char*)realloc(bmsString, bmsStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    bmsString = temp;
+                                    memset(bmsString, 0, bmsStringLength);
+                                }
                             }
-                            strcpy(bmsString, "Background Media Scan");
+                            if (bmsString && bmsStringLength >= 50)
+                            {
+                                strcpy(bmsString, "Background Media Scan");
+                            }
                         }
                         //bms-ps
                         if (backgroundControl[headerLength + 5] & BIT0)
                         {
                             if (!bmsPSString)
                             {
-                                bmsPSString = (char*)calloc(50, sizeof(char));
+                                bmsPSStringLength = 50;
+                                bmsPSString = (char*)calloc(bmsPSStringLength, sizeof(char));
                             }
                             else
                             {
-                                bmsPSString = (char*)realloc(bmsPSString, 50 * sizeof(char));
-                                memset(bmsPSString, 0, 50);
+                                bmsPSStringLength = 50;
+                                char *temp = (char*)realloc(bmsPSString, bmsPSStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    bmsPSString = temp;
+                                    memset(bmsPSString, 0, bmsPSStringLength);
+                                }
                             }
-                            strcpy(bmsPSString, "Background Pre-Scan");
+                            if (bmsPSString && bmsPSStringLength >= 50)
+                            {
+                                strcpy(bmsPSString, "Background Pre-Scan");
+                            }
                         }
                     }
                     if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 16 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, backgroundControl))
@@ -4860,28 +4918,46 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         {
                             if (!bmsString)
                             {
-                                bmsString = (char*)calloc(50, sizeof(char));
+                                bmsStringLength = 50;
+                                bmsString = (char*)calloc(bmsStringLength, sizeof(char));
                             }
                             else
                             {
-                                bmsString = (char*)realloc(bmsString, 50 * sizeof(char));
-                                memset(bmsString, 0, 50);
+                                bmsStringLength = 50;
+                                char *temp = (char*)realloc(bmsString, bmsStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    bmsString = temp;
+                                    memset(bmsString, 0, bmsStringLength);
+                                }
                             }
-                            strcpy(bmsString, "Background Media Scan [Enabled]");
+                            if (bmsString && bmsStringLength >= 50)
+                            {
+                                strcpy(bmsString, "Background Media Scan [Enabled]");
+                            }
                         }
                         //bms-ps
                         if (backgroundControl[headerLength + 5] & BIT0)
                         {
                             if (!bmsPSString)
                             {
-                                bmsPSString = (char*)calloc(50, sizeof(char));
+                                bmsPSStringLength = 50;
+                                bmsPSString = (char*)calloc(bmsPSStringLength, sizeof(char));
                             }
                             else
                             {
-                                bmsPSString = (char*)realloc(bmsPSString, 50 * sizeof(char));
-                                memset(bmsPSString, 0, 50);
+                                bmsPSStringLength = 50;
+                                char *temp = (char*)realloc(bmsPSString, bmsPSStringLength * sizeof(char));
+                                if (temp)
+                                {
+                                    bmsPSString = temp;
+                                    memset(bmsPSString, 0, bmsPSStringLength);
+                                }
                             }
-                            strcpy(bmsPSString, "Background Pre-Scan [Enabled]");
+                            if (bmsPSString && bmsPSStringLength >= 50)
+                            {
+                                strcpy(bmsPSString, "Background Pre-Scan [Enabled]");
+                            }
                         }
                     }
                     if (bmsString)
@@ -6068,16 +6144,16 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("\tCopyright: %s\n", driveInfo->copyrightInfo);
     }
     //Drive capacity
-    mCapacity = (double)(driveInfo->maxLBA * driveInfo->logicalSectorSize);
+    mCapacity = C_CAST(double, driveInfo->maxLBA * driveInfo->logicalSectorSize);
     if (driveInfo->maxLBA == 0 && driveInfo->ataLegacyCHSInfo.legacyCHSValid)
     {
         if (driveInfo->ataLegacyCHSInfo.currentCapacityInSectors > 0)
         {
-            mCapacity = (double)(driveInfo->ataLegacyCHSInfo.currentCapacityInSectors * driveInfo->logicalSectorSize);
+            mCapacity = C_CAST(double, C_CAST(uint64_t, driveInfo->ataLegacyCHSInfo.currentCapacityInSectors) * C_CAST(uint64_t, driveInfo->logicalSectorSize));
         }
         else
         {
-            mCapacity = (double)((driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack) * driveInfo->logicalSectorSize);
+            mCapacity = C_CAST(double, (C_CAST(uint64_t, driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders) * C_CAST(uint64_t, driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads) * C_CAST(uint64_t, driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack)) * C_CAST(uint64_t, driveInfo->logicalSectorSize));
         }
     }
     capacity = mCapacity;
@@ -6086,7 +6162,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     printf("\tDrive Capacity (%s/%s): %0.02f/%0.02f\n", mCapUnit, capUnit, mCapacity, capacity);
     if (!(driveInfo->nativeMaxLBA == 0 || driveInfo->nativeMaxLBA == UINT64_MAX))
     {
-        mCapacity = (double)(driveInfo->nativeMaxLBA * driveInfo->logicalSectorSize);
+        mCapacity = C_CAST(double, C_CAST(uint64_t, driveInfo->nativeMaxLBA) * C_CAST(uint64_t, driveInfo->logicalSectorSize));
         capacity = mCapacity;
         metric_Unit_Convert(&mCapacity, &mCapUnit);
         capacity_Unit_Convert(&capacity, &capUnit);
@@ -7008,36 +7084,45 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
     scsiDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
-    scsiDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //allocate ataDriveInfo since this is an ATA drive
         ataDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
-        ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-        ret = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
+        if (ataDriveInfo)
+        {
+            ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
+            ret = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
+        }
     }
 #if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         //allocate nvmeDriveInfo since this is an NVMe drive
         nvmeDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
-        nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
-        get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
+        if (nvmeDriveInfo)
+        {
+            nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
+            ret = get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
+        }
     }
 #endif
-    //not that we have software sat, always get the scsi data.
-    ret = get_SCSI_Drive_Information(device, &scsiDriveInfo->sasSata);
+    if (scsiDriveInfo)
+    {
+        //now that we have software translation always get the scsi data.
+        scsiDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
+        ret = get_SCSI_Drive_Information(device, &scsiDriveInfo->sasSata);
+    }
 
-    if (ret == SUCCESS)
+    if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
     {
         //call the print functions appropriately
-        if (showChildInformation && device->drive_info.drive_type != SCSI_DRIVE)
+        if (showChildInformation && device->drive_info.drive_type != SCSI_DRIVE && scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
         {
-            if (device->drive_info.drive_type == ATA_DRIVE)
+            if (device->drive_info.drive_type == ATA_DRIVE && ataDriveInfo)
             {
                 print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
             }
-            else if (device->drive_info.drive_type == NVME_DRIVE)
+            else if (device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo)
             {
                 print_Parent_And_Child_Information(scsiDriveInfo, nvmeDriveInfo);
             }
@@ -7045,19 +7130,35 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
         else
         {
             //ONLY call the external function when we are able to get some passthrough information back as well
-            if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && device->drive_info.drive_type == ATA_DRIVE)
+            if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && ataDriveInfo && scsiDriveInfo && device->drive_info.drive_type == ATA_DRIVE)
             {
                 usbDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
-                usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-                generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &ataDriveInfo->sasSata);
-                print_Device_Information(usbDriveInfo);
+                if (usbDriveInfo)
+                {
+                    usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
+                    generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &ataDriveInfo->sasSata);
+                    print_Device_Information(usbDriveInfo);
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                    printf("Error allocating memory for USB - ATA drive info\n");
+                }
             }
-            else if (device->drive_info.interface_type == USB_INTERFACE && device->drive_info.drive_type == NVME_DRIVE)
+            else if (device->drive_info.interface_type == USB_INTERFACE && device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo && scsiDriveInfo)
             {
                 usbDriveInfo = (ptrDriveInformation)calloc(1, sizeof(driveInformation));
-                usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-                generate_External_NVMe_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &nvmeDriveInfo->nvme);
-                print_Device_Information(usbDriveInfo);
+                if (usbDriveInfo)
+                {
+                    usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
+                    generate_External_NVMe_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata, &nvmeDriveInfo->nvme);
+                    print_Device_Information(usbDriveInfo);
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                    printf("Error allocating memory for USB - NVMe drive info\n");
+                }
             }
             else//ata or scsi
             {
