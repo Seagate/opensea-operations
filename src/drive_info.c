@@ -2404,7 +2404,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     }
     bool gotRotationRate = false;
     bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
-    if (version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) //VPD pages indroduced in SCSI 2...also a USB hack
+    //some devices (external) don't support VPD pages or may have issue when trying to read them, so check if this hack is set before attempting to read them
+    if ((!device->drive_info.passThroughHacks.scsiHacks.noVPDPages || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) && (version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)) //VPD pages indroduced in SCSI 2...also a USB hack
     {
         bool dummyUpVPDSupport = false;
         if (!device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
@@ -2416,7 +2417,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         {
             dummyUpVPDSupport = true;
         }
-        if (dummyUpVPDSupport == false)
+        if (!dummyUpVPDSupport)
         {
             uint8_t zeroedMem[255] = { 0 };
             if (memcmp(tempBuf, zeroedMem, 255) == 0)
@@ -5004,52 +5005,56 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         }
     }
 
-    //Read supported Diagnostic parameters and check for rebuild assist. (need SCSI2 and higher since before that, this is all vendor unique)
-    uint8_t *supportedDiagnostics = tempBuf;
-    memset(supportedDiagnostics, 0, 1024);
-    bool pageCodeValid = false;
-    uint8_t pageCode = 0;
-    if (version >= 3)//PCV bit and page code fields introduced in SPC specification
+    //skip diag pages on USB/IEEE1394 as it is extremly unlikely these requests will be handled properly and unlikely that any standard diag pages will be supported.-TJE
+    if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
     {
-        pageCodeValid = true;
-        pageCode = DIAG_PAGE_SUPPORTED_PAGES;
-    }
-    //transfer only 4 bytes to the drive for the page format data so we can read the supported pages, then read back the supported list with the receive diagnostics command
-    if (version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
-    {
-        uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
-        for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)); ++iter)
+        //Read supported Diagnostic parameters and check for rebuild assist. (need SCSI2 and higher since before that, this is all vendor unique)
+        uint8_t *supportedDiagnostics = tempBuf;
+        memset(supportedDiagnostics, 0, 1024);
+        bool pageCodeValid = false;
+        uint8_t pageCode = 0;
+        if (version >= 3)//PCV bit and page code fields introduced in SPC specification
         {
-            switch (supportedDiagnostics[iter])
+            pageCodeValid = true;
+            pageCode = DIAG_PAGE_SUPPORTED_PAGES;
+        }
+        //transfer only 4 bytes to the drive for the page format data so we can read the supported pages, then read back the supported list with the receive diagnostics command
+        if (version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
+        {
+            uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
+            for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)); ++iter)
             {
-            //Add more diagnostic pages in here if we want to check them for supported features.
-            case DIAG_PAGE_TRANSLATE_ADDRESS:
-                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Translate Address");
-                driveInfo->numberOfFeaturesSupported++;
-                break;
-            case DIAG_PAGE_REBUILD_ASSIST:
-                //TODO: check and see if the rebuild assist feature is enabled.
-                sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Rebuild Assist");
-                driveInfo->numberOfFeaturesSupported++;
-                break;
-            case 0x90:
-                if (is_Seagate_Family(device) == SEAGATE)
+                switch (supportedDiagnostics[iter])
                 {
-                    sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Seagate Remanufacture");
+                    //Add more diagnostic pages in here if we want to check them for supported features.
+                case DIAG_PAGE_TRANSLATE_ADDRESS:
+                    sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Translate Address");
                     driveInfo->numberOfFeaturesSupported++;
                     break;
-                }
-                break;
-            case 0x98:
-                if (is_Seagate_Family(device) == SEAGATE)
-                {
-                    sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Seagate In Drive Diagnostics (IDD)");
+                case DIAG_PAGE_REBUILD_ASSIST:
+                    //TODO: check and see if the rebuild assist feature is enabled.
+                    sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Rebuild Assist");
                     driveInfo->numberOfFeaturesSupported++;
                     break;
+                case 0x90:
+                    if (is_Seagate_Family(device) == SEAGATE)
+                    {
+                        sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Seagate Remanufacture");
+                        driveInfo->numberOfFeaturesSupported++;
+                        break;
+                    }
+                    break;
+                case 0x98:
+                    if (is_Seagate_Family(device) == SEAGATE)
+                    {
+                        sprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], "Seagate In Drive Diagnostics (IDD)");
+                        driveInfo->numberOfFeaturesSupported++;
+                        break;
+                    }
+                    break;
+                default:
+                    break;
                 }
-                break;
-            default:
-                break;
             }
         }
     }
@@ -5305,6 +5310,10 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
     //changing ret to success since we have passthrough available
     ret = SUCCESS;
     uint8_t *nvmeIdentifyData = (uint8_t*)calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    if (!nvmeIdentifyData)
+    {
+        return MEMORY_FAILURE;
+    }
     if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, 0, 1))
     {
         //MN
