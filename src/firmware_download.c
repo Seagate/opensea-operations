@@ -281,7 +281,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 printf("\n");
             }
-            options->avgSegmentDlTime /= (currentDownloadBlock + 1);
+            options->avgSegmentDlTime /= C_CAST(uint64_t, currentDownloadBlock) + UINT64_C(1);
 #if defined (_WIN32) && defined(WINVER)
 #if WINVER >= SEA_WIN32_WINNT_WIN10
             //restore this value back to what it was (if it was ever even changed)

@@ -727,7 +727,7 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
                 //convert the time to seconds, then print it in a displayable format
                 printf("Power On Time Since Last Format: ");
                 uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
-                convert_Seconds_To_Displayable_Time(formatStatus->powerOnMinutesSinceFormat * UINT32_C(60), &years, &days, &hours, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, formatStatus->powerOnMinutesSinceFormat) * UINT64_C(60), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
             }
