@@ -1445,6 +1445,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
 
 //TODO: should we have another parameter to disable saving the page if they just want to make a temporary change?
 //If this is done. Do we want to just send the command, or do we want to turn off saving if the page isn't savable?
+//NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
 int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
 {
     int ret = NOT_SUPPORTED;
