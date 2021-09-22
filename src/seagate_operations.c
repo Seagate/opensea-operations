@@ -1134,6 +1134,36 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             ret = MEMORY_FAILURE;
         }
     }
+    if (ret != SUCCESS)
+    {
+        if (device->drive_info.drive_type == SCSI_DRIVE)
+        {
+            //check the sense data. The problem may be that captive/foreground mode isn't supported for the long test
+            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
+            {
+                //TODO: Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
+                return NOT_SUPPORTED;
+            }
+            else
+            {
+                return FAILURE;
+            }
+        }
+        else
+        {
+            return FAILURE;
+        }
+    }
+    uint32_t commandTimeSeconds = (uint32_t)(device->drive_info.lastCommandTimeNanoSeconds / 1e9);
+    if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
+    {
+        //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
+        //It needs time to spin back up and be ready to accept commands again.
+        //This is being done in both captive/foreground and offline/background modes due to differences between some drive firmwares.
+        delay_Seconds(IDD_READY_TIME_SECONDS - commandTimeSeconds);
+    }
     os_Unlock_Device(device);
     return ret;
 }
@@ -1176,7 +1206,9 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                 }
                 //if we are here, then an operation isn't already in progress so time to start it
                 result = start_IDD_Operation(device, IDDtest, captiveForeground);
-                if (result != SUCCESS)
+                //Moving this code to start_IDD_Operation function, as we want to lock the drive for 2 mins.
+                //This is to make sure that drive is not getting any command, even outside of tool for 2 mins.
+                /*if (result != SUCCESS)
                 {
                     if (device->drive_info.drive_type == SCSI_DRIVE)
                     {
@@ -1205,7 +1237,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                     //It needs time to spin back up and be ready to accept commands again.
                     //This is being done in both captive/foreground and offline/background modes due to differences between some drive firmwares.
                     delay_Seconds(IDD_READY_TIME_SECONDS - commandTimeSeconds);
-                }
+                }*/
                 if (SUCCESS == result && captiveForeground)
                 {
                     int ret = get_IDD_Status(device, &status);
