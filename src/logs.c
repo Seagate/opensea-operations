@@ -2665,8 +2665,9 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
                     FILE * pLogFile = NULL;
                     char identifyFileName[OPENSEA_PATH_MAX] = { 0 };
                     char * fileNameUsed = &identifyFileName[0];
-                    char logName[16];
-                    sprintf(logName, "LOG_PAGE_%d", logNum);
+#define NVME_LOG_NAME_SIZE 16
+                    char logName[NVME_LOG_NAME_SIZE];
+                    snprintf(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum);
                     if (SUCCESS == create_And_Open_Log_File(device, &pLogFile, NULL, \
                         logName, "bin", 1, &fileNameUsed)) {
                         fwrite(logBuffer, sizeof(uint8_t), (size_t)size, pLogFile);
@@ -2797,23 +2798,24 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
             //go through the directory in a loop
             for (uint32_t iter = UINT32_C(32); iter < (directoryLength + UINT32_C(32)) && iter < errorHistorySize; iter += UINT32_C(8))
             {
-                char dataFormatString[16] = { 0 };
+#define DATA_FORMAT_STRING_LENGTH 16
+                char dataFormatString[DATA_FORMAT_STRING_LENGTH] = { 0 };
                 uint8_t bufferID = errorHistoryDirectory[iter + 0];
                 uint8_t bufferFormat = errorHistoryDirectory[iter + 1];
                 uint32_t maximumLengthAvailable = M_BytesTo4ByteValue(errorHistoryDirectory[iter + 4], errorHistoryDirectory[iter + 5], errorHistoryDirectory[iter + 6], errorHistoryDirectory[iter + 7]);
                 switch (bufferFormat)
                 {
                 case 0://vendor specific data
-                    sprintf(dataFormatString, "Vendor Specific");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Vendor Specific");
                     break;
                 case 1://current internal status parameter data
-                    sprintf(dataFormatString, "Current ISL");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Current ISL");
                     break;
                 case 2://saved internal status parameter data
-                    sprintf(dataFormatString, "Saved ISL");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Saved ISL");
                     break;
                 default://unknown or reserved
-                    sprintf(dataFormatString, "Reserved");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Reserved");
                     break;
                 }
                 printf("  %3" PRIu8 " (%02" PRIX8 "h)      :  %-16s :    %" PRIu32 "\n", bufferID, bufferID, dataFormatString, maximumLengthAvailable);
@@ -2833,15 +2835,17 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
     int retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
     uint8_t *genericLogBuf = NULL;
-    char logFileName[20] = "GENERIC_LOG-";
-    char logNumPostfix[10] = { 0 };
+#define GENERIC_LOG_FILE_NAME_LENGTH 20
+#define LOG_NUMBER_POST_FIX_LENGTH 10
+    char logFileName[GENERIC_LOG_FILE_NAME_LENGTH] = "GENERIC_LOG-";
+    char logNumPostfix[LOG_NUMBER_POST_FIX_LENGTH] = { 0 };
     if (device->drive_info.drive_type == SCSI_DRIVE && subpage != 0)
     {
-        sprintf(logNumPostfix, "%u-%u", logNum, subpage);
+        snprintf(logNumPostfix, LOG_NUMBER_POST_FIX_LENGTH, "%u-%u", logNum, subpage);
     }
     else
     {
-        sprintf(logNumPostfix, "%u", logNum);
+        snprintf(logNumPostfix, LOG_NUMBER_POST_FIX_LENGTH, "%u", logNum);
     }
     strcat(logFileName, logNumPostfix);
 
@@ -2941,17 +2945,19 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     int retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
     uint8_t *genericLogBuf = NULL;
-    char logFileName[30] = "GENERIC_ERROR_HISTORY-";
-    char logNumPostfix[10] = { 0 };
-    sprintf(logNumPostfix, "%" PRIu8, bufferID);
-    strcat(logFileName, logNumPostfix);
-    strcat(logFileName, "\0");
+#define ERROR_HISTORY_FILENAME_LENGTH 30
+#define ERROR_HISTORY_POST_FIX_LENGTH 10
+    char errorHistoryFileName[ERROR_HISTORY_FILENAME_LENGTH] = "GENERIC_ERROR_HISTORY-";
+    char errorHistoryNumPostfix[ERROR_HISTORY_POST_FIX_LENGTH] = { 0 };
+    snprintf(errorHistoryNumPostfix, ERROR_HISTORY_POST_FIX_LENGTH, "%" PRIu8, bufferID);
+    strcat(errorHistoryFileName, errorHistoryNumPostfix);
+    strcat(errorHistoryFileName, "\0");
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
     {
     case PULL_LOG_BIN_FILE_MODE:
-        retStatus = get_SCSI_Error_History(device, bufferID, logFileName, false, rb16, "bin", false, NULL, 0, filePath, transferSizeBytes, NULL);
+        retStatus = get_SCSI_Error_History(device, bufferID, errorHistoryFileName, false, rb16, "bin", false, NULL, 0, filePath, transferSizeBytes, NULL);
         break;
     case PULL_LOG_RAW_MODE:
         if (SUCCESS == get_SCSI_Error_History_Size(device, bufferID, &logSize, false, rb16))

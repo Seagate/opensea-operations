@@ -975,7 +975,8 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
 {
     static uint64_t lsbGbErased = 0, msbGbErased = 0, lsbLifWrtToFlash = 0, msbLifWrtToFlash = 0, lsbLifWrtFrmHost = 0, msbLifWrtFrmHost = 0, lsbLifRdToHost = 0, msbLifRdToHost = 0, lsbTrimCnt = 0, msbTrimCnt = 0;
     char buf[40] = { 0 };
-    char strBuf[35] = { 0 };
+#define NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH 35
+    char strBuf[NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH] = { 0 };
     int hideAttr = 0;
 
     if (attr.AttributeNumber == VS_ATTR_ID_GB_ERASED_LSB)
@@ -1045,47 +1046,47 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
 
     if (lastAttr == 1) {
 
-        sprintf(strBuf, "%s", (print_ext_smart_id(VS_ATTR_ID_GB_ERASED_LSB) + 7));
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_GB_ERASED_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_GB_ERASED_MSB << 8 | VS_ATTR_ID_GB_ERASED_LSB);
 
-        sprintf(buf, "0x%016" PRIX64 "%016" PRIX64 "", msbGbErased, lsbGbErased);
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "", msbGbErased, lsbGbErased);
         printf(" %s", buf);
         printf("\n");
 
-        sprintf(strBuf, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB);
 
-        sprintf(buf, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtToFlash, lsbLifWrtToFlash);
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtToFlash, lsbLifWrtToFlash);
         printf(" %s", buf);
         printf("\n");
 
-        sprintf(strBuf, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB);
 
-        sprintf(buf, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtFrmHost, lsbLifWrtFrmHost);
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtFrmHost, lsbLifWrtFrmHost);
         printf(" %s", buf);
         printf("\n");
 
-        sprintf(strBuf, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_READS_TO_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB);
 
-        sprintf(buf, "0x%016" PRIX64 "%016" PRIX64, msbLifRdToHost, lsbLifRdToHost);
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifRdToHost, lsbLifRdToHost);
         printf(" %s", buf);
         printf("\n");
 
-        sprintf(strBuf, "%s", (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
         printf("%-40s", strBuf);
         printf("%-15d", VS_ATTR_ID_TRIM_COUNT_MSB << 8 | VS_ATTR_ID_TRIM_COUNT_LSB);
 
-        sprintf(buf, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt, lsbTrimCnt);
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt, lsbTrimCnt);
         printf(" %s", buf);
         printf("\n");
     }

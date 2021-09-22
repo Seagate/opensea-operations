@@ -187,37 +187,37 @@ void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool
         switch (status)
         {
         case 0x00:
-            sprintf(translatedString, "Operation completed without error.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation completed without error.");
             break;
         case 0x01:
-            sprintf(translatedString, "Operation was aborted by a Device Self-test command.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation was aborted by a Device Self-test command.");
             break;
         case 0x02:
-            sprintf(translatedString, "Operation was aborted by a Controller Level Reset.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation was aborted by a Controller Level Reset.");
             break;
         case 0x03:
-            sprintf(translatedString, "Operation was aborted due to a removal of a namespace from the namespace inventory.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation was aborted due to a removal of a namespace from the namespace inventory.");
             break;
         case 0x04:
-            sprintf(translatedString, "Operation was aborted due to the processing of a Format NVM command.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation was aborted due to the processing of a Format NVM command.");
             break;
         case 0x05:
-            sprintf(translatedString, "A fatal error or unknown test error occurred while the controller was executing the device self-test operation and the operation did not complete.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "A fatal error or unknown test error occurred while the controller was executing the device self-test operation and the operation did not complete.");
             break;
         case 0x06:
-            sprintf(translatedString, "Operation completed with a segment that failed and the segment that failed is not known.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation completed with a segment that failed and the segment that failed is not known.");
             break;
         case 0x07:
-            sprintf(translatedString, "Operation completed with one or more failed segments and the first segment that failed is indicated in the Segment Number field.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation completed with one or more failed segments and the first segment that failed is indicated in the Segment Number field.");
             break;
         case 0x08:
-            sprintf(translatedString, "Operation was aborted for unknown reason.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation was aborted for unknown reason.");
             break;
         case 0x0F://NOTE: The spec says that this is NOT used. We are dummying this up to work with existing SAS/SATA code which is why this is here - TJE
-            sprintf(translatedString, "Operation in progress.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation in progress.");
             break;
         default:
-            sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
             break;
         }
     }
@@ -228,71 +228,71 @@ void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool
         case 0x00:
             if (justRanDST)
             {
-                sprintf(translatedString, "The self-test routine completed without error.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test routine completed without error.");
             }
             else
             {
-                sprintf(translatedString, "The previous self-test routine completed without error or no self-test has ever been run.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous self-test routine completed without error or no self-test has ever been run.");
             }
             break;
         case 0x01:
 
-            sprintf(translatedString, "The self-test routine was aborted by the host.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test routine was aborted by the host.");
             break;
         case 0x02:
-            sprintf(translatedString, "The self-test routine was interrupted by the host with a hardware or software reset.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test routine was interrupted by the host with a hardware or software reset.");
             break;
         case 0x03:
-            sprintf(translatedString, "A fatal error or unknown test error occurred while the device was executing its self-test routine and the device was unable to complete the self-test routine.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "A fatal error or unknown test error occurred while the device was executing its self-test routine and the device was unable to complete the self-test routine.");
             break;
         case 0x04:
             if (justRanDST)
             {
-                sprintf(translatedString, "The self-test completed having a test element that failed and the test element that failed is not known.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test completed having a test element that failed and the test element that failed is not known.");
             }
             else
             {
-                sprintf(translatedString, "The previous self-test completed having a test element that failed and the test element that failed is not known.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous self-test completed having a test element that failed and the test element that failed is not known.");
             }
             break;
         case 0x05:
             if (justRanDST)
             {
-                sprintf(translatedString, "The self-test completed having the electrical element of the test failed.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test completed having the electrical element of the test failed.");
             }
             else
             {
-                sprintf(translatedString, "The previous self-test completed having the electrical element of the test failed.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous self-test completed having the electrical element of the test failed.");
             }
             break;
         case 0x06:
             if (justRanDST)
             {
-                sprintf(translatedString, "The self-test completed having the servo (and/or seek) test element of the test failed.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test completed having the servo (and/or seek) test element of the test failed.");
             }
             else
             {
-                sprintf(translatedString, "The previous self-test completed having the servo (and/or seek) test element of the test failed.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous self-test completed having the servo (and/or seek) test element of the test failed.");
             }
             break;
         case 0x07:
             if (justRanDST)
             {
-                sprintf(translatedString, "The self-test completed having the read element of the test failed.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test completed having the read element of the test failed.");
             }
             else
             {
-                sprintf(translatedString, "The previous self-test completed having the read element of the test failed.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous self-test completed having the read element of the test failed.");
             }
             break;
         case 0x08:
             if (justRanDST)
             {
-                sprintf(translatedString, "The self-test completed having a test element that failed and the device is suspected of having handling damage.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test completed having a test element that failed and the device is suspected of having handling damage.");
             }
             else
             {
-                sprintf(translatedString, "The previous self-test completed having a test element that failed and the device is suspected of having handling damage.");
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous self-test completed having a test element that failed and the device is suspected of having handling damage.");
             }
             break;
         case 0x09:
@@ -301,13 +301,13 @@ void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool
         case 0x0C:
         case 0x0D:
         case 0x0E:
-            sprintf(translatedString, "Reserved Status.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
             break;
         case 0x0F:
-            sprintf(translatedString, "Self-test in progress.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Self-test in progress.");
             break;
         default:
-            sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
         }
     }
 }
@@ -1842,46 +1842,47 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             //#
             printf("%2" PRIu8 " ", iter + 1);
             //Test
-            char selfTestRunString[22] = { 0 };
+#define SELF_TEST_RUN_STRING_MAX_LENGTH 22
+            char selfTestRunString[SELF_TEST_RUN_STRING_MAX_LENGTH] = { 0 };
             if (entries->logType == DST_LOG_TYPE_ATA)
             {
                 switch (entries->dstEntry[iter].selfTestRun)
                 {
                 case 0:
-                    sprintf(selfTestRunString, "Offline Data Collect");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Offline Data Collect");
                     break;
                 case 1://short
-                    sprintf(selfTestRunString, "Short (offline)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Short (offline)");
                     break;
                 case 2://extended
-                    sprintf(selfTestRunString, "Extended (offline)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Extended (offline)");
                     break;
                 case 3://conveyance
-                    sprintf(selfTestRunString, "Conveyance (offline)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Conveyance (offline)");
                     break;
                 case 4://selective
-                    sprintf(selfTestRunString, "Selective (offline)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Selective (offline)");
                     break;
                 case 0x81://short
-                    sprintf(selfTestRunString, "Short (captive)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Short (captive)");
                     break;
                 case 0x82://extended
-                    sprintf(selfTestRunString, "Extended (captive)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Extended (captive)");
                     break;
                 case 0x83://conveyance
-                    sprintf(selfTestRunString, "Conveyance (captive)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Conveyance (captive)");
                     break;
                 case 0x84://selective
-                    sprintf(selfTestRunString, "Selective (captive)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Selective (captive)");
                     break;
                 default:
                     if ((entries->dstEntry[iter].selfTestRun >= 0x40 && entries->dstEntry[iter].selfTestRun <= 0x7E) || (entries->dstEntry[iter].selfTestRun >= 0x90 /*&& entries->dstEntry[iter].selfTestRun <= 0xFF*/))
                     {
-                        sprintf(selfTestRunString, "Vendor Specific - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                        snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Vendor Specific - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
                     }
                     else
                     {
-                        sprintf(selfTestRunString, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                        snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
                     }
                     break;
                 }
@@ -1891,22 +1892,22 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 switch (entries->dstEntry[iter].selfTestRun)
                 {
                 case 0:
-                    sprintf(selfTestRunString, "Unknown (Not in spec)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Unknown (Not in spec)");
                     break;
                 case 1://short
-                    sprintf(selfTestRunString, "Short (background)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Short (background)");
                     break;
                 case 2://extended
-                    sprintf(selfTestRunString, "Extended (background)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Extended (background)");
                     break;
                 case 5://short
-                    sprintf(selfTestRunString, "Short (foreground)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Short (foreground)");
                     break;
                 case 6://extended
-                    sprintf(selfTestRunString, "Extended (foreground)");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Extended (foreground)");
                     break;
                 default:
-                    sprintf(selfTestRunString, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
                     break;
                 }
             }
@@ -1915,31 +1916,32 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 switch (entries->dstEntry[iter].selfTestRun)
                 {
                 case 0:
-                    sprintf(selfTestRunString, "Reserved");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Reserved");
                     break;
                 case 1://short
-                    sprintf(selfTestRunString, "Short");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Short");
                     break;
                 case 2://extended
-                    sprintf(selfTestRunString, "Extended");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Extended");
                     break;
                 case 0x0E://vendor specific
-                    sprintf(selfTestRunString, "Vendor Specific");
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Vendor Specific");
                     break;
                 default:
-                    sprintf(selfTestRunString, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
                     break;
                 }
             }
             else //print the number
             {
-                sprintf(selfTestRunString, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH,  "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
             }
             printf("%-21s  ", selfTestRunString);
             //Timestamp
             printf("%-9"PRIu16"  ", entries->dstEntry[iter].lifetimeTimestamp);
             //Execution Status
-            char status[30] = { 0 };
+#define SELF_TEST_EXECUTION_STATUS_MAX_LENGTH 30
+            char status[SELF_TEST_EXECUTION_STATUS_MAX_LENGTH] = { 0 };
             uint8_t percentRemaining = 0;
             if (entries->logType == DST_LOG_TYPE_ATA)
             {
@@ -1950,34 +1952,34 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 switch (M_Nibble1(entries->dstEntry[iter].selfTestExecutionStatus))
                 {
                 case 0:
-                    sprintf(status, "No Error");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "No Error");
                     break;
                 case 1:
-                    sprintf(status, "Aborted by command");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Aborted by command");
                     break;
                 case 2:
-                    sprintf(status, "Aborted by controller reset");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Aborted by controller reset");
                     break;
                 case 3:
-                    sprintf(status, "Aborted by namespace removal");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Aborted by namespace removal");
                     break;
                 case 4:
-                    sprintf(status, "Aborted by NVM format");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Aborted by NVM format");
                     break;
                 case 5:
-                    sprintf(status, "Unknown/Fatal Error");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Unknown/Fatal Error");
                     break;
                 case 6:
-                    sprintf(status, "Unknown Segment Failure");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Unknown Segment Failure");
                     break;
                 case 7:
-                    sprintf(status, "Failed on segment %" PRIu8 "", entries->dstEntry[iter].segmentNumber);
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Failed on segment %" PRIu8 "", entries->dstEntry[iter].segmentNumber);
                     break;
                 case 8:
-                    sprintf(status, "Aborted for Unknown Reason");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Aborted for Unknown Reason");
                     break;
                 default:
-                    sprintf(status, "Reserved");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Reserved");
                     break;
                 }
             }
@@ -1986,62 +1988,64 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 switch (M_Nibble1(entries->dstEntry[iter].selfTestExecutionStatus))
                 {
                 case 0:
-                    sprintf(status, "Success");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Success");
                     break;
                 case 1:
-                    sprintf(status, "Aborted by host");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Aborted by host");
                     break;
                 case 2:
-                    sprintf(status, "Interrupted by reset");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Interrupted by reset");
                     break;
                 case 3:
-                    sprintf(status, "Fatal Error - Unknown");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Fatal Error - Unknown");
                     break;
                 case 4:
-                    sprintf(status, "Unknown Failure Type");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Unknown Failure Type");
                     break;
                 case 5:
-                    sprintf(status, "Electrical Failure");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Electrical Failure");
                     break;
                 case 6:
-                    sprintf(status, "Servo/Seek Failure");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Servo/Seek Failure");
                     break;
                 case 7:
-                    sprintf(status, "Read Failure");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Read Failure");
                     break;
                 case 8:
-                    sprintf(status, "Handling Damage");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Handling Damage");
                     break;
                 case 0xF:
-                    sprintf(status, "In progress");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "In progress");
                     break;
                 default:
-                    sprintf(status, "Reserved");
+                    snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "Reserved");
                     break;
                 }
             }
             if (percentRemaining > 0)
             {
                 char percentRemainingString[8] = { 0 };
-                sprintf(percentRemainingString, " (%" PRIu8 "%%)", percentRemaining);
-                strcat(status, percentRemainingString);
+                snprintf(percentRemainingString, 8, " (%" PRIu8 "%%)", percentRemaining);
+                snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "%s%s", status, percentRemainingString);
             }
             printf("%-26s  ", status);
             //Error LBA
-            char errorLBAString[21] = { 0 };
+#define SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH 21
+            char errorLBAString[SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH] = { 0 };
             if (entries->dstEntry[iter].lbaOfFailure == UINT64_MAX)
             {
-                sprintf(errorLBAString, "None");
+                snprintf(errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH, "None");
             }
             else
             {
-                sprintf(errorLBAString, "%" PRIu64, entries->dstEntry[iter].lbaOfFailure);
+                snprintf(errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH, "%" PRIu64, entries->dstEntry[iter].lbaOfFailure);
             }
             printf("%-14s  ", errorLBAString);
             //Checkpoint/Segment number
             printf("%-10" PRIX8 "  ", entries->dstEntry[iter].checkPointByte);
             //Sense Info
-            char senseInfoString[21] = { 0 };
+#define SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH 21
+            char senseInfoString[SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH] = { 0 };
             if (entries->logType == DST_LOG_TYPE_NVME)
             {
                 //SCT - SC
@@ -2049,25 +2053,25 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 char scVal[10] = { 0 };
                 if (entries->dstEntry[iter].nvmeStatus.statusCodeTypeValid)
                 {
-                    sprintf(sctVal, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCodeType);
+                    snprintf(sctVal, 10, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCodeType);
                 }
                 else
                 {
-                    sprintf(sctVal, "NA");
+                    snprintf(sctVal, 10, "NA");
                 }
                 if (entries->dstEntry[iter].nvmeStatus.statusCodeValid)
                 {
-                    sprintf(sctVal, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCode);
+                    snprintf(sctVal, 10, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCode);
                 }
                 else
                 {
-                    sprintf(scVal, "NA");
+                    snprintf(scVal, 10, "NA");
                 }
-                sprintf(senseInfoString, "%s/%s", sctVal, scVal);
+                snprintf(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH, "%s/%s", sctVal, scVal);
             }
             else
             {
-                sprintf(senseInfoString, "%02"PRIX8"/%02"PRIX8"/%02"PRIX8, entries->dstEntry[iter].scsiSenseCode.senseKey, entries->dstEntry[iter].scsiSenseCode.additionalSenseCode, entries->dstEntry[iter].scsiSenseCode.additionalSenseCodeQualifier);
+                snprintf(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH, "%02"PRIX8"/%02"PRIX8"/%02"PRIX8, entries->dstEntry[iter].scsiSenseCode.senseKey, entries->dstEntry[iter].scsiSenseCode.additionalSenseCode, entries->dstEntry[iter].scsiSenseCode.additionalSenseCodeQualifier);
             }
             printf("%-9s\n", senseInfoString);
             ++counter;

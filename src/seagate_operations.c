@@ -961,71 +961,71 @@ void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool
     case 0x00:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD routine completed without error.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine completed without error.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD routine completed without error or no IDD has ever been run.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD routine completed without error or no IDD has ever been run.");
         }
         break;
     case 0x01:
 
-        sprintf(translatedString, "The IDD routine was aborted by the host.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine was aborted by the host.");
         break;
     case 0x02:
-        sprintf(translatedString, "The IDD routine was interrupted by the host with a hardware or software reset.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine was interrupted by the host with a hardware or software reset.");
         break;
     case 0x03:
-        sprintf(translatedString, "A fatal error or unknown test error occurred while the device was executing its IDD routine and the device was unable to complete the IDD routine.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "A fatal error or unknown test error occurred while the device was executing its IDD routine and the device was unable to complete the IDD routine.");
         break;
     case 0x04:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having a test element that failed and the test element that failed is not known.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having a test element that failed and the test element that failed is not known.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having a test element that failed and the test element that failed is not known.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having a test element that failed and the test element that failed is not known.");
         }
         break;
     case 0x05:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having the electrical element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having the electrical element of the test failed.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having the electrical element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having the electrical element of the test failed.");
         }
         break;
     case 0x06:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having the servo (and/or seek) test element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having the servo (and/or seek) test element of the test failed.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
         }
         break;
     case 0x07:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having the read element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having the read element of the test failed.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having the read element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having the read element of the test failed.");
         }
         break;
     case 0x08:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having a test element that failed and the device is suspected of having handling damage.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having a test element that failed and the device is suspected of having handling damage.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having a test element that failed and the device is suspected of having handling damage.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having a test element that failed and the device is suspected of having handling damage.");
         }
         break;
     case 0x09:
@@ -1034,13 +1034,13 @@ void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool
     case 0x0C:
     case 0x0D:
     case 0x0E:
-        sprintf(translatedString, "Reserved Status.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
         break;
     case 0x0F:
-        sprintf(translatedString, "IDD in progress.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "IDD in progress.");
         break;
     default:
-        sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
     }
     return;
 }

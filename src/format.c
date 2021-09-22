@@ -1282,10 +1282,12 @@ void show_Supported_Formats(ptrSupportedFormats formats)
             char pi1 = 0;
             char pi2 = 0;
             char pi3 = 0;
-            char perf[10] = { 0 };
-            char metaSize[10] = { 0 };
-            sprintf(perf, "N/A");
-            sprintf(metaSize, "N/A");
+#define PERF_STRING_SIZE 10
+#define META_STRING_SIZE 10
+            char perf[PERF_STRING_SIZE] = { 0 };
+            char metaSize[META_STRING_SIZE] = { 0 };
+            snprintf(perf, PERF_STRING_SIZE, "N/A");
+            snprintf(metaSize, META_STRING_SIZE, "N/A");
             if (formats->protectionInformationSupported.deviceSupportsProtection)
             {
                 pi0 = 'Y';
@@ -1374,23 +1376,23 @@ void show_Supported_Formats(ptrSupportedFormats formats)
                 switch (formats->sectorSizes[iter].nvmeSectorBits.relativePerformance)
                 {
                 case 0:
-                    sprintf(perf, "Best");
+                    snprintf(perf, PERF_STRING_SIZE, "Best");
                     break;
                 case 1:
-                    sprintf(perf, "Better");
+                    snprintf(perf, PERF_STRING_SIZE, "Better");
                     break;
                 case 2:
-                    sprintf(perf, "Good");
+                    snprintf(perf, PERF_STRING_SIZE, "Good");
                     break;
                 case 3:
-                    sprintf(perf, "Degraded");
+                    snprintf(perf, PERF_STRING_SIZE, "Degraded");
                     break;
                 default:
-                    sprintf(perf, "N/A");
+                    snprintf(perf, PERF_STRING_SIZE, "N/A");
                     break;
                 }
-                memset(metaSize, 0, 10);
-                sprintf(metaSize, "%" PRIu16, formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
+                memset(metaSize, 0, META_STRING_SIZE);
+                snprintf(metaSize, META_STRING_SIZE, "%" PRIu16, formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
                 break;
             default:
                 break;
