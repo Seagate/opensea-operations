@@ -120,42 +120,23 @@ int create_And_Open_Log_File(tDevice *device,\
             if (strcmp((*logFileNameUsed), "") == 0)
             {
                 //logPath has valid value and logFileNameUsed is empty. Prepend logpath to the generated filename
-#if defined (_WIN32)
-                sprintf(*logFileNameUsed, "%s\\%s", logPath, filename);
-#else
-                sprintf(*logFileNameUsed, "%s/%s", logPath, filename);
-#endif
+                sprintf(*logFileNameUsed, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
             }
             else
             {
                 //Both logPath and logFileNameUsed have non-empty values
                 char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
-		char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
-#if defined (_WIN32)
-                sprintf(lpathNFilename, "%s", *logFileNameUsed);
-		sprintf(lpathNFilenameGeneration, "%s\\%s", logPath, filename);
-		if(strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
-		{
-		    sprintf(*logFileNameUsed, "%s\\%s", logPath, filename);
-		}
-		else
-		{
-		    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
-		}
-
-#else
-                //sprintf(lpathNFilename, "%s/%s", logPath, *logFileNameUsed);
-		sprintf(lpathNFilenameGeneration, "%s/%s", logPath, filename);
-		sprintf(lpathNFilename, "%s", *logFileNameUsed);
-#endif
-		if(strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
-		{
-		    sprintf(*logFileNameUsed, "%s/%s", logPath, filename);
-		}
-		else
-		{
-		    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
-		}
+		        char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
+                snprintf(lpathNFilename, "%s", *logFileNameUsed);
+                snprintf(lpathNFilenameGeneration, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                if (strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
+                {
+                    sprintf(*logFileNameUsed, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                }
+                else
+                {
+                    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
+                }
             }
         }
     }
@@ -165,12 +146,13 @@ int create_And_Open_Log_File(tDevice *device,\
         if (logPath && (strcmp(logPath,"") != 0))
         {
             //need to append a path to the beginning of the file name!!!
-            pathAndFileName = (char*)calloc(strlen(logPath) + strlen(filename) + 2, sizeof(char));
+            size_t pathAndFileNameLength = strlen(logPath) + strlen(filename) + 2;
+            pathAndFileName = (char*)calloc(pathAndFileNameLength, sizeof(char));
             if (!pathAndFileName)
             {
                 return MEMORY_FAILURE;
             }
-            sprintf(pathAndFileName, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR,filename);
+            snprintf(pathAndFileName, pathAndFileNameLength, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR,filename);
             *logFileNameUsed = pathAndFileName;
         }
         else
@@ -2353,22 +2335,23 @@ int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
 //      driveReportBug exists for noting that a drive is incorrectly reporting access for certain logs.
 static void format_print_ata_logs_info(uint16_t log, uint32_t logSize, bool smartAccess, bool gplAccess, bool driveReportBug)
 {
-    char access[10] = { 0 };
+#define ATA_LOG_ACCESS_STRING_LENGTH 10
+    char access[ATA_LOG_ACCESS_STRING_LENGTH] = { 0 };
     if (smartAccess)
     {
-        strcat(access, "SL");
+        snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "SL");
     }
     if (gplAccess)
     {
         if (smartAccess)
         {
-            strcat(access, ", ");
+            snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "%s, ", access);
         }
-        strcat(access, "GPL");
+        snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "%sGPL", access);
     }
     if (driveReportBug)
     {
-        strcat(access, " !");
+        snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "%s !", access);
     }
     printf("   %3" PRIu16 " (%02" PRIX16 "h)   :     %-5" PRIu32 "      :    %-10" PRIu32 " :   %-10s\n", log, log, (logSize / LEGACY_DRIVE_SEC_SIZE), logSize, access);
 }
@@ -2847,7 +2830,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
     {
         snprintf(logNumPostfix, LOG_NUMBER_POST_FIX_LENGTH, "%u", logNum);
     }
-    strcat(logFileName, logNumPostfix);
+    snprintf(logFileName, GENERIC_LOG_FILE_NAME_LENGTH, "%s%s", logFileName, logNumPostfix);
 
     #ifdef _DEBUG
     printf("%s: Log to Pull %d, mode %d, device type %d\n",__FUNCTION__, logNum, (uint8_t)mode, device->drive_info.drive_type);
@@ -2950,8 +2933,7 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     char errorHistoryFileName[ERROR_HISTORY_FILENAME_LENGTH] = "GENERIC_ERROR_HISTORY-";
     char errorHistoryNumPostfix[ERROR_HISTORY_POST_FIX_LENGTH] = { 0 };
     snprintf(errorHistoryNumPostfix, ERROR_HISTORY_POST_FIX_LENGTH, "%" PRIu8, bufferID);
-    strcat(errorHistoryFileName, errorHistoryNumPostfix);
-    strcat(errorHistoryFileName, "\0");
+    snprintf(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH, "%s%s", errorHistoryFileName, errorHistoryNumPostfix);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
