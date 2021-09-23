@@ -168,8 +168,8 @@ int create_And_Open_Log_File(tDevice *device,\
         fclose(*filePtr);
         //append timestamp
         currentTime = time(NULL);
-        memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
+        memset(currentTimeString, 0, 64);
+        strftime(currentTimeString, 64, "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //Append timestamp to the log file name
         strcat(*logFileNameUsed, "_");
         strcat(*logFileNameUsed, &currentTimeString[0]);

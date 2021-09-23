@@ -3696,7 +3696,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (awreString && awreStringLength >= 30)
                             {
-                                strcpy(awreString, "Automatic Write Reassignment");
+                                snprintf(awreString, awreStringLength, "Automatic Write Reassignment");
                             }
                         }
                         //arre
@@ -3719,7 +3719,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (arreString && arreStringLength >= 30)
                             {
-                                strcpy(arreString, "Automatic Read Reassignment");
+                                snprintf(arreString, arreStringLength, "Automatic Read Reassignment");
                             }
                         }
                     }
@@ -3763,7 +3763,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (awreString && awreStringLength >= 40)
                             {
-                                strcpy(awreString, "Automatic Write Reassignment [Enabled]");
+                                snprintf(awreString, awreStringLength, "Automatic Write Reassignment [Enabled]");
                             }
                         }
                         //arre
@@ -3786,7 +3786,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (arreString && arreStringLength >= 40)
                             {
-                                strcpy(arreString, "Automatic Read Reassignment [Enabled]");
+                                snprintf(arreString, arreStringLength, "Automatic Read Reassignment [Enabled]");
                             }
                         }
                     }
@@ -4015,7 +4015,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (dlcString && dlcStringLength >= 50)
                             {
-                                strcpy(dlcString, "Device Life Control");
+                                snprintf(dlcString, dlcStringLength, "Device Life Control");
                             }
                         }
                     }
@@ -4073,7 +4073,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (dlcString && dlcStringLength >= 50)
                             {
-                                strcpy(dlcString, "Device Life Control [Enabled]");
+                                snprintf(dlcString, dlcStringLength, "Device Life Control [Enabled]");
                             }
                         }
                     }
@@ -4611,7 +4611,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (epcFeatureString && epcFeatureStringLength >= 4)
                             {
-                                strcpy(epcFeatureString, "EPC");
+                                snprintf(epcFeatureString, epcFeatureStringLength, "EPC");
                             }
                         }
                         else
@@ -4633,7 +4633,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (epcFeatureString && epcFeatureStringLength >= 17)
                             {
-                                strcpy(epcFeatureString, "Power Conditions");
+                                snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions");
                             }
                         }
                     }
@@ -4683,7 +4683,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (epcFeatureString && epcFeatureStringLength >= 14)
                             {
-                                strcpy(epcFeatureString, "EPC [Enabled]");
+                                snprintf(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]");
                             }
                         }
                         else if (powerConditions[3 + mpHeaderLen] & BIT0 || powerConditions[3 + mpHeaderLen] & BIT1)
@@ -4705,7 +4705,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (epcFeatureString && epcFeatureStringLength >= 27)
                             {
-                                strcpy(epcFeatureString, "Power Conditions [Enabled]");
+                                snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions [Enabled]");
                             }
                         }
                     }
@@ -4853,7 +4853,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (bmsString && bmsStringLength >= 50)
                             {
-                                strcpy(bmsString, "Background Media Scan");
+                                snprintf(bmsString, bmsStringLength, "Background Media Scan");
                             }
                         }
                         //bms-ps
@@ -4876,7 +4876,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (bmsPSString && bmsPSStringLength >= 50)
                             {
-                                strcpy(bmsPSString, "Background Pre-Scan");
+                                snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan");
                             }
                         }
                     }
@@ -4934,7 +4934,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (bmsString && bmsStringLength >= 50)
                             {
-                                strcpy(bmsString, "Background Media Scan [Enabled]");
+                                snprintf(bmsString, bmsStringLength, "Background Media Scan [Enabled]");
                             }
                         }
                         //bms-ps
@@ -4957,7 +4957,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (bmsPSString && bmsPSStringLength >= 50)
                             {
-                                strcpy(bmsPSString, "Background Pre-Scan [Enabled]");
+                                snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan [Enabled]");
                             }
                         }
                     }
@@ -5830,7 +5830,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     if (driveInfo->controllerData.totalNVMCapacityD > 0)
     {
         //convert this to an "easy" unit instead of tons and tons of bytes
-        char mTotalCapUnits[4] = { 0 }, totalCapUnits[4] = { 0 };
+        char mTotalCapUnits[UNIT_STRING_LENGTH] = { 0 }, totalCapUnits[UNIT_STRING_LENGTH] = { 0 };
         char *mTotalCapUnit = &mTotalCapUnits[0], *totalCapUnit = &totalCapUnits[0];
         double mTotalCapacity = driveInfo->controllerData.totalNVMCapacityD;
         double totalCapacity = mTotalCapacity;
@@ -6008,7 +6008,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     if (driveInfo->namespaceData.valid)
     {
         //Namespace size
-        char mSizeUnits[4] = { 0 }, sizeUnits[4] = { 0 };
+        char mSizeUnits[UNIT_STRING_LENGTH] = { 0 }, sizeUnits[UNIT_STRING_LENGTH] = { 0 };
         char *mSizeUnit = &mSizeUnits[0], *sizeUnit = &sizeUnits[0];
         double nvmMSize = (double)(driveInfo->namespaceData.namespaceSize * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmSize = nvmMSize;
@@ -6018,7 +6018,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tNamespace Size (LBAs): %" PRIu64 "\n", driveInfo->namespaceData.namespaceSize);
 
         //namespace capacity
-        char mCapUnits[4] = { 0 }, capUnits[4] = { 0 };
+        char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
         char *mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
         double nvmMCap = (double)(driveInfo->namespaceData.namespaceCapacity * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmCap = nvmMCap;
@@ -6028,7 +6028,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tNamespace Capacity (LBAs): %" PRIu64 "\n", driveInfo->namespaceData.namespaceCapacity);
 
         //namespace utilization
-        char mUtilizationUnits[4] = { 0 }, utilizationUnits[4] = { 0 };
+        char mUtilizationUnits[UNIT_STRING_LENGTH] = { 0 }, utilizationUnits[UNIT_STRING_LENGTH] = { 0 };
         char *mUtilizationUnit = &mUtilizationUnits[0], *utilizationUnit = &utilizationUnits[0];
         double nvmMUtilization = (double)(driveInfo->namespaceData.namespaceUtilization * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmUtilization = nvmMUtilization;
@@ -6062,8 +6062,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         }
         if (driveInfo->namespaceData.nvmCapacityD > 0)
         {
-            memset(mCapUnits, 0, 4 * sizeof(char));
-            memset(capUnits, 0, 4 * sizeof(char));
+            memset(mCapUnits, 0, UNIT_STRING_LENGTH * sizeof(char));
+            memset(capUnits, 0, UNIT_STRING_LENGTH * sizeof(char));
             double mCapacity = driveInfo->namespaceData.nvmCapacityD;
             double capacity = mCapacity;
             metric_Unit_Convert(&mCapacity, &mCapUnit);
@@ -6109,7 +6109,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 {
     double mCapacity = 0, capacity = 0;
-    char mCapUnits[4] = { 0 }, capUnits[4] = { 0 };
+    char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
     char *mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
     if (strlen(driveInfo->vendorID))
     {
@@ -6673,7 +6673,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->cacheSize > 0)
     {
         double cacheSize = (double)driveInfo->cacheSize;
-        char cacheUnit[4] = { 0 };
+        char cacheUnit[UNIT_STRING_LENGTH] = { 0 };
         char *cachUnitPtr = &cacheUnit[0];
         capacity_Unit_Convert(&cacheSize, &cachUnitPtr);
         printf("\tCache Size (%s): %0.02f\n", cacheUnit, cacheSize);
@@ -6686,7 +6686,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->hybridNANDSize > 0)
     {
         double cacheSize = (double)driveInfo->hybridNANDSize;
-        char cacheUnit[4] = { 0 };
+        char cacheUnit[UNIT_STRING_LENGTH] = { 0 };
         char *cachUnitPtr = &cacheUnit[0];
         capacity_Unit_Convert(&cacheSize, &cachUnitPtr);
         printf("\tHybrid NAND Cache Size (%s): %0.02f\n", cacheUnit, cacheSize);
