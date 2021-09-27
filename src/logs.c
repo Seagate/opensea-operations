@@ -127,8 +127,8 @@ int create_And_Open_Log_File(tDevice *device,\
                 //Both logPath and logFileNameUsed have non-empty values
                 char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
 		        char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
-                snprintf(lpathNFilename, "%s", *logFileNameUsed);
-                snprintf(lpathNFilenameGeneration, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                snprintf(lpathNFilename, OPENSEA_PATH_MAX, "%s", *logFileNameUsed);
+                snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
                 if (strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
                 {
                     sprintf(*logFileNameUsed, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
