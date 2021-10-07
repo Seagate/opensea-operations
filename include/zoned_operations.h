@@ -15,6 +15,7 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "common_public.h"
 
 #if defined (__cplusplus)
 extern "C"
