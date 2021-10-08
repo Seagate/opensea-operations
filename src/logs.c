@@ -41,7 +41,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     switch (logFileNamingConvention)
     {
     case NAMING_SERIAL_NUMBER_ONLY:
-        *logFileNameUsed = serialNumber;
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s", serialNumber);
         break;
     case NAMING_SERIAL_NUMBER_DATE_TIME:
         //get current date and time
@@ -49,24 +49,19 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
         strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //set up the log file name
-        strcat(*logFileNameUsed, serialNumber);
-        strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, logName);
-        strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, &currentTimeString[0]);
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s_%s_%s", serialNumber, logName, currentTimeString);
         break;
     case NAMING_OPENSTACK:
         return NOT_SUPPORTED;
         break;
     case NAMING_BYUSER:
-        strcat(*logFileNameUsed, logName);
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%s", *logFileNameUsed, logName);
         break;
     default:
         return BAD_PARAMETER;
         break;
     }
-    strcat(*logFileNameUsed, ".");
-    strcat(*logFileNameUsed, logExtension);
+    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", *logFileNameUsed, logExtension);
     return ret;
 }
 
@@ -79,7 +74,7 @@ int create_And_Open_Log_File(tDevice *device,\
                              char **logFileNameUsed)
 {
     int ret = SUCCESS;
-    char name[OPENSEA_PATH_MAX] = {0}; //Hopefully our file names are not bigger than this. 
+    char name[OPENSEA_PATH_MAX] = { 0 }; //Hopefully our file names are not bigger than this. 
     char *filename = &name[0];
     char *pathAndFileName = NULL;
     bool nullLogFileNameUsed = false;
@@ -113,14 +108,14 @@ int create_And_Open_Log_File(tDevice *device,\
         {
             //logPath is null or empty, logFileNameUsed is non-null but it is empty. 
             //So assigning the generated filename to logFileNameUsed
-            memcpy(*logFileNameUsed, filename, OPENSEA_PATH_MAX);
+            snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s", filename);
         }
         else if (*logFileNameUsed)
         {
             if (strcmp((*logFileNameUsed), "") == 0)
             {
                 //logPath has valid value and logFileNameUsed is empty. Prepend logpath to the generated filename
-                sprintf(*logFileNameUsed, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
             }
             else
             {
@@ -131,11 +126,11 @@ int create_And_Open_Log_File(tDevice *device,\
                 snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
                 if (strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
                 {
-                    sprintf(*logFileNameUsed, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
                 }
                 else
                 {
-                    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s", lpathNFilenameGeneration);
                 }
             }
         }
@@ -171,8 +166,7 @@ int create_And_Open_Log_File(tDevice *device,\
         memset(currentTimeString, 0, 64);
         strftime(currentTimeString, 64, "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //Append timestamp to the log file name
-        strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, &currentTimeString[0]);
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "_%s", &currentTimeString[0]);
     }
 
     #ifdef _DEBUG
