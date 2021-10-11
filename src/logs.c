@@ -55,13 +55,21 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         return NOT_SUPPORTED;
         break;
     case NAMING_BYUSER:
-        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%s", *logFileNameUsed, logName);
+        common_String_Concat(*logFileNameUsed, OPENSEA_PATH_MAX, logName);
         break;
     default:
         return BAD_PARAMETER;
         break;
     }
-    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", *logFileNameUsed, logExtension);
+    char *dup = strdup(*logFileNameUsed);
+    if(dup)
+    {
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", dup, logExtension);
+    }
+    else
+    {
+        ret = MEMORY_FAILURE;
+    }
     return ret;
 }
 
@@ -2339,13 +2347,13 @@ static void format_print_ata_logs_info(uint16_t log, uint32_t logSize, bool smar
     {
         if (smartAccess)
         {
-            snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "%s, ", access);
+            common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, ", ");
         }
-        snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "%sGPL", access);
+        common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, "GPL");
     }
     if (driveReportBug)
     {
-        snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "%s !", access);
+        common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, " !");
     }
     printf("   %3" PRIu16 " (%02" PRIX16 "h)   :     %-5" PRIu32 "      :    %-10" PRIu32 " :   %-10s\n", log, log, (logSize / LEGACY_DRIVE_SEC_SIZE), logSize, access);
 }
@@ -2824,8 +2832,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
     {
         snprintf(logNumPostfix, LOG_NUMBER_POST_FIX_LENGTH, "%u", logNum);
     }
-    snprintf(logFileName, GENERIC_LOG_FILE_NAME_LENGTH, "%s%s", logFileName, logNumPostfix);
-
+    common_String_Concat(logFileName, GENERIC_LOG_FILE_NAME_LENGTH, logNumPostfix);
     #ifdef _DEBUG
     printf("%s: Log to Pull %d, mode %d, device type %d\n",__FUNCTION__, logNum, (uint8_t)mode, device->drive_info.drive_type);
     #endif
@@ -2927,7 +2934,7 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     char errorHistoryFileName[ERROR_HISTORY_FILENAME_LENGTH] = "GENERIC_ERROR_HISTORY-";
     char errorHistoryNumPostfix[ERROR_HISTORY_POST_FIX_LENGTH] = { 0 };
     snprintf(errorHistoryNumPostfix, ERROR_HISTORY_POST_FIX_LENGTH, "%" PRIu8, bufferID);
-    snprintf(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH, "%s%s", errorHistoryFileName, errorHistoryNumPostfix);
+    common_String_Concat(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH, errorHistoryNumPostfix);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)

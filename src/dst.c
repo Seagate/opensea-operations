@@ -2026,7 +2026,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             {
                 char percentRemainingString[8] = { 0 };
                 snprintf(percentRemainingString, 8, " (%" PRIu8 "%%)", percentRemaining);
-                snprintf(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, "%s%s", status, percentRemainingString);
+                common_String_Concat(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, percentRemainingString);
             }
             printf("%-26s  ", status);
             //Error LBA

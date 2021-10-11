@@ -951,7 +951,7 @@ static void print_ATA_SMART_Attribute_Raw_Int_Value(uint8_t* rawdataParameter, i
     for (rawIter = finalIndex; rawIter >= intialIndex; rawIter--) 
     {
         snprintf(temp, 4, "%02"PRIX8"", rawdataParameter[rawIter]);
-        snprintf(rawdata, 20, "%s%s", rawdata, temp);
+        common_String_Concat(rawdata, 20, temp);
     }
     rawdataIntValue = hex2int(rawdata);
     printf("%" PRIu32, rawdataIntValue);
@@ -6522,72 +6522,72 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceR
         //device reports an alignment error
         if (strlen(statusMessage) > 0)
         {
-            snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "%s, ", statusMessage);
+            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
-        snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "%sAlignment Error", statusMessage);
+        common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Alignment Error");
     }
     if (isStream && (status & ATA_STATUS_BIT_DEFERRED_WRITE_ERROR))
     {
         if (strlen(statusMessage) > 0)
         {
-            snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "%s, ", statusMessage);
+            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
         //streaming deferred write error
-        snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "%sDeferred Write Error", statusMessage);
+        common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Deferred Write Error");
     }
 
     if (status & ATA_STATUS_BIT_ERROR)
     {
         if (strlen(statusMessage) > 0)
         {
-            snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "%s, ", statusMessage);
+            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
-        snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "%sError Reg Valid", statusMessage);
+        common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Error Reg Valid");
 
         //TODO: Parse error field bits
         if (error & ATA_ERROR_BIT_ABORT)
         {
-            snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sAbort", errorMessage);
+            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Abort");
         }
         if (error & ATA_ERROR_BIT_INTERFACE_CRC)//abort bit will also be set to 1 if this is set to 1
         {
             if (strlen(errorMessage) > 0)
             {
-                snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s, ", errorMessage);
+                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sInterface CRC Error", errorMessage);
+            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Interface CRC Error");
         }
         if (error & ATA_ERROR_BIT_UNCORRECTABLE_DATA)
         {
             if (strlen(errorMessage) > 0)
             {
-                snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s, ", errorMessage);
+                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sUncorrectable Data", errorMessage);
+            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Uncorrectable Data");
         }
         if (error & ATA_ERROR_BIT_ID_NOT_FOUND)// - media access and possibly commands to set max lba
         {
             if (strlen(errorMessage) > 0)
             {
-                snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s, ", errorMessage);
+                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sID Not Found", errorMessage);
+            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "ID Not Found");
         }
         if (isRecal && (error & ATA_ERROR_BIT_TRACK_ZERO_NOT_FOUND))// - recalibrate commands only
         {
             if (strlen(errorMessage) > 0)
             {
-                snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s, ", errorMessage);
+                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sTrack Zero Not Found", errorMessage);
+            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Track Zero Not Found");
         }
         if (isStream && (error & ATA_ERROR_BIT_COMMAND_COMPLETION_TIME_OUT))// - streaming
         {
-             if (strlen(errorMessage) > 0)
-             {
-                 snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s, ", errorMessage);
-             }
-            snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sCommand Completion Time Out", errorMessage);
+            if (strlen(errorMessage) > 0)
+            {
+                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+            }
+            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Command Completion Time Out");
         }
         if(strlen(errorMessage) == 0)
         {
@@ -6595,18 +6595,23 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceR
             {
                 if (strlen(errorMessage) > 0)
                 {
-                    snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s, ", errorMessage);
+                    common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
                 }
-                snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s(Likely) Track Zero Not Found", errorMessage);
+                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "(Likely) Track Zero Not Found");
             }
             else
             {
                 if (strlen(errorMessage) > 0)
                 {
-                    snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%s, ", errorMessage);
+                    common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
                 }
                 //unknown error, possibly recalibrate command + track zero not found....
-                snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sUnknown Error Condition (%02" PRIX8 "h)", errorMessage, error);
+                char *dup = strdup(errorMessage);
+                if(dup)
+                {
+                    snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sUnknown Error Condition (%02" PRIX8 "h)", dup, error);
+                    safe_Free(dup);
+                }
             }
         }
     }
