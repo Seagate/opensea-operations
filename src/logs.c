@@ -41,7 +41,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     switch (logFileNamingConvention)
     {
     case NAMING_SERIAL_NUMBER_ONLY:
-        *logFileNameUsed = serialNumber;
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s", serialNumber);
         break;
     case NAMING_SERIAL_NUMBER_DATE_TIME:
         //get current date and time
@@ -49,24 +49,27 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
         strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //set up the log file name
-        strcat(*logFileNameUsed, serialNumber);
-        strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, logName);
-        strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, &currentTimeString[0]);
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s_%s_%s", serialNumber, logName, currentTimeString);
         break;
     case NAMING_OPENSTACK:
         return NOT_SUPPORTED;
         break;
     case NAMING_BYUSER:
-        strcat(*logFileNameUsed, logName);
+        common_String_Concat(*logFileNameUsed, OPENSEA_PATH_MAX, logName);
         break;
     default:
         return BAD_PARAMETER;
         break;
     }
-    strcat(*logFileNameUsed, ".");
-    strcat(*logFileNameUsed, logExtension);
+    char *dup = strdup(*logFileNameUsed);
+    if(dup)
+    {
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", dup, logExtension);
+    }
+    else
+    {
+        ret = MEMORY_FAILURE;
+    }
     return ret;
 }
 
@@ -79,7 +82,7 @@ int create_And_Open_Log_File(tDevice *device,\
                              char **logFileNameUsed)
 {
     int ret = SUCCESS;
-    char name[OPENSEA_PATH_MAX] = {0}; //Hopefully our file names are not bigger than this. 
+    char name[OPENSEA_PATH_MAX] = { 0 }; //Hopefully our file names are not bigger than this. 
     char *filename = &name[0];
     char *pathAndFileName = NULL;
     bool nullLogFileNameUsed = false;
@@ -113,49 +116,30 @@ int create_And_Open_Log_File(tDevice *device,\
         {
             //logPath is null or empty, logFileNameUsed is non-null but it is empty. 
             //So assigning the generated filename to logFileNameUsed
-            memcpy(*logFileNameUsed, filename, OPENSEA_PATH_MAX);
+            snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s", filename);
         }
         else if (*logFileNameUsed)
         {
             if (strcmp((*logFileNameUsed), "") == 0)
             {
                 //logPath has valid value and logFileNameUsed is empty. Prepend logpath to the generated filename
-#if defined (_WIN32)
-                sprintf(*logFileNameUsed, "%s\\%s", logPath, filename);
-#else
-                sprintf(*logFileNameUsed, "%s/%s", logPath, filename);
-#endif
+                snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
             }
             else
             {
                 //Both logPath and logFileNameUsed have non-empty values
                 char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
-		char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
-#if defined (_WIN32)
-                sprintf(lpathNFilename, "%s", *logFileNameUsed);
-		sprintf(lpathNFilenameGeneration, "%s\\%s", logPath, filename);
-		if(strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
-		{
-		    sprintf(*logFileNameUsed, "%s\\%s", logPath, filename);
-		}
-		else
-		{
-		    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
-		}
-
-#else
-                //sprintf(lpathNFilename, "%s/%s", logPath, *logFileNameUsed);
-		sprintf(lpathNFilenameGeneration, "%s/%s", logPath, filename);
-		sprintf(lpathNFilename, "%s", *logFileNameUsed);
-#endif
-		if(strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
-		{
-		    sprintf(*logFileNameUsed, "%s/%s", logPath, filename);
-		}
-		else
-		{
-		    memcpy(*logFileNameUsed, lpathNFilenameGeneration, OPENSEA_PATH_MAX);
-		}
+		        char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
+                snprintf(lpathNFilename, OPENSEA_PATH_MAX, "%s", *logFileNameUsed);
+                snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                if (strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
+                {
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                }
+                else
+                {
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s", lpathNFilenameGeneration);
+                }
             }
         }
     }
@@ -165,12 +149,13 @@ int create_And_Open_Log_File(tDevice *device,\
         if (logPath && (strcmp(logPath,"") != 0))
         {
             //need to append a path to the beginning of the file name!!!
-            pathAndFileName = (char*)calloc(strlen(logPath) + strlen(filename) + 2, sizeof(char));
+            size_t pathAndFileNameLength = strlen(logPath) + strlen(filename) + 2;
+            pathAndFileName = (char*)calloc(pathAndFileNameLength, sizeof(char));
             if (!pathAndFileName)
             {
                 return MEMORY_FAILURE;
             }
-            sprintf(pathAndFileName, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR,filename);
+            snprintf(pathAndFileName, pathAndFileNameLength, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR,filename);
             *logFileNameUsed = pathAndFileName;
         }
         else
@@ -186,11 +171,10 @@ int create_And_Open_Log_File(tDevice *device,\
         fclose(*filePtr);
         //append timestamp
         currentTime = time(NULL);
-        memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
+        memset(currentTimeString, 0, 64);
+        strftime(currentTimeString, 64, "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
         //Append timestamp to the log file name
-        strcat(*logFileNameUsed, "_");
-        strcat(*logFileNameUsed, &currentTimeString[0]);
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "_%s", &currentTimeString[0]);
     }
 
     #ifdef _DEBUG
@@ -2353,22 +2337,23 @@ int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
 //      driveReportBug exists for noting that a drive is incorrectly reporting access for certain logs.
 static void format_print_ata_logs_info(uint16_t log, uint32_t logSize, bool smartAccess, bool gplAccess, bool driveReportBug)
 {
-    char access[10] = { 0 };
+#define ATA_LOG_ACCESS_STRING_LENGTH 10
+    char access[ATA_LOG_ACCESS_STRING_LENGTH] = { 0 };
     if (smartAccess)
     {
-        strcat(access, "SL");
+        snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "SL");
     }
     if (gplAccess)
     {
         if (smartAccess)
         {
-            strcat(access, ", ");
+            common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, ", ");
         }
-        strcat(access, "GPL");
+        common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, "GPL");
     }
     if (driveReportBug)
     {
-        strcat(access, " !");
+        common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, " !");
     }
     printf("   %3" PRIu16 " (%02" PRIX16 "h)   :     %-5" PRIu32 "      :    %-10" PRIu32 " :   %-10s\n", log, log, (logSize / LEGACY_DRIVE_SEC_SIZE), logSize, access);
 }
@@ -2665,8 +2650,9 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
                     FILE * pLogFile = NULL;
                     char identifyFileName[OPENSEA_PATH_MAX] = { 0 };
                     char * fileNameUsed = &identifyFileName[0];
-                    char logName[16];
-                    sprintf(logName, "LOG_PAGE_%d", logNum);
+#define NVME_LOG_NAME_SIZE 16
+                    char logName[NVME_LOG_NAME_SIZE];
+                    snprintf(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum);
                     if (SUCCESS == create_And_Open_Log_File(device, &pLogFile, NULL, \
                         logName, "bin", 1, &fileNameUsed)) {
                         fwrite(logBuffer, sizeof(uint8_t), (size_t)size, pLogFile);
@@ -2797,23 +2783,24 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
             //go through the directory in a loop
             for (uint32_t iter = UINT32_C(32); iter < (directoryLength + UINT32_C(32)) && iter < errorHistorySize; iter += UINT32_C(8))
             {
-                char dataFormatString[16] = { 0 };
+#define DATA_FORMAT_STRING_LENGTH 16
+                char dataFormatString[DATA_FORMAT_STRING_LENGTH] = { 0 };
                 uint8_t bufferID = errorHistoryDirectory[iter + 0];
                 uint8_t bufferFormat = errorHistoryDirectory[iter + 1];
                 uint32_t maximumLengthAvailable = M_BytesTo4ByteValue(errorHistoryDirectory[iter + 4], errorHistoryDirectory[iter + 5], errorHistoryDirectory[iter + 6], errorHistoryDirectory[iter + 7]);
                 switch (bufferFormat)
                 {
                 case 0://vendor specific data
-                    sprintf(dataFormatString, "Vendor Specific");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Vendor Specific");
                     break;
                 case 1://current internal status parameter data
-                    sprintf(dataFormatString, "Current ISL");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Current ISL");
                     break;
                 case 2://saved internal status parameter data
-                    sprintf(dataFormatString, "Saved ISL");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Saved ISL");
                     break;
                 default://unknown or reserved
-                    sprintf(dataFormatString, "Reserved");
+                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Reserved");
                     break;
                 }
                 printf("  %3" PRIu8 " (%02" PRIX8 "h)      :  %-16s :    %" PRIu32 "\n", bufferID, bufferID, dataFormatString, maximumLengthAvailable);
@@ -2833,18 +2820,19 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
     int retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
     uint8_t *genericLogBuf = NULL;
-    char logFileName[20] = "GENERIC_LOG-";
-    char logNumPostfix[10] = { 0 };
+#define GENERIC_LOG_FILE_NAME_LENGTH 20
+#define LOG_NUMBER_POST_FIX_LENGTH 10
+    char logFileName[GENERIC_LOG_FILE_NAME_LENGTH] = "GENERIC_LOG-";
+    char logNumPostfix[LOG_NUMBER_POST_FIX_LENGTH] = { 0 };
     if (device->drive_info.drive_type == SCSI_DRIVE && subpage != 0)
     {
-        sprintf(logNumPostfix, "%u-%u", logNum, subpage);
+        snprintf(logNumPostfix, LOG_NUMBER_POST_FIX_LENGTH, "%u-%u", logNum, subpage);
     }
     else
     {
-        sprintf(logNumPostfix, "%u", logNum);
+        snprintf(logNumPostfix, LOG_NUMBER_POST_FIX_LENGTH, "%u", logNum);
     }
-    strcat(logFileName, logNumPostfix);
-
+    common_String_Concat(logFileName, GENERIC_LOG_FILE_NAME_LENGTH, logNumPostfix);
     #ifdef _DEBUG
     printf("%s: Log to Pull %d, mode %d, device type %d\n",__FUNCTION__, logNum, (uint8_t)mode, device->drive_info.drive_type);
     #endif
@@ -2941,17 +2929,18 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     int retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
     uint8_t *genericLogBuf = NULL;
-    char logFileName[30] = "GENERIC_ERROR_HISTORY-";
-    char logNumPostfix[10] = { 0 };
-    sprintf(logNumPostfix, "%" PRIu8, bufferID);
-    strcat(logFileName, logNumPostfix);
-    strcat(logFileName, "\0");
+#define ERROR_HISTORY_FILENAME_LENGTH 30
+#define ERROR_HISTORY_POST_FIX_LENGTH 10
+    char errorHistoryFileName[ERROR_HISTORY_FILENAME_LENGTH] = "GENERIC_ERROR_HISTORY-";
+    char errorHistoryNumPostfix[ERROR_HISTORY_POST_FIX_LENGTH] = { 0 };
+    snprintf(errorHistoryNumPostfix, ERROR_HISTORY_POST_FIX_LENGTH, "%" PRIu8, bufferID);
+    common_String_Concat(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH, errorHistoryNumPostfix);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
     {
     case PULL_LOG_BIN_FILE_MODE:
-        retStatus = get_SCSI_Error_History(device, bufferID, logFileName, false, rb16, "bin", false, NULL, 0, filePath, transferSizeBytes, NULL);
+        retStatus = get_SCSI_Error_History(device, bufferID, errorHistoryFileName, false, rb16, "bin", false, NULL, 0, filePath, transferSizeBytes, NULL);
         break;
     case PULL_LOG_RAW_MODE:
         if (SUCCESS == get_SCSI_Error_History_Size(device, bufferID, &logSize, false, rb16))

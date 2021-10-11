@@ -6313,11 +6313,13 @@ void scsi_Threshold_Comparison(statistic *ptrStatistic)
     return;
 }
 
+#define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
+
 void print_Count_Statistic(statistic theStatistic, char *statisticName, char *statisticUnit)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6340,29 +6342,29 @@ void print_Count_Statistic(statistic theStatistic, char *statisticName, char *st
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6385,7 +6387,7 @@ void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisti
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6408,29 +6410,29 @@ void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisti
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6458,7 +6460,7 @@ void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statis
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6481,29 +6483,29 @@ void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statis
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6562,7 +6564,7 @@ void print_Resource_Availability_Statistic(statistic theStatistic, char *statist
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6585,29 +6587,29 @@ void print_Resource_Availability_Statistic(statistic theStatistic, char *statist
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6627,7 +6629,7 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6650,29 +6652,29 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6699,7 +6701,7 @@ void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticNa
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6722,29 +6724,29 @@ void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticNa
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6777,7 +6779,7 @@ void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6800,29 +6802,29 @@ void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6841,7 +6843,7 @@ void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *stati
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6864,29 +6866,29 @@ void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *stati
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6909,7 +6911,7 @@ void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6932,29 +6934,29 @@ void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6985,7 +6987,7 @@ void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7008,29 +7010,29 @@ void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7066,7 +7068,7 @@ void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticN
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7089,29 +7091,29 @@ void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticN
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7165,7 +7167,7 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7188,29 +7190,29 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7345,22 +7347,23 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         }
         for (uint8_t vendorSpecificIter = 0, statisticsFound = 0; vendorSpecificIter < 64 && statisticsFound < deviceStats->sataStatistics.vendorSpecificStatisticsPopulated; ++vendorSpecificIter)
         {
-            char statisticName[64] = { 0 };
+            #define VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH 64
+            char statisticName[VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH] = { 0 };
             if (SEAGATE == is_Seagate_Family(device))
             {
                 switch (vendorSpecificIter + 1)
                 {
                 case 1://pressure
-                    sprintf(statisticName, "Pressure Min/Max Reached");
+                    snprintf(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH, "Pressure Min/Max Reached");
                     break;
                 default:
-                    sprintf(statisticName, "Vendor Specific Statistic %"PRIu8, vendorSpecificIter + 1);
+                    snprintf(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
                     break;
                 }
             }
             else
             {
-                sprintf(statisticName, "Vendor Specific Statistic %"PRIu8, vendorSpecificIter + 1);
+                snprintf(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
             }
             if (deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter].isSupported)
             {

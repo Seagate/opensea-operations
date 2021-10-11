@@ -128,52 +128,54 @@ void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
 {
     if (zoneDescriptor.descriptorValid)
     {
-        char zoneTypeString[27] = { 0 };
+#define ZONE_TYPE_STRING_LENGTH 27
+        char zoneTypeString[ZONE_TYPE_STRING_LENGTH] = { 0 };
         switch (zoneDescriptor.zoneType)
         {
         case ZONE_TYPE_CONVENTIONAL:
-            sprintf(zoneTypeString, "Conventional");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Conventional");
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_REQUIRED:
-            sprintf(zoneTypeString, "Sequential Write Required");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Sequential Write Required");
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_PREFERRED:
-            sprintf(zoneTypeString, "Sequential Write Preferred");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Sequential Write Preferred");
             break;
         case ZONE_TYPE_RESERVED:
         default:
-            sprintf(zoneTypeString, "Reserved");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Reserved");
             break;
         }
-        char zoneCondition[18] = { 0 };
+#define ZONE_CONDITION_STRING_LENGTH 18
+        char zoneCondition[ZONE_CONDITION_STRING_LENGTH] = { 0 };
         switch (zoneDescriptor.zoneCondition)
         {
         case ZONE_CONDITION_NOT_WRITE_POINTER:
-            sprintf(zoneCondition, "Not Write Pointer");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Not Write Pointer");
             break;
         case ZONE_CONDITION_EMPTY:
-            sprintf(zoneCondition, "Empty");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Empty");
             break;
         case ZONE_CONDITION_IMLICITLY_OPENED:
-            sprintf(zoneCondition, "Implicitly Opened");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Implicitly Opened");
             break;
         case ZONE_CONDITION_EXPLICITYLE_OPENED:
-            sprintf(zoneCondition, "Explicitly Opened");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Explicitly Opened");
             break;
         case ZONE_CONDITION_CLOSED:
-            sprintf(zoneCondition, "Closed");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Closed");
             break;
         case ZONE_CONDITION_READ_ONLY:
-            sprintf(zoneCondition, "Read Only");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Read Only");
             break;
         case ZONE_CONDITION_FULL:
-            sprintf(zoneCondition, "Full");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Full");
             break;
         case ZONE_CONDITION_OFFLINE:
-            sprintf(zoneCondition, "Offline");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Offline");
             break;
         default:
-            sprintf(zoneCondition, "Reserved");
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Reserved");
             break;
         }
         //TODO: add showing reset bit and nonseq bit?
@@ -184,44 +186,45 @@ void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
 
 void print_Zone_Descriptors(eZoneReportingOptions reportingOptions, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors)
 {
-    char showingZones[40] = { 0 };
+#define SHOWING_ZONES_STRING_LENGTH 40
+    char showingZones[SHOWING_ZONES_STRING_LENGTH] = { 0 };
     switch (reportingOptions)
     {
     case ZONE_REPORT_LIST_ALL_ZONES:
-        sprintf(showingZones, "All Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "All Zones");
         break;
     case ZONE_REPORT_LIST_EMPTY_ZONES:
-        sprintf(showingZones, "Empty Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Empty Zones");
         break;
     case ZONE_REPORT_LIST_IMPLICIT_OPEN_ZONES:
-        sprintf(showingZones, "Implicitly Open Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Implicitly Open Zones");
         break;
     case ZONE_REPORT_LIST_EXPLICIT_OPEN_ZONES:
-        sprintf(showingZones, "Explicitly Open Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Explicitly Open Zones");
         break;
     case ZONE_REPORT_LIST_CLOSED_ZONES:
-        sprintf(showingZones, "Closed Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Closed Zones");
         break;
     case ZONE_REPORT_LIST_FULL_ZONES:
-        sprintf(showingZones, "Full Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Full Zones");
         break;
     case ZONE_REPORT_LIST_READ_ONLY_ZONES:
-        sprintf(showingZones, "Read Only Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Read Only Zones");
         break;
     case ZONE_REPORT_LIST_OFFLINE_ZONES:
-        sprintf(showingZones, "Offline Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Offline Zones");
         break;
     case ZONE_REPORT_LIST_ZONES_WITH_RESET_SET_TO_ONE:
-        sprintf(showingZones, "Reset Recommended Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Reset Recommended Zones");
         break;
     case ZONE_REPORT_LIST_ZONES_WITH_NON_SEQ_SET_TO_ONE:
-        sprintf(showingZones, "Non-Sequential Resource Active Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Non-Sequential Resource Active Zones");
         break;
     case ZONE_REPORT_LIST_ALL_ZONES_THAT_ARE_NOT_WRITE_POINTERS:
-        sprintf(showingZones, "Not Write Pointer Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Not Write Pointer Zones");
         break;
     default:
-        sprintf(showingZones, "Unknown/Reserved Zones");
+        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
         break;
     }
     if (!zoneDescriptors)

@@ -85,15 +85,17 @@ extern "C"
         uint8_t portSpeedsNegotiated[MAX_PORTS];//0 = not reported, 1 = gen 1 (1.5Gb/s), 2 = gen 2 (3.0Gb/s), 3 = gen 3 (6.0Gb/s), 4 = gen 4 (12.0Gb/s)
     }ifSerialSpeed;
 
+#define PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH 20
+
     typedef struct _ifParallelSpeed
     {
         bool negotiatedValid;//may be false if old parallel interface that doesn't report this...
         double negotiatedSpeed;//MB/s
         double maxSpeed;//MB/s
         bool negModeNameValid;
-        char negModeName[20];//Hold something like UDMA6, or FAST320, etc
+        char negModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
         bool maxModeNameValid;
-        char maxModeName[20];//Hold something like UDMA6, or FAST320, etc
+        char maxModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
     }ifParallelSpeed;
     typedef struct _ifFibreSpeed
     {
