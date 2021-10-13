@@ -145,7 +145,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 bool lastSegment = false;
                 bool firstSegment = false;
-                uint32_t fwdlTimeout = 0;
+                uint32_t fwdlTimeout = 30;
                 if (currentDownloadBlock + 1 == downloadBlocks && downloadRemainder == 0)
                 {
                     lastSegment = true;
@@ -272,6 +272,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
             if (specifiedDLMode != options->dlMode && specifiedDLMode == DL_FW_SEGMENTED && device->drive_info.drive_type == NVME_DRIVE)
             {
+                delay_Milliseconds(100);//This is here because there seems to be a need for a delay. If activating too quickly after the Firmware is downloaded, it seems to fail. This works - TJE
                 //send an activate command (not an existing slot, this is a new image activation)
                 ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false, false, false, 60);
                 options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
