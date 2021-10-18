@@ -521,7 +521,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
                     break;
                 }
             }
-            safe_Free(dataBuf)
+            safe_Free_aligned(dataBuf)
             return ret;
         }
         ++odTest.numberOfCommandsIssued;
@@ -615,7 +615,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
                     break;
                 }
             }
-            safe_Free(dataBuf)
+            safe_Free_aligned(dataBuf)
             return ret;
         }
         ++idTest.numberOfCommandsIssued;
@@ -709,7 +709,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
                     break;
                 }
             }
-            safe_Free(dataBuf)
+            safe_Free_aligned(dataBuf)
             return ret;
         }
         ++randomTest.numberOfCommandsIssued;
@@ -839,7 +839,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         printf("\tLBAs accessed per command: %"PRIu16"\n", randomTest.sectorCount);
         printf("\tTotal LBAs accessed: %"PRIu64"\n", randomTest.numberOfCommandsIssued * randomTest.sectorCount);
     }
-    safe_Free(dataBuf)
+    safe_Free_aligned(dataBuf)
     return ret;
 }
 
