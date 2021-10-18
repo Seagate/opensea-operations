@@ -196,7 +196,7 @@ int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsE
                 }
             }
         }
-        safe_Free_aligned(getPhysicalElements);
+        safe_Free(getPhysicalElements)
     }
     else
     {
@@ -456,7 +456,7 @@ int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *
                     {
                         ret = NOT_SUPPORTED;
                     }
-                    safe_Free(elementList);
+                    safe_Free(elementList)
                 }
             }
             else
@@ -750,7 +750,7 @@ int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescrip
                                 invalidElement = true;
                             }
                         }
-                        safe_Free(elementList);
+                        safe_Free(elementList)
                     }
                 }
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -1049,7 +1049,7 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
                                         }
                                     }
                                 }
-                                safe_Free(elementList);
+                                safe_Free(elementList)
                             }
                         }
                         if (currentlyDepopulatedElements > 0)

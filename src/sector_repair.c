@@ -42,7 +42,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             temp = (uint8_t*)realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment);
             if (!temp)
             {
-                safe_Free_aligned(dataBuf);
+                safe_Free(dataBuf)
                 return MEMORY_FAILURE;
             }
             dataBuf = temp;
@@ -315,7 +315,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             }
         }
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     switch (ret)
     {
     case SUCCESS:

@@ -66,7 +66,6 @@ extern "C"
     //!   \param[in] numberOfErrors = this is the number of items in the list to print (list length)
     //!
     //  Exit:
-    //!   \return void
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors);

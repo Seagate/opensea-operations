@@ -566,7 +566,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         //bit 1 = dm_md_f - activate deferred code (part of mode e. If mode e is supported, so should f - TJE
                     }
                 }
-                safe_Free_aligned(extendedInq); // PRH valgrind check
+                safe_Free(extendedInq) // PRH valgrind check
             }
 
             uint8_t *writeBufferSupportData = (uint8_t*)calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment);
@@ -832,7 +832,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     //else try requesting all supported OPs and parse that information??? It could be report all is supported, but other modes are not
                     else
                     {
-                        safe_Free_aligned(writeBufferSupportData);
+                        safe_Free(writeBufferSupportData)
                         uint32_t reportAllOPsLength = 4;
                         uint8_t *reportAllOPs = (uint8_t*)calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment);
                         if (reportAllOPs)
@@ -841,7 +841,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                             {
                                 //get the full length, then reallocate and reread
                                 reportAllOPsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
-                                safe_Free_aligned(reportAllOPs);
+                                safe_Free(reportAllOPs)
                                 reportAllOPs = (uint8_t*)calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment);
                                 if (reportAllOPs)
                                 {
@@ -923,12 +923,12 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                             {
                                 supportedModes->scsiInfoPossiblyIncomplete = true;
                             }
-                            safe_Free_aligned(reportAllOPs);
+                            safe_Free(reportAllOPs)
                         }
                     }
                 }
             }
-            safe_Free_aligned(writeBufferSupportData);
+            safe_Free(writeBufferSupportData)
 
             uint8_t offsetReq[4] = { 0 };
             if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
@@ -990,7 +990,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         //DO NOT turn the flag to false. It should already be false. If it was set to true, then the drive has already reported it supports this mode some other way.
                     }
                 }
-                safe_Free_aligned(c3VPD);
+                safe_Free(c3VPD)
             }
         }
         break;
@@ -1092,7 +1092,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
             }
             else
             {
-                printf("Maximum Segment Size (512B Blocks): %" PRIu16 "\n", supportedModes->maxSegmentSize);
+                printf("Maximum Segment Size (512B Blocks): %" PRIu32 "\n", supportedModes->maxSegmentSize);
             }
             if (supportedModes->minSegmentSize == 0)
             {
@@ -1100,7 +1100,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
             }
             else
             {
-                printf("Minimum Segment Size (512B Blocks): %" PRIu16 "\n", supportedModes->minSegmentSize);
+                printf("Minimum Segment Size (512B Blocks): %" PRIu32 "\n", supportedModes->minSegmentSize);
             }
             printf("Recommended Segment Size (512B Blocks): %" PRIu16 "\n", supportedModes->recommendedSegmentSize);
             //additional drive requirements

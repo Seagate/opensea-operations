@@ -100,7 +100,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         *percentComplete *= 100;
         *percentComplete /= 65536;
     }
-    safe_Free_aligned(temp_buf);
+    safe_Free(temp_buf)
     return result;
 }
 #if !defined(DISABLE_NVME_PASSTHROUGH)
@@ -847,7 +847,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 *minutes = (uint8_t)(longDSTTime % 60);
                 ret = SUCCESS;
             }
-            safe_Free_aligned(smartData);
+            safe_Free(smartData)
         }
         break;
     case NVME_DRIVE:
@@ -909,7 +909,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 getTimeFromExtendedInquiryData = true;//some crappy USB bridges may not support the mode page, but will support the VPD page, so attempt to read the VPD page anyways
             }
         }
-        safe_Free_aligned(controlMP);
+        safe_Free(controlMP)
         if (getTimeFromExtendedInquiryData)
         {
             uint8_t *extendedInqyData = (uint8_t*)calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
@@ -927,7 +927,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 *minutes = (uint8_t)(longDSTTime % 60);
                 ret = SUCCESS;
             }
-            safe_Free_aligned(extendedInqyData);
+            safe_Free(extendedInqyData)
         }
     }
     break;
@@ -980,7 +980,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
                     if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
                     {
                         //this SHOULDN'T happen, but in case it does, we need to fail gracefully
-                        safe_Free(selfTestResults);
+                        safe_Free(selfTestResults)
                         return false;
                     }
                 }
@@ -1018,7 +1018,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
             }
         }
     }
-    safe_Free_aligned(selfTestResults);
+    safe_Free(selfTestResults)
     return isValidLBA;
 }
 
@@ -1050,7 +1050,7 @@ bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
             }
         }
     }
-    safe_Free_aligned(selfTestResultsLog);
+    safe_Free(selfTestResultsLog)
     return isValidLBA;
 }
 
@@ -1376,7 +1376,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
         {
             printf("No bad LBAs detected during DST and Clean.\n");
         }
-        safe_Free_aligned(errorList);
+        safe_Free(errorList)
     }
     return ret;
 }
@@ -1664,7 +1664,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             }
         }
     }
-    safe_Free_aligned(selfTestResults);
+    safe_Free(selfTestResults)
     return ret;
 }
 
@@ -1938,7 +1938,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             }
             printf("%-21s  ", selfTestRunString);
             //Timestamp
-            printf("%-9"PRIu16"  ", entries->dstEntry[iter].lifetimeTimestamp);
+            printf("%-9"PRIu32"  ", entries->dstEntry[iter].lifetimeTimestamp);
             //Execution Status
 #define SELF_TEST_EXECUTION_STATUS_MAX_LENGTH 30
             char status[SELF_TEST_EXECUTION_STATUS_MAX_LENGTH] = { 0 };

@@ -118,7 +118,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                         *maxTrimOrUnmapBlockDescriptors = M_BytesTo4ByteValue(blockLimits[24], blockLimits[25], blockLimits[26], blockLimits[27]);
                         *maxLBACount = M_BytesTo4ByteValue(blockLimits[20], blockLimits[21], blockLimits[22], blockLimits[23]);
                     }
-                    safe_Free_aligned(blockLimits);
+                    safe_Free(blockLimits)
                 }
 #endif
             }
@@ -141,7 +141,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 supported = true;
             }
         }
-        safe_Free_aligned(lbpPage);
+        safe_Free(lbpPage)
         if (supported == true && NULL != maxTrimOrUnmapBlockDescriptors && NULL != maxLBACount)
         {
             uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
@@ -155,7 +155,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 *maxTrimOrUnmapBlockDescriptors = M_BytesTo4ByteValue(blockLimits[24], blockLimits[25], blockLimits[26], blockLimits[27]);
                 *maxLBACount = M_BytesTo4ByteValue(blockLimits[20], blockLimits[21], blockLimits[22], blockLimits[23]);
             }
-            safe_Free_aligned(blockLimits);
+            safe_Free(blockLimits)
         }
     }
     break;
@@ -328,7 +328,7 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 #if defined(_DEBUG)
         printf("TRIM Offset: %"PRIu32"\n", trimOffset);
 #endif
-        safe_Free_aligned(trimBuffer);
+        safe_Free(trimBuffer)
     }
     else
     {
@@ -454,8 +454,8 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 #if defined(_DEBUG)
         printf("UNMAP offset: %"PRIu32"\n", unmapOffset);
 #endif
-        safe_Free_aligned(unmapCommandBuffer);
-        safe_Free_aligned(unmapBuffer);
+        safe_Free(unmapCommandBuffer)
+        safe_Free(unmapBuffer)
     }
     else
     {

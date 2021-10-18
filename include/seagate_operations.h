@@ -335,10 +335,9 @@ extern "C"
     //! \brief   Description:  Shows the power telemetry data on the screen
     //
     //  Entry:
-    //!   \param[int] pwrTelData = pointer to power telemetry data already retrieved from the drive.
+    //!   \param[in] pwrTelData = pointer to power telemetry data already retrieved from the drive.
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData);

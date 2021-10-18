@@ -37,7 +37,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
     //speedGen = 1 means generation 1 (1.5Gb/s), 2 =  2nd Generation (3.0Gb/s), 3 = 3rd Generation (6.0Gb/s)
     if (speedGen > 3)
     {
-        safe_Free_aligned(sctSATAPhySpeed);
+        safe_Free(sctSATAPhySpeed)
         return BAD_PARAMETER;
     }
 
@@ -64,7 +64,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 
     ret = send_ATA_SCT_Command(device, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
 
-    safe_Free_aligned(sctSATAPhySpeed);
+    safe_Free(sctSATAPhySpeed)
     return ret;
 }
 
@@ -116,7 +116,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                 sasPhyControl = temp;
                 if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
                 {
-                    safe_Free_aligned(sasPhyControl);
+                    safe_Free(sasPhyControl)
                     return FAILURE;
                 }
             }
@@ -184,7 +184,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         ret = FAILURE;
     }
-    safe_Free_aligned(sasPhyControl);
+    safe_Free(sasPhyControl)
     return ret;
 }
 
@@ -710,7 +710,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                     }
                 }
             }
-            safe_Free_aligned(pcModePage);
+            safe_Free(pcModePage)
         }
     }
     return ret;
@@ -779,7 +779,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             //now do mode select with the data for the mode to set
             ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
         }
-        safe_Free_aligned(pcModePage);
+        safe_Free(pcModePage)
     }
     return ret;
 }
@@ -814,7 +814,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(smartData);
+            safe_Free(smartData)
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -832,7 +832,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
                     iddSupport->iddLong = true;//long
                 }
             }
-            safe_Free_aligned(iddDiagPage);
+            safe_Free(iddDiagPage)
         }
     }
     return ret;
@@ -943,7 +943,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
         {
             ret = MEMORY_FAILURE;
         }
-        safe_Free_aligned(iddDiagPage);
+        safe_Free(iddDiagPage)
     }
     return ret;
 }
@@ -1046,7 +1046,7 @@ void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool
 }
 
 
-int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveForeground)
+static int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveForeground)
 {
     int ret = NOT_SUPPORTED;
     os_Lock_Device(device);
@@ -1103,7 +1103,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
                 iddDiagPage[1] |= BIT6;
                 break;
             default:
-                safe_Free(iddDiagPage);
+                safe_Free(iddDiagPage)
                 os_Unlock_Device(device);
                 return NOT_SUPPORTED;
             }
@@ -1127,7 +1127,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             iddDiagPage[3] = 0x08;//page length
             iddDiagPage[4] = 1 << 4;//revision number 1, status of zero
             ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 12, iddDiagPage, 12, commandTimeoutSeconds);
-            safe_Free_aligned(iddDiagPage);
+            safe_Free(iddDiagPage)
         }
         else
         {
@@ -1519,7 +1519,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
             }
         }
     }
-    safe_Free_aligned(powerTelemetryLog);
+    safe_Free(powerTelemetryLog)
     return ret;
 }
 

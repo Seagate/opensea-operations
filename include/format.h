@@ -186,9 +186,8 @@ extern "C"
     //! \brief   Description:  Shows a SCSI device's format status log information.
     //
     //  Entry:
-    //!   \param[int] formatStatus = pointer to structure that holds all the information about the last format command that was run and logged by the device.
+    //!   \param[in] formatStatus = pointer to structure that holds all the information about the last format command that was run and logged by the device.
     //  Exit:
-    //!   \return void
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Format_Status_Log(ptrFormatStatus formatStatus);
@@ -342,7 +341,6 @@ extern "C"
     //!   \param[in] formats = pointer to the formats that were read already.
     //!
     //  Exit:
-    //!   \return SUCCESS = success showing sector sizes, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFormats formats);

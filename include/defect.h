@@ -92,7 +92,6 @@ extern "C" {
     //!   \param[in] defects = The defect list to free
     //!
     //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void free_Defect_List(scsiDefectList **defects);
@@ -107,7 +106,6 @@ extern "C" {
     //!   \param[in] defects = The defect list to print
     //!
     //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_SCSI_Defect_List(ptrSCSIDefectList defects);

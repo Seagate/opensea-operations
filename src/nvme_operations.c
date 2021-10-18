@@ -13,7 +13,7 @@
 #if !defined (DISABLE_NVME_PASSTHROUGH)
 #include "nvme_operations.h"
 
-void nvme_Print_Feature_Identifiers_Help()
+void nvme_Print_Feature_Identifiers_Help(void)
 {
     printf("\n====================================================\n");
     printf(" Feature\t O/M \tPersistent\tDescription\n");
@@ -661,7 +661,7 @@ int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
             }
         }
     }
-    safe_Free_aligned(pErrLogBuf);
+    safe_Free(pErrLogBuf)
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
 #endif
@@ -708,174 +708,118 @@ char* print_ext_smart_id(uint8_t attrId)
     switch (attrId) {
     case VS_ATTR_ID_SOFT_READ_ERROR_RATE:
         return "Soft ECC error count";
-        break;
     case VS_ATTR_ID_REALLOCATED_SECTOR_COUNT:
         return "Bad NAND block count";
-        break;
     case VS_ATTR_ID_POWER_ON_HOURS:
         return "Power On Hours";
-        break;
     case VS_ATTR_ID_POWER_FAIL_EVENT_COUNT:
         return "Power Fail Event Count";
-        break;
     case VS_ATTR_ID_DEVICE_POWER_CYCLE_COUNT:
         return "Device Power Cycle Count";
-        break;
     case VS_ATTR_ID_RAW_READ_ERROR_RATE:
         return "Uncorrectable read error count";
-        break;
         /**********************************************
                 case 30:
                     return "LIFETIME_WRITES0_TO_FLASH";
-                    break;
                 case 31:
                     return "LIFETIME_WRITES1_TO_FLASH";
-                    break;
                 case 32:
                     return "LIFETIME_WRITES0_FROM_HOST";
-                    break;
                 case 33:
                     return "LIFETIME_WRITES1_FROM_HOST";
-                    break;
                 case 34:
                     return "LIFETIME_READ0_FROM_HOST";
-                    break;
                 case 35:
                     return "LIFETIME_READ1_FROM_HOST";
-                    break;
                 case 36:
                     return "PCIE_PHY_CRC_ERROR";
-                    break;
                 case 37:
                     return "BAD_BLOCK_COUNT_SYSTEM";
-                    break;
                 case 38:
                     return "BAD_BLOCK_COUNT_USER";
-                    break;
                 case 39:
                     return "THERMAL_THROTTLING_STATUS";
-                    break;
         **********************************************/
     case VS_ATTR_ID_GROWN_BAD_BLOCK_COUNT:
         return "Bad NAND block count";
-        break;
     case VS_ATTR_ID_END_2_END_CORRECTION_COUNT:
         return "SSD End to end correction counts";
-        break;
     case VS_ATTR_ID_MIN_MAX_WEAR_RANGE_COUNT:
         return "User data erase counts";
-        break;
     case VS_ATTR_ID_REFRESH_COUNT:
         return "Refresh count";
-        break;
     case VS_ATTR_ID_BAD_BLOCK_COUNT_USER:
         return "User data erase fail count";
-        break;
     case VS_ATTR_ID_BAD_BLOCK_COUNT_SYSTEM:
         return "System area erase fail count";
-        break;
     case VS_ATTR_ID_THERMAL_THROTTLING_STATUS:
         return "Thermal throttling status and count";
-        break;
     case VS_ATTR_ID_ALL_PCIE_CORRECTABLE_ERROR_COUNT:
         return "PCIe Correctable Error count";
-        break;
     case VS_ATTR_ID_ALL_PCIE_UNCORRECTABLE_ERROR_COUNT:
         return "PCIe Uncorrectable Error count";
-        break;
     case VS_ATTR_ID_INCOMPLETE_SHUTDOWN_COUNT:
         return "Incomplete shutdowns";
-        break;
     case VS_ATTR_ID_GB_ERASED_LSB:
         return "LSB of Flash GB erased";
-        break;
     case VS_ATTR_ID_GB_ERASED_MSB:
         return "MSB of Flash GB erased";
-        break;
     case VS_ATTR_ID_LIFETIME_DEVSLEEP_EXIT_COUNT:
         return "LIFETIME_DEV_SLEEP_EXIT_COUNT";
-        break;
     case VS_ATTR_ID_LIFETIME_ENTERING_PS4_COUNT:
         return "LIFETIME_ENTERING_PS4_COUNT";
-        break;
     case VS_ATTR_ID_LIFETIME_ENTERING_PS3_COUNT:
         return "LIFETIME_ENTERING_PS3_COUNT";
-        break;
     case VS_ATTR_ID_RETIRED_BLOCK_COUNT:
         return "Retired block count"; /*VS_ATTR_ID_RETIRED_BLOCK_COUNT*/
-        break;
     case VS_ATTR_ID_PROGRAM_FAILURE_COUNT:
         return "Program fail count";
-        break;
     case VS_ATTR_ID_ERASE_FAIL_COUNT:
         return "Erase Fail Count";
-        break;
     case VS_ATTR_ID_AVG_ERASE_COUNT:
         return "System data % used";
-        break;
     case VS_ATTR_ID_UNEXPECTED_POWER_LOSS_COUNT:
         return "Unexpected power loss count";
-        break;
     case VS_ATTR_ID_WEAR_RANGE_DELTA:
         return "Wear range delta";
-        break;
     case VS_ATTR_ID_SATA_INTERFACE_DOWNSHIFT_COUNT:
         return "PCIE_INTF_DOWNSHIFT_COUNT";
-        break;
     case VS_ATTR_ID_END_TO_END_CRC_ERROR_COUNT:
         return "E2E_CRC_ERROR_COUNT";
-        break;
     case VS_ATTR_ID_UNCORRECTABLE_ECC_ERRORS:
         return "Soft ECC error count";
-        break;
     case VS_ATTR_ID_MAX_LIFE_TEMPERATURE:
         return "Max lifetime temperature";/*VS_ATTR_ID_MAX_LIFE_TEMPERATURE for extended*/
-        break;
     case VS_ATTR_ID_RAISE_ECC_CORRECTABLE_ERROR_COUNT:
         return "RAIS_ECC_CORRECT_ERR_COUNT";
-        break;
     case VS_ATTR_ID_UNCORRECTABLE_RAISE_ERRORS:
         return "Uncorrectable read error count";/*VS_ATTR_ID_UNCORRECTABLE_RAISE_ERRORS*/
-        break;
     case VS_ATTR_ID_DRIVE_LIFE_PROTECTION_STATUS:
         return "DRIVE_LIFE_PROTECTION_STATUS";
-        break;
     case VS_ATTR_ID_REMAINING_SSD_LIFE:
         return "Remaining SSD life";
-        break;
     case VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB:
         return "LSB of Physical (NAND) bytes written";
-        break;
     case VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_MSB:
         return "MSB of Physical (NAND) bytes written";
-        break;
     case VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB:
         return "LSB of Physical (HOST) bytes written";
-        break;
     case VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_MSB:
         return "MSB of Physical (HOST) bytes written";
-        break;
     case VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB:
         return "LSB of Physical (NAND) bytes read";
-        break;
     case VS_ATTR_ID_LIFETIME_READS_TO_HOST_MSB:
         return "MSB of Physical (NAND) bytes read";
-        break;
     case VS_ATTR_ID_FREE_SPACE:
         return "Free Space";
-        break;
     case VS_ATTR_ID_TRIM_COUNT_LSB:
         return "LSB of Trim count";
-        break;
     case VS_ATTR_ID_TRIM_COUNT_MSB:
         return "MSB of Trim count";
-        break;
     case VS_ATTR_ID_OP_PERCENTAGE:
         return "OP percentage";
-        break;
     case VS_ATTR_ID_MAX_SOC_LIFE_TEMPERATURE:
         return "Max lifetime SOC temperature";
-        break;
     default:
         return "Un-Known";
     }

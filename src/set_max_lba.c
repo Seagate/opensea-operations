@@ -136,7 +136,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         ret = FAILURE;
     }
-    safe_Free_aligned(scsiDataBuffer);
+    safe_Free(scsiDataBuffer)
     return ret;
 }
 

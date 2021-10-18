@@ -140,7 +140,6 @@ extern "C"
     //!   \param[in] supportedModes = pointer to a supported DL modes structure that has been filled in with valid information
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes);

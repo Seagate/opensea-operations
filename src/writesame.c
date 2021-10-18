@@ -92,7 +92,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(writeSameSupported);
+                safe_Free(writeSameSupported)
             }
             else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3)
             {
@@ -138,7 +138,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(writeSameSupported);
+                safe_Free(writeSameSupported)
             }
             else
             {
@@ -193,7 +193,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         }
                     }
                 }
-                safe_Free_aligned(blockLimits);
+                safe_Free(blockLimits)
             }
         }
     }
@@ -246,7 +246,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
                 *writeSameInProgress = false;
             }
         }
-        safe_Free_aligned(sctStatusBuf);
+        safe_Free(sctStatusBuf)
     }
     /*
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -283,7 +283,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
             *progress *= 100.0;
             *progress /= 65536.0;
         }
-        safe_Free(senseData);
+        safe_Free(senseData)
     }
     */
     else
@@ -332,7 +332,7 @@ int show_Write_Same_Current_LBA(tDevice *device)
                 ret = NOT_SUPPORTED;
             }
         }
-        safe_Free_aligned(sctStatusBuf);
+        safe_Free(sctStatusBuf)
     }
     else //SCSI Drive doesn't tell us
     {
@@ -471,7 +471,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 }
             }
         }
-        safe_Free_aligned(zeroPatternBuf);
+        safe_Free(zeroPatternBuf)
     }
     else
     {

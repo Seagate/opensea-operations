@@ -585,7 +585,7 @@ int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, 
     {
         ret = ata_Security_Set_Password(device, securityPassword);
     }
-    safe_Free_aligned(securityPassword);
+    safe_Free(securityPassword)
     return ret;
 }
 
@@ -606,7 +606,7 @@ int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     {
         ret = ata_Security_Disable_Password(device, securityPassword);
     }
-    safe_Free_aligned(securityPassword);
+    safe_Free(securityPassword)
     return ret;
 }
 
@@ -627,7 +627,7 @@ int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool u
     {
         ret = ata_Security_Unlock(device, securityPassword);
     }
-    safe_Free_aligned(securityPassword);
+    safe_Free(securityPassword)
     return ret;
 }
 
@@ -662,7 +662,7 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
             ret = ata_Security_Erase_Unit(device, securityErase, timeout);
         }
     }
-    safe_Free_aligned(securityErase);
+    safe_Free(securityErase)
     return ret;
 }
 
@@ -1242,7 +1242,8 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
-            convert_Seconds_To_Displayable_Time((uint64_t)get_Seconds(ataSecureEraseTimer), &years, &days, &hours, &minutes, &seconds);
+            double ataSecureEraseTimerSeconds = get_Seconds(ataSecureEraseTimer);
+            convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, ataSecureEraseTimerSeconds), &years, &days, &hours, &minutes, &seconds);
             print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
             printf("\n\n");
         }

@@ -349,7 +349,6 @@ extern "C"
     //!   \param overwriteEraseTimeEstimateMinutes - a time estimate in minutes for an overwrite erase to complete on a drive (whole drive). (optional)
     //!
     //  Exit:
-    //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
@@ -498,7 +497,6 @@ extern "C"
     //!   \param ranges - pointer to a structure filled in with the concurrent positioning information from a device.
     //!
     //  Exit:
-    //!   \return void
     //
     //-----------------------------------------------------------------------------
     void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);

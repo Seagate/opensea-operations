@@ -188,7 +188,6 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeSta
             printf("Not supported on this device type at this time");
         }
         return NOT_SUPPORTED;
-        break;
     }
     return result;
 }

@@ -312,7 +312,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
                 //all else fails, try mode sense 6
                 if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
                 {
-                    safe_Free_aligned(dataBuf);
+                    safe_Free(dataBuf)
                     return NOT_SUPPORTED;
                 }
             }
@@ -399,7 +399,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         else
         {
             //invalid block descriptor length
-            safe_Free_aligned(dataBuf);
+            safe_Free(dataBuf)
             return NOT_SUPPORTED;
         }
         //now send a mode select command
@@ -498,7 +498,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             //check if there was an invalid parameter field specifying the security initialize bit...if so, print a message and return not supported - TJE
         }
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     return ret;
 }
 
@@ -552,7 +552,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                             {
                                 lastFormatUnitAllFs = true;
                             }
-                            safe_Free(allFs);
+                            safe_Free(allFs)
                         }
                         else
                         {
@@ -641,7 +641,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
             formatStatus->totalNewBlocksReassignedValid = false;
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(formatStatusPage);
+        safe_Free(formatStatusPage)
     }
     else
     {
@@ -954,7 +954,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             }
         }
     }
-    safe_Free_aligned(inquiryData);
+    safe_Free(inquiryData)
     bool dummyUpCommonSizes = true;
     uint32_t supportedSectorSizesDataLength = 0;
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
@@ -1037,7 +1037,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             }
             ret = SUCCESS;
         }
-        safe_Free_aligned(supportedBlockLengthsData);
+        safe_Free(supportedBlockLengthsData)
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))
     {
@@ -1238,15 +1238,12 @@ int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     {
     case ATA_DRIVE:
         return ata_Get_Supported_Formats(device, formats);
-        break;
     case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
         return nvme_Get_Supported_Formats(device, formats);
-        break;
 #endif
     case SCSI_DRIVE:
         return scsi_Get_Supported_Formats(device, formats);
-        break;
     default:
         break;
     }

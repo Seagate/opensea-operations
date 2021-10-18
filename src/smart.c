@@ -86,7 +86,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                 }
             }
         }
-        safe_Free_aligned(ATAdataBuffer);
+        safe_Free(ATAdataBuffer)
     }
     #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
@@ -920,7 +920,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
         }
     }
     printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type");
-    safe_Free(attributeName);
+    safe_Free(attributeName)
 }
 
 /**
@@ -1359,7 +1359,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
             }
         }
     }
-    safe_Free(attributeName);
+    safe_Free(attributeName)
     return;
 }
 
@@ -1657,7 +1657,7 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reasonString, uint8_t reasonStringMaxLength, uint8_t *reasonStringOutputLength)
+static void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char *reasonString, uint8_t reasonStringMaxLength, uint8_t *reasonStringOutputLength)
 {
     switch (asc)
     {
@@ -2026,7 +2026,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 ret = UNKNOWN;
             }
         }
-        safe_Free_aligned(senseData);
+        safe_Free(senseData)
     }
     if (temporarilyEnableMRIEMode6)
     {
@@ -2187,7 +2187,7 @@ bool is_SMART_Enabled(tDevice *device)
                 enabled = true;
             }
         }
-        safe_Free_aligned(infoExceptionsControl);
+        safe_Free(infoExceptionsControl)
     }
     break;
     default:
@@ -2731,7 +2731,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
                     logData->mostRecentTemperatureReading = infoLogPage[10];
                 }
             }
-            safe_Free_aligned(infoLogPage);
+            safe_Free(infoLogPage)
         }
     }
     //read the mode page
@@ -2771,7 +2771,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
                 controlData->reportCount = M_BytesTo4ByteValue(infoControlPage[headerLength + 8], infoControlPage[headerLength + 9], infoControlPage[headerLength + 10], infoControlPage[headerLength + 11]);
             }
         }
-        safe_Free_aligned(infoControlPage);
+        safe_Free(infoControlPage)
     }
     return ret;
 }
@@ -2862,7 +2862,7 @@ int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInform
     {
         ret = scsi_Mode_Select_10(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, false, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
     }
-    safe_Free_aligned(infoControlPage);
+    safe_Free(infoControlPage)
     return ret;
 }
 
@@ -3623,7 +3623,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                 uint8_t *temp = (uint8_t*)realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment);
                                 if (!temp)
                                 {
-                                    safe_Free_aligned(errorLog);
+                                    safe_Free(errorLog)
                                     return MEMORY_FAILURE;
                                 }
                                 errorLog = temp;
@@ -3730,7 +3730,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                         {
                             ret = FAILURE;
                         }
-                        safe_Free_aligned(errorLog);
+                        safe_Free(errorLog)
                     }
                 }
             }
@@ -3817,7 +3817,6 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
         break;
     default://unknown command...
         return;
-        break;
     }
     if (async)
     {
@@ -3853,14 +3852,14 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
             {
                 uint32_t readSecLBA = M_Nibble0(device) << 24;
                 readSecLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu16 " Tag: %" PRIu8 "", commandName, readSecLBA, sectorsToTransfer, tag);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu32 " Tag: %" PRIu8 "", commandName, readSecLBA, sectorsToTransfer, tag);
             }
             else
             {
                 uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
                 uint8_t head = M_Nibble0(device);
                 uint8_t sector = M_Byte0(lba);
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu16 " Tag: %" PRIu8 "", commandName, cylinder, head, sector, sectorsToTransfer, tag);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu32 " Tag: %" PRIu8 "", commandName, cylinder, head, sector, sectorsToTransfer, tag);
             }
         }
     }
@@ -3915,14 +3914,14 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
             {
                 uint32_t readSecLBA = M_Nibble0(device) << 24;
                 readSecLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu16 "", commandName, readSecLBA, sectorsToTransfer);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu32 "", commandName, readSecLBA, sectorsToTransfer);
             }
             else
             {
                 uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
                 uint8_t head = M_Nibble0(device);
                 uint8_t sector = M_Byte0(lba);
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu16 "", commandName, cylinder, head, sector, sectorsToTransfer);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu32 "", commandName, cylinder, head, sector, sectorsToTransfer);
             }
         }
     }
@@ -4056,11 +4055,11 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     }
     if (invalidLog)
     {
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s (Invalid Address) Page Number: %" PRIu16 " PageCount: %" PRIu16 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, logPageCount, features);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s (Invalid Address) Page Number: %" PRIu16 " PageCount: %" PRIu32 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, logPageCount, features);
     }
     else
     {
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s Page Number: %" PRIu16 " PageCount: %" PRIu16 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, logPageCount, features);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Log: %s Page Number: %" PRIu16 " PageCount: %" PRIu32 " Features: %" PRIX16 "h", commandName, logAddressName, pageNumber, logPageCount, features);
     }
 }
 
@@ -4536,7 +4535,7 @@ void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
         {
             snprintf(sanitizeSignatureValid, 10, "Invalid");
         }
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Overwrite Erase, ZNR: %d, Invert: %d, Definitive Pattern: %d, Failure Mode: %d, Passes: %" PRIu8 ", Pattern: %08" PRIX8 "h, Signature %s", commandName, zoneNoReset, invertBetweenPasses, definitiveEndingPattern, failure, overwritePasses, overwritePattern, sanitizeSignatureValid);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Overwrite Erase, ZNR: %d, Invert: %d, Definitive Pattern: %d, Failure Mode: %d, Passes: %" PRIu8 ", Pattern: %08" PRIX32 "h, Signature %s", commandName, zoneNoReset, invertBetweenPasses, definitiveEndingPattern, failure, overwritePasses, overwritePattern, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_FREEZE_LOCK:
         if (signature == ATA_SANITIZE_FREEZE_LOCK_LBA)
@@ -4595,7 +4594,7 @@ void get_DCO_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t command
     }
 }
 
-void get_Set_Max_Address_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     bool volatileValue = count & BIT0;
     if (commandOpCode == ATA_SET_MAX_EXT)
@@ -4783,7 +4782,7 @@ void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
         if (subcommand >= 0x00D0 && subcommand <= 0x00EF)
         {
             //vendor specific
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX8 "h", commandName, subcommand, lba, count);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h", commandName, subcommand, lba, count);
         }
         else
         {
@@ -5353,7 +5352,6 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Sense Data Reporting", commandName);
             break;
         }
-        break;
     case SF_ENABLE_DISABLE_SENSE_DATA_RETURN_FOR_SUCCESSFUL_NCQ_COMMANDS:
         if (subcommandCount == 0)
         {
@@ -5365,7 +5363,6 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Sense Data Reporting For Successful NCQ Commands", commandName);
             break;
         }
-        break;
     case SF_ENABLE_REVERTING_TO_POWER_ON_DEFAULTS:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Reverting to Poweron Defaults", commandName);
         break;
@@ -5685,10 +5682,10 @@ void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode,
     switch (subcommand)
     {
     case SEND_FPDMA_DATA_SET_MANAGEMENT:
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Data Set Management. Tag: %" PRIu8 " PRIO: %" PRIu8 " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu16 " LBA: %" PRIu64 "", commandName, tag, prio, blocksToTransfer, lba);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Data Set Management. Tag: %" PRIu8 " PRIO: %" PRIu8 " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu32 " LBA: %" PRIu64 "", commandName, tag, prio, blocksToTransfer, lba);
         break;
     case SEND_FPDMA_HYBRID_EVICT:
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Evicy. Tag: %" PRIu8 " PRIO: %" PRIu8 " Evict All: (Unknown) Blocks To Transfer: %" PRIu16 "", commandName, tag, prio, blocksToTransfer);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Evicy. Tag: %" PRIu8 " PRIO: %" PRIu8 " Evict All: (Unknown) Blocks To Transfer: %" PRIu32 "", commandName, tag, prio, blocksToTransfer);
         break;
     case SEND_FPDMA_WRITE_LOG_DMA_EXT:
     {
@@ -5707,7 +5704,7 @@ void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode,
     }
         break;
     case SEND_FPDMA_DATA_SET_MANAGEMENT_XL:
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Data Set Management XL. Tag: %" PRIu8 " PRIO: %" PRIu8 " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu16 " LBA: %" PRIu64 "", commandName, tag, prio, blocksToTransfer, lba);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Data Set Management XL. Tag: %" PRIu8 " PRIO: %" PRIu8 " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu32 " LBA: %" PRIu64 "", commandName, tag, prio, blocksToTransfer, lba);
         break;
     default:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16 "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h", commandName, subcommand, tag, features, count, lba);
@@ -6261,14 +6258,14 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
                 {
                     uint32_t writeSameLBA = M_Nibble0(device) << 24;
                     writeSameLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
-                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - LBA: %" PRIu32 " Count: %" PRIu16 "", writeSameLBA, M_Byte0(count));
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - LBA: %" PRIu32 " Count: %" PRIu8 "", writeSameLBA, M_Byte0(count));
                 }
                 else
                 {
                     uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
                     uint8_t head = M_Nibble0(device);
                     uint8_t sector = M_Byte0(lba);
-                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu16 "", cylinder, head, sector, M_Byte0(count));
+                    snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu8 "", cylinder, head, sector, M_Byte0(count));
                 }
             }
             else
@@ -6610,7 +6607,7 @@ void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceR
                 if(dup)
                 {
                     snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sUnknown Error Condition (%02" PRIX8 "h)", dup, error);
-                    safe_Free(dup);
+                    safe_Free(dup)
                 }
             }
         }

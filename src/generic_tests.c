@@ -152,7 +152,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         }
         fflush(stdout);
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     return ret;
 }
 
@@ -251,7 +251,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
             }
             printf("\n%s\n",message);
         }
-        safe_Free(randomLBAList);
+        safe_Free(randomLBAList)
         return ret;
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -300,7 +300,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
             }
             printf("\n%s\n",message);
         }
-        safe_Free(randomLBAList);
+        safe_Free(randomLBAList)
         return ret;
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -333,7 +333,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
         if (!dataBuf)
         {
             perror("malloc data buf failed\n");
-            safe_Free(randomLBAList);
+            safe_Free(randomLBAList)
             return MEMORY_FAILURE;
         }
     }
@@ -385,8 +385,8 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
     {
         printf("\n");
     }
-    safe_Free(dataBuf);
-    safe_Free(randomLBAList);
+    safe_Free(dataBuf)
+    safe_Free(randomLBAList)
     return ret;
 }
 
@@ -521,7 +521,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
                     break;
                 }
             }
-            safe_Free_aligned(dataBuf);
+            safe_Free(dataBuf)
             return ret;
         }
         ++odTest.numberOfCommandsIssued;
@@ -615,7 +615,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
                     break;
                 }
             }
-            safe_Free_aligned(dataBuf);
+            safe_Free(dataBuf)
             return ret;
         }
         ++idTest.numberOfCommandsIssued;
@@ -709,7 +709,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
                     break;
                 }
             }
-            safe_Free_aligned(dataBuf);
+            safe_Free(dataBuf)
             return ret;
         }
         ++randomTest.numberOfCommandsIssued;
@@ -839,7 +839,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         printf("\tLBAs accessed per command: %"PRIu16"\n", randomTest.sectorCount);
         printf("\tTotal LBAs accessed: %"PRIu64"\n", randomTest.numberOfCommandsIssued * randomTest.sectorCount);
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     return ret;
 }
 
@@ -1004,7 +1004,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
             }
         }
     }
-    safe_Free(errorList);
+    safe_Free(errorList)
     return ret;
 }
 
@@ -1043,7 +1043,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
-            safe_Free(errorList);
+            safe_Free(errorList)
             return MEMORY_FAILURE;
         }
     }
@@ -1159,7 +1159,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         printf("\n");
         fflush(stdout);
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -1209,7 +1209,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
             }
         }
     }
-    safe_Free(errorList);
+    safe_Free(errorList)
     return ret;
 }
 
@@ -1330,7 +1330,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
             currentSectorCount = sectorCount;
         }
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
@@ -1403,7 +1403,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     {
         printf("\n");
     }
-    safe_Free(dataBuf);
+    safe_Free(dataBuf)
     return ret;
 }
 
@@ -1728,7 +1728,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     {
         printf("\n");
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     return SUCCESS;
 }
 
@@ -1922,7 +1922,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
             }
         }
     }
-    safe_Free(errorList);
+    safe_Free(errorList)
     return ret;
 }
 
@@ -2071,7 +2071,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
     {
         *numberOfLbasAccessed = startingLBA + sectorCount - *numberOfLbasAccessed;//subtract itself since it gets set to where we start at when we begin.
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free(dataBuf)
     return ret;
 }
 
@@ -2218,6 +2218,6 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
             }
         }
     }
-    safe_Free(errorList);
+    safe_Free(errorList)
     return ret;
 }

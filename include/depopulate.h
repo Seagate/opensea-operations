@@ -94,7 +94,6 @@ extern "C" {
     //!   \param[in] elementList = pointer to the element list that holds each of the physical element descriptors
     //!   \param[in] depopulateTime = time to perform a depopulate. Will be displayed on the screen by this function
     //  Exit:
-    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalElement elementList, uint64_t depopulateTime);

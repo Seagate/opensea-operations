@@ -350,7 +350,6 @@ extern "C"
     //!   \param ataDriveInfo = pointer to the struct to filled in with SCSI drive information
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationSAS_SATA ataDriveInfo);
@@ -367,7 +366,6 @@ extern "C"
     //!   \param driveInfo = pointer to the driveInformationSAS_Sata struct with information to print to the screen
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo);
@@ -384,7 +382,6 @@ extern "C"
     //!   \param driveInfo = pointer to the driveInformation struct with information to print to the screen
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Device_Information(ptrDriveInformation driveInfo);
@@ -400,7 +397,6 @@ extern "C"
     //!   \param ataDriveInfo = pointer to the driveInformation struct with ATA information to print to the screen
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Parent_And_Child_Information(ptrDriveInformation scsiDriveInfo, ptrDriveInformation ataDriveInfo);
@@ -437,7 +433,6 @@ extern "C"
     //!   \param[in] scsiport1maxSpeed = pointer to string for port1 max speed value
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     void get_SAS_Interface_Speeds(tDevice *device, char **scsiport0negSpeed, char **scsiport1negSpeed, char **scsiport0maxSpeed, char **scsiport1maxSpeed);

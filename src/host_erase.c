@@ -126,7 +126,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     {
         printf("\n");
     }
-    safe_Free_aligned(writeBuffer);
+    safe_Free(writeBuffer)
     return ret;
 }
 
@@ -147,7 +147,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     }
     if (device->drive_info.deviceMaxLba == 0)
     {
-        safe_Free(writeBuffer);
+        safe_Free(writeBuffer)
         return NOT_SUPPORTED;
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -220,6 +220,6 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     {
         printf("\n");
     }
-    safe_Free_aligned(writeBuffer);
+    safe_Free(writeBuffer)
     return ret;
 }

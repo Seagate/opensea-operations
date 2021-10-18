@@ -117,7 +117,7 @@ int print_Current_Power_Mode(tDevice *device)
             free(identifyData);
             return FAILURE;
         }
-        safe_Free_aligned(identifyData);
+        safe_Free(identifyData)
 
         if (SUCCESS == ata_Check_Power_Mode(device, &powerMode))
         {
@@ -258,7 +258,7 @@ int print_Current_Power_Mode(tDevice *device)
                 ret = FAILURE;
             }
         }
-        safe_Free_aligned(senseData);
+        safe_Free(senseData)
     }
     #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
@@ -356,7 +356,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             }
             ret = NOT_SUPPORTED;
             break;
-        };
+        }
     }
     else //if (device->drive_info.drive_type == SCSI_DRIVE) /*removed the if SCSI here to handle NVMe or other translations*/
     {
@@ -421,7 +421,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             }
             ret = NOT_SUPPORTED;
             break;
-        };
+        }
     }
     return ret;
 }
@@ -526,7 +526,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
             {
                 printf("Device does not support the Extended Power Control Feature!\n");
             }
-            safe_Free_aligned(ataDataBuffer);
+            safe_Free(ataDataBuffer)
             return NOT_SUPPORTED;
         }
     }
@@ -536,10 +536,10 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
         {
             printf("Failed to check if drive supports EPC feature!!\n");
         }
-        safe_Free_aligned(ataDataBuffer);
+        safe_Free(ataDataBuffer)
         return FAILURE;
     }
-    safe_Free_aligned(ataDataBuffer);
+    safe_Free(ataDataBuffer)
     //if we go this far, then we know that we support the required EPC feature
     powerConditionSettings powerSettings;
     memset(&powerSettings, 0, sizeof(powerConditionSettings));
@@ -589,7 +589,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 //got the page, now send it to the drive with a mode select
                 ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, true, false, powerConditionsPage, powerConditionsPageLength);
             }
-            safe_Free_aligned(powerConditionsPage);
+            safe_Free(powerConditionsPage)
         }
     }
     else
@@ -691,10 +691,10 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
             }
             else
             {
-                safe_Free_aligned(powerConditionsPage);
+                safe_Free(powerConditionsPage)
                 return ret;
             }
-            safe_Free_aligned(powerConditionsPage);
+            safe_Free(powerConditionsPage)
         }
 
         //Now, read the current settings mode page, make any necessary changes, then send it to the drive and we're done.
@@ -838,16 +838,16 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
             }
             //send the modified data to the drive
             ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, true, false, powerConditionsPage, powerConditionsPageLength);
-            safe_Free_aligned(powerConditionsPage);
+            safe_Free(powerConditionsPage)
         }
         else
         {
-            safe_Free_aligned(powerConditionsPage);
+            safe_Free(powerConditionsPage)
             return ret;
         }
-        safe_Free_aligned(powerConditionsPage);
+        safe_Free(powerConditionsPage)
     }
-    safe_Free_aligned(powerConditionsPage);
+    safe_Free(powerConditionsPage)
     return ret;
 }
 
@@ -964,7 +964,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             {
                 printf("Failed to check if drive supports modifying power conditions!\n");
             }
-            safe_Free_aligned(powerConditionVPD);
+            safe_Free(powerConditionVPD)
             return FAILURE;
         }
     }
@@ -974,7 +974,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         {
             printf("Failed to check if drive supports modifying power conditions!\n");
         }
-        safe_Free_aligned(powerConditionVPD);
+        safe_Free(powerConditionVPD)
         return FAILURE;
     }
 
@@ -1012,7 +1012,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 powerConditions.standby_z.restoreToDefault = true;
                 break;
             default:
-                safe_Free_aligned(powerConditionVPD);
+                safe_Free(powerConditionVPD)
                 return BAD_PARAMETER;
             }
             ret = scsi_Set_Power_Conditions(device, false, &powerConditions);
@@ -1030,7 +1030,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_IDLE_A:
             if (!(powerConditionVPD[5] & BIT0))
             {
-                safe_Free_aligned(powerConditionVPD);
+                safe_Free(powerConditionVPD)
                 return NOT_SUPPORTED;
             }
             powerConditions.idle_a.powerConditionValid = true;
@@ -1044,7 +1044,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_IDLE_B:
             if (!(powerConditionVPD[5] & BIT1))
             {
-                safe_Free_aligned(powerConditionVPD);
+                safe_Free(powerConditionVPD)
                 return NOT_SUPPORTED;
             }
             powerConditions.idle_b.powerConditionValid = true;
@@ -1058,7 +1058,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_IDLE_C:
             if (!(powerConditionVPD[5] & BIT2))
             {
-                safe_Free_aligned(powerConditionVPD);
+                safe_Free(powerConditionVPD)
                 return NOT_SUPPORTED;
             }
             powerConditions.idle_c.powerConditionValid = true;
@@ -1072,7 +1072,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_STANDBY_Y:
             if (!(powerConditionVPD[4] & BIT1))
             {
-                safe_Free_aligned(powerConditionVPD);
+                safe_Free(powerConditionVPD)
                 return NOT_SUPPORTED;
             }
             powerConditions.standby_y.powerConditionValid = true;
@@ -1086,7 +1086,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_STANDBY_Z:
             if (!(powerConditionVPD[4] & BIT0))
             {
-                safe_Free_aligned(powerConditionVPD);
+                safe_Free(powerConditionVPD)
                 return NOT_SUPPORTED;
             }
             powerConditions.standby_z.powerConditionValid = true;
@@ -1151,12 +1151,12 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             }
             break;
         default:
-            safe_Free_aligned(powerConditionVPD);
+            safe_Free(powerConditionVPD)
             return BAD_PARAMETER;
         }
         ret = scsi_Set_Power_Conditions(device, false, &powerConditions);
     }
-    safe_Free_aligned(powerConditionVPD);
+    safe_Free(powerConditionVPD)
     return ret;
 }
 
@@ -1261,7 +1261,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(powerConsumptionPage);
+            safe_Free(powerConsumptionPage)
         }
         if (ret != FAILURE)
         {
@@ -1298,7 +1298,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 ret = NOT_SUPPORTED;
             }
-            safe_Free_aligned(pcModePage);
+            safe_Free(pcModePage)
         }
     }
     return ret;
@@ -1384,7 +1384,6 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                 case 5://microwatts
                 default:
                     continue;//continue the for loop
-                    break;
                 }
                 printf(" %"PRIu64" |", watts);
             }
@@ -1475,7 +1474,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                 ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
             }
         }
-        safe_Free_aligned(pcModePage);
+        safe_Free(pcModePage)
     }
     return ret;
 }
@@ -1763,7 +1762,7 @@ int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
             }
         }
     }
-    safe_Free_aligned(epcLog);
+    safe_Free(epcLog)
     return ret;
 }
 
@@ -2520,7 +2519,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
             ret = FAILURE;
         }
     }
-    safe_Free_aligned(enhSasPhyControl);
+    safe_Free(enhSasPhyControl)
     return ret;
 }
 
@@ -2551,7 +2550,7 @@ int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCou
             }
         }
     }
-    safe_Free_aligned(enhSasPhyControl);
+    safe_Free(enhSasPhyControl)
     return ret;
 }
 
@@ -2577,7 +2576,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
         //parse the header to figure out full page length
         enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
         gotFullPageLength = true;
-        safe_Free_aligned(enhSasPhyControl);
+        safe_Free(enhSasPhyControl)
         enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
         if (!enhSasPhyControl)
         {
@@ -2634,7 +2633,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
             ret = FAILURE;
         }
     }
-    safe_Free_aligned(enhSasPhyControl);
+    safe_Free(enhSasPhyControl)
 
     return ret;
 }

@@ -439,7 +439,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                 }
             }
         }
-        safe_Free_aligned(defectData);
+        safe_Free(defectData)
     }
     else
     {
@@ -450,7 +450,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
 
 void free_Defect_List(scsiDefectList **defects)
 {
-    safe_Free(*defects);
+    safe_Free(*defects)
 }
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
@@ -716,7 +716,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf);
+            safe_Free(dataBuf)
         }
     }
     return ret;
@@ -887,7 +887,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 //now write back the data with a write long command
                 ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, NULL, NULL);
             }
-            safe_Free_aligned(data);
+            safe_Free(data)
         }
         else if (device->drive_info.IdentifyData.ata.Word022 > 0 && device->drive_info.IdentifyData.ata.Word022 < UINT16_MAX && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
         {
@@ -955,7 +955,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     setFeaturesToChangeECCBytes = false;
                 }
             }
-            safe_Free_aligned(data);
+            safe_Free(data)
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1031,7 +1031,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         {
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(dataBuffer);
+        safe_Free(dataBuffer)
     }
     return ret;
 }
@@ -1082,7 +1082,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf);
+            safe_Free(dataBuf)
         }
     }
     return ret;

@@ -94,10 +94,9 @@ extern "C"
     //  Entry:
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void nvme_Print_Feature_Identifiers_Help();
+    OPENSEA_OPERATIONS_API void nvme_Print_Feature_Identifiers_Help(void);
 
     //-----------------------------------------------------------------------------
     //

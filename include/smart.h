@@ -616,7 +616,6 @@ extern "C"
     //!   \param errorLogData - pointer to the summary SMART error log structure to print out
     //!   \param genericOutput - true = generic output showing registers in hex. false = detailed output that is translated from the reported regiters according to ATA spec
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput);
@@ -647,7 +646,6 @@ extern "C"
     //!   \param errorLogData - pointer to the summary SMART error log structure to print out
     //!   \param genericOutput - true = generic output showing registers in hex. false = detailed output that is translated from the reported regiters according to ATA spec
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);

@@ -15,7 +15,7 @@
 #include "buffer_test.h"
 
 
-bool are_Buffer_Commands_Available(tDevice *device)
+static bool are_Buffer_Commands_Available(tDevice *device)
 {
     bool supported = false;
     //Check if read/write buffer commands are supported on SATA and SAS
@@ -87,7 +87,7 @@ bool are_Buffer_Commands_Available(tDevice *device)
     return supported;
 }
 
-int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
+static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
 {
     int ret = SUCCESS;
     if (!bufferSize || !offsetBoundary)
@@ -132,7 +132,7 @@ int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSiz
     }
 }
 
-int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
+static int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -310,8 +310,8 @@ void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t devic
         stop_Timer(&patternTimer);
         testResults->totalTimeNS = get_Nano_Seconds(patternTimer);
     }
-    safe_Free(patternBuffer);
-    safe_Free(returnBuffer);
+    safe_Free(patternBuffer)
+    safe_Free(returnBuffer)
 }
 
 //Function for Walking 1's/0's test
@@ -415,8 +415,8 @@ void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBuf
             }
         }
     }
-    safe_Free_aligned(patternBuffer);
-    safe_Free_aligned(returnBuffer);
+    safe_Free(patternBuffer)
+    safe_Free(returnBuffer)
 }
 //Function for random data pattern test
 void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
@@ -494,8 +494,8 @@ void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptr
             }
         }
     }
-    safe_Free(patternBuffer);
-    safe_Free(returnBuffer);
+    safe_Free(patternBuffer)
+    safe_Free(returnBuffer)
 }
 
 //master function for the whole test.
@@ -579,7 +579,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
     printf("00h Test Pattern:\n");
     for (uint8_t count = 0; count < ALL_0_TEST_COUNT; ++count)
     {
-        printf("    Run %" PRIu8 ":\n", count + 1);
+        printf("    Run %" PRIu8 ":\n", count + UINT8_C(1));
         printf("        Total commands sent: %" PRIu32 "\n", testResults.zerosTest[count].totalCommandsSent);
         printf("        Number of command CRC errors: %" PRIu32 "\n", testResults.zerosTest[count].totalCommandCRCErrors);
         printf("        Number of command timeouts: %" PRIu32 "\n", testResults.zerosTest[count].totalCommandTimeouts);

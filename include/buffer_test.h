@@ -79,7 +79,6 @@ extern "C"
     //!   \param[in] testResults = structure that holds results from a cable/buffer test
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
     void print_Cable_Test_Results(cableTestResults testResults);

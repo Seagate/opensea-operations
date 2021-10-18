@@ -570,13 +570,14 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         default:
                             break;
                         }
+                        break;
                     default:
                         //unknown page, break
                         break;
                     }
                 }
             }
-            safe_Free_aligned(devStatsNotificationsLog);
+            safe_Free(devStatsNotificationsLog)
         }
         if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0,0))
         {
@@ -4617,6 +4618,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger.isValueValid = true;
                             deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger.statisticValue = tempLogBuf[iter + 11];
                             ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
                         default:
                             break;
                         }
@@ -6139,6 +6141,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         }
                     }
                 }
+                break;
             default:
                 break;
             }
