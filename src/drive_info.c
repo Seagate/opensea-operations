@@ -127,7 +127,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         if (wordPtr[209] & BIT14)
         {
             //bits 13:0 are valid for alignment. bit 15 will be 0 and bit 14 will be 1. remove bit 14 with an xor
-            driveInfo->sectorAlignment = (uint16_t)(wordPtr[209] ^ BIT14);
+            driveInfo->sectorAlignment = C_CAST(uint16_t, wordPtr[209] ^ BIT14);
         }
         //rotation rate
         memcpy(&driveInfo->rotationRate, &wordPtr[217], 2);
@@ -424,7 +424,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                             }
                         }
                     }
-                    safe_Free(protocolList)
+                    safe_Free_aligned(protocolList)
                 }
             }
         }
@@ -1389,7 +1389,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                     {
                         //data is valid, so figure out supported pages
                         uint8_t listLen = logBuffer[8];
-                        for (uint16_t iter = 9; iter < (uint16_t)(listLen + 8) && iter < UINT16_C(512); ++iter)
+                        for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < UINT16_C(512); ++iter)
                         {
                             switch (logBuffer[iter])
                             {
@@ -2047,7 +2047,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             }
         }
     }
-    safe_Free(logBuffer)
+    safe_Free_aligned(logBuffer)
     
     uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
@@ -2518,7 +2518,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
-                safe_Free(unitSerialNumber)
+                safe_Free_aligned(unitSerialNumber)
                 break;
             }
             case DEVICE_IDENTIFICATION:
@@ -2611,7 +2611,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
-                safe_Free(deviceIdentification)
+                safe_Free_aligned(deviceIdentification)
                 break;
             }
             case EXTENDED_INQUIRY_DATA:
@@ -2689,7 +2689,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                     }
                                 }
                             }
-                            safe_Free(supportedBlockSizesAndProtectionTypes)
+                            safe_Free_aligned(supportedBlockSizesAndProtectionTypes)
                         }
                         //no else...don't care that much right now...-TJE
                     }
@@ -2701,7 +2701,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         break;
                     }
                 }
-                safe_Free(extendedInquiryData)
+                safe_Free_aligned(extendedInquiryData)
                 break;
             }
             case BLOCK_DEVICE_CHARACTERISTICS:
@@ -2719,7 +2719,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     driveInfo->formFactor = M_Nibble0(blockDeviceCharacteristics[7]);
                     driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
                 }
-                safe_Free(blockDeviceCharacteristics)
+                safe_Free_aligned(blockDeviceCharacteristics)
                 break;
             }
             case POWER_CONDITION:
@@ -2747,7 +2747,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->numberOfFeaturesSupported++;
                     }
                 }
-                safe_Free(logicalBlockProvisioning)
+                safe_Free_aligned(logicalBlockProvisioning)
                 break;
             }
             case BLOCK_LIMITS:
@@ -2767,7 +2767,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->numberOfFeaturesSupported++;
                     }
                 }
-                safe_Free(blockLimits)
+                safe_Free_aligned(blockLimits)
                 break;
             }
             case ATA_INFORMATION:
@@ -2786,7 +2786,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     memcpy(driveInfo->satProductRevision, &ataInformation[32], 4);
                     driveInfo->numberOfFeaturesSupported++;
                 }
-                safe_Free(ataInformation)
+                safe_Free_aligned(ataInformation)
                 break;
             }
             case CONCURRENT_POSITIONING_RANGES:
@@ -2803,7 +2803,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     //calculate how many ranges are being reported by the device.
                     driveInfo->concurrentPositioningRanges = (M_BytesTo2ByteValue(concurrentRanges[2], concurrentRanges[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
                 }
-                safe_Free(concurrentRanges)
+                safe_Free_aligned(concurrentRanges)
             }
                 break;
             default:
@@ -2823,7 +2823,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     uint8_t *readCapBuf = (uint8_t*)calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
     if (!readCapBuf)
     {
-        safe_Free(tempBuf)
+        safe_Free_aligned(tempBuf)
         return MEMORY_FAILURE;
     }
     switch (peripheralDeviceType)
@@ -2841,8 +2841,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 uint8_t* temp = (uint8_t*)realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
-                    safe_Free(tempBuf)
-                    safe_Free(readCapBuf)
+                    safe_Free_aligned(tempBuf)
+                    safe_Free_aligned(readCapBuf)
                     return MEMORY_FAILURE;
                 }
                 readCapBuf = temp;
@@ -2903,8 +2903,8 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             uint8_t* temp = (uint8_t*)realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment);
             if (temp == NULL)
             {
-                safe_Free(tempBuf)
-                safe_Free(readCapBuf)
+                safe_Free_aligned(tempBuf)
+                safe_Free_aligned(readCapBuf)
                 return MEMORY_FAILURE;
             }
             readCapBuf = temp;
@@ -2945,7 +2945,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
     default:
         break;
     }
-    safe_Free(readCapBuf)
+    safe_Free_aligned(readCapBuf)
     if (protectionSupported)
     {
         //set protection types supported up here.
@@ -3292,7 +3292,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                         }
                     }
-                    safe_Free(writeErrorData)
+                    safe_Free_aligned(writeErrorData)
                 }
                 break;
             case LP_READ_ERROR_COUNTERS:
@@ -3335,7 +3335,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                         }
                     }
-                    safe_Free(readErrorData)
+                    safe_Free_aligned(readErrorData)
                 }
                 break;
             case LP_LOGICAL_BLOCK_PROVISIONING:
@@ -3359,7 +3359,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->temperatureData.temperatureDataValid = true;
                         driveInfo->temperatureData.currentTemperature = temperatureData[9];
                     }
-                    safe_Free(temperatureData)
+                    safe_Free_aligned(temperatureData)
                 }
                 break;
                 case 1://environmental reporting
@@ -3389,7 +3389,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->humidityData.highestValid = true;
                         driveInfo->humidityData.lowestValid = true;
                     }
-                    safe_Free(environmentReporting)
+                    safe_Free_aligned(environmentReporting)
                 }
                 break;
                 default:
@@ -3411,7 +3411,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //bytes 9 & 10
                         driveInfo->deviceReportedUtilizationRate = ((double)M_BytesTo2ByteValue(utilizationData[8], utilizationData[9])) / 1000.0;
                     }
-                    safe_Free(utilizationData)
+                    safe_Free_aligned(utilizationData)
                 }
                 break;
                 default:
@@ -3434,7 +3434,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Application Client Logging");
                         driveInfo->numberOfFeaturesSupported++;
                     }
-                    safe_Free(applicationClient)
+                    safe_Free_aligned(applicationClient)
                 }
                 break;
                 default:
@@ -3461,7 +3461,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         driveInfo->dstInfo.powerOnHours = M_BytesTo2ByteValue(selfTestResults[parameterOffset + 6], selfTestResults[parameterOffset + 7]);
                         driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(selfTestResults[parameterOffset + 8], selfTestResults[parameterOffset + 9], selfTestResults[parameterOffset + 10], selfTestResults[parameterOffset + 11], selfTestResults[parameterOffset + 12], selfTestResults[parameterOffset + 13], selfTestResults[parameterOffset + 14], selfTestResults[parameterOffset + 15]);
                     }
-                    safe_Free(selfTestResults)
+                    safe_Free_aligned(selfTestResults)
                 }
                 break;
             case LP_SOLID_STATE_MEDIA:
@@ -3478,7 +3478,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //bytes 7 of parameter 1 (or byte 12)
                         driveInfo->percentEnduranceUsed = (double)ssdEnduranceData[11];
                     }
-                    safe_Free(ssdEnduranceData)
+                    safe_Free_aligned(ssdEnduranceData)
                 }
                 break;
             case LP_BACKGROUND_SCAN_RESULTS:
@@ -3495,7 +3495,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //bytes 8 to 11
                         driveInfo->powerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[8], backgroundScanResults[9], backgroundScanResults[10], backgroundScanResults[11]);
                     }
-                    safe_Free(backgroundScanResults)
+                    safe_Free_aligned(backgroundScanResults)
                 }
                 break;
             case LP_GENERAL_STATISTICS_AND_PERFORMANCE:
@@ -3518,7 +3518,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                         //convert to bytes written
                         driveInfo->totalBytesRead = driveInfo->totalLBAsRead * driveInfo->logicalSectorSize;
                     }
-                    safe_Free(generalStatsAndPerformance)
+                    safe_Free_aligned(generalStatsAndPerformance)
                 }
                 break;
             case LP_INFORMATION_EXCEPTIONS:
@@ -3545,7 +3545,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         driveInfo->smartStatus = 2;
                     }
-                    safe_Free(informationExceptions)
+                    safe_Free_aligned(informationExceptions)
                 }
                 break;
             case 0x3C://Vendor specific page. we're checking this page on Seagate drives for an enhanced usage indicator on SSDs (PPM value)
@@ -3560,7 +3560,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                     {
                         driveInfo->percentEnduranceUsed = (((double)M_BytesTo4ByteValue(ssdUsage[8], ssdUsage[9], ssdUsage[10], ssdUsage[11])) / 1000000.00) * 100.00;
                     }
-                    safe_Free(ssdUsage)
+                    safe_Free_aligned(ssdUsage)
                 }
                 break;
             default:
@@ -4277,7 +4277,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts = protocolSpecificPort[headerLength + 7];
                             uint8_t phyCount = 0;
                             //now we need to go through the descriptors for each phy
-                            for (; phyDescriptorIter < (uint16_t)M_Min((uint16_t)(phyPageLen + headerLength), (uint16_t)(LEGACY_DRIVE_SEC_SIZE + headerLength)) && phyCount < (uint8_t)MAX_PORTS; phyDescriptorIter += 48, phyCount++)
+                            for (; phyDescriptorIter < (uint16_t)M_Min(C_CAST(uint16_t, phyPageLen + headerLength), C_CAST(uint16_t, LEGACY_DRIVE_SEC_SIZE + headerLength)) && phyCount < (uint8_t)MAX_PORTS; phyDescriptorIter += 48, phyCount++)
                             {
                                 //uint8_t phyIdentifier = modePages[phyDescriptorIter + 1];
                                 switch (M_Nibble0(protocolSpecificPort[phyDescriptorIter + 5]))
@@ -5299,7 +5299,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         }
     }
     driveInfo->lowCurrentSpinupValid = false;
-    safe_Free(tempBuf)
+    safe_Free_aligned(tempBuf)
     return ret;
 }
 
@@ -5752,7 +5752,7 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         {
             driveInfo->smartData.smartStatus = 2;
         }
-        safe_Free(nvmeIdentifyData)
+        safe_Free_aligned(nvmeIdentifyData)
     }
     else
     {
@@ -7063,15 +7063,15 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
         if (nvmeDriveInfo->smartData.valid)
         {
             //Power on hours
-            externalDriveInfo->powerOnMinutes = (uint64_t)(nvmeDriveInfo->smartData.powerOnHoursD * 60);
+            externalDriveInfo->powerOnMinutes = C_CAST(uint64_t, nvmeDriveInfo->smartData.powerOnHoursD * 60);
             //Temperature (SCSI is in Celsius!)
             externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
             externalDriveInfo->temperatureData.temperatureDataValid = true;
             //Workload (reads, writes)
-            externalDriveInfo->totalBytesRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 * 1000);//this is a count of 512B units, so converting to bytes
-            externalDriveInfo->totalLBAsRead = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsReadD * 512 * 1000 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
-            externalDriveInfo->totalBytesWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 * 1000); //this is a count of 512B units, so converting to bytes
-            externalDriveInfo->totalLBAsWritten = (uint64_t)(nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 * 1000 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
+            externalDriveInfo->totalBytesRead = C_CAST(uint64_t, nvmeDriveInfo->smartData.dataUnitsReadD * 512 * 1000);//this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsRead = C_CAST(uint64_t, nvmeDriveInfo->smartData.dataUnitsReadD * 512 * 1000 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
+            externalDriveInfo->totalBytesWritten = C_CAST(uint64_t, nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 * 1000); //this is a count of 512B units, so converting to bytes
+            externalDriveInfo->totalLBAsWritten = C_CAST(uint64_t, nvmeDriveInfo->smartData.dataUnitsWrittenD * 512 * 1000 / nvmeDriveInfo->namespaceData.formattedLBASizeBytes);
             externalDriveInfo->percentEnduranceUsed = nvmeDriveInfo->smartData.percentageUsed;
             externalDriveInfo->smartStatus = nvmeDriveInfo->smartData.smartStatus;
         }

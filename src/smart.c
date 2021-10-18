@@ -86,7 +86,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                 }
             }
         }
-        safe_Free(ATAdataBuffer)
+        safe_Free_aligned(ATAdataBuffer)
     }
     #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
@@ -2026,7 +2026,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 ret = UNKNOWN;
             }
         }
-        safe_Free(senseData)
+        safe_Free_aligned(senseData)
     }
     if (temporarilyEnableMRIEMode6)
     {
@@ -2187,7 +2187,7 @@ bool is_SMART_Enabled(tDevice *device)
                 enabled = true;
             }
         }
-        safe_Free(infoExceptionsControl)
+        safe_Free_aligned(infoExceptionsControl)
     }
     break;
     default:
@@ -2731,7 +2731,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
                     logData->mostRecentTemperatureReading = infoLogPage[10];
                 }
             }
-            safe_Free(infoLogPage)
+            safe_Free_aligned(infoLogPage)
         }
     }
     //read the mode page
@@ -2771,7 +2771,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
                 controlData->reportCount = M_BytesTo4ByteValue(infoControlPage[headerLength + 8], infoControlPage[headerLength + 9], infoControlPage[headerLength + 10], infoControlPage[headerLength + 11]);
             }
         }
-        safe_Free(infoControlPage)
+        safe_Free_aligned(infoControlPage)
     }
     return ret;
 }
@@ -2862,7 +2862,7 @@ int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInform
     {
         ret = scsi_Mode_Select_10(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, false, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
     }
-    safe_Free(infoControlPage)
+    safe_Free_aligned(infoControlPage)
     return ret;
 }
 
@@ -3623,7 +3623,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                 uint8_t *temp = (uint8_t*)realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment);
                                 if (!temp)
                                 {
-                                    safe_Free(errorLog)
+                                    safe_Free_aligned(errorLog)
                                     return MEMORY_FAILURE;
                                 }
                                 errorLog = temp;
@@ -3730,7 +3730,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                         {
                             ret = FAILURE;
                         }
-                        safe_Free(errorLog)
+                        safe_Free_aligned(errorLog)
                     }
                 }
             }
@@ -5324,7 +5324,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Retries", commandName);
         break;
     case SF_SET_DEVICE_MAXIMUM_AVERAGE_CURRENT:
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Device Maximum Average Current: %" PRIu16 " mA", commandName, (uint16_t)(subcommandCount * 4));
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Device Maximum Average Current: %" PRIu16 " mA", commandName, C_CAST(uint16_t, subcommandCount * 4));
         break;
     case SF_ENABLE_READ_LOOK_AHEAD_FEATURE:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Read Look-Ahead", commandName);
@@ -6350,7 +6350,7 @@ void convert_Milliseconds_To_Time_String(uint64_t milliseconds, char timeString[
     milliseconds %= (60 * 60 * 1000);
     uint8_t minutes = (uint8_t)(milliseconds / (60 * 1000));
     milliseconds %= (60 * 1000);
-    uint8_t seconds = (uint8_t)(milliseconds / 1000);
+    uint8_t seconds = C_CAST(uint8_t, milliseconds / 1000);
     milliseconds %= 1000;
     snprintf(timeString, TIMESTRING_MAX_LEN, "%" PRIu8 "D:%" PRIu8 "H:%" PRIu8 "M:%" PRIu8 "S:%" PRIu64 "MS", days, hours, minutes, seconds, milliseconds);
 }

@@ -16,6 +16,7 @@
 #include "operations.h"
 #include "host_erase.h"
 #include "cmds.h"
+#include "platform_helper.h"
 
 int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEnd, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
 {
@@ -42,11 +43,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
         {
             if (alignedLBA + sectors > eraseRangeEnd)
             {
-                sectors = (uint16_t)(eraseRangeEnd - alignedLBA);
+                sectors = C_CAST(uint16_t, eraseRangeEnd - alignedLBA);
                 dataLength = sectors * device->drive_info.deviceBlockSize;
             }
             //set the pattern, or clear the buffer at the LBA the user requested
-            uint32_t adjustmentBytes = (uint32_t)(adjustmentAmount * device->drive_info.deviceBlockSize);
+            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
             if (pattern)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes], dataLength - adjustmentBytes);
@@ -77,7 +78,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
             {
                 if (iter + sectors > device->drive_info.deviceMaxLba)
                 {
-                    sectors = (uint16_t)(eraseRangeEnd - iter);
+                    sectors = C_CAST(uint16_t, eraseRangeEnd - iter);
                     dataLength = sectors * device->drive_info.deviceBlockSize;
                 }
                 else //we aren't going to the end of the drive and may need to read the nearby data to keep anything the user didn't want to overwrite
@@ -126,7 +127,8 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     {
         printf("\n");
     }
-    safe_Free(writeBuffer)
+    safe_Free_aligned(writeBuffer)
+    os_Update_File_System_Cache(device);
     return ret;
 }
 
@@ -164,11 +166,11 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
         {
             if (alignedLBA + sectors > device->drive_info.deviceMaxLba)
             {
-                sectors = (uint16_t)(device->drive_info.deviceMaxLba - alignedLBA);
+                sectors = C_CAST(uint16_t, device->drive_info.deviceMaxLba - alignedLBA);
                 dataLength = sectors * device->drive_info.deviceBlockSize;
             }
             //set the pattern, or clear the buffer at the LBA the user requested
-            uint32_t adjustmentBytes = (uint32_t)(adjustmentAmount * device->drive_info.deviceBlockSize);
+            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
             if (pattern)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes], dataLength - adjustmentBytes);
@@ -195,7 +197,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     {
         if (iter + sectors > device->drive_info.deviceMaxLba)
         {
-            sectors = (uint16_t)(device->drive_info.deviceMaxLba - iter);
+            sectors = C_CAST(uint16_t, device->drive_info.deviceMaxLba - iter);
             dataLength = sectors * device->drive_info.deviceBlockSize;
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
@@ -220,6 +222,6 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     {
         printf("\n");
     }
-    safe_Free(writeBuffer)
+    safe_Free_aligned(writeBuffer)
     return ret;
 }

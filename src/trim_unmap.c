@@ -29,7 +29,7 @@ bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
             {
                 //data is valid, so figure out supported pages
                 uint8_t listLen = logBuffer[8];
-                for (uint16_t iter = 9; iter < (uint16_t)(listLen + 8) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
+                for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
                 {
                     switch (logBuffer[iter])
                     {
@@ -118,7 +118,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                         *maxTrimOrUnmapBlockDescriptors = M_BytesTo4ByteValue(blockLimits[24], blockLimits[25], blockLimits[26], blockLimits[27]);
                         *maxLBACount = M_BytesTo4ByteValue(blockLimits[20], blockLimits[21], blockLimits[22], blockLimits[23]);
                     }
-                    safe_Free(blockLimits)
+                    safe_Free_aligned(blockLimits)
                 }
 #endif
             }
@@ -141,7 +141,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 supported = true;
             }
         }
-        safe_Free(lbpPage)
+        safe_Free_aligned(lbpPage)
         if (supported == true && NULL != maxTrimOrUnmapBlockDescriptors && NULL != maxLBACount)
         {
             uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
@@ -155,7 +155,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 *maxTrimOrUnmapBlockDescriptors = M_BytesTo4ByteValue(blockLimits[24], blockLimits[25], blockLimits[26], blockLimits[27]);
                 *maxLBACount = M_BytesTo4ByteValue(blockLimits[20], blockLimits[21], blockLimits[22], blockLimits[23]);
             }
-            safe_Free(blockLimits)
+            safe_Free_aligned(blockLimits)
         }
     }
     break;
@@ -228,7 +228,7 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             ++descriptorCount;
         }
         //send the command(s) to the drive....currently only 1 command to do this. May need to revisit later - TJE
-        ret = nvme_Dataset_Management(device, (uint8_t)(descriptorCount - 1), true, false, false, deallocate, 4096);
+        ret = nvme_Dataset_Management(device, C_CAST(uint8_t, descriptorCount - 1), true, false, false, deallocate, 4096);
     }
     else
     {
@@ -328,7 +328,7 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 #if defined(_DEBUG)
         printf("TRIM Offset: %"PRIu32"\n", trimOffset);
 #endif
-        safe_Free(trimBuffer)
+        safe_Free_aligned(trimBuffer)
     }
     else
     {
@@ -374,19 +374,19 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
                 unmapRange = (uint32_t)((startLBA + range) - unmapLBA);
             }
             //set the LBA
-            unmapBuffer[bufferIter + 0] = (uint8_t)(unmapLBA >> 56);
-            unmapBuffer[bufferIter + 1] = (uint8_t)(unmapLBA >> 48);
-            unmapBuffer[bufferIter + 2] = (uint8_t)(unmapLBA >> 40);
-            unmapBuffer[bufferIter + 3] = (uint8_t)(unmapLBA >> 32);
-            unmapBuffer[bufferIter + 4] = (uint8_t)(unmapLBA >> 24);
-            unmapBuffer[bufferIter + 5] = (uint8_t)(unmapLBA >> 16);
-            unmapBuffer[bufferIter + 6] = (uint8_t)(unmapLBA >> 8);
-            unmapBuffer[bufferIter + 7] = (uint8_t)(unmapLBA & UINT8_MAX);
+            unmapBuffer[bufferIter + 0] = C_CAST(uint8_t, unmapLBA >> 56);
+            unmapBuffer[bufferIter + 1] = C_CAST(uint8_t, unmapLBA >> 48);
+            unmapBuffer[bufferIter + 2] = C_CAST(uint8_t, unmapLBA >> 40);
+            unmapBuffer[bufferIter + 3] = C_CAST(uint8_t, unmapLBA >> 32);
+            unmapBuffer[bufferIter + 4] = C_CAST(uint8_t, unmapLBA >> 24);
+            unmapBuffer[bufferIter + 5] = C_CAST(uint8_t, unmapLBA >> 16);
+            unmapBuffer[bufferIter + 6] = C_CAST(uint8_t, unmapLBA >> 8);
+            unmapBuffer[bufferIter + 7] = C_CAST(uint8_t, unmapLBA & UINT8_MAX);
             //set the range
-            unmapBuffer[bufferIter + 8] = (uint8_t)(unmapRange >> 24);
-            unmapBuffer[bufferIter + 9] = (uint8_t)(unmapRange >> 16);
-            unmapBuffer[bufferIter + 10] = (uint8_t)(unmapRange >> 8);
-            unmapBuffer[bufferIter + 11] = (uint8_t)(unmapRange & UINT8_MAX);
+            unmapBuffer[bufferIter + 8] = C_CAST(uint8_t, unmapRange >> 24);
+            unmapBuffer[bufferIter + 9] = C_CAST(uint8_t, unmapRange >> 16);
+            unmapBuffer[bufferIter + 10] = C_CAST(uint8_t, unmapRange >> 8);
+            unmapBuffer[bufferIter + 11] = C_CAST(uint8_t, unmapRange & UINT8_MAX);
             //reserved
             unmapBuffer[bufferIter + 12] = RESERVED;
             unmapBuffer[bufferIter + 13] = RESERVED;
@@ -439,7 +439,7 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             //now copy the number of descriptors for this command into the allocated buffer
             memcpy(&unmapCommandBuffer[8], &unmapBuffer[unmapOffset], (unmapCommandDataLen - 8));
             //send the command
-            if (SUCCESS != scsi_Unmap(device, false, 0, (uint16_t)(unmapCommandDataLen), unmapCommandBuffer))
+            if (SUCCESS != scsi_Unmap(device, false, 0, C_CAST(uint16_t, unmapCommandDataLen), unmapCommandBuffer))
             {
                 ret = FAILURE;
                 break;
@@ -454,8 +454,8 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 #if defined(_DEBUG)
         printf("UNMAP offset: %"PRIu32"\n", unmapOffset);
 #endif
-        safe_Free(unmapCommandBuffer)
-        safe_Free(unmapBuffer)
+        safe_Free_aligned(unmapCommandBuffer)
+        safe_Free_aligned(unmapBuffer)
     }
     else
     {

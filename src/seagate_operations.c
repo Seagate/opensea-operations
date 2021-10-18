@@ -37,17 +37,17 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
     //speedGen = 1 means generation 1 (1.5Gb/s), 2 =  2nd Generation (3.0Gb/s), 3 = 3rd Generation (6.0Gb/s)
     if (speedGen > 3)
     {
-        safe_Free(sctSATAPhySpeed)
+        safe_Free_aligned(sctSATAPhySpeed)
         return BAD_PARAMETER;
     }
 
     //fill in the buffer with the correct information
     //action code
     sctSATAPhySpeed[0] = (uint8_t)SCT_SEAGATE_SPEED_CONTROL;
-    sctSATAPhySpeed[1] = (uint8_t)(SCT_SEAGATE_SPEED_CONTROL >> 8);
+    sctSATAPhySpeed[1] = C_CAST(uint8_t, SCT_SEAGATE_SPEED_CONTROL >> 8);
     //function code
     sctSATAPhySpeed[2] = (uint8_t)BIST_SET_SATA_PHY_SPEED;
-    sctSATAPhySpeed[3] = (uint8_t)(BIST_SET_SATA_PHY_SPEED >> 8);
+    sctSATAPhySpeed[3] = C_CAST(uint8_t, BIST_SET_SATA_PHY_SPEED >> 8);
     //feature code
     sctSATAPhySpeed[4] = RESERVED;
     sctSATAPhySpeed[5] = RESERVED;
@@ -64,7 +64,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 
     ret = send_ATA_SCT_Command(device, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
 
-    safe_Free(sctSATAPhySpeed)
+    safe_Free_aligned(sctSATAPhySpeed)
     return ret;
 }
 
@@ -116,7 +116,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                 sasPhyControl = temp;
                 if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
                 {
-                    safe_Free(sasPhyControl)
+                    safe_Free_aligned(sasPhyControl)
                     return FAILURE;
                 }
             }
@@ -184,7 +184,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         ret = FAILURE;
     }
-    safe_Free(sasPhyControl)
+    safe_Free_aligned(sasPhyControl)
     return ret;
 }
 
@@ -710,7 +710,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                     }
                 }
             }
-            safe_Free(pcModePage)
+            safe_Free_aligned(pcModePage)
         }
     }
     return ret;
@@ -779,7 +779,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             //now do mode select with the data for the mode to set
             ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
         }
-        safe_Free(pcModePage)
+        safe_Free_aligned(pcModePage)
     }
     return ret;
 }
@@ -814,7 +814,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
             {
                 ret = FAILURE;
             }
-            safe_Free(smartData)
+            safe_Free_aligned(smartData)
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -832,7 +832,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
                     iddSupport->iddLong = true;//long
                 }
             }
-            safe_Free(iddDiagPage)
+            safe_Free_aligned(iddDiagPage)
         }
     }
     return ret;
@@ -943,7 +943,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
         {
             ret = MEMORY_FAILURE;
         }
-        safe_Free(iddDiagPage)
+        safe_Free_aligned(iddDiagPage)
     }
     return ret;
 }
@@ -1127,7 +1127,7 @@ static int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool cap
             iddDiagPage[3] = 0x08;//page length
             iddDiagPage[4] = 1 << 4;//revision number 1, status of zero
             ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 12, iddDiagPage, 12, commandTimeoutSeconds);
-            safe_Free(iddDiagPage)
+            safe_Free_aligned(iddDiagPage)
         }
         else
         {
@@ -1156,7 +1156,7 @@ static int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool cap
             return FAILURE;
         }
     }
-    uint32_t commandTimeSeconds = (uint32_t)(device->drive_info.lastCommandTimeNanoSeconds / 1e9);
+    uint32_t commandTimeSeconds = C_CAST(uint32_t, device->drive_info.lastCommandTimeNanoSeconds / 1e9);
     if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
     {
         //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
@@ -1230,7 +1230,7 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                         return FAILURE;
                     }
                 }
-                uint32_t commandTimeSeconds = (uint32_t)(device->drive_info.lastCommandTimeNanoSeconds / 1e9);
+                uint32_t commandTimeSeconds = C_CAST(uint32_t, device->drive_info.lastCommandTimeNanoSeconds / 1e9);
                 if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
                 {
                     //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
@@ -1519,7 +1519,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
             }
         }
     }
-    safe_Free(powerTelemetryLog)
+    safe_Free_aligned(powerTelemetryLog)
     return ret;
 }
 

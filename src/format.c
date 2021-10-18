@@ -312,7 +312,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
                 //all else fails, try mode sense 6
                 if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
                 {
-                    safe_Free(dataBuf)
+                    safe_Free_aligned(dataBuf)
                     return NOT_SUPPORTED;
                 }
             }
@@ -399,7 +399,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         else
         {
             //invalid block descriptor length
-            safe_Free(dataBuf)
+            safe_Free_aligned(dataBuf)
             return NOT_SUPPORTED;
         }
         //now send a mode select command
@@ -498,7 +498,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             //check if there was an invalid parameter field specifying the security initialize bit...if so, print a message and return not supported - TJE
         }
     }
-    safe_Free(dataBuf)
+    safe_Free_aligned(dataBuf)
     return ret;
 }
 
@@ -641,7 +641,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
             formatStatus->totalNewBlocksReassignedValid = false;
             ret = NOT_SUPPORTED;
         }
-        safe_Free(formatStatusPage)
+        safe_Free_aligned(formatStatusPage)
     }
     else
     {
@@ -954,7 +954,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             }
         }
     }
-    safe_Free(inquiryData)
+    safe_Free_aligned(inquiryData)
     bool dummyUpCommonSizes = true;
     uint32_t supportedSectorSizesDataLength = 0;
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
@@ -1037,7 +1037,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             }
             ret = SUCCESS;
         }
-        safe_Free(supportedBlockLengthsData)
+        safe_Free_aligned(supportedBlockLengthsData)
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))
     {

@@ -415,8 +415,8 @@ void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBuf
             }
         }
     }
-    safe_Free(patternBuffer)
-    safe_Free(returnBuffer)
+    safe_Free_aligned(patternBuffer)
+    safe_Free_aligned(returnBuffer)
 }
 //Function for random data pattern test
 void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)

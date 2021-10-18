@@ -72,13 +72,13 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         if (reset == false)
         {
             //set the input LBA starting at the end of the header
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN] = (uint8_t)(newMaxLBA >> 56);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 1] = (uint8_t)(newMaxLBA >> 48);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] = (uint8_t)(newMaxLBA >> 40);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] = (uint8_t)(newMaxLBA >> 32);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 4] = (uint8_t)(newMaxLBA >> 24);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 5] = (uint8_t)(newMaxLBA >> 16);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 6] = (uint8_t)(newMaxLBA >> 8);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN] = C_CAST(uint8_t, newMaxLBA >> 56);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 1] = C_CAST(uint8_t, newMaxLBA >> 48);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] = C_CAST(uint8_t, newMaxLBA >> 40);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] = C_CAST(uint8_t, newMaxLBA >> 32);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 4] = C_CAST(uint8_t, newMaxLBA >> 24);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 5] = C_CAST(uint8_t, newMaxLBA >> 16);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 6] = C_CAST(uint8_t, newMaxLBA >> 8);
             scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 7] = (uint8_t)newMaxLBA;
         }
         else
@@ -136,7 +136,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         ret = FAILURE;
     }
-    safe_Free(scsiDataBuffer)
+    safe_Free_aligned(scsiDataBuffer)
     return ret;
 }
 

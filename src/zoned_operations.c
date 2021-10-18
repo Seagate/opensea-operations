@@ -83,7 +83,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
         }
         else
         {
-            safe_Free(reportZones)
+            safe_Free_aligned(reportZones)
             return NOT_SUPPORTED;
         }
         if (ret != SUCCESS)
@@ -120,7 +120,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
             break;
         }
     }
-    safe_Free(reportZones)
+    safe_Free_aligned(reportZones)
     return SUCCESS;
 }
 

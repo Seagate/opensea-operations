@@ -577,7 +577,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     }
                 }
             }
-            safe_Free(devStatsNotificationsLog)
+            safe_Free_aligned(devStatsNotificationsLog)
         }
         if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0,0))
         {

@@ -199,7 +199,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                     if (pageNumber == (uint8_t)ATA_ID_DATA_LOG_SUPPORTED_PAGES && revision >= 0x0001)
                     {
                         uint8_t listLen = securityPage[8];
-                        for (uint16_t iter = 9; iter < (uint16_t)(listLen + 8) && iter < UINT16_C(512); ++iter)
+                        for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < UINT16_C(512); ++iter)
                         {
                             bool foundSecurityPage = false;
                             switch (securityPage[iter])
@@ -585,7 +585,7 @@ int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, 
     {
         ret = ata_Security_Set_Password(device, securityPassword);
     }
-    safe_Free(securityPassword)
+    safe_Free_aligned(securityPassword)
     return ret;
 }
 
@@ -606,7 +606,7 @@ int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     {
         ret = ata_Security_Disable_Password(device, securityPassword);
     }
-    safe_Free(securityPassword)
+    safe_Free_aligned(securityPassword)
     return ret;
 }
 
@@ -627,7 +627,7 @@ int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool u
     {
         ret = ata_Security_Unlock(device, securityPassword);
     }
-    safe_Free(securityPassword)
+    safe_Free_aligned(securityPassword)
     return ret;
 }
 
@@ -662,7 +662,7 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
             ret = ata_Security_Erase_Unit(device, securityErase, timeout);
         }
     }
-    safe_Free(securityErase)
+    safe_Free_aligned(securityErase)
     return ret;
 }
 

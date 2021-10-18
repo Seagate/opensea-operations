@@ -196,7 +196,7 @@ int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsE
                 }
             }
         }
-        safe_Free(getPhysicalElements)
+        safe_Free_aligned(getPhysicalElements)
     }
     else
     {

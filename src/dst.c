@@ -100,7 +100,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         *percentComplete *= 100;
         *percentComplete /= 65536;
     }
-    safe_Free(temp_buf)
+    safe_Free_aligned(temp_buf)
     return result;
 }
 #if !defined(DISABLE_NVME_PASSTHROUGH)
@@ -829,7 +829,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         if (is_Self_Test_Supported(device))
         {
             uint16_t longDSTTime = 0;
-            uint8_t *smartData = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *smartData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (smartData == NULL)
             {
                 perror("calloc failure\n");
@@ -840,22 +840,22 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 longDSTTime = smartData[373];
                 if (longDSTTime == UINT8_MAX)
                 {
-                    longDSTTime = ((uint16_t)smartData[376] << 8) | smartData[375];
+                    longDSTTime = M_BytesTo2ByteValue(smartData[376], smartData[375]);
                 }
                 //convert the time to hours and minutes
-                *hours = (uint8_t)(longDSTTime / 60);
-                *minutes = (uint8_t)(longDSTTime % 60);
+                *hours = C_CAST(uint8_t, longDSTTime / 60);
+                *minutes = C_CAST(uint8_t, longDSTTime % 60);
                 ret = SUCCESS;
             }
-            safe_Free(smartData)
+            safe_Free_aligned(smartData)
         }
         break;
     case NVME_DRIVE:
 #if !defined (DISABLE_NVME_PASSTHROUGH)
     {
         uint16_t longTestTime = device->drive_info.IdentifyData.nvme.ctrl.edstt;
-        *hours = (uint8_t)(longTestTime / 60);
-        *minutes = (uint8_t)(longTestTime % 60);
+        *hours = C_CAST(uint8_t, longTestTime / 60);
+        *minutes = C_CAST(uint8_t, longTestTime % 60);
         ret = SUCCESS;
     }
         break;
@@ -864,7 +864,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
     {
         uint16_t longDSTTime = 0;
         bool getTimeFromExtendedInquiryData = false;
-        uint8_t *controlMP = (uint8_t*)calloc_aligned(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *controlMP = C_CAST(uint8_t*, calloc_aligned(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (controlMP == NULL)
         {
             perror("calloc failure!");
@@ -873,7 +873,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         //read the control MP to get the long DST time, but it is reported in SECONDS here
         if (SUCCESS == scsi_Mode_Sense_10(device, MP_CONTROL, MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, controlMP))
         {
-            longDSTTime = ((uint16_t)controlMP[MODE_PARAMETER_HEADER_10_LEN + 10] << 8) | controlMP[MODE_PARAMETER_HEADER_10_LEN + 11];
+            longDSTTime = M_BytesTo2ByteValue(controlMP[MODE_PARAMETER_HEADER_10_LEN + 10], controlMP[MODE_PARAMETER_HEADER_10_LEN + 11]);
             if (longDSTTime == UINT16_MAX)
             {
                 getTimeFromExtendedInquiryData = true;
@@ -881,8 +881,8 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
             else
             {
                 //convert from the time in SECONDS to hours and minutes
-                *hours = (uint8_t)(longDSTTime / 3600);
-                *minutes = (uint8_t)((longDSTTime % 3600) / 60);
+                *hours = C_CAST(uint8_t, longDSTTime / 3600);
+                *minutes = C_CAST(uint8_t, (longDSTTime % 3600) / 60);
                 ret = SUCCESS;
             }
         }
@@ -890,7 +890,7 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         {
             if (SUCCESS == scsi_Mode_Sense_6(device, MP_CONTROL, MP_CONTROL_LEN + MODE_PARAMETER_HEADER_6_LEN, 0, true, MPC_DEFAULT_VALUES, controlMP))
             {
-                longDSTTime = ((uint16_t)controlMP[MODE_PARAMETER_HEADER_6_LEN + 10] << 8) | controlMP[MODE_PARAMETER_HEADER_6_LEN + 11];
+                longDSTTime = M_BytesTo2ByteValue(controlMP[MODE_PARAMETER_HEADER_6_LEN + 10], controlMP[MODE_PARAMETER_HEADER_6_LEN + 11]);
                 if (longDSTTime == UINT16_MAX)
                 {
                     getTimeFromExtendedInquiryData = true;
@@ -898,8 +898,8 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 else
                 {
                     //convert from the time in SECONDS to hours and minutes
-                    *hours = (uint8_t)(longDSTTime / 3600);
-                    *minutes = (uint8_t)((longDSTTime % 3600) / 60);
+                    *hours = C_CAST(uint8_t, longDSTTime / 3600);
+                    *minutes = C_CAST(uint8_t, (longDSTTime % 3600) / 60);
                     ret = SUCCESS;
                 }
             }
@@ -909,10 +909,10 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
                 getTimeFromExtendedInquiryData = true;//some crappy USB bridges may not support the mode page, but will support the VPD page, so attempt to read the VPD page anyways
             }
         }
-        safe_Free(controlMP)
+        safe_Free_aligned(controlMP)
         if (getTimeFromExtendedInquiryData)
         {
-            uint8_t *extendedInqyData = (uint8_t*)calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *extendedInqyData = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (extendedInqyData == NULL)
             {
                 perror("calloc failure!\n");
@@ -921,13 +921,13 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
             if (SUCCESS == scsi_Inquiry(device, extendedInqyData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
             {
                 //time is reported in MINUTES here
-                longDSTTime = ((uint16_t)extendedInqyData[10] << 8) | extendedInqyData[11];
+                longDSTTime = M_BytesTo2ByteValue(extendedInqyData[10], extendedInqyData[11]);
                 //convert the time to hours and minutes
-                *hours = (uint8_t)(longDSTTime / 60);
-                *minutes = (uint8_t)(longDSTTime % 60);
+                *hours = C_CAST(uint8_t, longDSTTime / 60);
+                *minutes = C_CAST(uint8_t, longDSTTime % 60);
                 ret = SUCCESS;
             }
-            safe_Free(extendedInqyData)
+            safe_Free_aligned(extendedInqyData)
         }
     }
     break;
@@ -942,7 +942,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
     uint32_t logSize = 0;
-    uint8_t *selfTestResults = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *selfTestResults = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!selfTestResults)
     {
         return false;
@@ -980,7 +980,7 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
                     if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
                     {
                         //this SHOULDN'T happen, but in case it does, we need to fail gracefully
-                        safe_Free(selfTestResults)
+                        safe_Free_aligned(selfTestResults)
                         return false;
                     }
                 }
@@ -1018,14 +1018,14 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
             }
         }
     }
-    safe_Free(selfTestResults)
+    safe_Free_aligned(selfTestResults)
     return isValidLBA;
 }
 
 bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
-    uint8_t *selfTestResultsLog = (uint8_t*)calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *selfTestResultsLog = C_CAST(uint8_t*, calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!selfTestResultsLog)
     {
         return false;
@@ -1050,7 +1050,7 @@ bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
             }
         }
     }
-    safe_Free(selfTestResultsLog)
+    safe_Free_aligned(selfTestResultsLog)
     return isValidLBA;
 }
 
@@ -1134,7 +1134,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
         {
             errorListAllocation = errorLimit * sizeof(errorLBA);
         }
-        errorList = (errorLBA*)calloc_aligned(errorListAllocation, sizeof(errorLBA), device->os_info.minimumAlignment);
+        errorList = C_CAST(errorLBA*, calloc_aligned(errorListAllocation, sizeof(errorLBA), device->os_info.minimumAlignment));
         if (!errorList)
         {
             perror("calloc failure\n");
@@ -1275,11 +1275,11 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     int verify = SUCCESS;
                     if (passthroughWrite)
                     {
-                        verify = ata_Read_Verify(device, readAroundStart, (uint32_t)readAroundRange);
+                        verify = ata_Read_Verify(device, readAroundStart, C_CAST(uint32_t, readAroundRange));
                     }
                     else
                     {
-                        verify = verify_LBA(device, readAroundStart, (uint32_t)readAroundRange);
+                        verify = verify_LBA(device, readAroundStart, C_CAST(uint32_t, readAroundRange));
                     }
                     if (SUCCESS != verify)
                     {
@@ -1362,7 +1362,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     {
         if (errorList[0].errorAddress != UINT64_MAX)
         {
-            print_LBA_Error_List(errorList, (uint16_t)*errorIndex);
+            print_LBA_Error_List(errorList, C_CAST(uint16_t, *errorIndex));
             if (unableToRepair)
             {
                 printf("Other errors were found during DST, but were unable to be repaired.\n");
@@ -1376,7 +1376,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
         {
             printf("No bad LBAs detected during DST and Clean.\n");
         }
-        safe_Free(errorList)
+        safe_Free_aligned(errorList)
     }
     return ret;
 }
@@ -1664,7 +1664,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             }
         }
     }
-    safe_Free(selfTestResults)
+    safe_Free_aligned(selfTestResults)
     return ret;
 }
 

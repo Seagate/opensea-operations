@@ -95,7 +95,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
             fflush(stdout);
         }
         //rwv the lba
-        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, lbaIter, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, lbaIter, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
             bool errorFound = false;
             uint64_t maxSingleLoopLBA = lbaIter + sectorCount;//limits the loop to trying to only a certain number of sectors without getting stuck at single LBA reads.
@@ -120,7 +120,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
                     }
                     fflush(stdout);
                 }
-                if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, lbaIter, dataBuf, (uint32_t)(1 * device->drive_info.deviceBlockSize)))
+                if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, lbaIter, dataBuf, C_CAST(uint32_t, 1 * device->drive_info.deviceBlockSize)))
                 {
                     *failingLBA = lbaIter;
                     ret = FAILURE;
@@ -152,7 +152,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         }
         fflush(stdout);
     }
-    safe_Free(dataBuf)
+    safe_Free_aligned(dataBuf)
     return ret;
 }
 
@@ -193,7 +193,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
     uint16_t randomLBACount = 5000;
     uint64_t *randomLBAList = (uint64_t*)calloc(randomLBACount, sizeof(uint64_t));
     uint64_t iterator = 0;
-    uint64_t onePercentOfDrive = (uint64_t)(device->drive_info.deviceMaxLba * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
+    uint64_t onePercentOfDrive = C_CAST(uint64_t, device->drive_info.deviceMaxLba * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
     uint8_t *dataBuf = NULL;//will be allocated at the random read section
     uint64_t failingLBA = UINT64_MAX;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
@@ -359,7 +359,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, randomLBAList[iterator], dataBuf, (uint32_t)(1 * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, randomLBAList[iterator], dataBuf, C_CAST(uint32_t, 1 * device->drive_info.deviceBlockSize)))
         {
             switch (rwvCommand)
             {
@@ -475,7 +475,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     odTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
     odTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this command to get us in the right place for the OD test.
-    read_Write_Seek_Command(device, rwvCommand, 0, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize));
+    read_Write_Seek_Command(device, rwvCommand, 0, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize));
     startTime = time(NULL);
     start_Timer(&odTestTimer);
     while (difftime(time(NULL), startTime) < IDODTimeSeconds && ODEndingLBA < device->drive_info.deviceMaxLba)
@@ -499,8 +499,8 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
             }
             fflush(stdout);
         }
-        //if (SUCCESS != read_LBA(device, ODEndingLBA, false, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
-        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, ODEndingLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        //if (SUCCESS != read_LBA(device, ODEndingLBA, false, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, ODEndingLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
             ret = FAILURE;
             if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -570,7 +570,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     idTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
     idTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this read to get the heads in the right place before starting the ID test.
-    read_Write_Seek_Command(device, rwvCommand, IDStartLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize));
+    read_Write_Seek_Command(device, rwvCommand, IDStartLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize));
     startTime = time(NULL);
     start_Timer(&idTestTimer);
     while (difftime(time(NULL), startTime) < IDODTimeSeconds && IDStartLBA < device->drive_info.deviceMaxLba)
@@ -594,7 +594,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, IDStartLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, IDStartLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
             ret = FAILURE;
             if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -688,7 +688,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, randomLBA, dataBuf, (uint32_t)(1 * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, randomLBA, dataBuf, C_CAST(uint32_t, 1 * device->drive_info.deviceBlockSize)))
         {
             ret = FAILURE;
             if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1062,7 +1062,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
     {
         if ((startingLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
-            sectorCount = (uint32_t)(device->drive_info.deviceMaxLba - startingLBA + 1);
+            sectorCount = C_CAST(uint32_t, device->drive_info.deviceMaxLba - startingLBA + 1);
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
@@ -1081,7 +1081,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
             uint64_t maxSingleLoopLBA = startingLBA + sectorCount;//limits the loop to trying to only a certain number of sectors without getting stuck at single LBA reads.
             //read command failure...so we need to read until we find the exact failing lba
@@ -1105,7 +1105,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
                     }
                     fflush(stdout);
                 }
-                if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, (uint32_t)(1 * device->drive_info.deviceBlockSize)))
+                if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, C_CAST(uint32_t, 1 * device->drive_info.deviceBlockSize)))
                 {
                     errorList[errorIndex].errorAddress = startingLBA;
                     break;
@@ -1159,7 +1159,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         printf("\n");
         fflush(stdout);
     }
-    safe_Free(dataBuf)
+    safe_Free_aligned(dataBuf)
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -1255,7 +1255,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
         if ((outerLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
             //adjust the sector count to get to the maxLBA for the read
-            currentSectorCount = (uint32_t)(device->drive_info.deviceMaxLba - outerLBA);
+            currentSectorCount = C_CAST(uint32_t, device->drive_info.deviceMaxLba - outerLBA);
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
@@ -1276,7 +1276,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, outerLBA, dataBuf, (uint32_t)(currentSectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, outerLBA, dataBuf, C_CAST(uint32_t, currentSectorCount * device->drive_info.deviceBlockSize)))
         {
             ret = FAILURE;
             //error occured, time to exit the loop
@@ -1312,7 +1312,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, innerLBA, dataBuf, (uint32_t)(currentSectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, innerLBA, dataBuf, C_CAST(uint32_t, currentSectorCount * device->drive_info.deviceBlockSize)))
         {
             ret = FAILURE;
             //error occured, time to exit the loop
@@ -1392,7 +1392,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, randomLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, randomLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
             ret = FAILURE;
             //error occured, time to exit the loop
@@ -1477,7 +1477,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
             }
             fflush(stdout);
         }
-        switch (read_Write_Seek_Command(device, testMode, ODEndingLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        switch (read_Write_Seek_Command(device, testMode, ODEndingLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
         case SUCCESS:
             break;
@@ -1536,7 +1536,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
             }
             fflush(stdout);
         }
-        switch (read_Write_Seek_Command(device, testMode, IDStartLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        switch (read_Write_Seek_Command(device, testMode, IDStartLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
         case SUCCESS:
             break;
@@ -1596,7 +1596,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
             }
             fflush(stdout);
         }
-        switch (read_Write_Seek_Command(device, testMode, randomLBA, dataBuf, (uint32_t)(1 * device->drive_info.deviceBlockSize)))
+        switch (read_Write_Seek_Command(device, testMode, randomLBA, dataBuf, C_CAST(uint32_t, 1 * device->drive_info.deviceBlockSize)))
         {
         case SUCCESS:
             break;
@@ -1643,7 +1643,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         if ((outerLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
             //adjust the sector count to get to the maxLBA for the read
-            currentSectorCount = (uint32_t)(device->drive_info.deviceMaxLba - outerLBA);
+            currentSectorCount = C_CAST(uint32_t, device->drive_info.deviceMaxLba - outerLBA);
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -1662,7 +1662,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
             }
             fflush(stdout);
         }
-        switch (read_Write_Seek_Command(device, testMode, outerLBA, dataBuf, (uint32_t)(currentSectorCount * device->drive_info.deviceBlockSize)))
+        switch (read_Write_Seek_Command(device, testMode, outerLBA, dataBuf, C_CAST(uint32_t, currentSectorCount * device->drive_info.deviceBlockSize)))
         {
         case SUCCESS:
             break;
@@ -1701,7 +1701,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
             }
             fflush(stdout);
         }
-        switch (read_Write_Seek_Command(device, testMode, innerLBA, dataBuf, (uint32_t)(currentSectorCount * device->drive_info.deviceBlockSize)))
+        switch (read_Write_Seek_Command(device, testMode, innerLBA, dataBuf, C_CAST(uint32_t, currentSectorCount * device->drive_info.deviceBlockSize)))
         {
         case SUCCESS:
             break;
@@ -1979,7 +1979,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
     {
         if ((startingLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
-            sectorCount = (uint32_t)(device->drive_info.deviceMaxLba - startingLBA + 1);
+            sectorCount = C_CAST(uint32_t, device->drive_info.deviceMaxLba - startingLBA + 1);
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
@@ -1998,7 +1998,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
             }
             fflush(stdout);
         }
-        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, (uint32_t)(sectorCount * device->drive_info.deviceBlockSize)))
+        if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
         {
             uint64_t maxSingleLoopLBA = startingLBA + sectorCount;//limits the loop to trying to only a certain number of sectors without getting stuck at single LBA reads.
             //read command failure...so we need to read until we find the exact failing lba
@@ -2022,7 +2022,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
                     }
                     fflush(stdout);
                 }
-                if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, (uint32_t)(1 * device->drive_info.deviceBlockSize)))
+                if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, startingLBA, dataBuf, C_CAST(uint32_t, 1 * device->drive_info.deviceBlockSize)))
                 {
                     errorList[*errorOffset].errorAddress = startingLBA;
                     break;
@@ -2071,7 +2071,7 @@ int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t 
     {
         *numberOfLbasAccessed = startingLBA + sectorCount - *numberOfLbasAccessed;//subtract itself since it gets set to where we start at when we begin.
     }
-    safe_Free(dataBuf)
+    safe_Free_aligned(dataBuf)
     return ret;
 }
 
