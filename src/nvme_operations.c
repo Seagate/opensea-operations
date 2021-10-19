@@ -139,7 +139,7 @@ int nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeaturesSelectV
         }
         //Not get Under Temprature 
         // BIT20 = THSEL 0=Over Temperature Thresh. 1=Under Temperature Thresh. 
-        featureCmd.featSetGetValue = (BIT20 | (uint32_t)((uint32_t)TMPSEL << 16));
+        featureCmd.featSetGetValue = C_CAST(uint32_t, (BIT20 | (C_CAST(uint32_t, TMPSEL) << 16)));
         ret = nvme_Get_Features(device, &featureCmd);
         if (ret == SUCCESS)
         {
@@ -637,15 +637,15 @@ int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
     {
         numOfErrToPrint = 32;
     }
-    pErrLogBuf = (nvmeErrLogEntry *)calloc_aligned((size_t)numOfErrToPrint, sizeof(nvmeErrLogEntry), device->os_info.minimumAlignment);
+    pErrLogBuf = C_CAST(nvmeErrLogEntry *, calloc_aligned(C_CAST(size_t, numOfErrToPrint), sizeof(nvmeErrLogEntry), device->os_info.minimumAlignment));
     if (pErrLogBuf != NULL)
     {
-        ret = nvme_Get_ERROR_Log_Page(device, (uint8_t*)pErrLogBuf, (uint32_t)(numOfErrToPrint * sizeof(nvmeErrLogEntry)));
+        ret = nvme_Get_ERROR_Log_Page(device, C_CAST(uint8_t*, pErrLogBuf), C_CAST(uint32_t, numOfErrToPrint * sizeof(nvmeErrLogEntry)));
         if (ret == SUCCESS)
         {
             printf("Err #\tLBA\t\tSQ ID\tCMD ID\tStatus\tLocation\n");
             printf("=======================================================\n");
-            for (err = 0; err < (int)numOfErrToPrint; err++)
+            for (err = 0; err < C_CAST(int, numOfErrToPrint); err++)
             {
                 if (pErrLogBuf[err].errorCount)
                 {
@@ -1056,7 +1056,7 @@ void print_smart_log_CF(fb_log_page_CF *pLogPageCF)
     printf("\n");
 
     printf("%-40s", "Super-cap status");
-    printf(" 0x%016" PRIX64 "", (uint64_t)pLogPageCF->AttrCF.SuperCapStatus);
+    printf(" 0x%016" PRIX64 "", C_CAST(uint64_t, pLogPageCF->AttrCF.SuperCapStatus));
     printf("\n");
 
     printf("%-40s", "Data units read to DRAM namespace");

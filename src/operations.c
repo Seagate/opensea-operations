@@ -32,7 +32,7 @@ int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *modeSense = (uint8_t*)calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *modeSense = C_CAST(uint8_t*, calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!modeSense)
         {
             perror("calloc failure!");
@@ -68,7 +68,7 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *modeSelect = (uint8_t*)calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *modeSelect = C_CAST(uint8_t*, calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!modeSelect)
         {
             perror("calloc failure!");
@@ -135,7 +135,7 @@ int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
         return NOT_SUPPORTED;
     }
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -186,7 +186,7 @@ int scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
 {
     int ret = UNKNOWN;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -268,7 +268,7 @@ int scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 {
     int ret = UNKNOWN;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -387,7 +387,7 @@ bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
 {
     bool supported = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -479,7 +479,7 @@ bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
 {
     bool enabled = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -507,7 +507,7 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
 {
     bool enabled = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -574,7 +574,7 @@ bool scsi_Is_Write_Cache_Supported(tDevice *device)
 {
     bool supported = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -655,7 +655,7 @@ bool scsi_Is_Write_Cache_Enabled(tDevice *device)
 {
     bool enabled = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = (uint8_t*)calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
     {
         perror("calloc failure!");
@@ -696,9 +696,9 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     sanitizeFeaturesSupported sanitizeInfo;
     uint64_t maxNumberOfLogicalBlocksPerCommand = 0;
     bool formatUnitAdded = false;
-    bool isWriteSameSupported = is_Write_Same_Supported(device, 0, (uint32_t)device->drive_info.deviceMaxLba, &maxNumberOfLogicalBlocksPerCommand);
+    bool isWriteSameSupported = is_Write_Same_Supported(device, 0, C_CAST(uint32_t, device->drive_info.deviceMaxLba), &maxNumberOfLogicalBlocksPerCommand);
     bool isFormatUnitSupported = is_Format_Unit_Supported(device, NULL);
-    eraseMethod * currentErase = (eraseMethod*)eraseMethodList;
+    eraseMethod * currentErase = C_CAST(eraseMethod*, eraseMethodList);
     if (!currentErase)
     {
         return BAD_PARAMETER;
@@ -865,14 +865,14 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         //let's set a time estimate!
         //base it off of the long DST time...as that is probably the closest match we'll get since that does access every LBA
         get_Long_DST_Time(device, &hours, &minutes);
-        uint32_t longDSTTimeMinutes = (uint32_t)(((uint32_t)hours * 60) + (uint32_t)minutes);
+        uint32_t longDSTTimeMinutes = C_CAST(uint32_t, (C_CAST(uint32_t, hours) * UINT32_C(60)) + C_CAST(uint32_t, minutes));
         *overwriteEraseTimeEstimateMinutes = M_Max(*overwriteEraseTimeEstimateMinutes, longDSTTimeMinutes);
         if (*overwriteEraseTimeEstimateMinutes == 0)
         {
             //This drive doesn't support anything that gives us time estimates, so let's make a guess.
             //TODO: Make this guess better by reading the drive capabilities and interface speed to determine a more accurate estimate.
             uint32_t megabytesPerSecond = is_SSD(device) ? 450 : 150;//assume 450 MB/s on SSD and 150 MB/s on HDD
-            *overwriteEraseTimeEstimateMinutes = (uint32_t)(((device->drive_info.deviceMaxLba * device->drive_info.deviceBlockSize) / (megabytesPerSecond * 1.049e+6)) / 60);
+            *overwriteEraseTimeEstimateMinutes = C_CAST(uint32_t, ((device->drive_info.deviceMaxLba * device->drive_info.deviceBlockSize) / (megabytesPerSecond * 1.049e+6)) / 60);
         }
     }
 
@@ -1228,7 +1228,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
         {
             if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
             {
-                uint8_t *modeData = (uint8_t*)calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+                uint8_t *modeData = C_CAST(uint8_t*, calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!modeData)
                 {
                     return MEMORY_FAILURE;
@@ -1272,7 +1272,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
                             currentPageLength = modeData[offset + 1] + 2;//add 2 bytes for the page code and page length bytes
                         }
                         currentPageToSetLength += currentPageLength;
-                        currentPageToSet = (uint8_t*)calloc_aligned(currentPageToSetLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+                        currentPageToSet = C_CAST(uint8_t*, calloc_aligned(currentPageToSetLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                         if (!currentPageToSet)
                         {
                             safe_Free_aligned(modeData)
@@ -1369,7 +1369,7 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
         //individual page...easy peasy
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
         {
-            uint8_t *modeData = (uint8_t*)calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *modeData = C_CAST(uint8_t*, calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!modeData)
             {
                 return MEMORY_FAILURE;
@@ -1458,7 +1458,7 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
     //even though we have the data we want to send, we must ALWAYS request the page first, then modify the data and send it back.
     if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
     {
-        uint8_t *modeData = (uint8_t*)calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *modeData = C_CAST(uint8_t*, calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!modeData)
         {
             return MEMORY_FAILURE;
@@ -1985,16 +1985,16 @@ void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32
             switch (mpc)
             {
             case MPC_CURRENT_VALUES:
-                equalsLengthToPrint += (int)strlen(" Current Values");
+                equalsLengthToPrint += C_CAST(int, strlen(" Current Values"));
                 break;
             case MPC_CHANGABLE_VALUES:
-                equalsLengthToPrint += (int)strlen(" Changable Values");
+                equalsLengthToPrint += C_CAST(int, strlen(" Changable Values"));
                 break;
             case MPC_DEFAULT_VALUES:
-                equalsLengthToPrint += (int)strlen(" Default Values");
+                equalsLengthToPrint += C_CAST(int, strlen(" Default Values"));
                 break;
             case MPC_SAVED_VALUES:
-                equalsLengthToPrint += (int)strlen(" Saved Values");
+                equalsLengthToPrint += C_CAST(int, strlen(" Saved Values"));
                 if (subpage > 0)
                 {
                     ++equalsLengthToPrint;
@@ -2008,10 +2008,10 @@ void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32
         //before going further, check if we have a page name to lookup and printout to adjust the size for
         char pageName[SCSI_MODE_PAGE_NAME_MAX_LENGTH] = { 0 };
         get_SCSI_MP_Name(scsiPeripheralDeviceType, pageNumber, subpage, pageName);
-        if (equalsLengthToPrint < (int)strlen(pageName) + 6) //name will go too far over the end, need to enlarge
+        if (equalsLengthToPrint < (C_CAST(int, strlen(pageName)) + 6)) //name will go too far over the end, need to enlarge
         {
             //the equals length should be enlarged for this!!!
-            equalsLengthToPrint = (int)strlen(pageName) + 6;
+            equalsLengthToPrint = C_CAST(int, strlen(pageName)) + 6;
             if (pageNumber >= 0x10)
             {
                 equalsLengthToPrint += 3;
@@ -2096,16 +2096,16 @@ void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            equalsLengthToPrint += (int)strlen(" Current Values");
+            equalsLengthToPrint += C_CAST(int, strlen(" Current Values"));
             break;
         case MPC_CHANGABLE_VALUES:
-            equalsLengthToPrint += (int)strlen(" Changable Values");
+            equalsLengthToPrint += C_CAST(int, strlen(" Changable Values"));
             break;
         case MPC_DEFAULT_VALUES:
-            equalsLengthToPrint += (int)strlen(" Default Values");
+            equalsLengthToPrint += C_CAST(int, strlen(" Default Values"));
             break;
         case MPC_SAVED_VALUES:
-            equalsLengthToPrint += (int)strlen(" Saved Values");
+            equalsLengthToPrint += C_CAST(int, strlen(" Saved Values"));
             if (subpage > 0)
             {
                 ++equalsLengthToPrint;
@@ -2152,7 +2152,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
     {
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
         {
-            uint8_t *modeData = (uint8_t*)calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *modeData = C_CAST(uint8_t*, calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!modeData)
             {
                 return;
@@ -2209,7 +2209,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         //single page...easy
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
         {
-            uint8_t *modeData = (uint8_t*)calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *modeData = C_CAST(uint8_t*, calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!modeData)
             {
                 return;
@@ -2338,7 +2338,7 @@ eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, ui
         switch (M_GETBITRANGE(reportOp[1], 2, 0))
         {
         case 3:
-            mlu = (eMLU)M_GETBITRANGE(reportOp[1], 6, 5);
+            mlu = C_CAST(eMLU, M_GETBITRANGE(reportOp[1], 6, 5));
             break;
         default:
             break;
@@ -2351,14 +2351,14 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t m
 {
     bool mlus = false;
     uint32_t modePagePolicyLength = 4;
-    uint8_t *vpdModePagePolicy = (uint8_t*)calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *vpdModePagePolicy = C_CAST(uint8_t*, calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (vpdModePagePolicy)
     {
         if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
         {
             modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
             safe_Free_aligned(vpdModePagePolicy)
-            vpdModePagePolicy = (uint8_t*)calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            vpdModePagePolicy = C_CAST(uint8_t*, calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (vpdModePagePolicy)
             {
                 if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
@@ -2421,7 +2421,7 @@ int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges range
             uint32_t concurrentLogSizeBytes = 0;//NOTE: spec currently says this is at most 1024 bytes, but may be as low as 512
             if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, &concurrentLogSizeBytes, true, false) && concurrentLogSizeBytes > 0)
             {
-                uint8_t *concurrentRangeLog = (uint8_t*)calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment);
+                uint8_t *concurrentRangeLog = C_CAST(uint8_t*, calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!concurrentRangeLog)
                 {
                     return MEMORY_FAILURE;
@@ -2449,7 +2449,7 @@ int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges range
             uint32_t concurrentLogSizeBytes = 0;
             if (SUCCESS == get_SCSI_VPD_Page_Size(device, CONCURRENT_POSITIONING_RANGES, &concurrentLogSizeBytes) && concurrentLogSizeBytes > 0)
             {
-                uint8_t *concurrentRangeVPD = (uint8_t*)calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment);
+                uint8_t *concurrentRangeVPD = C_CAST(uint8_t*, calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!concurrentRangeVPD)
                 {
                     return MEMORY_FAILURE;

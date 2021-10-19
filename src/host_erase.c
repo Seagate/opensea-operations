@@ -25,7 +25,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseRangeStart);
-    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase range");
@@ -88,11 +88,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                         //modify only the LBAs we want to overwrite
                         if (pattern)
                         {
-                            fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, writeBuffer, (uint32_t)((eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
+                            fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, writeBuffer, C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
                         }
                         else
                         {
-                            memset(writeBuffer, 0, (uint32_t)((eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
+                            memset(writeBuffer, 0, C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
                         }
                     }
                 }
@@ -141,7 +141,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseStartLBA);
-    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase time");

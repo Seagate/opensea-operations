@@ -970,7 +970,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         }
         else
         {
-            ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, (uint32_t)corruptLBA, dataLength, dataBuffer);
+            ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
         }
         //ret should not be success and we should have an illegal length indicator set so we can reallocate and read the ecc bytes
         memset(&senseFields, 0, sizeof(senseDataFields));
@@ -996,7 +996,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
                 else
                 {
-                    ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, (uint32_t)corruptLBA, dataLength, dataBuffer);
+                    ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
                 }
                 if (ret != SUCCESS)
                 {

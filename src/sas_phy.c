@@ -47,12 +47,12 @@ int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, e
     diagPage[2] = 0x00;
     diagPage[3] = 0x1C;//see SPL
     diagPage[4] = phyIdentifier;
-    diagPage[5] = (uint8_t)testFunction;
-    diagPage[6] = (uint8_t)pattern;
+    diagPage[5] = C_CAST(uint8_t, testFunction);
+    diagPage[6] = C_CAST(uint8_t, pattern);
     //link rate
     diagPage[7] = linkRate;
     //phy test function ssc
-    diagPage[7] |= (uint8_t)testFunctionSSC << 4;
+    diagPage[7] |= C_CAST(uint8_t, testFunctionSSC) << 4;
     //phy test function SATA
     if (sataTestFunction)
     {
@@ -61,7 +61,7 @@ int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, e
     diagPage[8] = RESERVED;
     diagPage[9] = RESERVED;
     diagPage[10] = RESERVED;
-    diagPage[11] = (uint8_t)dwordControl;
+    diagPage[11] = C_CAST(uint8_t, dwordControl);
     diagPage[12] = M_Byte7(phyTestPatternDwords);
     diagPage[13] = M_Byte6(phyTestPatternDwords);
     diagPage[14] = M_Byte5(phyTestPatternDwords);

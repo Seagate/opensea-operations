@@ -194,7 +194,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     }
     //dataSize += 1;//adding 1 to make sure we don't go over the end of out memory
     //allocate memory
-    dataBuf = (uint8_t*)calloc_aligned(dataSize *sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize *sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -516,7 +516,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
     //4 + 8 for param 2
     //4 + 8 for param 3
     //4 + 4 for param 4
-    uint8_t *formatStatusPage = (uint8_t*)calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *formatStatusPage = C_CAST(uint8_t*, calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!formatStatusPage)
     {
         return MEMORY_FAILURE;
@@ -545,7 +545,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                 case 0://format data out
                     formatStatus->lastFormatParametersValid = true;
                     {
-                        uint8_t *allFs = (uint8_t*)calloc(formatStatusPage[offset + 3], sizeof(uint8_t*));
+                        uint8_t *allFs = C_CAST(uint8_t*, calloc(formatStatusPage[offset + 3], sizeof(uint8_t*)));
                         if (allFs)
                         {
                             if (memcmp(allFs, &formatStatusPage[offset + 4], formatStatusPage[offset + 3]) == 0)
@@ -888,7 +888,7 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     int ret = NOT_SUPPORTED;
-    uint8_t *inquiryData = (uint8_t*)calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *inquiryData = C_CAST(uint8_t*, calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!inquiryData)
     {
         return MEMORY_FAILURE;
@@ -960,7 +960,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
     if (formats->protectionInformationSupported.protectionReportedPerSectorSize || supportedSectorSizesDataLength)
     {
-        uint8_t *supportedBlockLengthsData = (uint8_t*)calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *supportedBlockLengthsData = C_CAST(uint8_t*, calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!supportedBlockLengthsData)
         {
             return MEMORY_FAILURE;
@@ -976,12 +976,12 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                 formats->sectorSizes[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(supportedBlockLengthsData[iter + 0], supportedBlockLengthsData[iter + 1], supportedBlockLengthsData[iter + 2], supportedBlockLengthsData[iter + 3]);
                 formats->sectorSizes[sectorSizeCounter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
                 formats->sectorSizes[sectorSizeCounter].scsiSectorBits.piSupportBitsValid = true;
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.p_i_i_sup = (bool)(supportedBlockLengthsData[iter + 4] & BIT6);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.no_pi_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT3);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.grd_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT2);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.app_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT1);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.ref_chk = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.p_i_i_sup = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT6);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.no_pi_chk = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT3);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.grd_chk = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT2);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.app_chk = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT1);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.ref_chk = M_ToBool(supportedBlockLengthsData[iter + 5] & BIT0);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps = M_ToBool(supportedBlockLengthsData[iter + 5] & BIT0);
                 if (supportedBlockLengthsData[iter + 5] & BIT1)
                 {
                     formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t1ps = true;
@@ -1213,7 +1213,7 @@ int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
         if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
         {
             formats->sectorSizes[iter].valid = true;
-            formats->sectorSizes[iter].logicalBlockLength = (uint32_t)power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS);
+            formats->sectorSizes[iter].logicalBlockLength = C_CAST(uint32_t, power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS));
             formats->sectorSizes[iter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NVME;
             formats->sectorSizes[iter].nvmeSectorBits.relativePerformance = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].rp, 1, 0);
             formats->sectorSizes[iter].nvmeSectorBits.metadataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[iter].ms;
@@ -1461,7 +1461,7 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
     {
         uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
         uint32_t formatsDataSize = sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats);
-        ptrSupportedFormats formats = (ptrSupportedFormats)malloc(formatsDataSize);
+        ptrSupportedFormats formats = C_CAST(ptrSupportedFormats, malloc(formatsDataSize));
         if (!formats)
         {
             return MEMORY_FAILURE;
@@ -1542,7 +1542,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             memset(&formatUnitParameters, 0, sizeof(runFormatUnitParameters));
             formatUnitParameters.formatType = FORMAT_FAST_WRITE_NOT_REQUIRED;
             formatUnitParameters.currentBlockSize = false;
-            formatUnitParameters.newBlockSize = (uint16_t)sectorSize;
+            formatUnitParameters.newBlockSize = C_CAST(uint16_t, sectorSize);
             formatUnitParameters.gList = NULL;
             formatUnitParameters.glistSize = 0;
             formatUnitParameters.completeList = false;

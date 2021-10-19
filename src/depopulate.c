@@ -145,7 +145,7 @@ int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsE
     uint32_t getPhysicalElementsDataSize = (numberOfElementsExpected * 32 /*bytes per descriptor*/) + 32 /*bytes for data header*/;
     //now round that to the nearest 512B sector
     getPhysicalElementsDataSize = ((getPhysicalElementsDataSize + LEGACY_DRIVE_SEC_SIZE - 1) / LEGACY_DRIVE_SEC_SIZE) * LEGACY_DRIVE_SEC_SIZE;
-    uint8_t *getPhysicalElements = (uint8_t*)calloc_aligned(getPhysicalElementsDataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *getPhysicalElements = C_CAST(uint8_t*, calloc_aligned(getPhysicalElementsDataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (getPhysicalElements)
     {
         uint32_t numberOfDescriptorsReturned = 0;
@@ -401,7 +401,7 @@ int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *
             int getDescirptors = get_Number_Of_Descriptors(device, &numberOfDescriptors);
             if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
             {
-                ptrPhysicalElement elementList = (ptrPhysicalElement)malloc(numberOfDescriptors * sizeof(physicalElement));
+                ptrPhysicalElement elementList = C_CAST(ptrPhysicalElement, malloc(numberOfDescriptors * sizeof(physicalElement)));
                 if (elementList)
                 {
                     memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
@@ -723,7 +723,7 @@ int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescrip
                 get_Number_Of_Descriptors(device, &numberOfDescriptors);
                 if (numberOfDescriptors > 0)
                 {
-                    ptrPhysicalElement elementList = (ptrPhysicalElement)malloc(numberOfDescriptors * sizeof(physicalElement));
+                    ptrPhysicalElement elementList = C_CAST(ptrPhysicalElement, malloc(numberOfDescriptors * sizeof(physicalElement)));
                     if (elementList)
                     {
                         memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
@@ -1029,7 +1029,7 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
                         get_Number_Of_Descriptors(device, &numberOfDescriptors);
                         if (numberOfDescriptors > 0)
                         {
-                            ptrPhysicalElement elementList = (ptrPhysicalElement)malloc(numberOfDescriptors * sizeof(physicalElement));
+                            ptrPhysicalElement elementList = C_CAST(ptrPhysicalElement, malloc(numberOfDescriptors * sizeof(physicalElement)));
                             if (elementList)
                             {
                                 memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));

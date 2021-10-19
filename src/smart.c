@@ -27,7 +27,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
     {
         ataSMARTAttribute currentAttribute;
         uint16_t            smartIter = 0;
-        uint8_t *ATAdataBuffer = (uint8_t *)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *ATAdataBuffer = C_CAST(uint8_t *, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (ATAdataBuffer == NULL)
         {
             perror("Calloc Failure!\n");
@@ -904,7 +904,7 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue *currentAttribute, char 
 static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
 {
     //making the attribute name seperate so that if we add is_Seagate() logic in we can turn on and off printing the name
-    char *attributeName = (char *)calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char));
+    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
     if (attributeName == NULL)
     {
         perror("Calloc Failure!\n");
@@ -963,7 +963,7 @@ static void print_ATA_SMART_Attribute_Raw_Int_Value(uint8_t* rawdataParameter, i
 static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartData)
 {
     //making the attribute name seperate so that if we add is_Seagate() logic in we can turn on and off printing the name
-    char *attributeName = (char *)calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char));
+    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
     if (attributeName == NULL)
     {
         perror("Calloc Failure!\n");
@@ -1604,19 +1604,19 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                     tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
                                     tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
                                     tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
-                                    char *attributeName = (char *)calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char));
+                                    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
                                     get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
                                     if (strlen(attributeName))
                                     {
                                         //use the name in the error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] set to test trip!", attributeName, tripInfo->ataAttribute.attributeNumber);
-                                        tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         //Couldn't look up the name, so set a generic error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " set to test trip!", tripInfo->ataAttribute.attributeNumber);
-                                        tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                 }
                                 break;
@@ -1631,19 +1631,19 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                     tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
                                     tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
                                     tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
-                                    char *attributeName = (char *)calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char));
+                                    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
                                     get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
                                     if (strlen(attributeName))
                                     {
                                         //use the name in the error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
-                                        tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         //Couldn't look up the name, so set a generic error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
-                                        tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                 }
                                 break;
@@ -1862,7 +1862,7 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char
         //Don't do anything. This is not a valid sense combination for a SMART trip
         break;
     }
-    *reasonStringOutputLength = (uint8_t)strlen(reasonString);
+    *reasonStringOutputLength = C_CAST(uint8_t, strlen(reasonString));
 }
 //
 int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
@@ -1987,7 +1987,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     }
     if (sendRequestSense)
     {
-        uint8_t *senseData = (uint8_t*)calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *senseData = C_CAST(uint8_t*, calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN);
         uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
         get_Sense_Key_ASC_ASCQ_FRU(senseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
@@ -2077,31 +2077,31 @@ int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             {
                 tripInfo->nvmeCriticalWarning.spareSpaceBelowThreshold = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX, "Available Spare Space has fallen below the threshold");
-                tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT1)
             {
                 tripInfo->nvmeCriticalWarning.temperatureExceedsThreshold = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX,  "Temperature is above an over termperature threshold or below an under temperature threshold");
-                tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT2)
             {
                 tripInfo->nvmeCriticalWarning.nvmSubsystemDegraded = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX,  "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability");
-                tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT3)
             {
                 tripInfo->nvmeCriticalWarning.mediaReadOnly = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX,  "Media has been placed in read only mode");
-                tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT4)
             {
                 tripInfo->nvmeCriticalWarning.volatileMemoryBackupFailed = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX,  "Volatile Memory backup device has failed");
-                tripInfo->reasonStringLength = (uint8_t)strlen(tripInfo->reasonString);
+                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT5)
             {
@@ -2167,7 +2167,7 @@ bool is_SMART_Enabled(tDevice *device)
     case SCSI_DRIVE:
     {
         //read the informational exceptions mode page and check MRIE value for something other than 0
-        uint8_t *infoExceptionsControl = (uint8_t*)calloc_aligned(12 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *infoExceptionsControl = C_CAST(uint8_t*, calloc_aligned(12 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!infoExceptionsControl)
         {
             perror("calloc failure for infoExceptionsControl");
@@ -2439,7 +2439,7 @@ int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enable
                 }
                 break;
             default:
-                featureCode = (uint16_t)sctFeature;
+                featureCode = C_CAST(uint16_t, sctFeature);
                 state = hdaTemperatureIntervalOrState;
                 break;
             }
@@ -2483,7 +2483,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
                 featureCode = 3;
                 break;
             default:
-                featureCode = (uint16_t)sctFeature;
+                featureCode = C_CAST(uint16_t, sctFeature);
                 break;
             }
             ret = send_ATA_SCT_Feature_Control(device, 0x0002, featureCode, &state, &optionFlags);
@@ -2620,7 +2620,7 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             }
             if (ret == SUCCESS)
             {
-                *timerValueMilliseconds = (uint32_t)currentTimerValue * UINT32_C(100);
+                *timerValueMilliseconds = C_CAST(uint32_t, currentTimerValue) * UINT32_C(100);
             }
         }
     }
@@ -2715,7 +2715,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
     //if logData is non-null, read the log page...do this first in case a mode select is being performed after this function call!
     if (logData)
     {
-        uint8_t *infoLogPage = (uint8_t*)calloc_aligned(LP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *infoLogPage = C_CAST(uint8_t*, calloc_aligned(LP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (infoLogPage)
         {
             if (SUCCESS == scsi_Log_Sense_Cmd(device, true, LPC_CUMULATIVE_VALUES, LP_INFORMATION_EXCEPTIONS, 0, 0, infoLogPage, LP_INFORMATION_EXCEPTIONS_LEN))
@@ -2735,7 +2735,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
         }
     }
     //read the mode page
-    uint8_t *infoControlPage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *infoControlPage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (infoControlPage)
     {
         bool gotData = false;
@@ -2779,7 +2779,7 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
 int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInformationalExceptionsControl controlData)
 {
     int ret = SUCCESS;
-    uint8_t *infoControlPage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *infoControlPage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!infoControlPage)
     {
         return MEMORY_FAILURE;
@@ -3150,7 +3150,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&smartLog, 0, sizeof(nvmeSmartLog));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint8_t*)(&smartLog);
+        cmdOpts.addr = C_CAST(uint8_t*, &smartLog);
         cmdOpts.dataLen = sizeof(nvmeSmartLog);
         cmdOpts.lid = 0x02;
 
@@ -3181,7 +3181,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&smartLog, 0, sizeof(nvmeSmartLog));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint8_t*)(&extSmartLog);
+        cmdOpts.addr = C_CAST(uint8_t*, &extSmartLog);
         cmdOpts.dataLen = sizeof(EXTENDED_SMART_INFO_T);
         cmdOpts.lid = 0xC4;
 
@@ -3196,7 +3196,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
                     maxTemperature = smart_attribute_vs(extSmartLog.Version, extSmartLog.vendorData[index]);
                     maxTemperature = maxTemperature ? maxTemperature - 273 : 0;
 
-                    printf("%-20s : %" PRIu32 " C\n", "Highest Temperature", (unsigned int)maxTemperature);
+                    printf("%-20s : %" PRIu32 " C\n", "Highest Temperature", C_CAST(uint32_t, maxTemperature));
                 }
     
                 if(extSmartLog.vendorData[index].AttributeNumber == VS_ATTR_ID_MAX_SOC_LIFE_TEMPERATURE) 
@@ -3204,7 +3204,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
                     maxSocTemp = smart_attribute_vs(extSmartLog.Version, extSmartLog.vendorData[index]);
                     maxSocTemp = maxSocTemp ? maxSocTemp - 273 : 0;
 
-                    printf("%-20s : %" PRIu32 " C\n", "Max SOC Temperature", (unsigned int)maxSocTemp);
+                    printf("%-20s : %" PRIu32 " C\n", "Max SOC Temperature", C_CAST(uint32_t, maxSocTemp));
                 }
             }
         }
@@ -3213,7 +3213,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         memset(&scDramSmart, 0, sizeof(nvmeSuperCapDramSmart));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint8_t*)(&scDramSmart);
+        cmdOpts.addr = C_CAST(uint8_t*, &scDramSmart);
         cmdOpts.dataLen = sizeof(nvmeSuperCapDramSmart);
         cmdOpts.lid = 0xCF;
 
@@ -3260,7 +3260,7 @@ int nvme_Print_PCI_Statistics(tDevice *device)
         memset(&pcieErrorLog, 0, sizeof(nvmePcieErrorLogPage));
 
         cmdOpts.nsid = NVME_ALL_NAMESPACES;
-        cmdOpts.addr = (uint8_t*)(&pcieErrorLog);
+        cmdOpts.addr = C_CAST(uint8_t*, &pcieErrorLog);
         cmdOpts.dataLen = sizeof(nvmePcieErrorLogPage);
         cmdOpts.lid = 0xCB;
 
@@ -3598,7 +3598,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     if (compErrLogSize > 0)
                     {
                         ret = SUCCESS;
-                        uint8_t *errorLog = (uint8_t*)calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment);
+                        uint8_t *errorLog = C_CAST(uint8_t*, calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
                         if (!errorLog)
                         {
                             return MEMORY_FAILURE;
@@ -3620,7 +3620,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                             if (errorLogIndex > 0)
                             {
                                 //read the full log to populate all fields
-                                uint8_t *temp = (uint8_t*)realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment);
+                                uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment));
                                 if (!temp)
                                 {
                                     safe_Free_aligned(errorLog)
@@ -4440,11 +4440,11 @@ void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Save Attributes, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_EXEC_OFFLINE_IMM:
-        get_SMART_Offline_Immediate_Info(commandName, commandOpCode, features, count, lba, device, commandInfo, (const char*)smartSigValid);
+        get_SMART_Offline_Immediate_Info(commandName, commandOpCode, features, count, lba, device, commandInfo, C_CAST(const char*, smartSigValid));
         break;
     case ATA_SMART_READ_LOG:
     case ATA_SMART_WRITE_LOG:
-        get_SMART_Log_Info(commandName, commandOpCode, features, count, lba, device, commandInfo, (const char*)smartSigValid);
+        get_SMART_Log_Info(commandName, commandOpCode, features, count, lba, device, commandInfo, C_CAST(const char*, smartSigValid));
         break;
     //case ATA_SMART_WRATTR_THRESH:some things say vendor specific, others say obsolete
     case ATA_SMART_ENABLE:
@@ -4589,7 +4589,7 @@ void get_DCO_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t command
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set DMA", commandName);
         break;
     default://reserved
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h", commandName, subcommand, (uint32_t)lba, (uint8_t)count);
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h", commandName, subcommand, C_CAST(uint32_t, lba), C_CAST(uint8_t, count));
         break;
     }
 }
@@ -4618,11 +4618,11 @@ void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOp
         case HPA_SET_MAX_ADDRESS:
             if (volatileValue)
             {
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu32 " (Volatile)", commandName, (uint32_t)lba);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu32 " (Volatile)", commandName, C_CAST(uint32_t, lba));
             }
             else
             {
-                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu32 "", commandName, (uint32_t)lba);
+                snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu32 "", commandName, C_CAST(uint32_t, lba));
             }
             break;
         case HPA_SET_MAX_PASSWORD:
@@ -4644,7 +4644,7 @@ void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOp
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unlock DMA", commandName);
             break;
         default:
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h", commandName, subcommand, (uint32_t)lba, (uint8_t)count);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h", commandName, subcommand, C_CAST(uint32_t, lba), C_CAST(uint8_t, count));
             break;
         }
     }
@@ -5381,17 +5381,17 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
             || setFeaturesSubcommand == 0xE0)
         {
             //vendor specific
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
         }
         else if ((setFeaturesSubcommand >= 0xF0 /* && setFeaturesSubcommand <= 0xFF */))
         {
             //reserved for CFA
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reserved for CFA (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reserved for CFA (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
         }
         else
         {
             //unknown/reserved
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Feature (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, (uint32_t)lba, subcommandCount);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Feature (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
         }
         break;
     }
@@ -5727,7 +5727,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (Auto Poll)");
             break;
         default:
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (subcommand %02" PRIx8 "h", (uint8_t)features);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (subcommand %02" PRIx8 "h", C_CAST(uint8_t, features));
             break;
         }
         break;
@@ -6344,14 +6344,14 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 #define TIMESTRING_MAX_LEN 30
 void convert_Milliseconds_To_Time_String(uint64_t milliseconds, char timeString[TIMESTRING_MAX_LEN + 1])
 {
-    uint8_t days = (uint8_t)(milliseconds / (24 * 60 * 60 * 1000));
-    milliseconds %= (24 * 60 * 60 * 1000);
-    uint8_t hours = (uint8_t)(milliseconds / (60 * 60 * 1000));
-    milliseconds %= (60 * 60 * 1000);
-    uint8_t minutes = (uint8_t)(milliseconds / (60 * 1000));
-    milliseconds %= (60 * 1000);
-    uint8_t seconds = C_CAST(uint8_t, milliseconds / 1000);
-    milliseconds %= 1000;
+    uint8_t days = C_CAST(uint8_t, milliseconds / (UINT64_C(24) * UINT64_C(60) * UINT64_C(60) * UINT64_C(1000)));
+    milliseconds %= (UINT64_C(24) * UINT64_C(60) * UINT64_C(60) * UINT64_C(1000));
+    uint8_t hours = C_CAST(uint8_t, milliseconds / (UINT64_C(60) * UINT64_C(60) * UINT64_C(1000)));
+    milliseconds %= (UINT64_C(60) * UINT64_C(60) * UINT64_C(1000));
+    uint8_t minutes = C_CAST(uint8_t, milliseconds / (UINT64_C(60) * UINT64_C(1000)));
+    milliseconds %= (UINT64_C(60) * UINT64_C(1000));
+    uint8_t seconds = C_CAST(uint8_t, milliseconds / UINT64_C(1000));
+    milliseconds %= UINT64_C(1000);
     snprintf(timeString, TIMESTRING_MAX_LEN, "%" PRIu8 "D:%" PRIu8 "H:%" PRIu8 "M:%" PRIu8 "S:%" PRIu64 "MS", days, hours, minutes, seconds, milliseconds);
 }
 

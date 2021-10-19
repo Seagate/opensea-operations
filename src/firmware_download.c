@@ -532,7 +532,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
         case SCSI_DRIVE:
         {
             //before trying all the code below, look at the extended inquiry data page so see if the download modes are supported or not.
-            uint8_t *extendedInq = (uint8_t*)calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *extendedInq = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (extendedInq)
             {
                 if (SUCCESS == scsi_Inquiry(device, extendedInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
@@ -569,7 +569,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 safe_Free_aligned(extendedInq) // PRH valgrind check
             }
 
-            uint8_t *writeBufferSupportData = (uint8_t*)calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *writeBufferSupportData = C_CAST(uint8_t*, calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
             //first try asking for supported operation code for Full Buffer download
             if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE, 14, writeBufferSupportData))
             {
@@ -578,7 +578,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 case 3://supported according to spec
                     supportedModes->downloadMicrocodeSupported = true;
                     supportedModes->fullBuffer = true;
-                    supportedModes->multipleLogicalUnitsAffected = (eMLU)M_GETBITRANGE(writeBufferSupportData[1], 6, 5);
+                    supportedModes->multipleLogicalUnitsAffected = C_CAST(eMLU, M_GETBITRANGE(writeBufferSupportData[1], 6, 5));
                     break;
                 default:
                     break;
@@ -696,7 +696,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)
                 {
                     //report supported operation codes isn't supported, so try legacy inquiry cmdDT method
-                    uint8_t *temp = (uint8_t*)realloc_aligned(writeBufferSupportData, 14, 16, device->os_info.minimumAlignment);
+                    uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(writeBufferSupportData, 14, 16, device->os_info.minimumAlignment));
                     if (!temp)
                     {
                         return MEMORY_FAILURE;
@@ -834,7 +834,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     {
                         safe_Free_aligned(writeBufferSupportData)
                         uint32_t reportAllOPsLength = 4;
-                        uint8_t *reportAllOPs = (uint8_t*)calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+                        uint8_t *reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                         if (reportAllOPs)
                         {
                             if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs))
@@ -842,7 +842,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                                 //get the full length, then reallocate and reread
                                 reportAllOPsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
                                 safe_Free_aligned(reportAllOPs)
-                                reportAllOPs = (uint8_t*)calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+                                reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                                 if (reportAllOPs)
                                 {
                                     if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs))
@@ -968,7 +968,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             eSeagateFamily family = is_Seagate_Family(device);
             if ((family == SEAGATE || family == SEAGATE_VENDOR_A) && supportedModes->scsiInfoPossiblyIncomplete)
             {
-                uint8_t * c3VPD = (uint8_t*)calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment);
+                uint8_t * c3VPD = C_CAST(uint8_t*, calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (c3VPD)
                 {
                     //If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific for the supported features

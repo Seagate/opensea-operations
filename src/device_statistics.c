@@ -42,7 +42,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     {
         bool dsnFeatureSupported = M_ToBool(device->drive_info.IdentifyData.ata.Word119 & BIT9);
         bool dsnFeatureEnabled = M_ToBool(device->drive_info.IdentifyData.ata.Word120 & BIT9);
-        uint8_t *deviceStatsLog = (uint8_t*)calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!deviceStatsLog)
         {
             return MEMORY_FAILURE;
@@ -50,7 +50,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         //this is to get the threshold stuff
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
-            uint8_t *devStatsNotificationsLog = (uint8_t*)calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0,0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
@@ -90,7 +90,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://lifetime power on resets
                             deviceStats->sataStatistics.lifetimePoweronResets.isThresholdValid = true;
                             deviceStats->sataStatistics.lifetimePoweronResets.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lifetimePoweronResets.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lifetimePoweronResets.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lifetimePoweronResets.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lifetimePoweronResets.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lifetimePoweronResets.threshold = thresholdValue;
@@ -98,7 +98,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://power on hours
                             deviceStats->sataStatistics.powerOnHours.isThresholdValid = true;
                             deviceStats->sataStatistics.powerOnHours.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.powerOnHours.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.powerOnHours.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.powerOnHours.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.powerOnHours.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.powerOnHours.threshold = thresholdValue;
@@ -106,7 +106,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://logical sectors written
                             deviceStats->sataStatistics.logicalSectorsWritten.isThresholdValid = true;
                             deviceStats->sataStatistics.logicalSectorsWritten.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.logicalSectorsWritten.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.logicalSectorsWritten.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.logicalSectorsWritten.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.logicalSectorsWritten.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.logicalSectorsWritten.threshold = thresholdValue;
@@ -114,7 +114,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://number of write commands
                             deviceStats->sataStatistics.numberOfWriteCommands.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfWriteCommands.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfWriteCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfWriteCommands.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfWriteCommands.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfWriteCommands.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfWriteCommands.threshold = thresholdValue;
@@ -122,7 +122,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://logical sectors read
                             deviceStats->sataStatistics.logicalSectorsRead.isThresholdValid = true;
                             deviceStats->sataStatistics.logicalSectorsRead.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.logicalSectorsRead.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.logicalSectorsRead.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.logicalSectorsRead.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.logicalSectorsRead.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.logicalSectorsRead.threshold = thresholdValue;
@@ -130,7 +130,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://number of read commands
                             deviceStats->sataStatistics.numberOfReadCommands.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReadCommands.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReadCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReadCommands.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReadCommands.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReadCommands.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReadCommands.threshold = thresholdValue;
@@ -138,7 +138,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://Date and Time Timestamp
                             deviceStats->sataStatistics.dateAndTimeTimestamp.isThresholdValid = true;
                             deviceStats->sataStatistics.dateAndTimeTimestamp.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.dateAndTimeTimestamp.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.dateAndTimeTimestamp.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.dateAndTimeTimestamp.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.dateAndTimeTimestamp.threshold = thresholdValue;
@@ -146,7 +146,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://Pending Error Count
                             deviceStats->sataStatistics.pendingErrorCount.isThresholdValid = true;
                             deviceStats->sataStatistics.pendingErrorCount.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.pendingErrorCount.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.pendingErrorCount.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.pendingErrorCount.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.pendingErrorCount.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.pendingErrorCount.threshold = thresholdValue;
@@ -154,7 +154,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 72://workload utilization
                             deviceStats->sataStatistics.workloadUtilization.isThresholdValid = true;
                             deviceStats->sataStatistics.workloadUtilization.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.workloadUtilization.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.workloadUtilization.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.workloadUtilization.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.workloadUtilization.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.workloadUtilization.threshold = thresholdValue;
@@ -162,7 +162,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 80://utilization usage rate
                             deviceStats->sataStatistics.utilizationUsageRate.isThresholdValid = true;
                             deviceStats->sataStatistics.utilizationUsageRate.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.utilizationUsageRate.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.utilizationUsageRate.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.utilizationUsageRate.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.utilizationUsageRate.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.utilizationUsageRate.threshold = thresholdValue;
@@ -170,7 +170,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 88://resource availability
                             deviceStats->sataStatistics.resourceAvailability.isThresholdValid = true;
                             deviceStats->sataStatistics.resourceAvailability.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.resourceAvailability.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.resourceAvailability.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.resourceAvailability.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.resourceAvailability.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.resourceAvailability.threshold = thresholdValue;
@@ -178,7 +178,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 96://random write resources used
                             deviceStats->sataStatistics.randomWriteResourcesUsed.isThresholdValid = true;
                             deviceStats->sataStatistics.randomWriteResourcesUsed.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.randomWriteResourcesUsed.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.randomWriteResourcesUsed.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.randomWriteResourcesUsed.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.randomWriteResourcesUsed.threshold = thresholdValue;
@@ -194,7 +194,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://number of free fall events detected
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshold = thresholdValue;
@@ -202,7 +202,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://overlimit shock events
                             deviceStats->sataStatistics.overlimitShockEvents.isThresholdValid = true;
                             deviceStats->sataStatistics.overlimitShockEvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.overlimitShockEvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.overlimitShockEvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.overlimitShockEvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.overlimitShockEvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.overlimitShockEvents.threshold = thresholdValue;
@@ -218,7 +218,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://spindle motor power-on hours
                             deviceStats->sataStatistics.spindleMotorPoweronHours.isThresholdValid = true;
                             deviceStats->sataStatistics.spindleMotorPoweronHours.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.spindleMotorPoweronHours.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.spindleMotorPoweronHours.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.spindleMotorPoweronHours.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.spindleMotorPoweronHours.threshold = thresholdValue;
@@ -226,7 +226,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://head flying hours
                             deviceStats->sataStatistics.headFlyingHours.isThresholdValid = true;
                             deviceStats->sataStatistics.headFlyingHours.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.headFlyingHours.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.headFlyingHours.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.headFlyingHours.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.headFlyingHours.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.headFlyingHours.threshold = thresholdValue;
@@ -234,7 +234,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://head load events
                             deviceStats->sataStatistics.headLoadEvents.isThresholdValid = true;
                             deviceStats->sataStatistics.headLoadEvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.headLoadEvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.headLoadEvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.headLoadEvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.headLoadEvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.headLoadEvents.threshold = thresholdValue;
@@ -242,7 +242,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://number of reallocated logical sectors
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshold = thresholdValue;
@@ -250,7 +250,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://read recovery attempts
                             deviceStats->sataStatistics.readRecoveryAttempts.isThresholdValid = true;
                             deviceStats->sataStatistics.readRecoveryAttempts.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.readRecoveryAttempts.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.readRecoveryAttempts.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.readRecoveryAttempts.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.readRecoveryAttempts.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.readRecoveryAttempts.threshold = thresholdValue;
@@ -258,7 +258,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://number of mechanical start failures
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshold = thresholdValue;
@@ -266,7 +266,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://numberOfReallocationCandidateLogicalSectors
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshold = thresholdValue;
@@ -274,7 +274,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://number of high priority unload events
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshold = thresholdValue;
@@ -290,7 +290,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://number of reported uncorrectable errors
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshold = thresholdValue;
@@ -298,7 +298,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://number of resets between command acceptance and command completion
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.threshold = thresholdValue;
@@ -306,7 +306,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://physical element status changed
                             deviceStats->sataStatistics.physicalElementStatusChanged.isThresholdValid = true;
                             deviceStats->sataStatistics.physicalElementStatusChanged.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.physicalElementStatusChanged.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.physicalElementStatusChanged.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.physicalElementStatusChanged.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.physicalElementStatusChanged.threshold = thresholdValue;
@@ -322,7 +322,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://current temperature
                             deviceStats->sataStatistics.currentTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.currentTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.currentTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.currentTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.currentTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.currentTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.currentTemperature.threshold = thresholdValue;
@@ -330,7 +330,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://average short term temperature
                             deviceStats->sataStatistics.averageShortTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.averageShortTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.averageShortTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.averageShortTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.averageShortTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.averageShortTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.averageShortTermTemperature.threshold = thresholdValue;
@@ -338,7 +338,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://average long term temperature
                             deviceStats->sataStatistics.averageLongTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.averageLongTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.averageLongTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.averageLongTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.averageLongTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.averageLongTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.averageLongTermTemperature.threshold = thresholdValue;
@@ -346,7 +346,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://highest temperature
                             deviceStats->sataStatistics.highestTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.highestTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.highestTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.highestTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.highestTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.highestTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.highestTemperature.threshold = thresholdValue;
@@ -354,7 +354,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://lowest temperature
                             deviceStats->sataStatistics.lowestTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.lowestTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lowestTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lowestTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lowestTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lowestTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lowestTemperature.threshold = thresholdValue;
@@ -362,7 +362,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://highest Averagre Short Term Temperature
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.highestAverageShortTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.threshold = thresholdValue;
@@ -370,7 +370,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://lowest average short term temperature
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshold = thresholdValue;
@@ -378,7 +378,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://highest average long term temperature
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.highestAverageLongTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.threshold = thresholdValue;
@@ -386,7 +386,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 72://lowest average long term temperature
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshold = thresholdValue;
@@ -394,7 +394,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 80://time in over temperature
                             deviceStats->sataStatistics.timeInOverTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.timeInOverTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.timeInOverTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.timeInOverTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.timeInOverTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.timeInOverTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.timeInOverTemperature.threshold = thresholdValue;
@@ -402,7 +402,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 88://specified maximum operating temperature
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshold = thresholdValue;
@@ -410,7 +410,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 96://time in under temperature
                             deviceStats->sataStatistics.timeInUnderTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.timeInUnderTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.timeInUnderTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.timeInUnderTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.timeInUnderTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.timeInUnderTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.timeInUnderTemperature.threshold = thresholdValue;
@@ -418,7 +418,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 104://specified minimum operating temperature
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshold = thresholdValue;
@@ -434,7 +434,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://number of hardware resets
                             deviceStats->sataStatistics.numberOfHardwareResets.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfHardwareResets.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfHardwareResets.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfHardwareResets.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfHardwareResets.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfHardwareResets.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfHardwareResets.threshold = thresholdValue;
@@ -442,7 +442,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://number of ASR events
                             deviceStats->sataStatistics.numberOfASREvents.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfASREvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfASREvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfASREvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfASREvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfASREvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfASREvents.threshold = thresholdValue;
@@ -450,7 +450,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://number of interface CRC errors
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshold = thresholdValue;
@@ -466,7 +466,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://percent used indicator
                             deviceStats->sataStatistics.percentageUsedIndicator.isThresholdValid = true;
                             deviceStats->sataStatistics.percentageUsedIndicator.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.percentageUsedIndicator.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.percentageUsedIndicator.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.percentageUsedIndicator.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.percentageUsedIndicator.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.percentageUsedIndicator.threshold = thresholdValue;
@@ -482,7 +482,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://maximum open zones
                             deviceStats->sataStatistics.maximumOpenZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumOpenZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumOpenZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumOpenZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumOpenZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumOpenZones.threshold = thresholdValue;
@@ -490,7 +490,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://maximum explicitly open zones
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshold = thresholdValue;
@@ -498,7 +498,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://maximum implicitly open zones
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshold = thresholdValue;
@@ -506,7 +506,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://minimum empty zones
                             deviceStats->sataStatistics.minimumEmptyZones.isThresholdValid = true;
                             deviceStats->sataStatistics.minimumEmptyZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.minimumEmptyZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.minimumEmptyZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.minimumEmptyZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.minimumEmptyZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.minimumEmptyZones.threshold = thresholdValue;
@@ -514,7 +514,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://maximum non-sequential zones
                             deviceStats->sataStatistics.maximumNonSequentialZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumNonSequentialZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumNonSequentialZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumNonSequentialZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumNonSequentialZones.threshold = thresholdValue;
@@ -522,7 +522,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://zones emptied
                             deviceStats->sataStatistics.zonesEmptied.isThresholdValid = true;
                             deviceStats->sataStatistics.zonesEmptied.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.zonesEmptied.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.zonesEmptied.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.zonesEmptied.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.zonesEmptied.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.zonesEmptied.threshold = thresholdValue;
@@ -530,7 +530,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://suboptimal write commands
                             deviceStats->sataStatistics.suboptimalWriteCommands.isThresholdValid = true;
                             deviceStats->sataStatistics.suboptimalWriteCommands.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.suboptimalWriteCommands.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.suboptimalWriteCommands.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.suboptimalWriteCommands.threshold = thresholdValue;
@@ -538,7 +538,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://commands exceeding optimal limit
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.isThresholdValid = true;
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshold = thresholdValue;
@@ -546,7 +546,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 72://failed explicit opens
                             deviceStats->sataStatistics.failedExplicitOpens.isThresholdValid = true;
                             deviceStats->sataStatistics.failedExplicitOpens.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.failedExplicitOpens.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.failedExplicitOpens.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.failedExplicitOpens.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.failedExplicitOpens.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.failedExplicitOpens.threshold = thresholdValue;
@@ -554,7 +554,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 80://read rule violations
                             deviceStats->sataStatistics.readRuleViolations.isThresholdValid = true;
                             deviceStats->sataStatistics.readRuleViolations.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.readRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.readRuleViolations.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.readRuleViolations.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.readRuleViolations.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.readRuleViolations.threshold = thresholdValue;
@@ -562,7 +562,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 88://write rule violations
                             deviceStats->sataStatistics.writeRuleViolations.isThresholdValid = true;
                             deviceStats->sataStatistics.writeRuleViolations.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.writeRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.writeRuleViolations.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.writeRuleViolations.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.writeRuleViolations.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.writeRuleViolations.threshold = thresholdValue;
@@ -4676,7 +4676,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                             }
                             deviceStats->sasStatistics.dateOfManufacture.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            deviceStats->sasStatistics.dateOfManufacture.statisticValue |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                            deviceStats->sasStatistics.dateOfManufacture.statisticValue |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://accounting date
@@ -4704,7 +4704,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                             }
                             deviceStats->sasStatistics.accountingDate.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            deviceStats->sasStatistics.accountingDate.statisticValue |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                            deviceStats->sasStatistics.accountingDate.statisticValue |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 3://specified cycle count over device lifetime
@@ -4838,7 +4838,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 {
                                     deviceStats->sasStatistics.dateOfManufacture.isThresholdValid = true;
                                     deviceStats->sasStatistics.dateOfManufacture.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                    deviceStats->sasStatistics.dateOfManufacture.threshold |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                                    deviceStats->sasStatistics.dateOfManufacture.threshold |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                                     scsi_Threshold_Comparison(&deviceStats->sasStatistics.dateOfManufacture);
                                 }
                                 break;
@@ -4848,7 +4848,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 {
                                     deviceStats->sasStatistics.accountingDate.isThresholdValid = true;
                                     deviceStats->sasStatistics.accountingDate.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                    deviceStats->sasStatistics.accountingDate.threshold |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                                    deviceStats->sasStatistics.accountingDate.threshold |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                                     scsi_Threshold_Comparison(&deviceStats->sasStatistics.accountingDate);
                                 }
                                 break;
@@ -6442,7 +6442,7 @@ void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisti
         {
             if (theStatistic.statisticValue != 65535)
             {
-                double workloadUtilization = (double)theStatistic.statisticValue;
+                double workloadUtilization = C_CAST(double, theStatistic.statisticValue);
                 workloadUtilization *= 0.01;//convert to fractional percentage
                 printf("%0.02f%%", workloadUtilization);
             }
@@ -6617,7 +6617,7 @@ void print_Resource_Availability_Statistic(statistic theStatistic, char *statist
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            double fractionAvailable = (double)M_Word0(theStatistic.statisticValue) / 65535.0;
+            double fractionAvailable = C_CAST(double, M_Word0(theStatistic.statisticValue)) / 65535.0;
             printf("%0.02f%% Available", fractionAvailable);
         }
         else
@@ -6832,7 +6832,7 @@ void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            printf("%"PRId8" C", (int8_t)theStatistic.statisticValue);
+            printf("%"PRId8" C", C_CAST(int8_t, theStatistic.statisticValue));
         }
         else
         {
@@ -7222,7 +7222,7 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
         {
             if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
             {
-                printf("%"PRIu8"", (uint8_t)theStatistic.statisticValue);
+                printf("%"PRIu8"", C_CAST(uint8_t, theStatistic.statisticValue));
             }
             else if (theStatistic.statisticValue == 255)
             {

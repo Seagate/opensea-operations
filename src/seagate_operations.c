@@ -28,7 +28,7 @@
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
     int ret = UNKNOWN;
-    uint8_t *sctSATAPhySpeed = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *sctSATAPhySpeed = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (sctSATAPhySpeed == NULL)
     {
         perror("Calloc Failure!\n");
@@ -43,11 +43,11 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 
     //fill in the buffer with the correct information
     //action code
-    sctSATAPhySpeed[0] = (uint8_t)SCT_SEAGATE_SPEED_CONTROL;
-    sctSATAPhySpeed[1] = C_CAST(uint8_t, SCT_SEAGATE_SPEED_CONTROL >> 8);
+    sctSATAPhySpeed[0] = M_Byte0(SCT_SEAGATE_SPEED_CONTROL);
+    sctSATAPhySpeed[1] = M_Byte1(SCT_SEAGATE_SPEED_CONTROL);
     //function code
-    sctSATAPhySpeed[2] = (uint8_t)BIST_SET_SATA_PHY_SPEED;
-    sctSATAPhySpeed[3] = C_CAST(uint8_t, BIST_SET_SATA_PHY_SPEED >> 8);
+    sctSATAPhySpeed[2] = M_Byte0(BIST_SET_SATA_PHY_SPEED);
+    sctSATAPhySpeed[3] = M_Byte1(BIST_SET_SATA_PHY_SPEED);
     //feature code
     sctSATAPhySpeed[4] = RESERVED;
     sctSATAPhySpeed[5] = RESERVED;
@@ -89,7 +89,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
         return NOT_SUPPORTED;
     }
     uint16_t phyControlLength = 104 + MODE_PARAMETER_HEADER_10_LEN;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + then add 8 bytes for mode parameter header. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
-    uint8_t *sasPhyControl = (uint8_t*)calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *sasPhyControl = C_CAST(uint8_t*, calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!sasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -124,7 +124,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
             {
                 uint8_t numberOfPhys = sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
                 uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginning of the phy descriptors so that when looping through them, it is easier code to read.
-                for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && phyDescriptorOffset < phyControlLength; ++phyIter, phyDescriptorOffset += 48)
+                for (uint16_t phyIter = 0; phyIter < C_CAST(uint16_t, numberOfPhys) && phyDescriptorOffset < phyControlLength; ++phyIter, phyDescriptorOffset += 48)
                 {
                     uint8_t phyIdentifier = sasPhyControl[phyDescriptorOffset + 1];
                     //check if the caller requested changing all phys or a specific phy and only modify it's descriptor if either of those are true.
@@ -286,7 +286,7 @@ int seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLe
     if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
     {
         uint16_t saveToDrive = 0x0001;//always set this because this feature requires saving for it to even work.
-        uint16_t state = (uint16_t)spinupLevel;
+        uint16_t state = C_CAST(uint16_t, spinupLevel);
         if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_SET_STATE_AND_OPTIONS, SEAGATE_SCT_FEATURE_CONTROL_LOW_CURRENT_SPINUP, &state, &saveToDrive))
         {
             ret = SUCCESS;
@@ -324,7 +324,7 @@ int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state)
             {
                 return NOT_SUPPORTED;
             }
-            if (SUCCESS == ata_Set_Features(device, (eATASetFeaturesSubcommands)SEAGATE_SF_LOW_CURRENT_SPINUP, 0, secCnt, LOW_CURRENT_SPINUP_LBA_MID_SIG, LOW_CURRENT_SPINUP_LBA_HI_SIG))
+            if (SUCCESS == ata_Set_Features(device, C_CAST(eATASetFeaturesSubcommands, SEAGATE_SF_LOW_CURRENT_SPINUP), 0, secCnt, LOW_CURRENT_SPINUP_LBA_MID_SIG, LOW_CURRENT_SPINUP_LBA_HI_SIG))
             {
                 ret = SUCCESS;
             }
@@ -342,7 +342,7 @@ int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
         {
             if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
             {
-                uint16_t state = (uint16_t)mode;
+                uint16_t state = C_CAST(uint16_t, mode);
                 uint16_t saveToDrive = 0x0001;
                 if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_SET_STATE_AND_OPTIONS, SEAGATE_SCT_FEATURE_CONTROL_SPEAD_SPECTRUM_CLOCKING, &state, &saveToDrive))
                 {
@@ -380,7 +380,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
                 if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_RETURN_CURRENT_STATE, SEAGATE_SCT_FEATURE_CONTROL_SPEAD_SPECTRUM_CLOCKING, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
-                    *mode = (eSSCFeatureState)state;
+                    *mode = C_CAST(eSSCFeatureState, state);
                 }
                 else
                 {
@@ -647,7 +647,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                 }
                 return SUCCESS;
             }
-            uint8_t *pcModePage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
@@ -733,7 +733,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         bool oldMethod = false;
-        uint8_t *pcModePage = (uint8_t*)calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!pcModePage)
         {
             return MEMORY_FAILURE;
@@ -793,7 +793,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *smartData = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *smartData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!smartData)
             {
                 return MEMORY_FAILURE;
@@ -822,7 +822,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (iddDiagPage)
             {
                 if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15))
@@ -913,7 +913,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //read diagnostic page
-        uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (iddDiagPage)
         {
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
@@ -1089,7 +1089,7 @@ static int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool cap
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //send diagnostic
-        uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (iddDiagPage)
         {
             uint32_t commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;
@@ -1395,13 +1395,13 @@ int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t pwrTelLogPg[512] = { 0 };
-        pwrTelLogPg[0] = (uint8_t)SEAGATE_ATA_LOG_POWER_TELEMETRY;
+        pwrTelLogPg[0] = C_CAST(uint8_t, SEAGATE_ATA_LOG_POWER_TELEMETRY);
         pwrTelLogPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
         pwrTelLogPg[2] = RESERVED;
         pwrTelLogPg[3] = RESERVED;
         pwrTelLogPg[4] = M_Byte0(timeMeasurementSeconds);
         pwrTelLogPg[5] = M_Byte1(timeMeasurementSeconds);
-        pwrTelLogPg[6] = (uint8_t)measurementOption;
+        pwrTelLogPg[6] = C_CAST(uint8_t, measurementOption);
         //remaining bytes are reserved
         //send write log ext
         ret = ata_Write_Log_Ext(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, 0, pwrTelLogPg, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, false);
@@ -1409,13 +1409,13 @@ int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, 
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t pwrTelDiagPg[16] = { 0 };
-        pwrTelDiagPg[0] = (uint8_t)SEAGATE_DIAG_POWER_MEASUREMENT;
+        pwrTelDiagPg[0] = C_CAST(uint8_t, SEAGATE_DIAG_POWER_MEASUREMENT);
         pwrTelDiagPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
         pwrTelDiagPg[2] = M_Byte1(12);//page length msb
         pwrTelDiagPg[3] = M_Byte0(12);//page length lsb
         pwrTelDiagPg[4] = M_Byte1(timeMeasurementSeconds);
         pwrTelDiagPg[5] = M_Byte0(timeMeasurementSeconds);
-        pwrTelDiagPg[6] = (uint8_t)measurementOption;
+        pwrTelDiagPg[6] = C_CAST(uint8_t, measurementOption);
         pwrTelDiagPg[7] = RESERVED;
         pwrTelDiagPg[8] = RESERVED;
         pwrTelDiagPg[9] = RESERVED;
@@ -1446,7 +1446,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         ret = get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &powerTelemetryLogSize, true, false);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
                 ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, NULL, NULL, true, false, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, 0);
@@ -1467,7 +1467,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         ret = get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &powerTelemetryLogSize, false, rb16);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
                 ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, NULL, false, rb16, NULL, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, NULL);

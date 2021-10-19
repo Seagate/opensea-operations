@@ -90,7 +90,7 @@ int print_Current_Power_Mode(tDevice *device)
         uint8_t powerMode = 0;
         //first check if EPC feature is supported and/or enabled
         uint8_t epcFeature = 0;//0 - disabled, 1 - supported, 2 - enabled.
-        uint8_t *identifyData = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *identifyData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (identifyData == NULL)
         {
             perror("Calloc Failure!\n");
@@ -100,7 +100,7 @@ int print_Current_Power_Mode(tDevice *device)
         if (SUCCESS == ata_Identify(device, identifyData, LEGACY_DRIVE_SEC_SIZE))
         {
             //check word 119 bit 7 for EPC support
-            uint16_t *identWordPTR = (uint16_t*)identifyData;
+            uint16_t *identWordPTR = C_CAST(uint16_t*, identifyData);
             if ((identWordPTR[119] & BIT7) > 0)
             {
                 epcFeature = 1;
@@ -186,7 +186,7 @@ int print_Current_Power_Mode(tDevice *device)
         NOTE: Removed the code which was checking to see if the power mode is supported 
               mainly because it was changing the power state of the drive. -MA 
         */
-        uint8_t *senseData = (uint8_t*)calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *senseData = C_CAST(uint8_t*, calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!senseData)
         {
             perror("Calloc Failure!\n");
@@ -481,7 +481,7 @@ int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, pt
                 {
                     //need to convert to a number of minutes to send to the drive instead!
                     lbalo |= BIT7;//meaning unit in minutes instead of 100ms
-                    uint64_t convertedMinutes = ((uint64_t)powerConditionSettings->timerInHundredMillisecondIncrements * UINT64_C(100)) / UINT64_C(60000);
+                    uint64_t convertedMinutes = (C_CAST(uint64_t, powerConditionSettings->timerInHundredMillisecondIncrements) * UINT64_C(100)) / UINT64_C(60000);
                     //now, this value should be able to be sent...
                     lbaMid = M_Byte0(convertedMinutes);
                     lbaHi = M_Byte1(convertedMinutes);
@@ -510,7 +510,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
 {
     int ret = UNKNOWN;
     //first verify the device supports the EPC feature
-    uint8_t *ataDataBuffer = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *ataDataBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!ataDataBuffer)
     {
         perror("calloc failure!\n");
@@ -518,7 +518,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
     }
     if (SUCCESS == ata_Identify(device, ataDataBuffer, LEGACY_DRIVE_SEC_SIZE))
     {
-        uint16_t *wordPtr = (uint16_t*)ataDataBuffer;
+        uint16_t *wordPtr = C_CAST(uint16_t*, ataDataBuffer);
         if ((wordPtr[119] & BIT7) == 0)
         {
             //this means EPC is not supported by the drive.
@@ -579,7 +579,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
         {
             //read the default mode page, then send it to the drive with mode select.
             powerConditionsPageLength = MODE_PARAMETER_HEADER_10_LEN + MP_POWER_CONDITION_LEN;//*should* be maximum size we need assuming no block descriptor
-            powerConditionsPage = (uint8_t*)calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerConditionsPage = C_CAST(uint8_t*, calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!powerConditionsPage)
             {
                 return MEMORY_FAILURE;
@@ -612,7 +612,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
         {
             //Read the default mode page, then save whichever things need defaults into the proper structure
             powerConditionsPageLength = MODE_PARAMETER_HEADER_10_LEN + MP_POWER_CONDITION_LEN;//*should* be maximum size we need assuming no block descriptor
-            powerConditionsPage = (uint8_t*)calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerConditionsPage = C_CAST(uint8_t*, calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!powerConditionsPage)
             {
                 return MEMORY_FAILURE;
@@ -699,7 +699,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
 
         //Now, read the current settings mode page, make any necessary changes, then send it to the drive and we're done.
         powerConditionsPageLength = MODE_PARAMETER_HEADER_10_LEN + MP_POWER_CONDITION_LEN;//*should* be maximum size we need assuming no block descriptor
-        powerConditionsPage = (uint8_t*)calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+        powerConditionsPage = C_CAST(uint8_t*, calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!powerConditionsPage)
         {
             return MEMORY_FAILURE;
@@ -950,7 +950,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
 {
     int ret = NOT_SUPPORTED;
     //first we need to check that VPD page 8Ah (power condition) exists...and we can possibly use that information to return "not supported, etc"
-    uint8_t *powerConditionVPD = (uint8_t*)calloc_aligned(VPD_POWER_CONDITION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);//size of 18 is defined in SPC4 for this VPD page
+    uint8_t *powerConditionVPD = C_CAST(uint8_t*, calloc_aligned(VPD_POWER_CONDITION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));//size of 18 is defined in SPC4 for this VPD page
     if (!powerConditionVPD)
     {
         perror("calloc failure!");
@@ -1239,7 +1239,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
         uint32_t powerConsumptionLength = 0;
         if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
         {
-            uint8_t *powerConsumptionPage = (uint8_t*)calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *powerConsumptionPage = C_CAST(uint8_t*, calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!powerConsumptionPage)
             {
                 return MEMORY_FAILURE;
@@ -1265,7 +1265,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
         }
         if (ret != FAILURE)
         {
-            uint8_t *pcModePage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
@@ -1432,7 +1432,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *pcModePage = (uint8_t*)calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
         if (!pcModePage)
         {
@@ -1485,7 +1485,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
     powerConsumptionIdentifiers identifiers;
     memset(&identifiers, 0, sizeof(powerConsumptionIdentifiers));
     *pcIdentifier = 0xFF;//invalid
-    uint64_t roundedWatts = (uint64_t)watts;
+    uint64_t roundedWatts = C_CAST(uint64_t, watts);
     //*/
     ret = get_Power_Consumption_Identifiers(device, &identifiers);
     /*/
@@ -1689,7 +1689,7 @@ int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     }
     uint32_t epcLogSize = LEGACY_DRIVE_SEC_SIZE * 2;//from ATA Spec
     //get_ATA_Log_Size(device, ATA_LOG_POWER_CONDITIONS, &epcLogSize, true, false) //uncomment this line to ask the drive for the EPC log size rather than use the hard coded value above.
-    uint8_t *epcLog = (uint8_t*)calloc_aligned(epcLogSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *epcLog = C_CAST(uint8_t*, calloc_aligned(epcLogSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!epcLog)
     {
         return MEMORY_FAILURE;
@@ -2424,7 +2424,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
     bool gotFullPageLength = false;
     bool alreadyHaveAllData = false;
     uint16_t enhPhyControlLength = MODE_PARAMETER_HEADER_10_LEN + 8 + 40;//first 8 bytes are a "header" followed by 20 bytes per phy and setting this for 2 phys since that is most common right now. -TJE
-    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned(enhPhyControlLength * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned(enhPhyControlLength * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -2465,7 +2465,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                     uint8_t numberOfPhys = enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
                     uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
                     uint16_t descriptorLength = 19;
-                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && phyDescriptorOffset < enhPhyControlLength; ++phyIter, phyDescriptorOffset += descriptorLength)
+                    for (uint16_t phyIter = 0; phyIter < C_CAST(uint16_t, numberOfPhys) && phyDescriptorOffset < enhPhyControlLength; ++phyIter, phyDescriptorOffset += descriptorLength)
                     {
                         uint8_t phyIdentifier = enhSasPhyControl[phyDescriptorOffset + 1];
                         descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]);
@@ -2531,7 +2531,7 @@ int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCou
         return BAD_PARAMETER;
     }
     uint16_t enhPhyControlLength = 8;//only need 8 bytes to get the number of phys
-    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -2565,7 +2565,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
 
     bool gotFullPageLength = false;
     uint16_t enhPhyControlLength = 0;
-    uint8_t *enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -2577,7 +2577,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
         enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
         gotFullPageLength = true;
         safe_Free_aligned(enhSasPhyControl)
-        enhSasPhyControl = (uint8_t*)calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+        enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!enhSasPhyControl)
         {
             return MEMORY_FAILURE;
@@ -2599,7 +2599,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
                     uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginnging of the phy descriptors so that when looping through them, it is easier code to read.
                     uint16_t descriptorLength = 19;
                     uint8_t phyCounter = 0;
-                    for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && (phyCounter * sizeof(sasEnhPhyControl)) < enhPhyControlDataSize; ++phyIter, phyDescriptorOffset += descriptorLength, ++phyCounter)
+                    for (uint16_t phyIter = 0; phyIter < C_CAST(uint16_t, numberOfPhys) && (phyCounter * sizeof(sasEnhPhyControl)) < enhPhyControlDataSize; ++phyIter, phyDescriptorOffset += descriptorLength, ++phyCounter)
                     {
                         uint8_t phyIdentifier = enhSasPhyControl[phyDescriptorOffset + 1];
                         descriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[phyDescriptorOffset + 2], enhSasPhyControl[phyDescriptorOffset + 3]) + 4;

@@ -82,7 +82,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
 {
     //04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
     int     result = UNKNOWN;
-    uint8_t *temp_buf = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *temp_buf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (temp_buf == NULL)
     {
         perror("Calloc Failure!\n");
@@ -706,7 +706,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 if (status == 0 && ret == SUCCESS)
                 {
                     //printf 35 characters + width of warning message to clear the line before printing this final status update
-                    printf("\r                                    %.*s", (int)strlen(overTimeWarningMessage), "                                                                        ");
+                    printf("\r                                    %.*s", C_CAST(int, strlen(overTimeWarningMessage)), "                                                                        ");
                     printf("\r    Test progress: 100%% complete   ");
                     fflush(stdout);
                     ret = SUCCESS; //we passed.
@@ -1012,8 +1012,8 @@ bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
                 {
                     //LBA is a valid entry
                     isValidLBA = true;
-                    *lba = (uint64_t)M_BytesTo4ByteValue(selfTestResults[descriptorOffset + 8], selfTestResults[descriptorOffset + 7], \
-                        selfTestResults[descriptorOffset + 6], selfTestResults[descriptorOffset + 5]);
+                    *lba = C_CAST(uint64_t, M_BytesTo4ByteValue(selfTestResults[descriptorOffset + 8], selfTestResults[descriptorOffset + 7], \
+                        selfTestResults[descriptorOffset + 6], selfTestResults[descriptorOffset + 5]));
                 }
             }
         }
@@ -1395,7 +1395,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
         {
             return NOT_SUPPORTED;
         }
-        selfTestResults = (uint8_t*)calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+        selfTestResults = C_CAST(uint8_t*, calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint16_t lastPage = C_CAST(uint16_t, (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1);//zero indexed
         if (!selfTestResults)
         {
@@ -1555,7 +1555,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     }
     else if (is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
     {
-        selfTestResults = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+        selfTestResults = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!selfTestResults)
         {
             return MEMORY_FAILURE;

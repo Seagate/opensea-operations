@@ -233,8 +233,8 @@ bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
 void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 5;
-    uint8_t *patternBuffer = (uint8_t*)malloc(deviceBufferSize);//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc(deviceBufferSize);//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, malloc(deviceBufferSize));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc(deviceBufferSize));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         fill_Pattern_Buffer_Into_Another_Buffer((uint8_t*)&pattern, 4, patternBuffer, deviceBufferSize);//sets the pattern to write into memory
@@ -317,8 +317,8 @@ void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t devic
 //Function for Walking 1's/0's test
 void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
-    uint8_t *patternBuffer = (uint8_t*)calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment);//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment);//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t bitNumber = 0, byteNumber = 0; byteNumber < deviceBufferSize; ++bitNumber)
@@ -422,8 +422,8 @@ void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBuf
 void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 10;
-    uint8_t *patternBuffer = (uint8_t*)malloc(deviceBufferSize);//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc(deviceBufferSize);//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, malloc(deviceBufferSize));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc(deviceBufferSize));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t counter = 0; counter < numberOfTimesToTest; ++counter)

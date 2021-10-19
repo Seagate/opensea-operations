@@ -53,7 +53,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
     {
         return BAD_PARAMETER;
     }
-    reportZones = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment);
+    reportZones = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!reportZones)
     {
         return MEMORY_FAILURE;
@@ -94,8 +94,8 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
         for (uint32_t byteIter = 64; zoneIter < numberOfZoneDescriptors && byteIter < localListLength && byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount); ++zoneIter, byteIter += 64)
         {
             zoneDescriptors[zoneIter].descriptorValid = true;
-            zoneDescriptors[zoneIter].zoneType = (eZoneType)M_Nibble0(reportZones[byteIter + 0]);
-            zoneDescriptors[zoneIter].zoneCondition = (eZoneCondition)M_Nibble1(reportZones[byteIter + 1]);
+            zoneDescriptors[zoneIter].zoneType = C_CAST(eZoneType, M_Nibble0(reportZones[byteIter + 0]));
+            zoneDescriptors[zoneIter].zoneCondition = C_CAST(eZoneCondition, M_Nibble1(reportZones[byteIter + 1]));
             zoneDescriptors[zoneIter].nonseqBit = reportZones[byteIter + 1] & BIT1;
             zoneDescriptors[zoneIter].resetBit = reportZones[byteIter + 1] & BIT0;
             //zone length

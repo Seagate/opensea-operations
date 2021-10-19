@@ -44,7 +44,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
     uint8_t *dataBuf = NULL;
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = (uint8_t*)calloc_aligned((size_t)(sectorCount * device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment);
+        dataBuf = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -66,14 +66,14 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
             if (rwvCommand != RWV_COMMAND_VERIFY)
             {
                 //reallocate the memory to be sized appropriately for this change
-                temp = (uint8_t*)realloc_aligned(dataBuf, 0, (size_t)(sectorCount * device->drive_info.deviceBlockSize), device->os_info.minimumAlignment);
+                temp = C_CAST(uint8_t*, realloc_aligned(dataBuf, 0, C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize), device->os_info.minimumAlignment));
                 if (!temp)
                 {
                     perror("memory reallocation failure");
                     return MEMORY_FAILURE;
                 }
                 dataBuf = temp;
-                memset(dataBuf, 0, (size_t)(sectorCount * device->drive_info.deviceBlockSize * sizeof(uint8_t)));
+                memset(dataBuf, 0, C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize * sizeof(uint8_t)));
             }
         }
         //print out the current LBA we are rwving
@@ -191,7 +191,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
     int ret = SUCCESS;
     char message[256] = { 0 };
     uint16_t randomLBACount = 5000;
-    uint64_t *randomLBAList = (uint64_t*)calloc(randomLBACount, sizeof(uint64_t));
+    uint64_t *randomLBAList = C_CAST(uint64_t*, calloc(randomLBACount, sizeof(uint64_t)));
     uint64_t iterator = 0;
     uint64_t onePercentOfDrive = C_CAST(uint64_t, device->drive_info.deviceMaxLba * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
     uint8_t *dataBuf = NULL;//will be allocated at the random read section
@@ -329,7 +329,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
     }
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = (uint8_t*)malloc(device->drive_info.deviceBlockSize * sizeof(uint8_t));
+        dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sizeof(uint8_t)));
         if (!dataBuf)
         {
             perror("malloc data buf failed\n");
@@ -443,7 +443,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount) * sizeof(uint8_t);
-        dataBuf = (uint8_t*)malloc_aligned(dataBufSize, device->os_info.minimumAlignment);
+        dataBuf = C_CAST(uint8_t*, malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             perror("failed to allocate memory for reading data at OD\n");
@@ -539,7 +539,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     stop_Timer(&odTestTimer);
     odTest.averageCommandTimeNS /= odTest.numberOfCommandsIssued;
     odTest.totalTimeNS = get_Nano_Seconds(odTestTimer);
-    odTest.iops = (uint64_t)(odTest.numberOfCommandsIssued / (odTest.totalTimeNS * 1e-9));
+    odTest.iops = C_CAST(uint64_t, odTest.numberOfCommandsIssued / (odTest.totalTimeNS * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -633,7 +633,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     stop_Timer(&idTestTimer);
     idTest.averageCommandTimeNS /= idTest.numberOfCommandsIssued;
     idTest.totalTimeNS = get_Nano_Seconds(idTestTimer);
-    idTest.iops = (uint64_t)(idTest.numberOfCommandsIssued / (idTest.totalTimeNS * 1e-9));
+    idTest.iops = C_CAST(uint64_t, idTest.numberOfCommandsIssued / (idTest.totalTimeNS * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -730,7 +730,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     }
     randomTest.averageCommandTimeNS /= randomTest.numberOfCommandsIssued;
     randomTest.totalTimeNS = get_Nano_Seconds(randomTestTimer);
-    randomTest.iops = (uint64_t)(randomTest.numberOfCommandsIssued / (randomTest.totalTimeNS * 1e-9));
+    randomTest.iops = C_CAST(uint64_t, randomTest.numberOfCommandsIssued / (randomTest.totalTimeNS * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET && showPerformanceNumbers)
     {
         printf("\n");
@@ -772,8 +772,8 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         printf("\tIOPS: %"PRIu64"\n", odTest.iops);
         //calculate MB(/GB)/s performance
         uint64_t odBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, odTest.sectorCount);
-        double odTotalBytesTransferred = (double)(odBytesPerTransfer * odTest.numberOfCommandsIssued);
-        double odDataRate = odTotalBytesTransferred / (double)(odTest.totalTimeNS * 1e-9);
+        double odTotalBytesTransferred = C_CAST(double, odBytesPerTransfer * odTest.numberOfCommandsIssued);
+        double odDataRate = odTotalBytesTransferred / C_CAST(double, odTest.totalTimeNS * 1e-9);
         char odDataRateUnits[3] = { 0 };
         char *odDataRateUnit = &odDataRateUnits[0];
         metric_Unit_Convert(&odDataRate, &odDataRateUnit);
@@ -801,8 +801,8 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         printf("\tIOPS: %"PRIu64"\n", idTest.iops);
         //calculate MB(/GB)/s performance
         uint64_t idBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, idTest.sectorCount);
-        double idTotalBytesTransferred = (double)(idBytesPerTransfer * idTest.numberOfCommandsIssued);
-        double idDataRate = idTotalBytesTransferred / (double)(idTest.totalTimeNS * 1e-9);
+        double idTotalBytesTransferred = C_CAST(double, idBytesPerTransfer * idTest.numberOfCommandsIssued);
+        double idDataRate = idTotalBytesTransferred / C_CAST(double, idTest.totalTimeNS * 1e-9);
         char idDataRateUnits[3] = { 0 };
         char *idDataRateUnit = &idDataRateUnits[0];
         metric_Unit_Convert(&idDataRate, &idDataRateUnit);
@@ -829,8 +829,8 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         printf("\tIOPS: %"PRIu64"\n", randomTest.iops);
         //calculate MB(/GB)/s performance
         uint64_t randomBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, randomTest.sectorCount);
-        double randomTotalBytesTransferred = (double)(randomBytesPerTransfer * randomTest.numberOfCommandsIssued);
-        double randomDataRate = randomTotalBytesTransferred / (double)(randomTest.totalTimeNS * 1e-9);
+        double randomTotalBytesTransferred = C_CAST(double, randomBytesPerTransfer * randomTest.numberOfCommandsIssued);
+        double randomDataRate = randomTotalBytesTransferred / C_CAST(double, randomTest.totalTimeNS * 1e-9);
         char randomDataRateUnits[3] = { 0 };
         char *randomDataRateUnit = &randomDataRateUnits[0];
         metric_Unit_Convert(&randomDataRate, &randomDataRateUnit);
@@ -899,11 +899,11 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     if (errorLimit < 1)
     {
         //need to be able to store at least 1 error
-        errorList = (errorLBA*)calloc(1 * sizeof(errorLBA), sizeof(errorLBA));
+        errorList = C_CAST(errorLBA*, calloc(1 * sizeof(errorLBA), sizeof(errorLBA)));
     }
     else
     {
-        errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+        errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     }
     if (!errorList)
     {
@@ -991,7 +991,9 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
             if (errorList[0].errorAddress != UINT64_MAX)
             {
                 if (errorLimit != 0)
-                    print_LBA_Error_List(errorList, (uint16_t)errorIndex);
+                {
+                    print_LBA_Error_List(errorList, C_CAST(uint16_t, errorIndex));
+                }
                 else
                 {
                     printf("One or more bad LBAs detected during read scan of device.\n");
@@ -1029,7 +1031,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         //need to be able to store at least 1 error
         errorLimit = 1;
     }
-    errorList = (errorLBA*)calloc(errorLimit, sizeof(errorLBA));
+    errorList = C_CAST(errorLBA*, calloc(errorLimit, sizeof(errorLBA)));
     if (!errorList)
     {
         perror("calloc failure\n");
@@ -1039,7 +1041,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
     {
         //allocate memory
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount);
-        dataBuf = (uint8_t*)calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+        dataBuf = C_CAST(uint8_t*, calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
@@ -1201,7 +1203,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
         {
             if (errorList[0].errorAddress != UINT64_MAX)
             {
-                print_LBA_Error_List(errorList, (uint16_t)errorIndex);
+                print_LBA_Error_List(errorList, C_CAST(uint16_t, errorIndex));
             }
             else
             {
@@ -1239,7 +1241,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount) * sizeof(uint8_t);
-        dataBuf = (uint8_t*)malloc_aligned(dataBufSize, device->os_info.minimumAlignment);
+        dataBuf = C_CAST(uint8_t*, malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -1288,10 +1290,10 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
             outerLBA = 0;
         }
         //read the inner lba
-        if ((int64_t)(innerLBA - sectorCount) < 0)
+        if (C_CAST(int64_t, innerLBA - sectorCount) < 0)
         {
             //adjust the sector count to get to 0 for the read
-            currentSectorCount = (uint32_t)innerLBA;//this should set us up to read the remaining sectors to 0
+            currentSectorCount = C_CAST(uint32_t, innerLBA);//this should set us up to read the remaining sectors to 0
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
@@ -1361,7 +1363,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     uint8_t *dataBuf = NULL;
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = (uint8_t*)malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t));
+        dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -1679,10 +1681,10 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
             outerLBA = 0;
         }
         //read the inner lba
-        if ((int64_t)(innerLBA - sectorCount) < 0)
+        if (C_CAST(int64_t, innerLBA - sectorCount) < 0)
         {
             //adjust the sector count to get to 0 for the read
-            currentSectorCount = (uint32_t)innerLBA;//this should set us up to read the remaining sectors to 0
+            currentSectorCount = C_CAST(uint32_t, innerLBA);//this should set us up to read the remaining sectors to 0
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -1815,7 +1817,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
         return BAD_PARAMETER;
     }
     //int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
-    errorLBA *errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
 
     //OD
@@ -2083,7 +2085,7 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
         return BAD_PARAMETER;
     }
     //int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
-    errorLBA *errorList = (errorLBA*)calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA));
+    errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
     uint64_t odOrMdLBAsAccessed = 0;
     uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
