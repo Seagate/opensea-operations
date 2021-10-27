@@ -35,6 +35,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     {
         printf("\n");
     }
+    os_Lock_Device(device);
     if (eraseRangeStart != alignedLBA)
     {
         uint64_t adjustmentAmount = eraseRangeStart - alignedLBA;
@@ -62,6 +63,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                 fflush(stdout);
             }
             ret = write_LBA(device, alignedLBA, false, writeBuffer, dataLength);
+            if (alignedLBA == 0)
+            {
+                //update the filesystem cache after writing the boot partition sectors so that no other LBA writes have permission errors - TJE
+                os_Update_File_System_Cache(device);
+            }
             eraseRangeStart -= adjustmentAmount;
             eraseRangeStart += sectors;
         }
@@ -108,6 +114,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                 ret = FAILURE;
                 break;
             }
+            if (iter == 0)
+            {
+                //update the filesystem cache after writing the boot partition sectors so that no other LBA writes have permission errors - TJE
+                os_Update_File_System_Cache(device);
+            }
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && FAILURE != ret && !hideLBACounter)
         {
@@ -128,6 +139,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
         printf("\n");
     }
     safe_Free_aligned(writeBuffer)
+    os_Unlock_Device(device);
     os_Update_File_System_Cache(device);
     return ret;
 }
@@ -158,6 +170,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     }
     time(&currentTime);//get the current time before starting the loop
     startTime = currentTime;
+    os_Lock_Device(device);
     if (eraseStartLBA != alignedLBA)
     {
         uint64_t adjustmentAmount = eraseStartLBA - alignedLBA;
@@ -187,6 +200,10 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             ret = write_LBA(device, alignedLBA, false, writeBuffer, dataLength);
             eraseStartLBA -= adjustmentAmount;
             eraseStartLBA += sectors;
+            if (alignedLBA == 0)
+            {
+                os_Update_File_System_Cache(device);
+            }
         }
     }
     if (pattern)
@@ -211,6 +228,11 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             ret = FAILURE;
             break;
         }
+        if (iter == 0)
+        {
+            //update the filesystem cache after writing the boot partition sectors so that no other LBA writes have permission errors - TJE
+            os_Update_File_System_Cache(device);
+        }
         if (iter + sectors >= device->drive_info.deviceMaxLba)
         {
             //reset the sector count back to what it was and set iter back to 0
@@ -218,10 +240,13 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             sectors = get_Sector_Count_For_Read_Write(device);
         }
     }
+    flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
     safe_Free_aligned(writeBuffer)
+    os_Unlock_Device(device);
+    os_Update_File_System_Cache(device);
     return ret;
 }
