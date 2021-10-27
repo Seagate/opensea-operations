@@ -6961,6 +6961,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
         printf("Not available.\n");
     }
+    printf("\t\tRevision: ");
     if (driveInfo->adapterInformation.revisionValid)
     {
         printf("%04" PRIX32 "h\n", driveInfo->adapterInformation.revision);
