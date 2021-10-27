@@ -1292,6 +1292,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                 }
             }
         }
+        os_Update_File_System_Cache(device);
     }
     return result;
 }

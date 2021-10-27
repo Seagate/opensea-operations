@@ -12,6 +12,7 @@
 // \file trim_unmap.c
 
 #include "trim_unmap.h"
+#include "platform_helper.h"
 
 bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
 {
@@ -203,6 +204,7 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         uint32_t deallocateRange = C_CAST(uint32_t, M_Min(M_Min(range, UINT32_MAX), maxLBACount));
         uint64_t finalLBA = startLBA + range;
         uint32_t descriptorCount = 0;
+        os_Lock_Device(device);
         for (uint64_t deallocateLBA = startLBA, offset = 0; deallocateLBA < finalLBA && descriptorCount <= maxTrimOrUnmapBlockDescriptors; deallocateLBA += deallocateRange, offset += 16)
         {
             //context attributes
@@ -229,6 +231,8 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         }
         //send the command(s) to the drive....currently only 1 command to do this. May need to revisit later - TJE
         ret = nvme_Dataset_Management(device, C_CAST(uint8_t, descriptorCount - 1), true, false, false, deallocate, 4096);
+        os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
     }
     else
     {
@@ -304,6 +308,7 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 #if defined(_DEBUG)
         printf("TRIM buffer size: %"PRIu64"\n", trimBufferLen);
 #endif
+        os_Lock_Device(device);
         uint32_t trimOffset = 0;
         for (trimCommands = 0; trimCommands < numberOfTRIMCommandsRequired; trimCommands++)
         {
@@ -325,6 +330,8 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             }
             trimOffset += trimCommandLen;
         }
+        os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
 #if defined(_DEBUG)
         printf("TRIM Offset: %"PRIu32"\n", trimOffset);
 #endif
@@ -405,6 +412,7 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             perror("calloc failure");
             return MEMORY_FAILURE;
         }
+        os_Lock_Device(device);
         for (unmapCommands = 0; unmapCommands < numberOfUnmapCommandsRequired; unmapCommands++)
         {
 #if defined(_DEBUG)
@@ -451,6 +459,8 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             unmapOffset += (unmapCommandDataLen - 8);
             memset(unmapCommandBuffer, 0, unmapCommandDataLen);
         }
+        os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
 #if defined(_DEBUG)
         printf("UNMAP offset: %"PRIu32"\n", unmapOffset);
 #endif
