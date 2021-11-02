@@ -12,6 +12,7 @@
 // \file writesame.c
 // \brief This file defines the functions related to the writesame command on a drive
 
+#include "platform_helper.h"
 #include "writesame.h"
 
 bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA, uint64_t requesedNumberOfLogicalBlocks, uint64_t *maxNumberOfLogicalBlocksPerCommand)
@@ -417,7 +418,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
             ret = write_Same(device, startingLba, numberOfLogicalBlocks, zeroPatternBuf);//null for the pattern means we'll write a bunch of zeros
         }
         //if the user wants us to poll for progress, then start polling
-        if (pollForProgress && device->drive_info.drive_type == ATA_DRIVE)
+        if (ret == SUCCESS && pollForProgress && device->drive_info.drive_type == ATA_DRIVE)
         {
             double percentComplete = 0.0;
             bool writeSameInProgress = true;
@@ -433,9 +434,9 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 {
                     delayTime = 30;//once every 30 seconds
                 }
-                else//change to every 10 minutes
+                else//change to every 5 minutes
                 {
-                    delayTime = 600;//once every ten minutes
+                    delayTime = 300;//once every 5 minutes
                 }
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -446,10 +447,10 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
                 printf("\n");
             }
+            selay_Seconds(1);//delay one second before we start polling to let the drive get started
             while (writeSameInProgress)
             {
                 double lastPercentComplete = percentComplete;
-                delay_Seconds(delayTime);
                 ret = get_Writesame_Progress(device, &percentComplete, &writeSameInProgress, startingLba, numberOfLogicalBlocks);
                 if (SUCCESS == ret)
                 {
@@ -469,6 +470,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 {
                     break;
                 }
+                delay_Seconds(delayTime);
             }
         }
         safe_Free_aligned(zeroPatternBuf)

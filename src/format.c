@@ -492,6 +492,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             {
                 printf("\n");
             }
+            os_Update_File_System_Cache(device);
         }
         else
         {
@@ -1563,6 +1564,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             ret = run_Format_Unit(device, formatUnitParameters, false);
         }
         os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
     }
     return ret;
 }
@@ -1752,6 +1754,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
         {
             printf("\n");
         }
+        os_Update_File_System_Cache(device);
     }
     return ret;
 }

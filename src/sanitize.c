@@ -14,6 +14,7 @@
 
 #include "operations_Common.h"
 #include "sanitize.h"
+#include "platform_helper.h"
 
 int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
@@ -453,7 +454,7 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
     {
         return BAD_PARAMETER;
     }
-
+    os_Lock_Device(device);
     //start the sanitize operation requested
     switch (sanitizeOperation)
     {
@@ -556,6 +557,8 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
             printf("\n");
         }
         //TODO: Now that we have more detail on the sanitize status, especially ATA failure, do we want to show it here???
+        os_Update_File_System_Cache(device);
     }
+    os_Unlock_Device(device);
     return ret;
 }
