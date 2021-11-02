@@ -447,7 +447,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
                 printf("\n");
             }
-            selay_Seconds(1);//delay one second before we start polling to let the drive get started
+            delay_Seconds(1);//delay one second before we start polling to let the drive get started
             while (writeSameInProgress)
             {
                 double lastPercentComplete = percentComplete;
