@@ -49,7 +49,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
 #endif
         remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
         //FWRev
-        memcpy(driveInfo->firmwareRevision, device->drive_info.IdentifyData.ata.FirmVer, 8);
+        memcpy(driveInfo->firmwareRevision, device->drive_info.IdentifyData.ata.FirmVer, FW_REV_LEN);
 #if !defined (__BIG_ENDIAN__)
         byte_Swap_String(driveInfo->firmwareRevision);
 #endif
