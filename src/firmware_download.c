@@ -112,7 +112,39 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             //multiple commands needed to do the download (segmented)
             if (options->segmentSize == 0)
             {
+                //If segment size is not specified, set to compatible defaults for now. This is more complicated on Windows due to old workarounds - TJE
+#if defined (_WIN32) && defined (WINVER)
+                if (device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
+                {
+#if WINVER >= SEA_WIN32_WINNT_WIN10
+                    if (device->os_info.fwdlIOsupport.fwdlIOSupported)
+                    {
+                        options->segmentSize = 64;
+                        //this driver supports the FWDL ioctl, so it likely does not have a problem with multi-sector transfers - TJE
+                    }
+                    else
+                    {
+                        //changing the transfer size to single blocks as a workaround for old drivers. This is more generic than I would like, but do not currently have a 
+                        //better solution for this old issue.
+                        //This issue goes back to Windows XP ATA passthrough days and only single sector transfers work properly on these old, strange drivers.
+                        //Ideally this check is more enhanced for specific drivers that are known to have this issue, but there is not currently enough information
+                        //to setup this more complicated check. -TJE
+                        options->segmentSize = 1;
+                    }
+#else //winver >=win10
+                    //not enough information, so assume old XP workaround listed above. - TJE
+                    options->segmentSize = 1;
+#endif //winver >= win10
+                }
+                else
+                {
+                    //not ATA passthrough, so do not worry about working around strange driver issues
+                    options->segmentSize = 64;
+                }
+#else
+                //Not Windows, so no strange driver workarounds necessary at this time - TJE
                 options->segmentSize = 64;
+#endif
             }
             downloadSize = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
             downloadBlocks = options->firmwareMemoryLength / downloadSize;
