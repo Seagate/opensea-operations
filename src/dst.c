@@ -654,6 +654,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                 uint8_t timeExtensionCount = 0;
                 char *overTimeWarningMessage = "WARNING: DST is taking longer than expected.";
                 bool showTimeWarning = false;
+                bool abortForTooLong = false;
                 while (status == 0x0F && (ret == SUCCESS || ret == IN_PROGRESS))
                 {
                     lastProgressIndication = percentComplete;
@@ -694,6 +695,7 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                             //we've extended the polling time too much. Something else is wrong in the drive. Just abort it and exit.
                             ret = abort_DST(device);
                             ret = ABORTED;
+                            abortForTooLong = true;
                             break;
                         }
                         else if(timeExtensionCount > timeIncreaseWarningCount && difftime(dstProgressTimer, startTime) > totalDSTTimeSeconds)
@@ -711,13 +713,18 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                     fflush(stdout);
                     ret = SUCCESS; //we passed.
                 }
+                else if (status == 0x01 || status == 0x02 || ret == ABORTED)
+                {
+                    //DST was aborted by the host with either a reset or a abort command
+                    ret = ABORTED;
+                }
                 else if (ret != ABORTED)
                 {
                     ret = FAILURE; //failed the test
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    if (ret == ABORTED)
+                    if (abortForTooLong)
                     {
                         printf("\nDST was aborted for taking too long. This may happen if other disc activity\n");
                         printf("is too high! Please check to make sure no other disk IO is occurring so that DST\n");
@@ -788,6 +795,11 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                             	//NOTE: this shouldn't ever happen, but I've seen weird things before...-TJE
                             	ret = IN_PROGRESS;
                         	}
+                            else if (0x1 == M_Nibble1(logEntries.dstEntry[0].selfTestExecutionStatus) || 0x2 == M_Nibble1(logEntries.dstEntry[0].selfTestExecutionStatus))
+                            {
+                                //DST was aborted by the host somehow.
+                                ret = ABORTED;
+                            }
                         	else
                         	{
                             	ret = FAILURE;
