@@ -2746,9 +2746,10 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     uint32_t errorHistorySize = 2048;
     uint8_t *errorHistoryDirectory = C_CAST(uint8_t*, calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
+    bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
     if (errorHistoryDirectory)
     {
-        if (SUCCESS == scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory))
+        if ((rb16 && SUCCESS == scsi_Read_Buffer_16(device, 0x1C, 0, 0, 0, errorHistorySize, errorHistoryDirectory)) ||  SUCCESS == scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory))
         {
             ret = SUCCESS;
             char vendorIdentification[9] = { 0 };
