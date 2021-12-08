@@ -33,6 +33,7 @@ extern "C"
 
     #define MAX_ATTRIBUTE_NAME_LENGTH 43 //This leaves room for a NULL terminating character
 
+    //SMART attributes are NOT standardized. Use these definitions with caution as they may have different meanings between vendors and firmwares. - TJE
     #define ATTRB_NUM_RETIRED_SECTOR    (5)
     #define ATTRB_NUM_SEEK_ERRORS       (7)
     #define ATTRB_NUM_POH               (9) //Power On Hours. 
@@ -61,7 +62,8 @@ extern "C"
     typedef enum _eSMARTAttrOutMode
     {
         SMART_ATTR_OUTPUT_RAW,
-        SMART_ATTR_OUTPUT_ANALYZED
+        SMART_ATTR_OUTPUT_ANALYZED,
+        SMART_ATTR_OUTPUT_HYBRID
     }eSMARTAttrOutMode;
 
     //-----------------------------------------------------------------------------
@@ -114,9 +116,9 @@ extern "C"
                 bool nvmSubsystemDegraded;
                 bool mediaReadOnly;
                 bool volatileMemoryBackupFailed;
-                bool reservedBit5;//reserved as of nvme 1.3
-                bool reservedBit6;//reserved as of nvme 1.3
-                bool reservedBit7;//reserved as of nvme 1.3
+                bool persistentMemoryRegionReadOnlyOrUnreliable;
+                bool reservedBit6;//reserved as of nvme 1.4c
+                bool reservedBit7;//reserved as of nvme 1.4c
             }nvmeCriticalWarning;
         };
     }smartTripInfo, *ptrSmartTripInfo;
@@ -459,7 +461,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault);
-
 
     #define SMART_ERROR_STATE_MASK 0x0F //highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below
     typedef enum _eSMARTErrorState //Low nibble only!!! high nibble is vendor unique!
