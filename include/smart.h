@@ -70,7 +70,7 @@ extern "C"
     //
     // print_SMART_Attributes( tDevice * device )
     //
-    //! \brief   Pulls the SMART attributes and parses them for display to the user
+    //! \brief   Pulls the SMART attributes and parses them for display to the user (SATA only)
     //
     //  Entry:
     //!   \param[in]  device file descriptor
@@ -81,6 +81,22 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode);
+
+    //-----------------------------------------------------------------------------
+    //
+    // show_NVMe_Health( tDevice * device )
+    //
+    //! \brief   Pulls the NVMe health data and displays it to stdout
+    //
+    //  Entry:
+    //!   \param[in]  device file descriptor
+    //!   \param[in] outputMode -  mode to use for displaying the attributes
+    //
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int show_NVMe_Health(tDevice* device);
 
     typedef enum _eSMARTTripInfoType
     {

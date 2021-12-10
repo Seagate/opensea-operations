@@ -981,6 +981,11 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         char attributeFlags[ATTR_HYBRID_ATTR_FLAG_LENGTH] = { 0 };
         char thresholdValue[ATTR_HYBRID_THRESHOLD_VALUE_LENGTH] = { 0 };
         char otherFlags[ATTR_HYBRID_OTHER_FLAGS_LENGTH] = { 0 };
+        uint64_t decimalValue = 0;
+        int16_t currentTemp = 0;
+        int16_t lowestTemp = 0;
+        int16_t highestTemp = 0;
+        
 
         //setup threshold output
         if (currentAttribute->thresholdDataValid)
@@ -1069,10 +1074,6 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         //setup raw data for display
         switch (rawInterpretation)
         {
-            int16_t currentTemp = 0;
-            int16_t lowestTemp = 0;
-            int16_t highestTemp = 0;
-            uint64_t decimalValue = 0;
         case ATA_SMART_ATTRIBUTE_DECIMAL:
             //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
             //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
@@ -1849,47 +1850,95 @@ int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
                 ret = BAD_PARAMETER;
             }
         }
-        #if !defined(DISABLE_NVME_PASSTHROUGH)
-        else if (device->drive_info.drive_type == NVME_DRIVE) 
-        {
-                uint32_t temperature = ((smartData.attributes.nvmeSMARTAttr.temperature[1] << 8) |
-                    smartData.attributes.nvmeSMARTAttr.temperature[0]) - 273;
-
-                printf("Critical Warnings                   : %#x\n", smartData.attributes.nvmeSMARTAttr.criticalWarning & 0x1F);
-                printf("Temperature                         : %"PRIu32" C\n", temperature);
-                printf("Available Spare                     : %"PRIu8"%%\n", smartData.attributes.nvmeSMARTAttr.availSpare);
-                printf("Available Spare Threshold           : %"PRIu8"%%\n", smartData.attributes.nvmeSMARTAttr.spareThresh);
-                printf("Percentage Used                     : %"PRIu8"%%\n", smartData.attributes.nvmeSMARTAttr.percentUsed);
-                printf("Data Units Read                     : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.dataUnitsRead));
-                printf("Data Units Written                  : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.dataUnitsWritten));
-                printf("Host Read Commands                  : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.hostReads));
-                printf("Host Write Commands                 : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.hostWrites));
-                printf("Controller Busy Time                : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.ctrlBusyTime));                
-                printf("Power Cycles                        : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.powerCycles));
-                printf("Power On Hours (POH)                : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.powerOnHours));
-                printf("Unsafe Shutdowns                    : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.unsafeShutdowns));
-                printf("Media Errors                        : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.mediaErrors));
-                printf("Num. Of Error Info. Log             : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.numErrLogEntries));
-                printf("Warning Composite Temperature Time  : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.warningTempTime);
-                printf("Critical Composite Temperature Time : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.criticalCompTime);
-                for (uint8_t temperatureSensorCount = 0; temperatureSensorCount < 8; temperatureSensorCount++) {
-                    if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0) {
-                        uint16_t temperatureSensor = smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] - 273;
-                        printf("Temperature Sensor %"PRIu8"                : %"PRIu16" C\n", (temperatureSensorCount + 1), temperatureSensor);
-                    }
-                }
-                printf("Thermal Management T1 Trans Count   : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp1TransCount);
-                printf("Thermal Management T2 Trans Count   : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp2TransCount);
-                printf("Thermal Management T1 Total Time    : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp1);
-                printf("Thermal Management T2 Total Time    : %"PRIu32"\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp2);
-        }
-        #endif
         else
         {
             //shouldn't get here.
             ret = NOT_SUPPORTED;
         }
     }
+    return ret;
+}
+
+int show_NVMe_Health(tDevice* device)
+{
+    int ret = NOT_SUPPORTED;
+#if !defined(DISABLE_NVME_PASSTHROUGH)
+    if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        smartLogData smartData;
+        memset(&smartData, 0, sizeof(smartLogData));
+        ret = get_SMART_Attributes(device, &smartData);
+        if (ret != SUCCESS)
+        {
+            if (ret == NOT_SUPPORTED)
+            {
+                printf("Printing SMART/Health data is not supported on this drive type at this time\n");
+            }
+            else
+            {
+                printf("Error retreiving the NVMe health log. \n");
+            }
+        }
+        else
+        {
+            uint32_t temperature = M_BytesTo2ByteValue(smartData.attributes.nvmeSMARTAttr.temperature[1], smartData.attributes.nvmeSMARTAttr.temperature[0]) - 273;
+
+            printf("Critical Warnings                   : %#x\n", smartData.attributes.nvmeSMARTAttr.criticalWarning);
+            if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT0)
+            {
+                printf("\tSpare Capacity has fallen below the threshold.\n");
+            }
+            if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT1)
+            {
+                printf("\tTemperature >= over temperature threshold or <= under temperature threshold.\n");
+            }
+            if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT2)
+            {
+                printf("\tNVM Subsystem reliability has been degraded due to media errors or internal errors.\n");
+            }
+            if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT3)
+            {
+                printf("\tMedia in Read Only mode\n");
+            }
+            if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT4)
+            {
+                printf("\tVolatile memory backup device has failed.\n");
+            }
+            if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT5)
+            {
+                printf("\tPersisten Memory Region has become read-only or unreliable.\n");
+            }
+            printf("Temperature                         : %" PRIu32 " C\n", temperature);
+            printf("Available Spare                     : %" PRIu8 "%%\n", smartData.attributes.nvmeSMARTAttr.availSpare);
+            printf("Available Spare Threshold           : %" PRIu8 "%%\n", smartData.attributes.nvmeSMARTAttr.spareThresh);
+            printf("Percentage Used                     : %" PRIu8 "%%\n", smartData.attributes.nvmeSMARTAttr.percentUsed);
+            printf("Data Units Read                     : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.dataUnitsRead));
+            printf("Data Units Written                  : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.dataUnitsWritten));
+            printf("Host Read Commands                  : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.hostReads));
+            printf("Host Write Commands                 : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.hostWrites));
+            printf("Controller Busy Time                : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.ctrlBusyTime));
+            printf("Power Cycles                        : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.powerCycles));
+            printf("Power On Hours (POH)                : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.powerOnHours));
+            printf("Unsafe Shutdowns                    : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.unsafeShutdowns));
+            printf("Media Errors                        : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.mediaErrors));
+            printf("Num. Of Error Info. Log             : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.numErrLogEntries));
+            printf("Warning Composite Temperature Time  : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.warningTempTime);
+            printf("Critical Composite Temperature Time : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.criticalCompTime);
+            for (uint8_t temperatureSensorCount = 0; temperatureSensorCount < 8; ++temperatureSensorCount) 
+            {
+                if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0) 
+                {
+                    uint16_t temperatureSensor = smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] - 273;
+                    printf("Temperature Sensor %" PRIu8 "                : %" PRIu16 " C\n", (temperatureSensorCount + 1), temperatureSensor);
+                }
+            }
+            printf("Thermal Management T1 Trans Count   : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp1TransCount);
+            printf("Thermal Management T2 Trans Count   : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp2TransCount);
+            printf("Thermal Management T1 Total Time    : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp1);
+            printf("Thermal Management T2 Total Time    : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp2);
+        }
+    }
+#endif
     return ret;
 }
 
