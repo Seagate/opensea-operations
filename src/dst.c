@@ -813,6 +813,19 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
 #if !defined (DISABLE_NVME_PASSTHORUGH)
                 }
 #endif
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    bool isNVMeDrive = false;
+                    char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+                    if (device->drive_info.drive_type == NVME_DRIVE)
+                    {
+                        isNVMeDrive = true;
+                    }
+#endif
+                    translate_DST_Status_To_String(status, statusTranslation, true, isNVMeDrive);
+                    printf("\n%s\n", statusTranslation);
+                }
 
             }
             else if (!pollForProgress && SUCCESS == ret)
