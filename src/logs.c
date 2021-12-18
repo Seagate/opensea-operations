@@ -2567,51 +2567,224 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
+#if !defined (DISABLE_NVME_PASSTHROUGH)
+    bool readSupporteLogPagesLog = false;
+    bool dummyFromIdentify = false;
     M_USE_UNUSED(flags);
-    if (!is_Seagate(device, false)) 
+
+    if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT5)
     {
-        return retStatus;
+        readSupporteLogPagesLog = true;
+    }
+    else if (is_Seagate(device, false)) //TODO: This only applies to specific model numbers and we will need to refine this to those models in the future - TJE
+    {
+        logPageMap suptLogPage;
+        nvmeGetLogPageCmdOpts suptLogOpts;
+
+        memset(&suptLogPage, 0, sizeof(logPageMap));
+        memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+        suptLogOpts.addr = C_CAST(uint8_t*, &suptLogPage);
+        suptLogOpts.dataLen = sizeof(logPageMap);
+        suptLogOpts.lid = 0xc5;
+        suptLogOpts.nsid = 0;//controller data
+        if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
+        {
+            retStatus = SUCCESS;
+            uint32_t numPage = suptLogPage.numLogPages;
+            uint32_t page = 0;
+            printf("\n  Log Pages  :   Signature    :    Version\n");
+            printf("-------------:----------------:--------------\n");
+            for (page = 0; page < numPage; page++)
+            {
+                if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
+                {
+                    printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
+                        suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                        suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+                }
+            }
+            printf("\t\t------------------\n");
+            printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
+            printf("\t\t------------------\n");
+            for (page = 0; page < numPage; page++)
+            {
+                if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
+                {
+                    printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
+                        suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                        suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+                }
+            }
+        }
+        else
+        {
+            dummyFromIdentify = true;
+        }
+    }
+    else
+    {
+        // in this case the supported log pages MAY be supported, but may not be.
+        // So if it is not supported, dummy up a response based on other reported identify data bits and which logs are madatory in the NVMe specs.
+        readSupporteLogPagesLog = true;
+        dummyFromIdentify = true;
     }
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
-    logPageMap suptLogPage;
-    nvmeGetLogPageCmdOpts suptLogOpts;
-
-    memset(&suptLogPage, 0, sizeof(logPageMap));
-    memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-    suptLogOpts.addr = C_CAST(uint8_t*, &suptLogPage);
-    suptLogOpts.dataLen = sizeof(logPageMap);
-    suptLogOpts.lid = 0xc5;
-    suptLogOpts.nsid = 0;//controller data
-    if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
+    if (readSupporteLogPagesLog)
     {
+        uint8_t* supportedLogsPage = C_CAST(uint8_t*, calloc_aligned(1024, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (supportedLogsPage)
+        {
+            nvmeGetLogPageCmdOpts suptLogOpts;
+            memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+            suptLogOpts.addr = supportedLogsPage;
+            suptLogOpts.dataLen = 1024;
+            suptLogOpts.lid = 0;
+            suptLogOpts.nsid = 0;//controller data
+            if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
+            {
+                bool printedFabrics = false;
+                bool printedIOCmdSet = false;
+                bool printedVendorUnique = false;
+                retStatus = SUCCESS;
+                //TODO: LID specific?
+                printf("\n  Log Pages (from supported pages log page)\n");
+                for (uint16_t offset = 0; offset < UINT16_C(1024); offset += UINT16_C(4))
+                {
+                    //Using this macro so we don't have endianness issues with straight assignments or pointers - TJE
+                    uint32_t currentLog = M_BytesTo4ByteValue(supportedLogsPage[offset + 3], supportedLogsPage[offset + 2], supportedLogsPage[offset + 1], supportedLogsPage[offset + 0]);
+                    if (currentLog & BIT0)
+                    {
+                        uint16_t logNumber = offset / 4;
+                        if (!printedFabrics && logNumber >= 0x70 && logNumber <= 0x7F)
+                        {
+                            printf("\t\t------------------\n");
+                            printf("\tNVMe Over Fabrics Logs\n");
+                            printf("\t\t------------------\n");
+                            printedFabrics = true;
+                        }
+                        if (!printedIOCmdSet && logNumber >= 0x80 && logNumber <= 0xBF)
+                        {
+                            printf("\t\t------------------\n");
+                            printf("\tIO Command Set Specific Logs\n");
+                            printf("\t\t------------------\n");
+                            printedIOCmdSet = true;
+                        }
+                        if (!printedVendorUnique && logNumber >= 0xC0)
+                        {
+                            printf("\t\t------------------\n");
+                            printf("\tDevice Vendor Specific Logs\n");
+                            printf("\t\t------------------\n");
+                            printedVendorUnique = true;
+                        }
+                        printf("  %3" PRIu16 " (%02" PRIX16 "h)\n", logNumber, logNumber);
+                    }
+                }
+            }
+            else if(!dummyFromIdentify)
+            {
+                //something went wrong, so fall back to dummying it up from identify bits
+                dummyFromIdentify = true;
+            }
+            safe_Free_aligned(supportedLogsPage);
+        }
+        else
+        {
+            retStatus = MEMORY_FAILURE;
+        }
+    }
+
+    if (dummyFromIdentify)
+    {
+        printf("\n  Log Pages  (Generated based on identify data) \n");
+        // 01 = error information always supported
+        printf("   1 (01h)\n");
+        // 02 = SMART/health information always supported
+        printf("   2 (02h)\n");
+        // 03 = firwmare slot info??? always supported???
+        printf("   3 (03h)\n");
+        // 04 = changed namespace list ??? oaes bit8
+        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT8)
+        {
+            printf("   4 (04h)\n");
+        }
+        // 05 = lpa bit 1 = commands supported and affects log
+        if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT1)
+        {
+            printf("   5 (05h)\n");
+        }
+        // 06 = device self test (look for bit in identify data for support of DST feature)
+        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT4)
+        {
+            printf("   6 (06h)\n");
+        }
+        // 07 & 08 = lpa bit 3telemetry host initiated and telepemtry controller initiated log pages
+        if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT3)
+        {
+            printf("   7 (07h)\n");
+            printf("   8 (08h)\n");
+        }
+        // 09 = endurance group info - support in controller attributes ctratt bit4
+        if (device->drive_info.IdentifyData.nvme.ctrl.ctratt & BIT4)
+        {
+            printf("   9 (09h)\n");
+        }
+        // 0A = predictable latency per NVM set - support in controller attributes ctratt bit5
+        if (device->drive_info.IdentifyData.nvme.ctrl.ctratt & BIT5)
+        {
+            printf("  10 (0Ah)\n");
+        }
+        // 0B = predictable latency event aggregate - - oaes bit12
+        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT12)
+        {
+            printf("  11 (0Bh)\n");
+        }
+        // 0C = asymestric namespace access - anacap bit0 in controller identify??? or bit3 CMIC??? or oaes bit11???
+        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT11)
+        {
+            printf("  12 (0CAh)\n");
+        }
+        // 0D = lpa bit 4 = persistent event log
+        if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT4)
+        {
+            printf("  13 (0Dh)\n");
+        }
+        // 0E = LBA status information - get LBA status capability in OACS
+        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT9)
+        {
+            printf("  14 (0Eh)\n");
+        }
+        // 0F = endurance group aggregate????     oeas bit14  
+        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT14)
+        {
+            printf("  15 (0Fh)\n");
+        }
+        // 70 = discovery - NVMe over fabrics????
+        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT31)
+        {
+            printf("\t\t------------------\n");
+            printf("\tNVMe Over Fabrics Logs\n");
+            printf("\t\t------------------\n");
+            printf(" 112 (70h)\n");
+        }
+        if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT5 || device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
+        {
+            printf("\t\t------------------\n");
+            printf("\tIO Command Set Specific Logs\n");
+            printf("\t\t------------------\n");
+        }
+        // 80 = reservation notification - check for reservations support
+        if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT5)
+        {
+            printf(" 128 (80h)\n");
+        }
+        // 81 = Sanitize status - check for sanitize support
+        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
+        {
+            printf(" 129 (81h)\n");
+        }
         retStatus = SUCCESS;
-        uint32_t numPage = suptLogPage.numLogPages;
-        uint32_t page = 0;
-        printf("\n  Log Pages  :   Signature    :    Version\n");
-        printf("-------------:----------------:--------------\n");
-        for (page = 0; page < numPage; page++)
-        {
-            if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
-            {
-                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
-                    suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                    suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
-            }
-        }
-        printf("\t\t------------------\n");
-        printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-        printf("\t\t------------------\n");
-        for (page = 0; page < numPage; page++)
-        {
-            if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
-            {
-                printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
-                    suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                    suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
-            }
-        }
     }
+    
 #endif
     return retStatus;
 }
