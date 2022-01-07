@@ -1239,24 +1239,24 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
         uint32_t powerConsumptionLength = 0;
         if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
         {
-			uint8_t *powerConsumptionPage = C_CAST(uint8_t*, calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *powerConsumptionPage = C_CAST(uint8_t*, calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!powerConsumptionPage)
             {
                 return MEMORY_FAILURE;
             }
             if (SUCCESS == scsi_Inquiry(device, powerConsumptionPage, powerConsumptionLength, POWER_CONSUMPTION, true, false))
             {
-					ret = SUCCESS;
+                    ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
                 identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
-				uint32_t pcIter = 4, counter = 0;
+                uint32_t pcIter = 4, counter = 0;
 //ctc changed the "<" conditions to "<=" so all the identifiers get parsed (was an "off-by-1" problem")
-				for (; pcIter <= powerConsumptionLength && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
-					{
+                for (; pcIter <= powerConsumptionLength && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
+                    {
                     identifiers->identifiers[counter].identifierValue = powerConsumptionPage[pcIter];
                     identifiers->identifiers[counter].units = powerConsumptionPage[pcIter + 1] & 0x07;
                     identifiers->identifiers[counter].value = M_BytesTo2ByteValue(powerConsumptionPage[pcIter + 2], powerConsumptionPage[pcIter + 3]);
-				}
+                }
             }
             else
             {
@@ -1291,19 +1291,19 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
                 identifiers->activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
                 if (identifiers->activeLevel == 0)
                 {
-					identifiers->currentIdentifierValid = true;
+                    identifiers->currentIdentifierValid = true;
 //ctc 10 lines of code after the comments are necessary because the pcIdentifier and the identfiers->identifiers[] are NOT necessarily in order
 //ctc need to step through the indentifiers to find the correct one
-					uint8_t pcIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
-					uint8_t counter = 0;
-					for (; counter < C_CAST(uint32_t, identifiers->numberOfPCIdentifiers); counter++)
-					{
-						if (identifiers->identifiers[counter].identifierValue == pcIdentifier)
-						{
-							identifiers->currentIdentifier = counter;
-						}
-					}
-				}
+                    uint8_t pcIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
+                    uint8_t counter = 0;
+                    for (; counter < C_CAST(uint32_t, identifiers->numberOfPCIdentifiers); counter++)
+                    {
+                        if (identifiers->identifiers[counter].identifierValue == pcIdentifier)
+                        {
+                            identifiers->currentIdentifier = counter;
+                        }
+                    }
+                }
             }
             else
             {
@@ -1317,40 +1317,51 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
 
 void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
 {
-	if (identifiers)
+    if (identifiers)
     {
-		if (identifiers->numberOfPCIdentifiers > 0)
+        if (identifiers->numberOfPCIdentifiers > 0)
         {
-				//show the current value
+                //show the current value
             if (identifiers->currentIdentifierValid)
             {
-					printf("Current Power Consumption Value: %" PRIu16 " ", identifiers->identifiers[identifiers->currentIdentifier].value);
-//now print the units
-                switch (identifiers->identifiers[identifiers->currentIdentifier].units)
+                double currentConsumption = identifiers->identifiers[identifiers->currentIdentifier].value;
+                uint8_t currentUnit = identifiers->identifiers[identifiers->currentIdentifier].units;
+                #define POWER_CONSUMPTION_UNIT_BUFFER_LENGTH 25
+                char unitBuff[POWER_CONSUMPTION_UNIT_BUFFER_LENGTH] = { 0 };
+                char* currentUnits = &unitBuff[0];
+                //convert this to a smaller value that can be reprsented with minimal floating point (13500mw->13.5w)
+                while ((currentConsumption / 1000.0) > 1 && currentUnit > 0)
                 {
-				case 0://gigawatts
-                    printf("Gigawatts");
+                    currentConsumption /= 1000.0;
+                    --currentUnit;//change the unit
+                }
+                
+                //now print the units
+                switch (currentUnit)
+                {
+                case 0://gigawatts
+                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Gigawatts");
                     break;
                 case 1://megawatts
-                    printf("Megawatts");
+                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Megawatts");
                     break;
                 case 2://kilowatts
-                    printf("Kilowatts");
+                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Kilowatts");
                     break;
                 case 3://watts
-                    printf("Watts");
+                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
                     break;
                 case 4://milliwatts
-                    printf("Milliwatts");
+                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
                     break;
                 case 5://microwatts
-                    printf("Microwatts");
+                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
                     break;
                 default:
-                    printf("unknown unit of measure");
+                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "unknown unit of measure");
                     break;
                 }
-                printf("\n");
+                printf("Current Power Consumption Value: %g %s\n", currentConsumption, currentUnits);
             }
             else
             {
@@ -1376,8 +1387,8 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
             printf("Supported Max Power Consumption Set Points (Watts): \n\t[");
             uint8_t pcIter = 0;
             for (; pcIter < identifiers->numberOfPCIdentifiers; pcIter++)
-			{
-                uint64_t watts = identifiers->identifiers[pcIter].value;
+            {
+                double watts = identifiers->identifiers[pcIter].value;
                 switch (identifiers->identifiers[pcIter].units)
                 {
                 case 0://gigawatts
@@ -1393,16 +1404,16 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                     break;
                 case 4://milliwatts
 //ctc properly round milliwatts values
-					watts = C_CAST(uint64_t, (watts+500)/1000);
-					break;
-				case 5://microwatts
+                    watts /= 1000;
+                    break;
+                case 5://microwatts
 //ctc properly round milliwatts values
-					watts = C_CAST(uint64_t, (watts + 500000) / 1000000);
-					break;
-				default:
-                 	continue;//continue the for loop
+                    watts /= 1000000;
+                    break;
+                default:
+                    continue;//continue the for loop
                 }
-                printf(" %"PRIu64" |", watts);
+                printf(" %g |", watts);//use %g to use shortest possible notation for the output. This keeps 12w 13.5w without extra zeros all over the place
             }
             if (identifiers->activeLevelChangable)
             {
@@ -1471,7 +1482,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
                     //set the power consumption identifier we were given
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = powerConsumptionIdentifier;
-					break;
+                    break;
                 case PC_ACTIVE_LEVEL_HIGHEST:
                 case PC_ACTIVE_LEVEL_INTERMEDIATE:
                 case PC_ACTIVE_LEVEL_LOWEST:
@@ -1503,7 +1514,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
     memset(&identifiers, 0, sizeof(powerConsumptionIdentifiers));
     *pcIdentifier = 0xFF;//invalid
 //ctc one line code change follows
-	uint64_t roundedWatts = C_CAST(uint64_t, watts+0.5);
+    uint64_t roundedWatts = C_CAST(uint64_t, watts+0.5);
     //*/
     ret = get_Power_Consumption_Identifiers(device, &identifiers);
     /*/
@@ -1529,119 +1540,119 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
         bool exactMatchFound = false;
         //now map the watt value to a power consumption identifier
 //ctc had to change variable initialization of iter1 and inter2 to match now-nested for loops
-		uint8_t iter1 = 0, iter2 = 0;
-		uint8_t pcId1 = 0xFF, pcId2 = 0xFF;
+        uint8_t iter1 = 0, iter2 = 0;
+        uint8_t pcId1 = 0xFF, pcId2 = 0xFF;
         uint64_t watts1 = 0, watts2 = 0;
 
         ret = NOT_SUPPORTED;
 //ctc changed to nested for loops here... not sure it's needed, but it's clearer
 //        for (; iter1 < identifiers.numberOfPCIdentifiers /* && iter2 >= 0*/; iter1++, iter2--)
-		for (; iter1 < identifiers.numberOfPCIdentifiers; iter1++)
-		{
+        for (; iter1 < identifiers.numberOfPCIdentifiers; iter1++)
+        {
 //ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code doesn't follow convention
 //ctc and use for(initializer, condition, increment), but whatever.  Nonstandard and goofy coding sytle, I guess
-			iter2 = 0;
-			for (; iter2 < identifiers.numberOfPCIdentifiers; iter2++)
-			{
-				uint64_t pcWatts1 = identifiers.identifiers[iter1].value;
-				uint64_t pcWatts2 = identifiers.identifiers[iter2].value;
-				//convert based on the units!
-				switch (identifiers.identifiers[iter1].units)
-				{
-				case 0://gigawatts
-					pcWatts1 *= 1000000000;
-					break;
-				case 1://megawatts
-					pcWatts1 *= 1000000;
-					break;
-				case 2://kilowatts
-					pcWatts1 *= 1000;
-					break;
-				case 3://watts
-					break;
-				case 4://milliwatts
+            iter2 = 0;
+            for (; iter2 < identifiers.numberOfPCIdentifiers; iter2++)
+            {
+                uint64_t pcWatts1 = identifiers.identifiers[iter1].value;
+                uint64_t pcWatts2 = identifiers.identifiers[iter2].value;
+                //convert based on the units!
+                switch (identifiers.identifiers[iter1].units)
+                {
+                case 0://gigawatts
+                    pcWatts1 *= 1000000000;
+                    break;
+                case 1://megawatts
+                    pcWatts1 *= 1000000;
+                    break;
+                case 2://kilowatts
+                    pcWatts1 *= 1000;
+                    break;
+                case 3://watts
+                    break;
+                case 4://milliwatts
 //ctc properly round milliwatts values
-					pcWatts1 = (pcWatts1 + 500) / 1000;
-					break;
-				case 5://microwatts
+                    pcWatts1 = (pcWatts1 + 500) / 1000;
+                    break;
+                case 5://microwatts
 //ctc properly round microwatts values
-					pcWatts1 = (pcWatts1 + 500000) / 1000000;
-					break;
-				default:
-					ret = NOT_SUPPORTED;
-					break;
-				}
+                    pcWatts1 = (pcWatts1 + 500000) / 1000000;
+                    break;
+                default:
+                    ret = NOT_SUPPORTED;
+                    break;
+                }
 //ctc change code line below to switch on [iter2] instead of [iter1]
-				switch (identifiers.identifiers[iter2].units)
-				{
-				case 0://gigawatts
-					pcWatts2 *= 1000000000;
-					break;
-				case 1://megawatts
-					pcWatts2 *= 1000000;
-					break;
-				case 2://kilowatts
-					pcWatts2 *= 1000;
-					break;
-				case 3://watts
-					break;
-				case 4://milliwatts
+                switch (identifiers.identifiers[iter2].units)
+                {
+                case 0://gigawatts
+                    pcWatts2 *= 1000000000;
+                    break;
+                case 1://megawatts
+                    pcWatts2 *= 1000000;
+                    break;
+                case 2://kilowatts
+                    pcWatts2 *= 1000;
+                    break;
+                case 3://watts
+                    break;
+                case 4://milliwatts
 //ctc properly round milliwatts values
-					pcWatts2 = (pcWatts2 + 500) / 1000;
-					break;
-				case 5://microwatts
+                    pcWatts2 = (pcWatts2 + 500) / 1000;
+                    break;
+                case 5://microwatts
 //ctc properly round microwatts values
-					pcWatts2 = (pcWatts2 + 500000) / 1000000;
-					break;
-				default:
-					ret = NOT_SUPPORTED;
-					break;
-				}
-				if (pcWatts1 <= roundedWatts)
-				{
-					if (watts - watts1 > watts - pcWatts1)
-					{
-						pcId1 = identifiers.identifiers[iter1].identifierValue;
-						watts1 = pcWatts1;
-						if (pcWatts1 == roundedWatts)
-						{
-							ret = SUCCESS;
-							exactMatchFound = true;
-							*pcIdentifier = identifiers.identifiers[iter1].identifierValue;
-							break;
-						}
-					}
-				}
-				if (pcWatts2 <= roundedWatts)
-				{
-					if (watts - watts2 > watts - pcWatts2)
-					{
-						pcId2 = identifiers.identifiers[iter2].identifierValue;
-						watts2 = pcWatts2;
-						if (pcWatts2 == roundedWatts)
-						{
-							ret = SUCCESS;
-							exactMatchFound = true;
-							*pcIdentifier = identifiers.identifiers[iter2].identifierValue;
-							break;
-						}
-					}
-				}
-			}
-		}
-		if (!exactMatchFound)
+                    pcWatts2 = (pcWatts2 + 500000) / 1000000;
+                    break;
+                default:
+                    ret = NOT_SUPPORTED;
+                    break;
+                }
+                if (pcWatts1 <= roundedWatts)
+                {
+                    if (watts - watts1 > watts - pcWatts1)
+                    {
+                        pcId1 = identifiers.identifiers[iter1].identifierValue;
+                        watts1 = pcWatts1;
+                        if (pcWatts1 == roundedWatts)
+                        {
+                            ret = SUCCESS;
+                            exactMatchFound = true;
+                            *pcIdentifier = identifiers.identifiers[iter1].identifierValue;
+                            break;
+                        }
+                    }
+                }
+                if (pcWatts2 <= roundedWatts)
+                {
+                    if (watts - watts2 > watts - pcWatts2)
+                    {
+                        pcId2 = identifiers.identifiers[iter2].identifierValue;
+                        watts2 = pcWatts2;
+                        if (pcWatts2 == roundedWatts)
+                        {
+                            ret = SUCCESS;
+                            exactMatchFound = true;
+                            *pcIdentifier = identifiers.identifiers[iter2].identifierValue;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (!exactMatchFound)
         {
             //now compare the best results between the two iterators to see which is closer to the best match, or is the best match
             //need to check which one is closer and select it
-		
-			if (watts - watts1 >= watts - watts2)
+        
+            if (watts - watts1 >= watts - watts2)
             {
-				ret = SUCCESS;
+                ret = SUCCESS;
                 *pcIdentifier = pcId2;
             }
             else if (watts - watts1 <= watts - watts2)
             {
-				ret = SUCCESS;
+                ret = SUCCESS;
                 *pcIdentifier = pcId1;
             }
         }
