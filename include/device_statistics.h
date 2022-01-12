@@ -290,6 +290,10 @@ extern "C"
         statistic failedExplicitOpens;
         statistic readRuleViolations;
         statistic writeRuleViolations;
+        //Defect list counts (Grown and Primary)
+        bool defectStatisticsSupported;
+        statistic grownDefects;
+        statistic primaryDefects;
     }sasDeviceStatitics;
 
     //access the proper stats in the union based on device->drive_info.drive_type

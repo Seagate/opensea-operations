@@ -6259,6 +6259,149 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         deviceStats->sasStatistics.dateAndTimeTimestamp.isValueValid = true;
         deviceStats->sasStatistics.dateAndTimeTimestamp.statisticValue = M_BytesTo8ByteValue(0, 0, tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7], tempLogBuf[8], tempLogBuf[9]);
     }
+    //Get the Grown list count
+    bool gotGrownDefectCount = false;
+    eSCSIAddressDescriptors defectFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    int defectRet = SUCCESS;
+    if (device->drive_info.deviceMaxLba > UINT32_MAX)
+    {
+        defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    }
+    while (!gotGrownDefectCount)
+    {
+        //This loop is so that we can retry with different formats if it does not work the first time - TJE
+        //Attempt LBA mode, then attempt pchs, then call it quits if neither works.
+        //If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
+        //NOTE: SBC2 and later added extended formats
+        uint32_t defectListLength = 0;
+        memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, false, true, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        {
+            gotGrownDefectCount = true;
+            defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
+        }
+        else
+        {
+            defectRet = scsi_Read_Defect_Data_10(device, false, true, defectFormat, 4, tempLogBuf);
+            if (defectRet == SUCCESS)
+            {
+                gotGrownDefectCount = true;
+                defectListLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+            }
+        }
+        if (defectRet != SUCCESS && !gotGrownDefectCount)
+        {
+            if (defectFormat == AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                //special case to restart the loop again with long address types in case short are not supported, but it isn't a high capacity devices
+                defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else
+            {
+                break;
+            }
+        }
+        else
+        {
+            deviceStats->sasStatistics.defectStatisticsSupported = true;
+            deviceStats->sasStatistics.grownDefects.isSupported = true;
+            switch (defectFormat)
+            {
+            case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.grownDefects.isValueValid = true;
+                deviceStats->sasStatistics.grownDefects.statisticValue = defectListLength / 4;
+                break;
+            case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.grownDefects.isValueValid = true;
+                deviceStats->sasStatistics.grownDefects.statisticValue = defectListLength / 8;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    //Get the primary list count
+    //most likely the primary list in block format won't work, but trying it anyways as a first step - TJE
+    bool gotPrimaryDefectCount = false;
+    defectFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    defectRet = SUCCESS;
+    if (device->drive_info.deviceMaxLba > UINT32_MAX)
+    {
+        defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    }
+    while (!gotPrimaryDefectCount)
+    {
+        //This loop is so that we can retry with different formats if it does not work the first time - TJE
+        //Attempt LBA mode, then attempt pchs, then call it quits if neither works.
+        //If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
+        //NOTE: SBC2 and later added extended formats
+        uint32_t defectListLength = 0;
+        memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, true, false, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        {
+            gotPrimaryDefectCount = true;
+            defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
+        }
+        else
+        {
+            defectRet = scsi_Read_Defect_Data_10(device, true, false, defectFormat, 4, tempLogBuf);
+            if (defectRet == SUCCESS)
+            {
+                gotPrimaryDefectCount = true;
+                defectListLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+            }
+        }
+        if (defectRet != SUCCESS && !gotPrimaryDefectCount)
+        {
+            if (defectFormat == AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                //special case to restart the loop again with long address types in case short are not supported, but it isn't a high capacity devices
+                defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else
+            {
+                break;
+            }
+        }
+        else
+        {
+            deviceStats->sasStatistics.defectStatisticsSupported = true;
+            deviceStats->sasStatistics.primaryDefects.isSupported = true;
+            switch (defectFormat)
+            {
+            case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.primaryDefects.isValueValid = true;
+                deviceStats->sasStatistics.primaryDefects.statisticValue = defectListLength / 4;
+                break;
+            case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.primaryDefects.isValueValid = true;
+                deviceStats->sasStatistics.primaryDefects.statisticValue = defectListLength / 8;
+                break;
+            default:
+                break;
+            }
+        }
+    }
     return ret;
 }
 
@@ -7592,6 +7735,12 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
         print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
+    }
+    if (deviceStats->sasStatistics.defectStatisticsSupported)
+    {
+        printf("\n---Defect Statistics---\n");
+        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", NULL);
     }
     return ret;
 }
