@@ -1091,7 +1091,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h", currentAttribute->data.rawData[6], currentAttribute->data.rawData[5], currentAttribute->data.rawData[4], currentAttribute->data.rawData[3], currentAttribute->data.rawData[2], currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]);
             break;
         }
-        printf("%-3s%3" PRIu8 " %-35s % -8s %3" PRIu8 " %3" PRIu8 " %-3s %-16s\n", otherFlags, currentAttribute->data.attributeNumber, attributeName, attributeFlags, currentAttribute->data.nominal, currentAttribute->data.worstEver, thresholdValue, rawDataString);
+        printf("%-3s%3" PRIu8 " %-35s %-8s %3" PRIu8 " %3" PRIu8 " %-3s %-16s\n", otherFlags, currentAttribute->data.attributeNumber, attributeName, attributeFlags, currentAttribute->data.nominal, currentAttribute->data.worstEver, thresholdValue, rawDataString);
     }
     //clear out the attribute name before looping again so we don't show dulicates
     snprintf(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                                          ");
