@@ -6336,6 +6336,193 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
             default:
                 break;
             }
+            case LP_POWER_CONDITIONS_TRANSITIONS:
+                switch (subpageCode)
+                {
+                case 0:
+                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        deviceStats->sasStatistics.powerConditionTransitionsSupported = true;
+                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        uint8_t parameterLength = 0;
+                        //loop through the data and gather the data from each parameter we care about getting.
+                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        {
+                            uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
+                            parameterLength = tempLogBuf[iter + 3];
+                            switch (parameterCode)
+                            {
+                            case 1://transitions to active
+                                deviceStats->sasStatistics.transitionsToActive.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToActive.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToActive.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToActive.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 2://transitions to idle a
+                                deviceStats->sasStatistics.transitionsToIdleA.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToIdleA.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToIdleA.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToIdleA.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 3://transitions to idle b
+                                deviceStats->sasStatistics.transitionsToIdleB.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToIdleB.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToIdleB.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToIdleB.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 4://transitions to idle c
+                                deviceStats->sasStatistics.transitionsToIdleC.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToIdleC.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToIdleC.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToIdleC.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 8://transitions to standby z
+                                deviceStats->sasStatistics.transitionsToStandbyZ.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToStandbyZ.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToStandbyZ.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToStandbyZ.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 9://transitions to standby y
+                                deviceStats->sasStatistics.transitionsToStandbyY.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToStandbyY.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToStandbyY.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToStandbyY.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            default:
+                                break;
+                            }
+                            if (parameterLength == 0)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+                break;
             case LP_PROTOCOL_SPECIFIC_PORT:
                 switch (subpageCode)
                 {
@@ -7919,6 +8106,16 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedStartStopCycles, "Accumulated Start-Stop Cycles", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime, "Specified Load-Unload Count Over Device Lifetime", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedLoadUnloadCycles, "Accumulated Load-Unload Cycles", NULL);
+    }
+    if (deviceStats->sasStatistics.powerConditionTransitionsSupported)
+    {
+        printf("\n---Power Condition Transitions---\n");
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToActive, "Accumulated Transitions to Active", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleA, "Accumulated Transitions to Idle A", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleB, "Accumulated Transitions to Idle B", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleC, "Accumulated Transitions to Idle C", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyZ, "Accumulated Transitions to Standby Z", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyY, "Accumulated Transitions to Standby Y", NULL);
     }
     if (deviceStats->sasStatistics.utilizationSupported)
     {

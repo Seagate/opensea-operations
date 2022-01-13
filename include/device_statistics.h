@@ -344,10 +344,17 @@ extern "C"
             sasProtocolStatistics sasProtStats;
             //TODO: Other data structures for other protocols that implement the protocol specific port log page
         };
-        //TODO: Buffer over-run, under-run page
+        //Power condition transitions
+        bool powerConditionTransitionsSupported;
+        statistic transitionsToActive;
+        statistic transitionsToIdleA;
+        statistic transitionsToIdleB;
+        statistic transitionsToIdleC;
+        statistic transitionsToStandbyZ;
+        statistic transitionsToStandbyY;
+        //TODO:
         //      Command duration limits statistics page
         //      Informational exceptions??? Not sure how we should track this data yet - TJE
-        //      power condition transitions
         //      
     }sasDeviceStatitics;
 
