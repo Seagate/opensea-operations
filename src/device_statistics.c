@@ -3639,15 +3639,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
@@ -3682,15 +3698,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
@@ -3725,15 +3757,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
@@ -3768,15 +3816,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
@@ -6282,22 +6346,18 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                 {
                     uint32_t protocolSpecificDataLength = UINT16_MAX;
                     uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    printf("Reading protocol specific port page...\n");
                     if (protSpData)
                     {
-                        printf("Reading protocol specific port log page\n");
                         if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
                         {
                             //mimimum page length for a SAS drive assuming only 1 port and 1 phy is 64B. Each additional port adds a minimum of another 60 bytes
                             uint32_t pageLength = M_BytesTo2ByteValue(protSpData[2], protSpData[3]) + LOG_PAGE_HEADER_LENGTH;
                             uint16_t parameterLength = 4;
                             uint16_t portCounter = 0;
-                            printf("Page length = %" PRIu32 "\n", pageLength);
                             for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS; offset += parameterLength + 4, ++portCounter)
                             {
                                 uint16_t parameterCode = M_BytesTo2ByteValue(protSpData[offset + 0], protSpData[offset + 1]);
                                 parameterLength = protSpData[offset + 3];//4 bytes for the length of the header for the parameter code
-                                printf("Parameter code: %" PRIu16 " - length: %" PRIu16 "\n", parameterCode, parameterLength);
                                 if (parameterLength > 0)
                                 {
                                     uint8_t protocolIdentifier = M_Nibble0(protSpData[offset + 4]);
