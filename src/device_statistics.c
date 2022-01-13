@@ -6269,6 +6269,9 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                 //Thresholds are not defined/obsolete so no need to read them or attempt to read them.
             }
                 break;
+            default:
+                break;
+            }
             case LP_PROTOCOL_SPECIFIC_PORT:
                 switch (subpageCode)
                 {
@@ -6279,18 +6282,22 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                 {
                     uint32_t protocolSpecificDataLength = UINT16_MAX;
                     uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    printf("Reading protocol specific port page...\n");
                     if (protSpData)
                     {
+                        printf("Reading protocol specific port log page\n");
                         if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
                         {
                             //mimimum page length for a SAS drive assuming only 1 port and 1 phy is 64B. Each additional port adds a minimum of another 60 bytes
                             uint32_t pageLength = M_BytesTo2ByteValue(protSpData[2], protSpData[3]) + LOG_PAGE_HEADER_LENGTH;
                             uint16_t parameterLength = 4;
                             uint16_t portCounter = 0;
+                            printf("Page length = %" PRIu32 "\n", pageLength);
                             for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS; offset += parameterLength + 4, ++portCounter)
                             {
                                 uint16_t parameterCode = M_BytesTo2ByteValue(protSpData[offset + 0], protSpData[offset + 1]);
                                 parameterLength = protSpData[offset + 3];//4 bytes for the length of the header for the parameter code
+                                printf("Parameter code: %" PRIu16 " - length: %" PRIu16 "\n", parameterCode, parameterLength);
                                 if (parameterLength > 0)
                                 {
                                     uint8_t protocolIdentifier = M_Nibble0(protSpData[offset + 4]);
@@ -6350,10 +6357,6 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         }
                         safe_Free_aligned(protSpData);
                     }
-                }
-                    break;
-                default:
-                    break;
                 }
                 break;
             default:
