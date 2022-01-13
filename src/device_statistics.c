@@ -4387,6 +4387,17 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.minimumTemperatureSincePowerOn.isValueValid = true;
                             deviceStats->sasStatistics.minimumTemperatureSincePowerOn.statisticValue = tempLogBuf[iter + 9];
                             ++deviceStats->sasStatistics.statisticsPopulated;
+                            if (parameterLength > 6 && M_GETBITRANGE(tempLogBuf[iter + 4], 1, 0) == 1)
+                            {
+                                deviceStats->sasStatistics.maximumOtherTemperature.isSupported = true;
+                                deviceStats->sasStatistics.maximumOtherTemperature.isValueValid = true;
+                                deviceStats->sasStatistics.maximumOtherTemperature.statisticValue = tempLogBuf[iter + 10];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                deviceStats->sasStatistics.minimumOtherTemperature.isSupported = true;
+                                deviceStats->sasStatistics.minimumOtherTemperature.isValueValid = true;
+                                deviceStats->sasStatistics.minimumOtherTemperature.statisticValue = tempLogBuf[iter + 11];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                            }
                             break;
                         case 0x100://humidity report. (note: parameters 0100-01FF are for each humidity location reported...we are only going to care about the first one right now...)-TJE
                             if (tempLogBuf[iter + 2] & BIT4)
@@ -4454,6 +4465,17 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron.isValueValid = true;
                             deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron.statisticValue = tempLogBuf[iter + 9];
                             ++deviceStats->sasStatistics.statisticsPopulated;
+                            if (parameterLength > 6 && M_GETBITRANGE(tempLogBuf[iter + 4], 1, 0) == 1)
+                            {
+                                deviceStats->sasStatistics.maximumOtherRelativeHumidity.isSupported = true;
+                                deviceStats->sasStatistics.maximumOtherRelativeHumidity.isValueValid = true;
+                                deviceStats->sasStatistics.maximumOtherRelativeHumidity.statisticValue = tempLogBuf[iter + 10];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                deviceStats->sasStatistics.minimumOtherRelativeHumidity.isSupported = true;
+                                deviceStats->sasStatistics.minimumOtherRelativeHumidity.isValueValid = true;
+                                deviceStats->sasStatistics.minimumOtherRelativeHumidity.statisticValue = tempLogBuf[iter + 11];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                            }
                             break;
                         default:
                             break;
@@ -6230,6 +6252,11 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.writeRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
+                        case 11://Maximum implicitly open sequential or before required zones
+                            deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.isSupported = true;
+                            deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.isValueValid = true;
+                            deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
                         default:
                             break;
                         }
@@ -6241,6 +6268,93 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                 }
                 //Thresholds are not defined/obsolete so no need to read them or attempt to read them.
             }
+                break;
+            case LP_PROTOCOL_SPECIFIC_PORT:
+                switch (subpageCode)
+                {
+                case 0:
+                    //NOTE: This page is currently setup for SAS SSP
+                    //      I am not aware of other transports implementing this page at this time - TJE
+                    //This page is read in a 64k size to make sure we get as much as possible in a single command.
+                {
+                    uint32_t protocolSpecificDataLength = UINT16_MAX;
+                    uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (protSpData)
+                    {
+                        if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
+                        {
+                            //mimimum page length for a SAS drive assuming only 1 port and 1 phy is 64B. Each additional port adds a minimum of another 60 bytes
+                            uint32_t pageLength = M_BytesTo2ByteValue(protSpData[2], protSpData[3]) + LOG_PAGE_HEADER_LENGTH;
+                            uint16_t parameterLength = 4;
+                            uint16_t portCounter = 0;
+                            for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS; offset += parameterLength + 4, ++portCounter)
+                            {
+                                uint16_t parameterCode = M_BytesTo2ByteValue(protSpData[offset + 0], protSpData[offset + 1]);
+                                parameterLength = protSpData[offset + 3];//4 bytes for the length of the header for the parameter code
+                                if (parameterLength > 0)
+                                {
+                                    uint8_t protocolIdentifier = M_Nibble0(protSpData[offset + 4]);
+                                    if (protocolIdentifier == SCSI_PROTOCOL_ID_SAS)
+                                    {
+                                        uint8_t numberOfPhys = protSpData[offset + 7];
+                                        uint32_t phyOffset = offset + 8;
+                                        uint8_t phyDescriptorLength = 0;
+                                        uint8_t phyCounter = 0;
+                                        deviceStats->sasStatistics.protocolSpecificStatisticsSupported = true;
+                                        deviceStats->sasStatistics.protocolStatisticsType = STAT_PROT_SAS;
+                                        deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].portID = parameterCode;
+                                        deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].sasProtStatsValid = true;
+                                        for (uint8_t phyIter = 0; phyIter < numberOfPhys && phyOffset < pageLength && phyCounter < SAS_STATISTICS_MAX_PHYS; ++phyIter, phyOffset += phyDescriptorLength + 4, ++phyCounter)
+                                        {
+                                            //now at the actual phy data, so we can read what we want to report
+                                            phyDescriptorLength = protSpData[phyOffset + 3];
+                                            if (phyDescriptorLength > 0)
+                                            {
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].sasPhyStatsValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyID = protSpData[phyOffset + 1];
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 32], protSpData[phyOffset + 33], protSpData[phyOffset + 34], protSpData[phyOffset + 35]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 36], protSpData[phyOffset + 37], protSpData[phyOffset + 38], protSpData[phyOffset + 39]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 40], protSpData[phyOffset + 41], protSpData[phyOffset + 42], protSpData[phyOffset + 43]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 44], protSpData[phyOffset + 45], protSpData[phyOffset + 46], protSpData[phyOffset + 47]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                ++deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount;
+                                                //TODO: Phy event descriptors? Not sure this is needed right now -TJE
+                                                //      Events would be yet another loop depending on how many are reported.
+                                            }
+                                            else
+                                            {
+                                                continue;
+                                            }
+                                        }
+                                        ++deviceStats->sasStatistics.sasProtStats.portCount;
+                                    }
+                                    //TODO: If other protocols report data here, we will need to add it. So far no other protocol spec lists a log page - TJE
+                                }
+                                else
+                                {
+                                    //parameters without a length mean move on to the next one since no additional data was provided.
+                                    continue;
+                                }
+                            }
+                        }
+                        safe_Free_aligned(protSpData);
+                    }
+                }
+                    break;
+                default:
+                    break;
+                }
                 break;
             default:
                 break;
@@ -6313,6 +6427,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         {
             deviceStats->sasStatistics.defectStatisticsSupported = true;
             deviceStats->sasStatistics.grownDefects.isSupported = true;
+            ++deviceStats->sasStatistics.statisticsPopulated;
             switch (defectFormat)
             {
             case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
@@ -6385,6 +6500,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         {
             deviceStats->sasStatistics.defectStatisticsSupported = true;
             deviceStats->sasStatistics.primaryDefects.isSupported = true;
+            ++deviceStats->sasStatistics.statisticsPopulated;
             switch (defectFormat)
             {
             case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
@@ -7309,7 +7425,87 @@ void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticN
     }
 }
 
-void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
+//This is a different function to be more specific to SAS environmental limits/reporting pages
+void print_Environmental_Temperature_Statistic(statistic theStatistic, char* statisticName, bool isLimit)
+{
+    if (theStatistic.isSupported)
+    {
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        if (theStatistic.monitoredConditionMet)
+        {
+            printf("!");
+        }
+        else if (theStatistic.isThresholdValid)
+        {
+            printf("*");
+        }
+        else if (theStatistic.supportsNotification)
+        {
+            printf("-");
+        }
+        else
+        {
+            printf(" ");
+        }
+        printf("%-60s", statisticName);
+        if (theStatistic.isThresholdValid)
+        {
+            switch (theStatistic.threshType)
+            {
+            case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_NO_TRIGGER:
+            default:
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
+                break;
+            }
+        }
+        else
+        {
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+        }
+        printf(" %-16s ", displayThreshold);
+        if (theStatistic.isValueValid)
+        {
+            int8_t temperatureValue = C_CAST(int8_t, theStatistic.statisticValue);
+            if (temperatureValue == -128)
+            {
+                if (isLimit)
+                {
+                    printf("No Temperature Limit");
+                }
+                else
+                {
+                    printf("No Valid Temperature");
+                }
+            }
+            else
+            {
+                printf("%" PRId8 " C", temperatureValue);
+            }
+        }
+        else
+        {
+            printf("Invalid");
+        }
+        printf("\n");
+    }
+}
+
+void print_Humidity_Statistic(statistic theStatistic, char *statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
@@ -7369,7 +7565,14 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
             }
             else if (theStatistic.statisticValue == 255)
             {
-                printf("No valid relative humidity");
+                if (isLimit)
+                {
+                    printf("No relative humidity limit");
+                }
+                else
+                {
+                    printf("No valid relative humidity");
+                }
             }
             else
             {
@@ -7609,36 +7812,40 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
     if (deviceStats->sasStatistics.environmentReportingSupported)
     {
         printf("\n---Environmental Reporting---\n");
-        print_Temperature_Statistic(deviceStats->sasStatistics.currentTemperature, "Temperature");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMaximumTemperature, "Lifetime Maximum Temperature");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMinimumTemperature, "Lifetime Minimum Temperature");
-        print_Temperature_Statistic(deviceStats->sasStatistics.maximumTemperatureSincePowerOn, "Maximum Temperature Since Power On");
-        print_Temperature_Statistic(deviceStats->sasStatistics.minimumTemperatureSincePowerOn, "Minimum Temperature Since Power On");
-        print_Humidity_Statistic(deviceStats->sasStatistics.currentRelativeHumidity, "Relative Humidity");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMaximumRelativeHumidity, "Lifetime Maximum Relative Humidity");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMinumumRelativeHumidity, "Lifetime Minimum Relative Humidity");
-        print_Humidity_Statistic(deviceStats->sasStatistics.maximumRelativeHumiditySincePoweron, "Maximum Relative Humidity Since Power On");
-        print_Humidity_Statistic(deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron, "Minimum Relative Humidity Since Power On");
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.currentTemperature, "Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMaximumTemperature, "Lifetime Maximum Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMinimumTemperature, "Lifetime Minimum Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.maximumTemperatureSincePowerOn, "Maximum Temperature Since Power On", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.minimumTemperatureSincePowerOn, "Minimum Temperature Since Power On", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.maximumOtherTemperature, "Maximum Other Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.minimumOtherTemperature, "Minimum Other Temperature", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.currentRelativeHumidity, "Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMaximumRelativeHumidity, "Lifetime Maximum Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMinumumRelativeHumidity, "Lifetime Minimum Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.maximumRelativeHumiditySincePoweron, "Maximum Relative Humidity Since Power On", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron, "Minimum Relative Humidity Since Power On", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.maximumOtherRelativeHumidity, "Maximum Other Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.minimumOtherRelativeHumidity, "Minimum Other Relative Humidity", false);
     }
     if (deviceStats->sasStatistics.environmentReportingSupported)
     {
         printf("\n---Environmental Limits---\n");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitTrigger, "High Critical Temperature Limit Trigger");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitReset, "High Critical Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitReset, "Low Critical Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitTrigger, "Low Critical Temperature Limit Trigger");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitTrigger, "High Operating Temperature Limit Trigger");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitReset, "High Operating Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitReset, "Low Operating Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitTrigger, "Low Operating Temperature Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitTrigger, "High Critical Relative Humidity Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitReset, "High Critical Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitReset, "Low Critical Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitTrigger, "Low Critical Relative Humidity Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitTrigger, "High Operating Relative Humidity Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitReset, "High Operating Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitReset, "Low Operating Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger, "Low Operating Relative Humidity Limit Trigger");
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitTrigger, "High Critical Temperature Limit Trigger", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitReset, "High Critical Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitReset, "Low Critical Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitTrigger, "Low Critical Temperature Limit Trigger", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitTrigger, "High Operating Temperature Limit Trigger", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitReset, "High Operating Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitReset, "Low Operating Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitTrigger, "Low Operating Temperature Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitTrigger, "High Critical Relative Humidity Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitReset, "High Critical Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitReset, "Low Critical Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitTrigger, "Low Critical Relative Humidity Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitTrigger, "High Operating Relative Humidity Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitReset, "High Operating Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitReset, "Low Operating Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger, "Low Operating Relative Humidity Limit Trigger", true);
     }
     if (deviceStats->sasStatistics.startStopCycleCounterSupported)
     {
@@ -7667,6 +7874,12 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedPowerOnMinutes, "Accumulated Power On Minutes", "minutes");
         print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundScansPerformed, "Number Of Background Scans Performed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundMediaScansPerformed, "Number Of Background Media Scans Performed", NULL);
+    }
+    if (deviceStats->sasStatistics.defectStatisticsSupported)
+    {
+        printf("\n---Defect Statistics---\n");
+        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", NULL);
     }
     if (deviceStats->sasStatistics.pendingDefectsSupported)
     {
@@ -7735,12 +7948,33 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
         print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones, "Maximum Implicitly Open Sequential Or Before Required Zones", NULL);
     }
-    if (deviceStats->sasStatistics.defectStatisticsSupported)
+    if (deviceStats->sasStatistics.protocolSpecificStatisticsSupported)
     {
-        printf("\n---Defect Statistics---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", NULL);
+        if (deviceStats->sasStatistics.protocolStatisticsType == STAT_PROT_SAS)
+        {
+            printf("\n---SAS Protocol Statistics---\n");
+            //SAS protocol can have multiple ports and multiple phys per port
+            //So this needs to loop and output which port ID and phy ID each statistic is for
+            for (uint16_t portIter = 0; portIter < SAS_STATISTICS_MAX_PORTS && portIter < deviceStats->sasStatistics.sasProtStats.portCount; ++portIter)
+            {
+                if (deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].sasProtStatsValid)
+                {
+                    for (uint8_t phyIter = 0; phyIter < SAS_STATISTICS_MAX_PHYS && phyIter < deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].phyCount; ++phyIter)
+                    {
+                        if (deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].sasPhyStatsValid)
+                        {
+                            printf("\t--Port %" PRIu16 " - Phy % " PRIu8 "--\n", deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID, deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyID);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].invalidDWORDCount, "Invalid Dword Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].runningDisparityErrorCount, "Running Disparit Error Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].lossOfDWORDSynchronizationCount, "Loss of Dword Snchronization Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyResetProblemCount, "Phy Reset Problem Count", NULL);
+                        }
+                    }
+                }
+            }
+        }
     }
     return ret;
 }

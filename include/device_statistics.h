@@ -125,6 +125,43 @@ extern "C"
         statistic vendorSpecificStatistics[64];
     }sataDeviceStatistics;
 
+    typedef enum _eProtocolSpecificStatisticsType
+    {
+        STAT_PROT_NONE, //no statistics available or reported
+        STAT_PROT_SAS, //SAS protocol specific port page info. Up to 2 ports and 2 phys?
+        //TODO: Other protocol specific pages. I did not see one for SPI, SSA, SRP, Fibre Channel, UAS, or SOP. If these other protocols add data to output, we can add it here. - TJE
+    }eProtocolSpecificStatisticsType;
+
+    //setting maximum number of ports to 2 for now. This could change in the future, but is not super likely - TJE
+    #define SAS_STATISTICS_MAX_PORTS 2
+    //setting maximum phys to 2. Current drives have 1 phy per port, so this is more than necessary - TJE
+    #define SAS_STATISTICS_MAX_PHYS 2
+
+    typedef struct _sasProtocolStatisticsPhy
+    {
+        bool sasPhyStatsValid;
+        uint16_t phyID;
+        statistic invalidDWORDCount;
+        statistic runningDisparityErrorCount;
+        statistic lossOfDWORDSynchronizationCount;
+        statistic phyResetProblemCount;
+    }sasProtocolStatisticsPhy;
+
+    typedef struct _sasProtocolPortStatistics
+    {
+        bool sasProtStatsValid;
+        uint16_t portID;
+        uint8_t phyCount;
+        sasProtocolStatisticsPhy perPhy[SAS_STATISTICS_MAX_PHYS];
+    }sasProtocolPortStatistics;
+
+    typedef struct _sasProtocolStatistics
+    {
+        uint16_t portCount;
+        sasProtocolPortStatistics sasStatsPerPort[SAS_STATISTICS_MAX_PORTS];
+    }sasProtocolStatistics;
+
+
     typedef struct _sasDeviceStatitics
     {
         uint16_t statisticsPopulated;//just a count of how many were populated...not any specific order
@@ -192,11 +229,15 @@ extern "C"
         statistic lifetimeMinimumTemperature;
         statistic maximumTemperatureSincePowerOn;
         statistic minimumTemperatureSincePowerOn;
+        statistic maximumOtherTemperature;
+        statistic minimumOtherTemperature;
         statistic currentRelativeHumidity;
         statistic lifetimeMaximumRelativeHumidity;
         statistic lifetimeMinumumRelativeHumidity;
         statistic maximumRelativeHumiditySincePoweron;
         statistic minimumRelativeHumiditySincePoweron;
+        statistic maximumOtherRelativeHumidity;
+        statistic minimumOtherRelativeHumidity;
         //Environment (Temperature and humidity) (limits)
         bool environmentLimitsSupported;
         statistic highCriticalTemperatureLimitTrigger;
@@ -290,10 +331,24 @@ extern "C"
         statistic failedExplicitOpens;
         statistic readRuleViolations;
         statistic writeRuleViolations;
+        statistic maxImplicitlyOpenSeqOrBeforeReqZones;
         //Defect list counts (Grown and Primary)
         bool defectStatisticsSupported;
         statistic grownDefects;
         statistic primaryDefects;
+        //Protocol specific statistics
+        bool protocolSpecificStatisticsSupported;
+        eProtocolSpecificStatisticsType protocolStatisticsType;
+        //TODO: How do we want to handle multiple port SAS? Currently limiting this output to 2 ports since that is the most supported today-TJE
+        union {
+            sasProtocolStatistics sasProtStats;
+            //TODO: Other data structures for other protocols that implement the protocol specific port log page
+        };
+        //TODO: Buffer over-run, under-run page
+        //      Command duration limits statistics page
+        //      Informational exceptions??? Not sure how we should track this data yet - TJE
+        //      power condition transitions
+        //      
     }sasDeviceStatitics;
 
     //access the proper stats in the union based on device->drive_info.drive_type
