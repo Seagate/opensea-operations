@@ -15,8 +15,8 @@
 #if !defined (DISABLE_NVME_PASSTHROUGH)
 #include "nvme_helper.h"
 #include "nvme_operations.h"
-#include "smart.h"
 #endif
+#include "smart.h"
 #include "operations_Common.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
