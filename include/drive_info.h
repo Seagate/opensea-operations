@@ -439,7 +439,6 @@ extern "C"
 
     char * print_drive_type(tDevice *device);
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
     //-----------------------------------------------------------------------------
     //
     //  print_Nvme_Ctrl_Information()
@@ -454,7 +453,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     int print_Nvme_Ctrl_Information(tDevice *device);
-#endif
 
 #if defined (__cplusplus)
 }

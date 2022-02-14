@@ -10,7 +10,6 @@
 // ******************************************************************************************
 // 
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 #include "nvme_operations.h"
 
 void nvme_Print_Feature_Identifiers_Help(void)
@@ -1117,4 +1116,3 @@ int clr_Pcie_Correctable_Errs(tDevice *device)
 
     return err;
 }
-#endif//DISABLE_NVME_PASSTHROUGH

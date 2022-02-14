@@ -87,7 +87,7 @@ int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitiz
     *percentComplete /= 65536.0;
     return result;
 }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
+
 int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     int result = UNKNOWN;
@@ -133,7 +133,6 @@ int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSaniti
     *percentComplete /= 65536.0;
     return result;
 }
-#endif
 
 int get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
@@ -176,10 +175,8 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeSta
         result = get_ATA_Sanitize_Progress(device, percentComplete, sanitizeStatus);
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         result = get_NVMe_Sanitize_Progress(device, percentComplete, sanitizeStatus);
         break;
-#endif
     case SCSI_DRIVE:
         result = get_SCSI_Sanitize_Progress(device, percentComplete, sanitizeStatus);
     break;
@@ -365,7 +362,7 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
     }
     return ret;
 }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
+
 int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
 {
     int ret = NOT_SUPPORTED;
@@ -393,7 +390,6 @@ int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
     }
     return ret;
 }
-#endif
 
 int get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opts)
 {
@@ -401,10 +397,8 @@ int get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opt
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         ret = get_NVMe_Sanitize_Supported_Features(device, opts);
         break;
-#endif
     case SCSI_DRIVE:
         ret = get_SCSI_Sanitize_Supported_Features(device, opts);
         break;

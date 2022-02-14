@@ -93,7 +93,6 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
         }
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT2)
         {
             supported = true;
@@ -125,7 +124,6 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
             }
         }
         break;
-#endif
     case SCSI_DRIVE:
     {
         //check the bit in logical block provisioning VPD page
@@ -175,10 +173,8 @@ int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         ret = ata_Trim_Range(device, startLBA, range);
         break;
     case NVME_DRIVE:
-#if !defined(DISABLE_NVME_PASSTHROUGH)
         ret = nvme_Deallocate_Range(device, startLBA, range);
         break;
-#endif
     case SCSI_DRIVE:
         ret = scsi_Unmap_Range(device, startLBA, range);
         break;
@@ -189,7 +185,6 @@ int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     return ret;
 }
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
     int ret = UNKNOWN;
@@ -240,7 +235,6 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     }
     return ret;
 }
-#endif
 
 int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {

@@ -260,7 +260,6 @@ int print_Current_Power_Mode(tDevice *device)
         }
         safe_Free_aligned(senseData)
     }
-    #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
     {
         uint32_t powerMode = 0;
@@ -277,7 +276,6 @@ int print_Current_Power_Mode(tDevice *device)
             }
         }
     } 
-    #endif
     else
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -425,7 +423,6 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
     }
     return ret;
 }
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 int transition_NVM_Power_State(tDevice *device, uint8_t newState)
 {
     int ret = NOT_SUPPORTED;
@@ -447,8 +444,6 @@ int transition_NVM_Power_State(tDevice *device, uint8_t newState)
     }
     return ret;
 }
-#endif
-
 
 int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, ptrPowerConditionSettings powerConditionSettings)
 {
@@ -1188,7 +1183,6 @@ int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisa
 int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue )
 {
     int ret = UNKNOWN;
-    #if !defined(DISABLE_NVME_PASSTHROUGH)
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
@@ -1219,7 +1213,6 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
         }
     }
     else
-    #endif
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {

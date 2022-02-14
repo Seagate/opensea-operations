@@ -426,7 +426,6 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
         }
         ret = SUCCESS;
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         if (automaticReadReallocationEnabled)
@@ -439,7 +438,6 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
         }
         ret = SUCCESS;
     }
-#endif
     else
     {
         //Assume it's SCSI and read the read-write error recovery mode page

@@ -328,7 +328,6 @@ int ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     return ret;
 }
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 int nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 {
     int ret = NOT_SUPPORTED;
@@ -346,7 +345,6 @@ int nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     }
     return ret;
 }
-#endif
 
 int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 {
@@ -354,10 +352,8 @@ int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         ret = nvme_Set_Write_Cache(device, writeCacheEnableDisable);
         break;
-#endif
     case SCSI_DRIVE:
         ret = scsi_Set_Write_Cache(device, writeCacheEnableDisable);
         break;
@@ -540,7 +536,6 @@ bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device)
     return enabled;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 bool nvme_Is_Write_Cache_Supported(tDevice *device)
 {
     bool supported = false;
@@ -550,16 +545,13 @@ bool nvme_Is_Write_Cache_Supported(tDevice *device)
     }
     return supported;
 }
-#endif
 
 bool is_Write_Cache_Supported(tDevice *device)
 {
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         return nvme_Is_Write_Cache_Supported(device);
-#endif
     case SCSI_DRIVE:
         return scsi_Is_Write_Cache_Supported(device);
     case ATA_DRIVE:
@@ -613,7 +605,6 @@ bool ata_Is_Write_Cache_Supported(tDevice *device)
     return supported;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 bool nvme_Is_Write_Cache_Enabled(tDevice *device)
 {
     bool enabled = false;
@@ -631,16 +622,13 @@ bool nvme_Is_Write_Cache_Enabled(tDevice *device)
     }
     return enabled;
 }
-#endif
 
 bool is_Write_Cache_Enabled(tDevice *device)
 {
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         return nvme_Is_Write_Cache_Enabled(device);
-#endif
     case SCSI_DRIVE:
         return scsi_Is_Write_Cache_Enabled(device);
     case ATA_DRIVE:

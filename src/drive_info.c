@@ -5311,7 +5311,6 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
         return BAD_PARAMETER;
     }
     memset(driveInfo, 0, sizeof(driveInformationNVMe));
-#if !defined(DISABLE_NVME_PASSTHROUGH)
     //changing ret to success since we have passthrough available
     ret = SUCCESS;
     uint8_t *nvmeIdentifyData = C_CAST(uint8_t*, calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -5758,7 +5757,6 @@ int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInf
     {
         ret = FAILURE;
     }
-#endif
     return ret;
 }
 
@@ -7133,7 +7131,6 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
             ret = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
         }
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         //allocate nvmeDriveInfo since this is an NVMe drive
@@ -7144,7 +7141,6 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
             ret = get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
         }
     }
-#endif
     if (scsiDriveInfo)
     {
         //now that we have software translation always get the scsi data.
@@ -7205,13 +7201,11 @@ int print_Drive_Information(tDevice *device, bool showChildInformation)
                 {
                     print_Device_Information(ataDriveInfo);
                 }
-#if !defined(DISABLE_NVME_PASSTHROUGH)
                 else if (device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo)
                 {
                     print_Device_Information(nvmeDriveInfo);
                     //print_Nvme_Ctrl_Information(device);
                 }
-#endif
                 else if(scsiDriveInfo)
                 {
                     print_Device_Information(scsiDriveInfo);

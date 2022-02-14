@@ -33,24 +33,20 @@ int scsi_Abort_DST(tDevice *device)
     result = scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, NULL, 0, 15);
     return result;
 }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 int nvme_Abort_DST(tDevice *device, uint32_t nsid)
 {
     int result = UNKNOWN;
     result = nvme_Device_Self_Test(device, nsid, 0x0F);
     return result;
 }
-#endif
 int abort_DST(tDevice *device)
 {
     int result = UNKNOWN;
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         result = nvme_Abort_DST(device, UINT32_MAX);//TODO: Need to handle whether we are testing all namespaces or a specific namespace ID!
         break;
-#endif
     case SCSI_DRIVE:
         result = scsi_Abort_DST(device);
         break;
@@ -103,7 +99,6 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
     safe_Free_aligned(temp_buf)
     return result;
 }
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
     int result = UNKNOWN;
@@ -145,7 +140,7 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
     }
     return result;
 }
-#endif
+
 int get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
     int      result = UNKNOWN;
@@ -158,10 +153,8 @@ int get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status
         *percentComplete = 100 - *percentComplete; //make this match SCSI
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         result = nvme_Get_DST_Progress(device, percentComplete, status);
         break;
-#endif
     case SCSI_DRIVE:
         result = scsi_Get_DST_Progress(device, percentComplete, status);
         break;
@@ -333,12 +326,10 @@ int print_DST_Progress(tDevice *device)
     {
         bool isNVMeDrive = false;
         char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
-#if !defined(DISABLE_NVME_PASSTHROUGH)
         if (device->drive_info.drive_type == NVME_DRIVE)
         {
             isNVMeDrive = true;
         }
-#endif
         printf("\tTest Progress = %"PRIu32"%%\n", percentComplete);
         translate_DST_Status_To_String(status, statusTranslation, false, isNVMeDrive);
         printf("%s\n", statusTranslation);
@@ -394,7 +385,6 @@ bool is_Self_Test_Supported(tDevice *device)
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         //set based on controller reported capabilities first
         if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT4)
         {
@@ -406,7 +396,6 @@ bool is_Self_Test_Supported(tDevice *device)
             supported = false;
         }
         break;
-#endif
     case SCSI_DRIVE:
     {
         uint8_t selfTestResultsLog[LP_SELF_TEST_RESULTS_LEN] = { 0 };
@@ -468,7 +457,6 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         //TODO: Handle individual namespaces! currently just running it on all of them!
         switch (DSTType)
         {
@@ -483,7 +471,6 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
             break;
         }
         break;
-#endif
     case SCSI_DRIVE:
         switch (DSTType)
         {
@@ -734,12 +721,10 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                     {
                         bool isNVMeDrive = false;
                         char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
-#if !defined (DISABLE_NVME_PASSTHROUGH)
                         if (device->drive_info.drive_type == NVME_DRIVE)
                         {
                             isNVMeDrive = true;
                         }
-#endif
                         translate_DST_Status_To_String(status, statusTranslation, true, isNVMeDrive);
                         printf("\n%s\n", statusTranslation);
                     }
@@ -810,19 +795,15 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                         	ret = UNKNOWN;
                     	}
                     }
-#if !defined (DISABLE_NVME_PASSTHORUGH)
                 }
-#endif
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     bool isNVMeDrive = false;
                     char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
-#if !defined (DISABLE_NVME_PASSTHROUGH)
                     if (device->drive_info.drive_type == NVME_DRIVE)
                     {
                         isNVMeDrive = true;
                     }
-#endif
                     translate_DST_Status_To_String(status, statusTranslation, true, isNVMeDrive);
                     printf("\n%s\n", statusTranslation);
                 }
@@ -876,7 +857,6 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         }
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     {
         uint16_t longTestTime = device->drive_info.IdentifyData.nvme.ctrl.edstt;
         *hours = C_CAST(uint8_t, longTestTime / 60);
@@ -884,7 +864,6 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
         ret = SUCCESS;
     }
         break;
-#endif
     case SCSI_DRIVE:
     {
         uint16_t longDSTTime = 0;
@@ -1079,7 +1058,6 @@ bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
     return isValidLBA;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 bool get_Error_LBA_From_NVMe_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
@@ -1102,8 +1080,6 @@ bool get_Error_LBA_From_NVMe_DST_Log(tDevice *device, uint64_t *lba)
     return isValidLBA;
 }
 
-#endif
-
 bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
@@ -1119,10 +1095,8 @@ bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
         }
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         isValidLBA = get_Error_LBA_From_NVMe_DST_Log(device, lba);
         break;
-#endif
     case SCSI_DRIVE:
         isValidLBA = get_Error_LBA_From_SCSI_DST_Log(device, lba);
         break;
@@ -1729,7 +1703,6 @@ int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
@@ -1799,7 +1772,6 @@ int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     }
     return ret;
 }
-#endif
 
 int get_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
@@ -1808,9 +1780,7 @@ int get_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     case ATA_DRIVE:
         return get_ATA_DST_Log_Entries(device, entries);
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         return get_NVMe_DST_Log_Entries(device, entries);
-#endif
     case SCSI_DRIVE:
         return get_SCSI_DST_Log_Entries(device, entries);
     default:

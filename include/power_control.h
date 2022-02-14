@@ -93,9 +93,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int transition_Power_State(tDevice *device, ePowerConditionID newState);
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
     OPENSEA_OPERATIONS_API int transition_NVM_Power_State(tDevice *device, uint8_t newState);
-#endif
 
     //-----------------------------------------------------------------------------
     //

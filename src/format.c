@@ -825,12 +825,10 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
         }
         return scsiSectorSizesSupported;
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         return device->drive_info.IdentifyData.nvme.ns.nlbaf + 1;//zeros based value so add 1
     }
-#endif
     else
     {
         return 0;
@@ -1176,7 +1174,6 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     return ret;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     //read the PI support from identify namespace structure
@@ -1226,7 +1223,6 @@ int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     formats->sectorSizes[M_Nibble0(device->drive_info.IdentifyData.nvme.ns.flbas)].currentFormat = true;
     return SUCCESS;
 }
-#endif
 
 int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
@@ -1240,9 +1236,7 @@ int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     case ATA_DRIVE:
         return ata_Get_Supported_Formats(device, formats);
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         return nvme_Get_Supported_Formats(device, formats);
-#endif
     case SCSI_DRIVE:
         return scsi_Get_Supported_Formats(device, formats);
     default:
@@ -1601,7 +1595,6 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
     return ret;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
 {
     int ret = SUCCESS;
@@ -1790,4 +1783,3 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
     }
     return ret;
 }
-#endif

@@ -25,9 +25,7 @@ extern "C"
     typedef struct _smartLogData { 
         union {
         ataSMARTLog ataSMARTAttr;
-#if !defined(DISABLE_NVME_PASSTHROUGH)
         nvmeSmartLog nvmeSMARTAttr;
-#endif
         } attributes;
     } smartLogData; 
 

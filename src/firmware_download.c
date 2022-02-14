@@ -190,9 +190,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID, false, firstSegment, lastSegment, fwdlTimeout);
                 options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
 
-#if defined(DISABLE_NVME_PASSTHROUGH)//Remove it later if someone wants to. -X
                 if (currentDownloadBlock % 20 == 0)
-#endif
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
@@ -460,7 +458,6 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
         }
         break;
         case NVME_DRIVE:
-#if !defined(DISABLE_NVME_PASSTHROUGH)
             if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT2)
             {
                 supportedModes->downloadMicrocodeSupported = true;
@@ -549,7 +546,8 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     }
                 }
             }
-#else
+            /*
+            //NOTE: This is the code that was previously for when running in SCSI translation, but showed up as an NVMe drive. It probably wasn't used and falling into the next case will be ok. Keeping it as a comment for now - TJE
             //running in SCSI translation mode, so only set full & deferred download modes
             supportedModes->downloadMicrocodeSupported = true;
             supportedModes->fullBuffer = true;
@@ -559,7 +557,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             //need to set the offset requirement...for now I'm setting the minimum the NVMe spec says can be reported...should be OK...-TJE
             supportedModes->driveOffsetBoundaryInBytes = 4096;//4Kb is the minimum specified in the NVMe specification that the drive may conform to..this should be good enough for the translation.
             supportedModes->driveOffsetBoundary = 12;//power of 2
-#endif
+            */
             break;
         case SCSI_DRIVE:
         {

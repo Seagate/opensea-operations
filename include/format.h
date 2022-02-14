@@ -364,8 +364,6 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex);
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-
     typedef enum _nvmFmtSecureErase
     {
         NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED,
@@ -455,8 +453,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int show_NVM_Format_Progress(tDevice *device);
-
-#endif
 
 #if defined (__cplusplus)
 }

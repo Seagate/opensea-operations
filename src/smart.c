@@ -88,12 +88,10 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
         }
         safe_Free_aligned(ATAdataBuffer)
     }
-    #if !defined(DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
     {
         ret = nvme_Get_SMART_Log_Page(device,NVME_ALL_NAMESPACES,(uint8_t *)&smartAttrs->attributes,NVME_SMART_HEALTH_LOG_LEN) ;
     }
-    #endif
     else
     {
         ret = NOT_SUPPORTED;
@@ -1862,7 +1860,6 @@ int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
 int show_NVMe_Health(tDevice* device)
 {
     int ret = NOT_SUPPORTED;
-#if !defined(DISABLE_NVME_PASSTHROUGH)
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         smartLogData smartData;
@@ -1938,7 +1935,6 @@ int show_NVMe_Health(tDevice* device)
             printf("Thermal Management T2 Total Time    : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp2);
         }
     }
-#endif
     return ret;
 }
 
@@ -2547,7 +2543,6 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
     int ret = UNKNOWN;
@@ -2623,7 +2618,6 @@ int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 
     return ret;
 }
-#endif
 
 int run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
@@ -2638,12 +2632,7 @@ int run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         result = nvme_SMART_Check(device, tripInfo);
-#else
-        //No SCSI translation exists for this, so return not_supported
-        result = NOT_SUPPORTED;
-#endif
     }
     return result;
 }
@@ -2662,11 +2651,9 @@ bool is_SMART_Enabled(tDevice *device)
         }
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         //SMART/health is built in and not enable-able or disable-able - TJE
         enabled = true;
         break;
-#endif
     case SCSI_DRIVE:
     {
         //read the informational exceptions mode page and check MRIE value for something other than 0
@@ -2709,10 +2696,8 @@ bool is_SMART_Check_Supported(tDevice *device)
         supported = is_SMART_Enabled(device);
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         supported = true;
         break;
-#endif
     case SCSI_DRIVE:
         //For SMART Check on SCSI, first look for the informational exceptions log page to be supported...then look for the mode page. At least one of these has to be available to do this.
     {
@@ -3632,8 +3617,6 @@ int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
     return ret;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-
 int nvme_Print_Temp_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
@@ -3745,10 +3728,6 @@ int nvme_Print_Temp_Statistics(tDevice *device)
     return ret;
 }
 
-#endif
-
-#if !defined (DISABLE_NVME_PASSTHROUGH)
-
 int nvme_Print_PCI_Statistics(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
@@ -3818,8 +3797,6 @@ int nvme_Print_PCI_Statistics(tDevice *device)
 
     return ret;
 }
-
-#endif
 
 #define SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE UINT8_C(90)
 #define SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE UINT8_C(12)

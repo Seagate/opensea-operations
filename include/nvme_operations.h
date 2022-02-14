@@ -11,7 +11,6 @@
 // 
 #pragma once
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 #include "operations_Common.h"
 #include "nvme_helper.h"
 
@@ -185,4 +184,3 @@ extern "C"
 #if defined (__cplusplus)
 }
 #endif
-#endif //DISABLE_NVME_PASSTHROUGH

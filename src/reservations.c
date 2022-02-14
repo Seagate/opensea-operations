@@ -29,7 +29,6 @@ bool is_Persistent_Reservations_Supported(tDevice *device)
             supported = true;
         }
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         //Controller identify says if the commands are supported
@@ -39,7 +38,6 @@ bool is_Persistent_Reservations_Supported(tDevice *device)
             supported = true;
         }
     }
-#endif
     return supported;
 }
 
@@ -334,7 +332,6 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
             }
         }
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt getReservatinPersistence;
@@ -379,7 +376,6 @@ int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReser
             prCapabilities->persistThroughPowerLossActivated = M_ToBool(device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0);
         }
     }
-#endif
     return ret;
 }
 
@@ -570,7 +566,6 @@ int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
             *keyCount = M_BytesTo4ByteValue(readKeyCount[4], readKeyCount[5], readKeyCount[6], readKeyCount[7]) / 8;//each registered key is 8 bytes in length
         }
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t readKeyCount[24] = { 0 };//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
@@ -579,7 +574,6 @@ int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
             *keyCount = M_BytesTo2ByteValue(readKeyCount[6], readKeyCount[5]);
         }
     }
-#endif
     return ret;
 }
 
@@ -627,7 +621,6 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
         }
         safe_Free_aligned(registrationKeys)
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint32_t dataLength = (numberOfKeys * 24) + 24;//24 byte header, then 24 bytes per key....if extended, then it is even larger.
@@ -649,7 +642,6 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
         }
         safe_Free_aligned(registrationKeys)
     }
-#endif
     return ret;
 }
 
@@ -689,7 +681,6 @@ int get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount)
             *reservationKeyCount = M_BytesTo4ByteValue(reservationKeys[4], reservationKeys[5], reservationKeys[6], reservationKeys[7]) / 16;
         }
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t readKeyCount[24] = { 0 };//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
@@ -705,7 +696,6 @@ int get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount)
             }
         }
     }
-#endif
     return ret;
 }
 
@@ -811,7 +801,6 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
         }
         safe_Free_aligned(reservationKeys)
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         //due to how the API was written and NVMe works, we need to call this instead to read all the keys. The get reservations key count will only return 0 or 1 since
@@ -877,7 +866,6 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
             safe_Free_aligned(reservationKeys)
         }
     }
-#endif
     return ret;
 }
 
@@ -1005,7 +993,6 @@ int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
         }
         safe_Free_aligned(fullStatusData)
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t readKeyCount[24] = { 0 };//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
@@ -1014,7 +1001,6 @@ int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
             *keyCount = M_BytesTo2ByteValue(readKeyCount[6], readKeyCount[5]);
         }
     }
-#endif
     return ret;
 }
 
@@ -1223,7 +1209,6 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
         }
         safe_Free_aligned(fullStatusData)
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint32_t nvmeFullDataLen = 24 + (24 * numberOfKeys);
@@ -1287,7 +1272,6 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
         }
         safe_Free_aligned(nvmeFullData)
     }
-#endif
     return ret;
 }
 
@@ -1488,7 +1472,6 @@ int register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts
         format_Basic_Info(registerData, PR_OUT_BASIC_MIN_LENGTH, &prData);
         ret = scsi_Persistent_Reserve_Out(device, ignoreExisting ? SCSI_PERSISTENT_RESERVE_OUT_REGISTER_AND_IGNORE_EXISTING_KEY : SCSI_PERSISTENT_RESERVE_OUT_REGISTER, 0, 0, PR_OUT_BASIC_MIN_LENGTH, registerData);
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t registerData[16] = { 0 };
@@ -1503,7 +1486,6 @@ int register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts
         //NOTE: SCSI translation mentions sending set features first if persist through power loss is not already activated...not sure if this is needed or not in this case since translation is not being used...don't really see it in the spec- TJE
         ret = nvme_Reservation_Register(device, persistThroughPowerLoss ? 3 : 2, ignoreExisting, 0, registerData, 16);//TODO: Move values to enums/definitions
     }
-#endif
     return ret;
 }
 
@@ -1521,7 +1503,6 @@ int unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_REGISTER, 0, 0, PR_OUT_BASIC_MIN_LENGTH, registerData);
 
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t registerData[16] = { 0 };
@@ -1535,7 +1516,6 @@ int unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
         registerData[7] = M_Byte7(currentRegistrationKey);
         ret = nvme_Reservation_Register(device, 0, 0, 1, registerData, 16);//TODO: Move values to enums/definitions
     }
-#endif
     return ret;
 }
 
@@ -1585,7 +1565,6 @@ int acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType)
         }
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_RESERVE, 0, scsiReservationType, PR_OUT_BASIC_MIN_LENGTH, acquireRes);
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t acquireRes[16] = { 0 };
@@ -1624,7 +1603,6 @@ int acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType)
         }
         ret = nvme_Reservation_Acquire(device, nvmeReservationType, false, 0 /*acquire*/, acquireRes, 16);
     }
-#endif
     return ret;
 }
 
@@ -1674,7 +1652,6 @@ int release_Reservation(tDevice *device, uint64_t key, eReservationType resType)
         }
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_RELEASE, 0, scsiReservationType, PR_OUT_BASIC_MIN_LENGTH, releaseRes);
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t releaseRes[8] = { 0 };
@@ -1713,7 +1690,6 @@ int release_Reservation(tDevice *device, uint64_t key, eReservationType resType)
         }
         ret = nvme_Reservation_Release(device, nvmeReservationType, false, 0 /*release*/, releaseRes, 8);
     }
-#endif
     return ret;
 }
 
@@ -1729,7 +1705,6 @@ int clear_Reservations(tDevice *device, uint64_t key)
         format_Basic_Info(clearRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_CLEAR, 0, 0, PR_OUT_BASIC_MIN_LENGTH, clearRes);
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t clearRes[8] = { 0 };
@@ -1743,7 +1718,6 @@ int clear_Reservations(tDevice *device, uint64_t key)
         clearRes[7] = M_Byte7(key);
         ret = nvme_Reservation_Release(device, 0, false, 1 /*clear*/, clearRes, 8);
     }
-#endif
     return ret;
 }
 
@@ -1794,7 +1768,6 @@ int preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool
         }
         ret = scsi_Persistent_Reserve_Out(device, abort ? SCSI_PERSISTENT_RESERVE_OUT_PREEMPT_AND_ABORT : SCSI_PERSISTENT_RESERVE_OUT_PREEMPT, 0, scsiReservationType, PR_OUT_BASIC_MIN_LENGTH, preemptRes);
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint8_t preemptRes[16] = { 0 };
@@ -1841,7 +1814,6 @@ int preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool
         }
         ret = nvme_Reservation_Acquire(device, nvmeReservationType, false, abort ? 2 /*preempt & abort*/ : 1 /*preempt*/, preemptRes, 16);
     }
-#endif
     return ret;
 }
 

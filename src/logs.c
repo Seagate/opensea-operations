@@ -12,10 +12,8 @@
 #include "logs.h"
 #include "ata_helper_func.h"
 #include "scsi_helper_func.h"
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 #include "nvme_helper.h"
 #include "nvme_operations.h"
-#endif
 #include "smart.h"
 #include "operations_Common.h"
 #include "vendor/seagate/seagate_ata_types.h"
@@ -845,12 +843,10 @@ int get_DST_Log(tDevice *device, const char * const filePath)
     {
         return get_SCSI_Log(device, LP_SELF_TEST_RESULTS, 0, "Self_Test_Results", "bin", false, NULL, 0, filePath);
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE) 
     {
         return pull_Supported_NVMe_Logs(device, 6, PULL_LOG_BIN_FILE_MODE);
     }
-#endif
     else
     {
         return NOT_SUPPORTED;
@@ -1966,7 +1962,6 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
     return ret;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, \
     bool saveToFile, uint8_t* ptrData, uint32_t dataSize, \
     const char * const filePath, uint32_t transferSizeBytes)
@@ -2205,8 +2200,6 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
     return ret;
 }
 
-#endif
-
 //TODO: extra bool to trigger or not trigger???
 int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, bool saveToFile, uint8_t* ptrData, uint32_t dataSize, const char * const filePath, uint32_t transferSizeBytes)
 {
@@ -2217,10 +2210,8 @@ int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,
         ret = ata_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         ret = nvme_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
         break;
-#endif
     case SCSI_DRIVE:
         ret = scsi_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath, transferSizeBytes);
         break;
@@ -2567,7 +2558,6 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     bool readSupporteLogPagesLog = false;
     bool dummyFromIdentify = false;
     M_USE_UNUSED(flags);
@@ -2785,7 +2775,6 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
         retStatus = SUCCESS;
     }
     
-#endif
     return retStatus;
 }
 
@@ -2795,7 +2784,6 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
     int retStatus=0;
     uint64_t size = 0;
     uint8_t * logBuffer = NULL;
-#if !defined(DISABLE_NVME_PASSTHROUGH)
     nvmeGetLogPageCmdOpts cmdOpts;
     if ((nvme_Get_Log_Size(logNum, &size) == SUCCESS) && size) {
         memset(&cmdOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
@@ -2905,9 +2893,6 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
             retStatus = 3;
             break;
     }*/
-#else
-retStatus = NOT_SUPPORTED;
-#endif
     return retStatus;
 }
     
