@@ -212,6 +212,7 @@ extern "C"
     //  set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
     //
     //! \brief   Description: Sends the command to quickly change the sector size. On ATA this is the set sector configuration command, on SAS, this is a fast format.
+    //!                       This will erase the first and last sector of the drive to ensure that weird issues due to a dummy MBR do not occur for the user.
     //
     //  Entry:
     //!   \param[in] device = file descriptor

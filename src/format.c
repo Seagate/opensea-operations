@@ -1527,6 +1527,38 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             printf("the drive unusable or require performing this command again!!\n");
         }
         os_Lock_Device(device);
+        //a weird case was found when changing the sector size on a drive with an existing partition on it.
+        //Since the MBR was a "dummy" for GPT, it is setup to look like the entire disk has a partition to stop an
+        //old OS from overwriting partitions setup with GPT.
+        //So Windows blocks the ability to change the partition.
+        //The solution is simple: erase the MBR before the format.
+        //This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
+        bool mbrEraseWarning = false;
+        uint8_t* eraseMBR = C_CAST(uint8_t*, calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (eraseMBR)
+        {
+            //write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is erased and not causing a problem
+            //NOTE: last sector is sometimes used as a backup of the MBR, which is why it will also be erased
+            int writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+            int writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
+            if (!writeBackupMBR || !writeMBR)
+            {
+                mbrEraseWarning = true;
+            }
+            safe_Free_aligned(eraseMBR);
+        }
+        else
+        {
+            mbrEraseWarning = true;
+        }
+        if(mbrEraseWarning)
+        {
+            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+            {
+                printf("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the first sector of the device\n");
+                printf("         and the last sector (max LBA) then try creating new partitions again.\n");
+            }
+        }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             uint16_t descriptorCheck = 0;
