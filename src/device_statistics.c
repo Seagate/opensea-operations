@@ -6531,7 +6531,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                     //      I am not aware of other transports implementing this page at this time - TJE
                     //This page is read in a 64k size to make sure we get as much as possible in a single command.
                 {
-                    uint32_t protocolSpecificDataLength = UINT16_MAX;
+                    uint16_t protocolSpecificDataLength = UINT16_MAX;
                     uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                     if (protSpData)
                     {
@@ -6541,7 +6541,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             uint32_t pageLength = M_BytesTo2ByteValue(protSpData[2], protSpData[3]) + LOG_PAGE_HEADER_LENGTH;
                             uint16_t parameterLength = 4;
                             uint16_t portCounter = 0;
-                            for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS; offset += parameterLength + 4, ++portCounter)
+                            for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS && offset < protocolSpecificDataLength; offset += parameterLength + 4, ++portCounter)
                             {
                                 uint16_t parameterCode = M_BytesTo2ByteValue(protSpData[offset + 0], protSpData[offset + 1]);
                                 parameterLength = protSpData[offset + 3];//4 bytes for the length of the header for the parameter code
