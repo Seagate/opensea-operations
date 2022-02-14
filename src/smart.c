@@ -1929,7 +1929,7 @@ int show_NVMe_Health(tDevice* device)
                 if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0) 
                 {
                     uint16_t temperatureSensor = smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] - 273;
-                    printf("Temperature Sensor %" PRIu8 "                : %" PRIu16 " C\n", (temperatureSensorCount + 1), temperatureSensor);
+                    printf("Temperature Sensor %" PRIu8 "                : %" PRIu16 " C\n", (temperatureSensorCount + UINT8_C(1)), temperatureSensor);
                 }
             }
             printf("Thermal Management T1 Trans Count   : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp1TransCount);
@@ -7228,7 +7228,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
             for (uint8_t iter = 0; iter < errorLogData->numberOfEntries && iter < totalErrorCountLimit; ++iter)
             {
                 printf("\n===============================================\n");
-                printf("Error %" PRIu16 " - Drive State: ", iter + 1);
+                printf("Error %" PRIu16 " - Drive State: ", iter + UINT16_C(1));
                 uint8_t errorState = errorLogData->smartError[iter].error.state;
                 if (errorLogData->extLog)
                 {
@@ -7287,11 +7287,11 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 uint64_t lifeTimeStampSeconds = 0;
                 if (errorLogData->extLog)
                 {
-                    lifeTimeStampSeconds = errorLogData->extSmartError[iter].extError.lifeTimestamp * 3600;
+                    lifeTimeStampSeconds = C_CAST(uint64_t, errorLogData->extSmartError[iter].extError.lifeTimestamp) * UINT64_C(3600);
                 }
                 else
                 {
-                    lifeTimeStampSeconds = errorLogData->smartError[iter].error.lifeTimestamp * 3600;
+                    lifeTimeStampSeconds = C_CAST(uint64_t, errorLogData->smartError[iter].error.lifeTimestamp) * UINT64_C(3600);
                 }
                 convert_Seconds_To_Displayable_Time(lifeTimeStampSeconds, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
@@ -7373,18 +7373,18 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     {
                         if (isHardReset)
                         {
-                            printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter + 1, timestampString);
+                            printf("%" PRIu8 " - %s - Hardware Reset\n", commandIter + UINT8_C(1), timestampString);
                         }
                         else if (isSoftReset)
                         {
-                            printf("%" PRIu8 " - %s - Software Reset\n", commandIter + 1, timestampString);
+                            printf("%" PRIu8 " - %s - Software Reset\n", commandIter + UINT8_C(1), timestampString);
                         }
                         else
                         {
                             //translate into a command
                             char commandDescription[ATA_COMMAND_INFO_MAX_LENGTH] = { 0 };
                             get_Command_Info(commandOpCode, features, count, lba, device, commandDescription);
-                            printf("%" PRIu8 " - %s - %s\n", commandIter + 1, timestampString, commandDescription);
+                            printf("%" PRIu8 " - %s - %s\n", commandIter + UINT8_C(1), timestampString, commandDescription);
                         }
                     }
                 }
@@ -7463,7 +7463,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
         }
         else
         {
-            printf("\tFound %" PRIu8" errors! Total Error Count: %" PRIu16 "\n", errorLogData->numberOfEntries, errorLogData->deviceErrorCount);
+            printf("\tFound %" PRIu8 " errors! Total Error Count: %" PRIu16 "\n", errorLogData->numberOfEntries, errorLogData->deviceErrorCount);
             if (!errorLogData->checksumsValid)
             {
                 printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
@@ -7543,7 +7543,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     }
                     break;
                 default:
-                    if (M_Nibble0(errorState) >= 5 && M_Nibble0(errorState) <= 0x0A)
+                    if (M_Nibble0(errorState) >= UINT8_C(5) && M_Nibble0(errorState) <= UINT8_C(0x0A))
                     {
                         printf("Reserved (%02" PRIX8 "h)", errorState);
                     }
@@ -7555,7 +7555,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 }
                 printf(" Life Timestamp: ");
                 uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
-                convert_Seconds_To_Displayable_Time(errorLogData->smartError[iter].error.lifeTimestamp * 3600, &years, &days, &hours, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, errorLogData->smartError[iter].error.lifeTimestamp) * UINT64_C(3600), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
                 uint8_t numberOfCommandsBeforeError = errorLogData->smartError[iter].numberOfCommands;
@@ -7629,7 +7629,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     //printf the error register format before printing commands
                     printf("\nST ER SC LL LM LH DH\tVU Bytes\n");
                     printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 "\t", errorLogData->smartError[iter].error.status, errorLogData->smartError[iter].error.error, errorLogData->smartError[iter].error.count, errorLogData->smartError[iter].error.lbaLow, errorLogData->smartError[iter].error.lbaMid, errorLogData->smartError[iter].error.lbaHi, errorLogData->smartError[iter].error.device);
-                    for (uint8_t vuIter = 0; vuIter < 19; ++vuIter)
+                    for (uint8_t vuIter = 0; vuIter < UINT8_C(19); ++vuIter)
                     {
                         printf("%02" PRIX8 "", errorLogData->smartError[iter].error.extendedErrorInformation[vuIter]);
                     }
