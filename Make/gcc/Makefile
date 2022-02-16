@@ -59,40 +59,7 @@ LIB_SRC_FILES = \
 
 UNAME := $(shell uname)
 
-ifeq ($(UNAME),Linux)
-	#determine the proper NVMe include file. SEA_NVME_IOCTL_H, SEA_NVME_H, or SEA_UAPI_NVME_H
-	NVME_IOCTL_H = /usr/include/linux/nvme_ioctl.h 
-	NVME_H = /usr/include/linux/nvme.h 
-	UAPI_NVME_H = /usr/include/uapi/nvme.h 
-
-	ifeq ($(shell test -f $(NVME_IOCTL_H) && printf "yes"),yes)
-		PROJECT_DEFINES += -DSEA_NVME_IOCTL_H
-	else
-		ifeq ($(shell test -f $(NVME_H) && printf "yes"),yes)
-			PROJECT_DEFINES += -DSEA_NVME_H
-		else
-			ifeq ($(shell test -f $(UAPI_NVME_H) && printf "yes"),yes)
-				PROJECT_DEFINES += -DSEA_UAPI_NVME_H
-			else
-				PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
-			endif
-		endif
-	endif
-endif
-
-ifeq ($(UNAME),SunOS)
-	PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
-endif
-
-ifeq ($(UNAME),FreeBSD)
-	FREEBSD_NVME_H = /usr/include/dev/nvme/nvme.h
-	ifneq ($(shell test -f $(FREEBSD_NVME_H) && printf "yes"),yes)
-		PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
-	endif
-endif
-
-
-PROJECT_DEFINES += #-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
+PROJECT_DEFINES += #-D_DEBUG
 
 #All of the source files have associated object files
 LIB_OBJ_FILES = $(LIB_SRC_FILES:.c=.o)
