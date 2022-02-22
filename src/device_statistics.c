@@ -6336,6 +6336,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
             default:
                 break;
             }
+                break;
             case LP_POWER_CONDITIONS_TRANSITIONS:
                 switch (subpageCode)
                 {
