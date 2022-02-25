@@ -36,6 +36,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
         printf("\n");
     }
     os_Lock_Device(device);
+    if (eraseRangeStart == 0)
+    {
+        //only unmount when we are touching boot sectors!
+        os_Unmount_File_Systems_On_Device(device);
+    }
     if (eraseRangeStart != alignedLBA)
     {
         uint64_t adjustmentAmount = eraseRangeStart - alignedLBA;
@@ -171,6 +176,11 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     time(&currentTime);//get the current time before starting the loop
     startTime = currentTime;
     os_Lock_Device(device);
+    if (eraseStartLBA == 0)
+    {
+        //only unmount when we are touching boot sectors!
+        os_Unmount_File_Systems_On_Device(device);
+    }
     if (eraseStartLBA != alignedLBA)
     {
         uint64_t adjustmentAmount = eraseStartLBA - alignedLBA;

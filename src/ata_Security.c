@@ -1149,6 +1149,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             timeout = MAX_CMD_TIMEOUT_SECONDS;
         }
         os_Lock_Device(device);
+        os_Unmount_File_Systems_On_Device(device);
         start_Timer(&ataSecureEraseTimer);
         int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
         stop_Timer(&ataSecureEraseTimer);

@@ -200,6 +200,11 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         uint64_t finalLBA = startLBA + range;
         uint32_t descriptorCount = 0;
         os_Lock_Device(device);
+        if (startLBA == 0)
+        {
+            //only unmount when we are touching boot sectors!
+            os_Unmount_File_Systems_On_Device(device);
+        }
         for (uint64_t deallocateLBA = startLBA, offset = 0; deallocateLBA < finalLBA && descriptorCount <= maxTrimOrUnmapBlockDescriptors; deallocateLBA += deallocateRange, offset += 16)
         {
             //context attributes
@@ -303,6 +308,11 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         printf("TRIM buffer size: %"PRIu64"\n", trimBufferLen);
 #endif
         os_Lock_Device(device);
+        if (startLBA == 0)
+        {
+            //only unmount when we are touching boot sectors!
+            os_Unmount_File_Systems_On_Device(device);
+        }
         uint32_t trimOffset = 0;
         for (trimCommands = 0; trimCommands < numberOfTRIMCommandsRequired; trimCommands++)
         {
@@ -407,6 +417,11 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             return MEMORY_FAILURE;
         }
         os_Lock_Device(device);
+        if (startLBA == 0)
+        {
+            //only unmount when we are touching boot sectors!
+            os_Unmount_File_Systems_On_Device(device);
+        }
         for (unmapCommands = 0; unmapCommands < numberOfUnmapCommandsRequired; unmapCommands++)
         {
 #if defined(_DEBUG)
