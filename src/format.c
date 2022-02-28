@@ -1521,6 +1521,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             printf("the drive unusable or require performing this command again!!\n");
         }
         os_Lock_Device(device);
+        os_Unmount_File_Systems_On_Device(device);
         //a weird case was found when changing the sector size on a drive with an existing partition on it.
         //Since the MBR was a "dummy" for GPT, it is setup to look like the entire disk has a partition to stop an
         //old OS from overwriting partitions setup with GPT.

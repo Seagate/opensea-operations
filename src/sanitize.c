@@ -449,6 +449,7 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
         return BAD_PARAMETER;
     }
     os_Lock_Device(device);
+    os_Unmount_File_Systems_On_Device(device);
     //start the sanitize operation requested
     switch (sanitizeOperation)
     {

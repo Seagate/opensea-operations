@@ -304,6 +304,7 @@ int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, u
 {
     int ret = NOT_SUPPORTED;
     os_Lock_Device(device);
+    os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Remove_Element_And_Truncate(device, elementDescriptorID, requestedMaxLBA);
@@ -912,6 +913,7 @@ int repopulate_Elements(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
     os_Lock_Device(device);
+    os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Restore_Elements_And_Rebuild(device);
