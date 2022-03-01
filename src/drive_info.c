@@ -131,6 +131,14 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         }
         //rotation rate
         memcpy(&driveInfo->rotationRate, &wordPtr[217], 2);
+        //Special case for SSD detection. One of these SSDs didn't set the media_type to SSD
+        //but it is an SSD. So this match will catch it when this happens. It should be uncommon to find though -TJE
+        if (driveInfo->rotationRate == 0 &&
+            strlen(driveInfo->modelNumber) > 0 && (strstr(driveInfo->modelNumber, "Seagate SSD") != NULL) &&
+            strlen(driveInfo->firmwareRevision) > 0 && (strstr(driveInfo->firmwareRevision, "UHFS") != NULL))
+        {
+            driveInfo->rotationRate = 0x0001;
+        }
         //form factor
         driveInfo->formFactor = M_Nibble0(wordPtr[168]);
         //zoned capabilities (ACS4)
@@ -7036,6 +7044,25 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
         externalDriveInfo->sectorAlignment = scsiDriveInfo->sectorAlignment;
         externalDriveInfo->zonedDevice = scsiDriveInfo->zonedDevice;
 
+        //Generally we rely on the ATA reported information to be correct
+        //But this is being done for some newer products that are...strange...so we need to do 
+        //some additional checks to figure out whether the SCSI drive info is telling us something that
+        //is not reported in the ATA drive info.
+        if (externalDriveInfo->rotationRate == 0 && scsiDriveInfo->rotationRate > 0)
+        {
+            externalDriveInfo->rotationRate = scsiDriveInfo->rotationRate;
+        }
+        if (externalDriveInfo->formFactor == 0 && scsiDriveInfo->formFactor > 0)
+        {
+            externalDriveInfo->formFactor = scsiDriveInfo->formFactor;
+        }
+        if (!externalDriveInfo->worldWideNameSupported && scsiDriveInfo->worldWideNameSupported)
+        {
+            externalDriveInfo->worldWideNameSupported = scsiDriveInfo->worldWideNameSupported;
+            externalDriveInfo->worldWideName = scsiDriveInfo->worldWideName;
+            externalDriveInfo->worldWideNameExtensionValid = scsiDriveInfo->worldWideNameExtensionValid;
+            externalDriveInfo->worldWideNameExtension = scsiDriveInfo->worldWideNameExtension;
+        }
         //copy specifications supported into the external drive info.
         uint16_t extSpecNumber = externalDriveInfo->numberOfSpecificationsSupported;
         uint16_t scsiSpecNumber = 0;
