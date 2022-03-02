@@ -716,19 +716,25 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
     return ret;
 }
 
-int seagate_Set_Power_Balance(tDevice *device, bool enable)
+int seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (enable)
-        {
-            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
-        }
-        else
-        {
-            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
-        }
+		switch (powerMode)
+		{
+		case POWER_BAL_ENABLE:
+			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
+			break;
+		case POWER_BAL_DISABLE:
+			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
+			break;
+		case POWER_BAL_LIMITED:
+			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_LIMITED, 0, 0);
+			break;
+		default:
+			break;
+		}
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -755,7 +761,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             if (oldMethod)
             {
                 //Active field is NOT used, only the power condition identifier, which must be 0 or 1.
-                if (enable)
+                if (powerMode == POWER_BAL_ENABLE)
                 {
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
                 }
@@ -767,7 +773,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             else
             {
                 //Active field IS used and must be set to highest (disabled) or lowest (enabled)
-                if (enable)
+                if (powerMode == POWER_BAL_ENABLE)
                 {
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] = 3;
                 }
