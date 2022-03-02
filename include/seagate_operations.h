@@ -187,6 +187,14 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled);//SATA only. SAS should use the set power consumption options in power_control.h
 
+	//this enum is used to know the power mode of a device
+	typedef enum _ePowerBalanceMode
+	{
+		POWER_BAL_ENABLE = 1,
+		POWER_BAL_DISABLE = 2,
+		POWER_BAL_LIMITED = 3
+	} ePowerBalanceMode;
+
     OPENSEA_OPERATIONS_API int seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode);//SATA only. SAS should use the set power consumption options in power_control.h
 
     typedef enum _eIDDTests
