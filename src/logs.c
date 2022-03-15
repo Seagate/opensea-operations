@@ -45,7 +45,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         //get current date and time
         currentTime = time(NULL);
         memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
+        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y%m%dT%H%M%S", get_Localtime(&currentTime, &logTime));
         //set up the log file name
         snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s_%s_%s", serialNumber, logName, currentTimeString);
         break;
@@ -168,7 +168,7 @@ int create_And_Open_Log_File(tDevice *device,\
         //append timestamp
         currentTime = time(NULL);
         memset(currentTimeString, 0, 64);
-        strftime(currentTimeString, 64, "%Y-%m-%d__%H_%M_%S", get_Localtime(&currentTime, &logTime));
+        strftime(currentTimeString, 64, "%Y%m%dT%H%M%S", get_Localtime(&currentTime, &logTime));
         //Append timestamp to the log file name
         snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "_%s", &currentTimeString[0]);
     }
