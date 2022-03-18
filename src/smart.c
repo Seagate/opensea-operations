@@ -88,7 +88,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE) 
     {
-        ret = nvme_Get_SMART_Log_Page(device,NVME_ALL_NAMESPACES,(uint8_t *)&smartAttrs->attributes,NVME_SMART_HEALTH_LOG_LEN) ;
+        ret = nvme_Get_SMART_Log_Page(device, NVME_ALL_NAMESPACES, C_CAST(uint8_t*, &smartAttrs->attributes), NVME_SMART_HEALTH_LOG_LEN);
     }
     else
     {
@@ -1904,12 +1904,25 @@ int show_NVMe_Health(tDevice* device)
             }
             if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT5)
             {
-                printf("\tPersisten Memory Region has become read-only or unreliable.\n");
+                printf("\tPersistent Memory Region has become read-only or unreliable.\n");
             }
             printf("Temperature                         : %" PRIu32 " C\n", temperature);
             printf("Available Spare                     : %" PRIu8 "%%\n", smartData.attributes.nvmeSMARTAttr.availSpare);
             printf("Available Spare Threshold           : %" PRIu8 "%%\n", smartData.attributes.nvmeSMARTAttr.spareThresh);
             printf("Percentage Used                     : %" PRIu8 "%%\n", smartData.attributes.nvmeSMARTAttr.percentUsed);
+            printf("Endurance Group Critical Warnings   : %#x\n", smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning);
+            if (smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning & BIT0)
+            {
+                printf("\tSpare Capacity has fallen below the threshold.\n");
+            }
+            if (smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning & BIT2)
+            {
+                printf("\tNVM Subsystem reliability has been degraded due to media errors or internal errors.\n");
+            }
+            if (smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning & BIT3)
+            {
+                printf("\tMedia in Read Only mode\n");
+            }
             printf("Data Units Read                     : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.dataUnitsRead));
             printf("Data Units Written                  : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.dataUnitsWritten));
             printf("Host Read Commands                  : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.hostReads));
