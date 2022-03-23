@@ -2579,30 +2579,39 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
         suptLogOpts.nsid = 0;//controller data
         if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
         {
-            retStatus = SUCCESS;
             uint32_t numPage = suptLogPage.numLogPages;
-            uint32_t page = 0;
-            printf("\n  Log Pages  :   Signature    :    Version\n");
-            printf("-------------:----------------:--------------\n");
-            for (page = 0; page < numPage; page++)
+            //Check if a bogus number is returned as the C5 log may be used differently on some products
+            //There needs to be a better filter as this C5 page was for 2 known products and newer ones have very different designs
+            if (numPage > MAX_SUPPORTED_LOG_PAGE_ENTRIES || numPage == 0)
             {
-                if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
-                {
-                    printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
-                        suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                        suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
-                }
+                dummyFromIdentify = true;
             }
-            printf("\t\t------------------\n");
-            printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-            printf("\t\t------------------\n");
-            for (page = 0; page < numPage; page++)
+            else
             {
-                if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
+                uint32_t page = 0;
+                retStatus = SUCCESS;
+                printf("\n  Log Pages  :   Signature    :    Version\n");
+                printf("-------------:----------------:--------------\n");
+                for (page = 0; page < numPage && page < MAX_SUPPORTED_LOG_PAGE_ENTRIES; page++)
                 {
-                    printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
-                        suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                        suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+                    if (suptLogPage.logPageEntry[page].logPageID < 0xc0)
+                    {
+                        printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
+                            suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                            suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+                    }
+                }
+                printf("\t\t------------------\n");
+                printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
+                printf("\t\t------------------\n");
+                for (page = 0; page < numPage && page < MAX_SUPPORTED_LOG_PAGE_ENTRIES; page++)
+                {
+                    if (suptLogPage.logPageEntry[page].logPageID >= 0xc0)
+                    {
+                        printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
+                            suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
+                            suptLogPage.logPageEntry[page].logPageSignature, suptLogPage.logPageEntry[page].logPageVersion);
+                    }
                 }
             }
         }
