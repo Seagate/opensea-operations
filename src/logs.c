@@ -2105,6 +2105,7 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                     return MEMORY_FAILURE;
                 }
                 dataBuffer = temp;
+                telemOpts.addr = dataBuffer;//update the data buffer after the reallocation - TJE
                 memset(dataBuffer, 0, pullChunkSize);
                 //read the remaining data
                 for (pageNumber = UINT16_C(1); pageNumber < islPullingSize; pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
