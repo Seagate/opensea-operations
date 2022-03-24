@@ -1987,12 +1987,12 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
         if (currentOrSaved == true)
         {
             //current/host
-            islLogToPull = NVME_LOG_TELEMETRY_HOST;
+            islLogToPull = NVME_LOG_TELEMETRY_HOST_ID;
         }
         else
         {
             //saved/controller
-            islLogToPull = NVME_LOG_TELEMETRY_CTRL;
+            islLogToPull = NVME_LOG_TELEMETRY_CTRL_ID;
         }
         {
             if (saveToFile == true)

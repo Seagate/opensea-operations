@@ -426,7 +426,7 @@ int nvme_Get_Log_Size(uint8_t logPageId, uint64_t * logSize)
     case NVME_LOG_CMD_SPT_EFET_ID:
         *logSize = sizeof(nvmeEffectsLog);
         break;
-    case NVME_LOG_DEV_SELF_TEST:
+    case NVME_LOG_DEV_SELF_TEST_ID:
         *logSize = sizeof(nvmeSelfTestLog);
         break;
     default:
