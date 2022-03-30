@@ -1186,7 +1186,7 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
-
+        memset(&cmdOpts, 0, sizeof(nvmeFeaturesCmdOpt));
         switch (selectValue) 
         {
         case CURRENT_VALUE:
