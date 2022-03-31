@@ -1668,9 +1668,9 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                             printf("Free Space (Term B dominated)\n");
                         }
                         printf("\n");
-                        printf("\tTerm A value: % "PRIu8" \n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1]);
+                        printf("\tTerm A value: %" PRIu8" \n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1]);
                         printf("\n");
-                        printf("\tTerm B value: % "PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]);
+                        printf("\tTerm B value: %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]);
                         printf("\n");
                         break;
                     case 233:
