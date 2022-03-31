@@ -933,13 +933,13 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
 static uint64_t ata_SMART_Raw_Bytes_To_Int(ataSMARTValue* currentAttribute, uint8_t rawCounterMSB, uint8_t rawCounterLSB)
 {
     uint64_t decimalValue = 0;
-    if (rawCounterMSB > 7 || rawCounterLSB > 7)
+    if (rawCounterMSB > SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT || rawCounterLSB > SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT)
     {
         return UINT64_MAX;
     }
     if (rawCounterLSB <= rawCounterMSB)//allowing equals for single bytes
     {
-        for (uint8_t iter = rawCounterMSB, counter = 0; counter < 7 && iter <= 6 && iter > 0 && iter >= rawCounterLSB; --iter, ++counter)
+        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter > 0 && iter >= rawCounterLSB; --iter, ++counter)
         {
             decimalValue <<= 8;
             decimalValue |= currentAttribute->data.rawData[iter];
@@ -948,7 +948,7 @@ static uint64_t ata_SMART_Raw_Bytes_To_Int(ataSMARTValue* currentAttribute, uint
     else
     {
         //opposite byte ordering from above
-        for (uint8_t iter = rawCounterMSB, counter = 0; counter < 7 && iter <= 6 && iter > 0 && iter <= rawCounterLSB; ++iter, ++counter)
+        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter > 0 && iter <= rawCounterLSB; ++iter, ++counter)
         {
             decimalValue <<= 8;
             decimalValue |= currentAttribute->data.rawData[iter];
@@ -1363,43 +1363,6 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     safe_Free(attributeName)
 }
 
-/**
- * hex2int
- * take a hex string and convert it to a 32bit number (max 8 hex digits)
- */
-uint32_t hex2int(char *hex) {
-    uint32_t val = 0;
-    while (*hex) {
-        // get current character then increment
-        char byte = *hex++;
-        // transform hex character to the 4bit equivalent number, using the ascii table indexes
-        if (byte >= '0' && byte <= '9') byte = byte - '0';
-        else if (byte >= 'a' && byte <= 'f') byte = byte - 'a' + 10;
-        else if (byte >= 'A' && byte <= 'F') byte = byte - 'A' + 10;
-        // shift 4 to make space for new digit, and add the 4 bits of the new digit 
-        val = (val << 4) | (byte & 0xF);
-    }
-    return val;
-}
-
-static void print_ATA_SMART_Attribute_Raw_Int_Value(uint8_t* rawdataParameter, int intialIndex, char finalIndex)
-{
-    int8_t rawIter;
-    char rawdata[20] = { 0 };
-    char temp[4];
-    uint32_t  rawdataIntValue = 0;
-    for (rawIter = finalIndex; rawIter >= intialIndex; rawIter--) 
-    {
-        snprintf(temp, 4, "%02"PRIX8"", rawdataParameter[rawIter]);
-        common_String_Concat(rawdata, 20, temp);
-    }
-    rawdataIntValue = hex2int(rawdata);
-    printf("%" PRIu32, rawdataIntValue);
-    //sscanf(rawdata, "%x", &rawdataIntValue);
-    //printf("%X", rawdataIntValue);
-    return;
-}
-
 static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartData)
 {
     //making the attribute name seperate so that if we add is_Seagate() logic in we can turn on and off printing the name
@@ -1412,7 +1375,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
 
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
 
-    for (uint8_t iter = 0; iter < 255; ++iter)
+    for (uint8_t iter = 0; iter < UINT8_MAX; ++iter)
     {
         if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
         {
@@ -1453,21 +1416,21 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                 {
                     printf("\t\tSelf-Preserving. Saves between power cycles.\n");
                 }
-                printf("\tCurrent (Nominal) Value: %"PRIu8"\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal);
-                printf("\tWorst Ever Value:        %"PRIu8"\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
+                printf("\tCurrent (Nominal) Value: %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal);
+                printf("\tWorst Ever Value:        %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdDataValid)
                 {
                     if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == 0)
                     {
                         printf("\tThreshold set to always passing\n");
                     }
-                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == 0xFF)
+                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == UINT8_MAX)
                     {
                         printf("\tThreshold set to always failing\n");
                     }
                     else
                     {
-                        printf("\tThreshold:               %"PRIu8"\n", smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue);
+                        printf("\tThreshold:               %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue);
                     }
                 }
                 switch(isSeagateDrive)
@@ -1495,8 +1458,8 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     case 9://power on hours
                     {
                         uint32_t millisecondsSinceIncrement = M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]);
-                        uint64_t powerOnMinutes = M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]) * 60;
-                        powerOnMinutes += (millisecondsSinceIncrement / 60000);//convert the milliseconds to minutes, then add that to the amount of time we already know
+                        uint64_t powerOnMinutes = C_CAST(uint64_t, M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])) * UINT64_C(60);
+                        powerOnMinutes += (millisecondsSinceIncrement / UINT32_C(60000));//convert the milliseconds to minutes, then add that to the amount of time we already know
                         printf("\tPower On Hours = %f\n", powerOnMinutes / 60.0);
                     }
                         break;
@@ -1601,8 +1564,8 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     case 240: //Head flight Hours
                         {
                             uint32_t millisecondsSinceIncrement = M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]);
-                            uint64_t headFlightMinutes = M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]) * 60;
-                            headFlightMinutes += (millisecondsSinceIncrement / 60000);//convert the milliseconds to minutes, then add that to the amount of time we already know
+                            uint64_t headFlightMinutes = C_CAST(uint64_t, M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])) * UINT64_C(60);
+                            headFlightMinutes += (millisecondsSinceIncrement / UINT32_C(60000));//convert the milliseconds to minutes, then add that to the amount of time we already know
                             printf("\tHead Flight Hours = %f\n", headFlightMinutes / 60.0);
                         }
                         break;
@@ -1617,7 +1580,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         break;
                     default:
                         printf("\tRaw Data: ");
-                        for (uint8_t rawIter = 0; rawIter < 7; ++rawIter)
+                        for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
                         {
                             printf("%02" PRIX8 "", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
                         }
@@ -1629,122 +1592,70 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber) 
                     {
                     case 1:
-                        printf("\tCorrectable, Soft LDPC correctable errors since last power cycle:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tCorrectable, Soft LDPC correctable errors since last power cycle: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 9: 
-                        printf("\tPower On Hours:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tPower On Hours: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 11:
-                        printf("\tSuccessful Power Fail Backup Events:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
-                        printf("\tUnsuccessful Power Fail Backup Events:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 4, 5);
-                        printf("\n");
+                        printf("\tSuccessful Power Fail Backup Events: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\tUnsuccessful Power Fail Backup Events: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         break;
                     case 12:
-                        printf("\tPower Cycles:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tPower Cycles: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 100:
-                        printf("\tGB  Erases of Flash:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tGB  Erases of Flash: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 101:
-                        printf("\tDev Sleep Exits:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tDev Sleep Exits: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 102:
-                        printf("\tPS4 entries:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 4);
-                        printf("\n");
+                        printf("\tPS4 entries: %" PRIu64 "\n", M_BytesTo8ByteValue(0, 0, 0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 103:
-                        printf("\tPS3 entries:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 4);
-                        printf("\n");
+                        printf("\tPS3 entries: %" PRIu64 "\n", M_BytesTo8ByteValue(0, 0, 0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 171:
-                        printf("\tProgram Fail Count:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tProgram Fail Count: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 172:
-                        printf("\tErase Failure Events:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tErase Failure Events: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 173:
-                        printf("\tProgram/Erase Cycles on All Good Blocks:n");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tProgram/Erase Cycles on All Good Blocks: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 174:
-                        printf("\tUnexpected Power Loss Power Cycles:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tUnexpected Power Loss Power Cycles: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 177:
-                        printf("\tWear Range delta calculated as 100 * [(MW - LW)/MRW]:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 1);
-                        printf("\n");
+                        printf("\tWear Range delta calculated as 100 * [(MW - LW)/MRW]: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 183:
-                        printf("\tInterface Downshift Events this Power Cycle:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 2);
-                        printf("\n");
-                        printf("\tinterface Downshift Events Lifetime:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 3, 6);
-                        printf("\n");
+                        printf("\tInterface Downshift Events this Power Cycle: %" PRIu32 "\n", M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\tinterface Downshift Events Lifetime: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3]));
                         break;
                     case 184: 
-                        printf("\tDetected End-To-End CRC Errors:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tDetected End-To-End CRC Errors: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 187:
-                        printf("\tUncorrectable Codewords:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tUncorrectable Codewords: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 194:
-                        printf("\tCurrent Temperature (C):");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 1);
-                        printf("\n");
-                        printf("\tLifetime Maximum Temperature (C):");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 2, 3);
-                        printf("\n");
-                        printf("\tLifetime Minimum Temperature (C):");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 4, 5);
-                        printf("\n");
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\tLifetime Maximum Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]));
+                        printf("\tLifetime Minimum Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         break;
                     case 195:
-                        printf("\tRAISE-1 recoveries:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 1);
-                        printf("\n");
-                        printf("\tRAISE-2 recoveries:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 2, 3);
-                        printf("\n");
-                        printf("\tNumber of Times RAISE is Used to Restore Date Being Programmed After a Program Failure:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 4, 5);
-                        printf("\n");
+                        printf("\tRAISE-1 recoveries: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\tRAISE-2 recoveries: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]));
+                        printf("\tNumber of Times RAISE is Used to Restore Date Being Programmed After a Program Failure: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         break;
                     case 198:
-                        printf("\tUncorrectable Read Errors:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tUncorrectable Read Errors: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 199:
-                        printf("\tSATA Interface CRC Errors Count:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tSATA Interface CRC Errors Count: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 231:
                         printf("\tLife driven by:");
@@ -1757,46 +1668,37 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                             printf("Free Space (Term B dominated)\n");
                         }
                         printf("\n");
-                        printf("\tTerm A value:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 1, 1);
+                        printf("\tTerm A value: % "PRIu8" \n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1]);
                         printf("\n");
-                        printf("\tTerm B value:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 2, 2);
+                        printf("\tTerm B value: % "PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]);
                         printf("\n");
                         break;
                     case 233:
-                        printf("\tGB Written of Flash:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tGB Written of Flash: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 241:
-                        printf("\tGB Written to Drive by Host:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tGB Written to Drive by Host: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 242:
-                        printf("\tGB Read from Drive by Host:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
+                        printf("\tGB Read from Drive by Host: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 243:
-                        printf("\tFree Space:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 3);
-                        printf("\n");
-                        printf("\tFree Space Percentage in Hundreths of a Percent:");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 4, 5);
-                        printf("\n");
+                        printf("\tFree Space: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\tFree Space Percentage in Hundreths of a Percent: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         break;
                     default: 
                         printf("\tRaw Data: ");
-                        print_ATA_SMART_Attribute_Raw_Int_Value(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData, 0, 6);
-                        printf("\n");
+                        for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
+                        {
+                            printf("%02" PRIX8 "", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
+                        }
+                        printf("h\n");
                         break;
                     }
                     break;
                 default:
                     printf("\tRaw Data: ");
-                    for (uint8_t rawIter = 0; rawIter < 7; ++rawIter)
+                    for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
                     {                    
                         printf("%02" PRIX8 "", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
                     }
