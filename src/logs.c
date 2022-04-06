@@ -2567,7 +2567,7 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
     {
         readSupporteLogPagesLog = true;
     }
-    else if (is_Seagate(device, false)) //TODO: This only applies to specific model numbers and we will need to refine this to those models in the future - TJE
+    else if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
         logPageMap suptLogPage;
         nvmeGetLogPageCmdOpts suptLogOpts;

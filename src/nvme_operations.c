@@ -1081,38 +1081,51 @@ void print_smart_log_CF(fb_log_page_CF *pLogPageCF)
 //Seagate Unique...
 int get_Ext_Smrt_Log(tDevice *device)//, nvmeGetLogPageCmdOpts * getLogPageCmdOpts)
 {
+    if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
+    {
 #ifdef _DEBUG
-    printf("-->%s\n", __FUNCTION__);
+        printf("-->%s\n", __FUNCTION__);
 #endif
-    int ret = 0, index = 0;
-    EXTENDED_SMART_INFO_T ExtdSMARTInfo;
-    memset(&ExtdSMARTInfo, 0x00, sizeof(ExtdSMARTInfo));
-    ret = nvme_Read_Ext_Smt_Log(device, &ExtdSMARTInfo);
-    if (!ret) {
-        printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
-        for (index = 0; index < 80; index++)
-            printf("-");
-        printf("\n");
-        for (index = 0; index < NUMBER_EXTENDED_SMART_ATTRIBUTES; index++)
-            print_smart_log(ExtdSMARTInfo.Version, ExtdSMARTInfo.vendorData[index], index == (NUMBER_EXTENDED_SMART_ATTRIBUTES - 1));
+        int ret = 0, index = 0;
+        EXTENDED_SMART_INFO_T ExtdSMARTInfo;
+        memset(&ExtdSMARTInfo, 0x00, sizeof(ExtdSMARTInfo));
+        ret = nvme_Read_Ext_Smt_Log(device, &ExtdSMARTInfo);
+        if (!ret) {
+            printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
+            for (index = 0; index < 80; index++)
+                printf("-");
+            printf("\n");
+            for (index = 0; index < NUMBER_EXTENDED_SMART_ATTRIBUTES; index++)
+                print_smart_log(ExtdSMARTInfo.Version, ExtdSMARTInfo.vendorData[index], index == (NUMBER_EXTENDED_SMART_ATTRIBUTES - 1));
 
+        }
+        return 0;
     }
-    return 0;
-
+    else
+    {
+        return NOT_SUPPORTED;
+    }
 }
 
 int clr_Pcie_Correctable_Errs(tDevice *device)
 {
-    //const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
-    //const char *save = "specifies that the controller shall save the attribute";
-    int err = SUCCESS;
+    if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
+    {
+        //const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
+        //const char *save = "specifies that the controller shall save the attribute";
+        int err = SUCCESS;
 
-    nvmeFeaturesCmdOpt clearPCIeCorrectableErrors;
-    memset(&clearPCIeCorrectableErrors, 0, sizeof(nvmeFeaturesCmdOpt));
-    clearPCIeCorrectableErrors.fid = 0xE1;
-    clearPCIeCorrectableErrors.featSetGetValue = 0xCB;
-    clearPCIeCorrectableErrors.sv = false;
-    err = nvme_Set_Features(device, &clearPCIeCorrectableErrors);
+        nvmeFeaturesCmdOpt clearPCIeCorrectableErrors;
+        memset(&clearPCIeCorrectableErrors, 0, sizeof(nvmeFeaturesCmdOpt));
+        clearPCIeCorrectableErrors.fid = 0xE1;
+        clearPCIeCorrectableErrors.featSetGetValue = 0xCB;
+        clearPCIeCorrectableErrors.sv = false;
+        err = nvme_Set_Features(device, &clearPCIeCorrectableErrors);
 
-    return err;
+        return err;
+    }
+    else
+    {
+        return NOT_SUPPORTED;
+    }
 }
