@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -187,7 +187,15 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled);//SATA only. SAS should use the set power consumption options in power_control.h
 
-    OPENSEA_OPERATIONS_API int seagate_Set_Power_Balance(tDevice *device, bool enable);//SATA only. SAS should use the set power consumption options in power_control.h
+	//this enum is used to know the power mode of a device
+	typedef enum _ePowerBalanceMode
+	{
+		POWER_BAL_ENABLE = 1,
+		POWER_BAL_DISABLE = 2,
+		POWER_BAL_LIMITED = 3
+	} ePowerBalanceMode;
+
+    OPENSEA_OPERATIONS_API int seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode);//SATA only. SAS should use the set power consumption options in power_control.h
 
     typedef enum _eIDDTests
     {
@@ -335,10 +343,9 @@ extern "C"
     //! \brief   Description:  Shows the power telemetry data on the screen
     //
     //  Entry:
-    //!   \param[int] pwrTelData = pointer to power telemetry data already retrieved from the drive.
+    //!   \param[in] pwrTelData = pointer to power telemetry data already retrieved from the drive.
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData);

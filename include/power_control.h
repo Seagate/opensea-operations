@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -93,9 +93,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int transition_Power_State(tDevice *device, ePowerConditionID newState);
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
     OPENSEA_OPERATIONS_API int transition_NVM_Power_State(tDevice *device, uint8_t newState);
-#endif
 
     //-----------------------------------------------------------------------------
     //

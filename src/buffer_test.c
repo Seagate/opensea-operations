@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@
 #include "buffer_test.h"
 
 
-bool are_Buffer_Commands_Available(tDevice *device)
+static bool are_Buffer_Commands_Available(tDevice *device)
 {
     bool supported = false;
     //Check if read/write buffer commands are supported on SATA and SAS
@@ -77,7 +77,7 @@ bool are_Buffer_Commands_Available(tDevice *device)
         {
             //this means the command to ask about support didn't work, so we're just going to try asking the size of the buffer and if that works, it is supported
             memset(supportedCommandData, 0, 16);
-            if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, supportedCommandData))
+            if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, supportedCommandData))
             {
                 //TODO: check the buffer capacity for non-zero value?
                 supported = true;
@@ -87,7 +87,7 @@ bool are_Buffer_Commands_Available(tDevice *device)
     return supported;
 }
 
-int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
+static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
 {
     int ret = SUCCESS;
     if (!bufferSize || !offsetBoundary)
@@ -100,7 +100,7 @@ int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBounda
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t bufferSizeData[4] = { 0 };
-        if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, bufferSizeData))
+        if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, bufferSizeData))
         {
             *offsetBoundary = bufferSizeData[0];//not sure if this is actually needed - TJE
             *bufferSize = M_BytesTo4ByteValue(0, bufferSizeData[1], bufferSizeData[2], bufferSizeData[3]);
@@ -124,7 +124,7 @@ int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSiz
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        return scsi_Read_Buffer(device, 0x02, 0, 0, dataSize, ptrData);
+        return scsi_Read_Buffer(device, SCSI_RB_DATA, 0, 0, dataSize, ptrData);
     }
     else
     {
@@ -132,7 +132,7 @@ int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSiz
     }
 }
 
-int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
+static int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -143,7 +143,7 @@ int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSi
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        return scsi_Write_Buffer(device, 0x02, 0, 0, 0, dataSize, ptrData, false, false, 0);
+        return scsi_Write_Buffer(device, SCSI_WB_DATA, 0, 0, 0, dataSize, ptrData, false, false, 0);
     }
     else
     {
@@ -233,11 +233,11 @@ bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
 void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 5;
-    uint8_t *patternBuffer = (uint8_t*)malloc(deviceBufferSize);//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc(deviceBufferSize);//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
-        fill_Pattern_Buffer_Into_Another_Buffer((uint8_t*)&pattern, 4, patternBuffer, deviceBufferSize);//sets the pattern to write into memory
+        fill_Pattern_Buffer_Into_Another_Buffer(C_CAST(uint8_t*, &pattern), sizeof(uint32_t), patternBuffer, deviceBufferSize);//sets the pattern to write into memory
         seatimer_t patternTimer;
         memset(&patternTimer, 0, sizeof(seatimer_t));
         start_Timer(&patternTimer);
@@ -310,15 +310,15 @@ void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t devic
         stop_Timer(&patternTimer);
         testResults->totalTimeNS = get_Nano_Seconds(patternTimer);
     }
-    safe_Free(patternBuffer);
-    safe_Free(returnBuffer);
+    safe_Free_aligned(patternBuffer)
+    safe_Free_aligned(returnBuffer)
 }
 
 //Function for Walking 1's/0's test
 void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
-    uint8_t *patternBuffer = (uint8_t*)calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment);//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment);//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t bitNumber = 0, byteNumber = 0; byteNumber < deviceBufferSize; ++bitNumber)
@@ -415,15 +415,15 @@ void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBuf
             }
         }
     }
-    safe_Free_aligned(patternBuffer);
-    safe_Free_aligned(returnBuffer);
+    safe_Free_aligned(patternBuffer)
+    safe_Free_aligned(returnBuffer)
 }
 //Function for random data pattern test
 void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 10;
-    uint8_t *patternBuffer = (uint8_t*)malloc(deviceBufferSize);//only send this to the drive
-    uint8_t *returnBuffer = (uint8_t*)malloc(deviceBufferSize);//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t counter = 0; counter < numberOfTimesToTest; ++counter)
@@ -494,8 +494,8 @@ void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptr
             }
         }
     }
-    safe_Free(patternBuffer);
-    safe_Free(returnBuffer);
+    safe_Free_aligned(patternBuffer)
+    safe_Free_aligned(returnBuffer)
 }
 
 //master function for the whole test.
@@ -579,7 +579,7 @@ void print_Cable_Test_Results(cableTestResults testResults)
     printf("00h Test Pattern:\n");
     for (uint8_t count = 0; count < ALL_0_TEST_COUNT; ++count)
     {
-        printf("    Run %" PRIu8 ":\n", count + 1);
+        printf("    Run %" PRIu8 ":\n", count + UINT8_C(1));
         printf("        Total commands sent: %" PRIu32 "\n", testResults.zerosTest[count].totalCommandsSent);
         printf("        Number of command CRC errors: %" PRIu32 "\n", testResults.zerosTest[count].totalCommandCRCErrors);
         printf("        Number of command timeouts: %" PRIu32 "\n", testResults.zerosTest[count].totalCommandTimeouts);

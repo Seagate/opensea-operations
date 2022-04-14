@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,9 +40,9 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     //need to get the device statistics log
     if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true))
     {
-        bool dsnFeatureSupported = device->drive_info.IdentifyData.ata.Word119 & BIT9 ? true : false;
-        bool dsnFeatureEnabled = device->drive_info.IdentifyData.ata.Word120 & BIT9 ? true : false;
-        uint8_t *deviceStatsLog = (uint8_t*)calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+        bool dsnFeatureSupported = M_ToBool(device->drive_info.IdentifyData.ata.Word119 & BIT9);
+        bool dsnFeatureEnabled = M_ToBool(device->drive_info.IdentifyData.ata.Word120 & BIT9);
+        uint8_t *deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!deviceStatsLog)
         {
             return MEMORY_FAILURE;
@@ -50,7 +50,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         //this is to get the threshold stuff
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
-            uint8_t *devStatsNotificationsLog = (uint8_t*)calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0,0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
@@ -90,7 +90,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://lifetime power on resets
                             deviceStats->sataStatistics.lifetimePoweronResets.isThresholdValid = true;
                             deviceStats->sataStatistics.lifetimePoweronResets.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lifetimePoweronResets.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lifetimePoweronResets.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lifetimePoweronResets.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lifetimePoweronResets.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lifetimePoweronResets.threshold = thresholdValue;
@@ -98,7 +98,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://power on hours
                             deviceStats->sataStatistics.powerOnHours.isThresholdValid = true;
                             deviceStats->sataStatistics.powerOnHours.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.powerOnHours.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.powerOnHours.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.powerOnHours.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.powerOnHours.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.powerOnHours.threshold = thresholdValue;
@@ -106,7 +106,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://logical sectors written
                             deviceStats->sataStatistics.logicalSectorsWritten.isThresholdValid = true;
                             deviceStats->sataStatistics.logicalSectorsWritten.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.logicalSectorsWritten.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.logicalSectorsWritten.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.logicalSectorsWritten.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.logicalSectorsWritten.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.logicalSectorsWritten.threshold = thresholdValue;
@@ -114,7 +114,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://number of write commands
                             deviceStats->sataStatistics.numberOfWriteCommands.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfWriteCommands.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfWriteCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfWriteCommands.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfWriteCommands.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfWriteCommands.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfWriteCommands.threshold = thresholdValue;
@@ -122,7 +122,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://logical sectors read
                             deviceStats->sataStatistics.logicalSectorsRead.isThresholdValid = true;
                             deviceStats->sataStatistics.logicalSectorsRead.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.logicalSectorsRead.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.logicalSectorsRead.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.logicalSectorsRead.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.logicalSectorsRead.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.logicalSectorsRead.threshold = thresholdValue;
@@ -130,7 +130,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://number of read commands
                             deviceStats->sataStatistics.numberOfReadCommands.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReadCommands.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReadCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReadCommands.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReadCommands.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReadCommands.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReadCommands.threshold = thresholdValue;
@@ -138,7 +138,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://Date and Time Timestamp
                             deviceStats->sataStatistics.dateAndTimeTimestamp.isThresholdValid = true;
                             deviceStats->sataStatistics.dateAndTimeTimestamp.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.dateAndTimeTimestamp.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.dateAndTimeTimestamp.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.dateAndTimeTimestamp.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.dateAndTimeTimestamp.threshold = thresholdValue;
@@ -146,7 +146,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://Pending Error Count
                             deviceStats->sataStatistics.pendingErrorCount.isThresholdValid = true;
                             deviceStats->sataStatistics.pendingErrorCount.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.pendingErrorCount.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.pendingErrorCount.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.pendingErrorCount.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.pendingErrorCount.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.pendingErrorCount.threshold = thresholdValue;
@@ -154,7 +154,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 72://workload utilization
                             deviceStats->sataStatistics.workloadUtilization.isThresholdValid = true;
                             deviceStats->sataStatistics.workloadUtilization.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.workloadUtilization.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.workloadUtilization.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.workloadUtilization.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.workloadUtilization.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.workloadUtilization.threshold = thresholdValue;
@@ -162,7 +162,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 80://utilization usage rate
                             deviceStats->sataStatistics.utilizationUsageRate.isThresholdValid = true;
                             deviceStats->sataStatistics.utilizationUsageRate.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.utilizationUsageRate.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.utilizationUsageRate.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.utilizationUsageRate.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.utilizationUsageRate.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.utilizationUsageRate.threshold = thresholdValue;
@@ -170,7 +170,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 88://resource availability
                             deviceStats->sataStatistics.resourceAvailability.isThresholdValid = true;
                             deviceStats->sataStatistics.resourceAvailability.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.resourceAvailability.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.resourceAvailability.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.resourceAvailability.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.resourceAvailability.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.resourceAvailability.threshold = thresholdValue;
@@ -178,7 +178,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 96://random write resources used
                             deviceStats->sataStatistics.randomWriteResourcesUsed.isThresholdValid = true;
                             deviceStats->sataStatistics.randomWriteResourcesUsed.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.randomWriteResourcesUsed.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.randomWriteResourcesUsed.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.randomWriteResourcesUsed.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.randomWriteResourcesUsed.threshold = thresholdValue;
@@ -194,7 +194,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://number of free fall events detected
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshold = thresholdValue;
@@ -202,7 +202,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://overlimit shock events
                             deviceStats->sataStatistics.overlimitShockEvents.isThresholdValid = true;
                             deviceStats->sataStatistics.overlimitShockEvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.overlimitShockEvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.overlimitShockEvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.overlimitShockEvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.overlimitShockEvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.overlimitShockEvents.threshold = thresholdValue;
@@ -218,7 +218,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://spindle motor power-on hours
                             deviceStats->sataStatistics.spindleMotorPoweronHours.isThresholdValid = true;
                             deviceStats->sataStatistics.spindleMotorPoweronHours.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.spindleMotorPoweronHours.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.spindleMotorPoweronHours.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.spindleMotorPoweronHours.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.spindleMotorPoweronHours.threshold = thresholdValue;
@@ -226,7 +226,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://head flying hours
                             deviceStats->sataStatistics.headFlyingHours.isThresholdValid = true;
                             deviceStats->sataStatistics.headFlyingHours.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.headFlyingHours.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.headFlyingHours.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.headFlyingHours.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.headFlyingHours.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.headFlyingHours.threshold = thresholdValue;
@@ -234,7 +234,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://head load events
                             deviceStats->sataStatistics.headLoadEvents.isThresholdValid = true;
                             deviceStats->sataStatistics.headLoadEvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.headLoadEvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.headLoadEvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.headLoadEvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.headLoadEvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.headLoadEvents.threshold = thresholdValue;
@@ -242,7 +242,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://number of reallocated logical sectors
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshold = thresholdValue;
@@ -250,7 +250,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://read recovery attempts
                             deviceStats->sataStatistics.readRecoveryAttempts.isThresholdValid = true;
                             deviceStats->sataStatistics.readRecoveryAttempts.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.readRecoveryAttempts.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.readRecoveryAttempts.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.readRecoveryAttempts.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.readRecoveryAttempts.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.readRecoveryAttempts.threshold = thresholdValue;
@@ -258,7 +258,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://number of mechanical start failures
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshold = thresholdValue;
@@ -266,7 +266,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://numberOfReallocationCandidateLogicalSectors
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshold = thresholdValue;
@@ -274,7 +274,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://number of high priority unload events
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshold = thresholdValue;
@@ -290,7 +290,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://number of reported uncorrectable errors
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshold = thresholdValue;
@@ -298,7 +298,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://number of resets between command acceptance and command completion
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion.threshold = thresholdValue;
@@ -306,7 +306,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://physical element status changed
                             deviceStats->sataStatistics.physicalElementStatusChanged.isThresholdValid = true;
                             deviceStats->sataStatistics.physicalElementStatusChanged.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.physicalElementStatusChanged.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.physicalElementStatusChanged.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.physicalElementStatusChanged.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.physicalElementStatusChanged.threshold = thresholdValue;
@@ -322,7 +322,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://current temperature
                             deviceStats->sataStatistics.currentTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.currentTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.currentTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.currentTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.currentTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.currentTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.currentTemperature.threshold = thresholdValue;
@@ -330,7 +330,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://average short term temperature
                             deviceStats->sataStatistics.averageShortTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.averageShortTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.averageShortTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.averageShortTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.averageShortTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.averageShortTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.averageShortTermTemperature.threshold = thresholdValue;
@@ -338,7 +338,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://average long term temperature
                             deviceStats->sataStatistics.averageLongTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.averageLongTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.averageLongTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.averageLongTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.averageLongTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.averageLongTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.averageLongTermTemperature.threshold = thresholdValue;
@@ -346,7 +346,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://highest temperature
                             deviceStats->sataStatistics.highestTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.highestTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.highestTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.highestTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.highestTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.highestTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.highestTemperature.threshold = thresholdValue;
@@ -354,7 +354,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://lowest temperature
                             deviceStats->sataStatistics.lowestTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.lowestTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lowestTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lowestTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lowestTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lowestTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lowestTemperature.threshold = thresholdValue;
@@ -362,7 +362,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://highest Averagre Short Term Temperature
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.highestAverageShortTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.highestAverageShortTermTemperature.threshold = thresholdValue;
@@ -370,7 +370,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://lowest average short term temperature
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshold = thresholdValue;
@@ -378,7 +378,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://highest average long term temperature
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.highestAverageLongTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.highestAverageLongTermTemperature.threshold = thresholdValue;
@@ -386,7 +386,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 72://lowest average long term temperature
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshold = thresholdValue;
@@ -394,7 +394,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 80://time in over temperature
                             deviceStats->sataStatistics.timeInOverTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.timeInOverTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.timeInOverTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.timeInOverTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.timeInOverTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.timeInOverTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.timeInOverTemperature.threshold = thresholdValue;
@@ -402,7 +402,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 88://specified maximum operating temperature
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshold = thresholdValue;
@@ -410,7 +410,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 96://time in under temperature
                             deviceStats->sataStatistics.timeInUnderTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.timeInUnderTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.timeInUnderTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.timeInUnderTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.timeInUnderTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.timeInUnderTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.timeInUnderTemperature.threshold = thresholdValue;
@@ -418,7 +418,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 104://specified minimum operating temperature
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.isThresholdValid = true;
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshold = thresholdValue;
@@ -434,7 +434,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://number of hardware resets
                             deviceStats->sataStatistics.numberOfHardwareResets.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfHardwareResets.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfHardwareResets.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfHardwareResets.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfHardwareResets.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfHardwareResets.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfHardwareResets.threshold = thresholdValue;
@@ -442,7 +442,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://number of ASR events
                             deviceStats->sataStatistics.numberOfASREvents.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfASREvents.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfASREvents.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfASREvents.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfASREvents.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfASREvents.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfASREvents.threshold = thresholdValue;
@@ -450,7 +450,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://number of interface CRC errors
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.isThresholdValid = true;
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshold = thresholdValue;
@@ -466,7 +466,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://percent used indicator
                             deviceStats->sataStatistics.percentageUsedIndicator.isThresholdValid = true;
                             deviceStats->sataStatistics.percentageUsedIndicator.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.percentageUsedIndicator.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.percentageUsedIndicator.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.percentageUsedIndicator.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.percentageUsedIndicator.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.percentageUsedIndicator.threshold = thresholdValue;
@@ -482,7 +482,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 8://maximum open zones
                             deviceStats->sataStatistics.maximumOpenZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumOpenZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumOpenZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumOpenZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumOpenZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumOpenZones.threshold = thresholdValue;
@@ -490,7 +490,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 16://maximum explicitly open zones
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshold = thresholdValue;
@@ -498,7 +498,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 24://maximum implicitly open zones
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshold = thresholdValue;
@@ -506,7 +506,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 32://minimum empty zones
                             deviceStats->sataStatistics.minimumEmptyZones.isThresholdValid = true;
                             deviceStats->sataStatistics.minimumEmptyZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.minimumEmptyZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.minimumEmptyZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.minimumEmptyZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.minimumEmptyZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.minimumEmptyZones.threshold = thresholdValue;
@@ -514,7 +514,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 40://maximum non-sequential zones
                             deviceStats->sataStatistics.maximumNonSequentialZones.isThresholdValid = true;
                             deviceStats->sataStatistics.maximumNonSequentialZones.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.maximumNonSequentialZones.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.maximumNonSequentialZones.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.maximumNonSequentialZones.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.maximumNonSequentialZones.threshold = thresholdValue;
@@ -522,7 +522,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 48://zones emptied
                             deviceStats->sataStatistics.zonesEmptied.isThresholdValid = true;
                             deviceStats->sataStatistics.zonesEmptied.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.zonesEmptied.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.zonesEmptied.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.zonesEmptied.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.zonesEmptied.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.zonesEmptied.threshold = thresholdValue;
@@ -530,7 +530,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 56://suboptimal write commands
                             deviceStats->sataStatistics.suboptimalWriteCommands.isThresholdValid = true;
                             deviceStats->sataStatistics.suboptimalWriteCommands.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.suboptimalWriteCommands.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.suboptimalWriteCommands.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.suboptimalWriteCommands.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.suboptimalWriteCommands.threshold = thresholdValue;
@@ -538,7 +538,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 64://commands exceeding optimal limit
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.isThresholdValid = true;
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshold = thresholdValue;
@@ -546,7 +546,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 72://failed explicit opens
                             deviceStats->sataStatistics.failedExplicitOpens.isThresholdValid = true;
                             deviceStats->sataStatistics.failedExplicitOpens.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.failedExplicitOpens.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.failedExplicitOpens.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.failedExplicitOpens.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.failedExplicitOpens.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.failedExplicitOpens.threshold = thresholdValue;
@@ -554,7 +554,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 80://read rule violations
                             deviceStats->sataStatistics.readRuleViolations.isThresholdValid = true;
                             deviceStats->sataStatistics.readRuleViolations.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.readRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.readRuleViolations.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.readRuleViolations.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.readRuleViolations.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.readRuleViolations.threshold = thresholdValue;
@@ -562,7 +562,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         case 88://write rule violations
                             deviceStats->sataStatistics.writeRuleViolations.isThresholdValid = true;
                             deviceStats->sataStatistics.writeRuleViolations.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.writeRuleViolations.threshType = (eThresholdType)comparisonType;
+                            deviceStats->sataStatistics.writeRuleViolations.threshType = C_CAST(eThresholdType, comparisonType);
                             deviceStats->sataStatistics.writeRuleViolations.nonValidityTrigger = nonValidityTrigger;
                             deviceStats->sataStatistics.writeRuleViolations.validityTrigger = validityTrigger;
                             deviceStats->sataStatistics.writeRuleViolations.threshold = thresholdValue;
@@ -570,13 +570,14 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         default:
                             break;
                         }
+                        break;
                     default:
                         //unknown page, break
                         break;
                     }
                 }
             }
-            safe_Free_aligned(devStatsNotificationsLog);
+            safe_Free_aligned(devStatsNotificationsLog)
         }
         if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0,0))
         {
@@ -3638,15 +3639,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
@@ -3681,15 +3698,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
@@ -3724,15 +3757,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
@@ -3767,15 +3816,31 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = tempLogBuf[iter + 4];
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT8_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT16_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT32_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT64_MAX)
+                                {
+                                    deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
+                                }
                                 break;
                             default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
@@ -4386,6 +4451,17 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.minimumTemperatureSincePowerOn.isValueValid = true;
                             deviceStats->sasStatistics.minimumTemperatureSincePowerOn.statisticValue = tempLogBuf[iter + 9];
                             ++deviceStats->sasStatistics.statisticsPopulated;
+                            if (parameterLength > 6 && M_GETBITRANGE(tempLogBuf[iter + 4], 1, 0) == 1)
+                            {
+                                deviceStats->sasStatistics.maximumOtherTemperature.isSupported = true;
+                                deviceStats->sasStatistics.maximumOtherTemperature.isValueValid = true;
+                                deviceStats->sasStatistics.maximumOtherTemperature.statisticValue = tempLogBuf[iter + 10];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                deviceStats->sasStatistics.minimumOtherTemperature.isSupported = true;
+                                deviceStats->sasStatistics.minimumOtherTemperature.isValueValid = true;
+                                deviceStats->sasStatistics.minimumOtherTemperature.statisticValue = tempLogBuf[iter + 11];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                            }
                             break;
                         case 0x100://humidity report. (note: parameters 0100-01FF are for each humidity location reported...we are only going to care about the first one right now...)-TJE
                             if (tempLogBuf[iter + 2] & BIT4)
@@ -4453,6 +4529,17 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron.isValueValid = true;
                             deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron.statisticValue = tempLogBuf[iter + 9];
                             ++deviceStats->sasStatistics.statisticsPopulated;
+                            if (parameterLength > 6 && M_GETBITRANGE(tempLogBuf[iter + 4], 1, 0) == 1)
+                            {
+                                deviceStats->sasStatistics.maximumOtherRelativeHumidity.isSupported = true;
+                                deviceStats->sasStatistics.maximumOtherRelativeHumidity.isValueValid = true;
+                                deviceStats->sasStatistics.maximumOtherRelativeHumidity.statisticValue = tempLogBuf[iter + 10];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                deviceStats->sasStatistics.minimumOtherRelativeHumidity.isSupported = true;
+                                deviceStats->sasStatistics.minimumOtherRelativeHumidity.isValueValid = true;
+                                deviceStats->sasStatistics.minimumOtherRelativeHumidity.statisticValue = tempLogBuf[iter + 11];
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                            }
                             break;
                         default:
                             break;
@@ -4617,6 +4704,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger.isValueValid = true;
                             deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger.statisticValue = tempLogBuf[iter + 11];
                             ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
                         default:
                             break;
                         }
@@ -4674,7 +4762,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                             }
                             deviceStats->sasStatistics.dateOfManufacture.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            deviceStats->sasStatistics.dateOfManufacture.statisticValue |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                            deviceStats->sasStatistics.dateOfManufacture.statisticValue |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://accounting date
@@ -4702,7 +4790,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 }
                             }
                             deviceStats->sasStatistics.accountingDate.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            deviceStats->sasStatistics.accountingDate.statisticValue |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                            deviceStats->sasStatistics.accountingDate.statisticValue |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 3://specified cycle count over device lifetime
@@ -4836,7 +4924,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 {
                                     deviceStats->sasStatistics.dateOfManufacture.isThresholdValid = true;
                                     deviceStats->sasStatistics.dateOfManufacture.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                    deviceStats->sasStatistics.dateOfManufacture.threshold |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                                    deviceStats->sasStatistics.dateOfManufacture.threshold |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                                     scsi_Threshold_Comparison(&deviceStats->sasStatistics.dateOfManufacture);
                                 }
                                 break;
@@ -4846,7 +4934,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                                 {
                                     deviceStats->sasStatistics.accountingDate.isThresholdValid = true;
                                     deviceStats->sasStatistics.accountingDate.threshold = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                    deviceStats->sasStatistics.accountingDate.threshold |= (uint64_t)M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9]) << 32;
+                                    deviceStats->sasStatistics.accountingDate.threshold |= C_CAST(uint64_t, M_BytesTo2ByteValue(tempLogBuf[iter + 8], tempLogBuf[iter + 9])) << 32;
                                     scsi_Threshold_Comparison(&deviceStats->sasStatistics.accountingDate);
                                 }
                                 break;
@@ -6139,6 +6227,7 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                         }
                     }
                 }
+                break;
             default:
                 break;
             }
@@ -6227,6 +6316,11 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                             deviceStats->sasStatistics.writeRuleViolations.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
+                        case 11://Maximum implicitly open sequential or before required zones
+                            deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.isSupported = true;
+                            deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.isValueValid = true;
+                            deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
                         default:
                             break;
                         }
@@ -6238,6 +6332,280 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
                 }
                 //Thresholds are not defined/obsolete so no need to read them or attempt to read them.
             }
+                break;
+            default:
+                break;
+            }
+                break;
+            case LP_POWER_CONDITIONS_TRANSITIONS:
+                switch (subpageCode)
+                {
+                case 0:
+                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        deviceStats->sasStatistics.powerConditionTransitionsSupported = true;
+                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                        uint8_t parameterLength = 0;
+                        //loop through the data and gather the data from each parameter we care about getting.
+                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        {
+                            uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
+                            parameterLength = tempLogBuf[iter + 3];
+                            switch (parameterCode)
+                            {
+                            case 1://transitions to active
+                                deviceStats->sasStatistics.transitionsToActive.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToActive.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToActive.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToActive.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 2://transitions to idle a
+                                deviceStats->sasStatistics.transitionsToIdleA.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToIdleA.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToIdleA.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToIdleA.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 3://transitions to idle b
+                                deviceStats->sasStatistics.transitionsToIdleB.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToIdleB.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToIdleB.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToIdleB.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 4://transitions to idle c
+                                deviceStats->sasStatistics.transitionsToIdleC.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToIdleC.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToIdleC.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToIdleC.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 8://transitions to standby z
+                                deviceStats->sasStatistics.transitionsToStandbyZ.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToStandbyZ.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToStandbyZ.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToStandbyZ.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            case 9://transitions to standby y
+                                deviceStats->sasStatistics.transitionsToStandbyY.isSupported = true;
+                                deviceStats->sasStatistics.transitionsToStandbyY.isValueValid = true;
+                                deviceStats->sasStatistics.transitionsToStandbyY.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                                if (tempLogBuf[iter + 2] & BIT4)
+                                {
+                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    {
+                                    case 3:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                        break;
+                                    case 2:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                        break;
+                                    case 1:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                        break;
+                                    case 0:
+                                    default:
+                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                        break;
+                                    }
+                                }
+                                deviceStats->sasStatistics.transitionsToStandbyY.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                break;
+                            default:
+                                break;
+                            }
+                            if (parameterLength == 0)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+                break;
+            case LP_PROTOCOL_SPECIFIC_PORT:
+                switch (subpageCode)
+                {
+                case 0:
+                    //NOTE: This page is currently setup for SAS SSP
+                    //      I am not aware of other transports implementing this page at this time - TJE
+                    //This page is read in a 64k size to make sure we get as much as possible in a single command.
+                {
+                    uint16_t protocolSpecificDataLength = UINT16_MAX;
+                    uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (protSpData)
+                    {
+                        if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
+                        {
+                            //mimimum page length for a SAS drive assuming only 1 port and 1 phy is 64B. Each additional port adds a minimum of another 60 bytes
+                            uint32_t pageLength = M_BytesTo2ByteValue(protSpData[2], protSpData[3]) + LOG_PAGE_HEADER_LENGTH;
+                            uint16_t parameterLength = 4;
+                            uint16_t portCounter = 0;
+                            for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS && offset < protocolSpecificDataLength; offset += parameterLength + 4, ++portCounter)
+                            {
+                                uint16_t parameterCode = M_BytesTo2ByteValue(protSpData[offset + 0], protSpData[offset + 1]);
+                                parameterLength = protSpData[offset + 3];//4 bytes for the length of the header for the parameter code
+                                if (parameterLength > 0)
+                                {
+                                    uint8_t protocolIdentifier = M_Nibble0(protSpData[offset + 4]);
+                                    if (protocolIdentifier == SCSI_PROTOCOL_ID_SAS)
+                                    {
+                                        uint8_t numberOfPhys = protSpData[offset + 7];
+                                        uint32_t phyOffset = offset + 8;
+                                        uint8_t phyDescriptorLength = 0;
+                                        uint8_t phyCounter = 0;
+                                        deviceStats->sasStatistics.protocolSpecificStatisticsSupported = true;
+                                        deviceStats->sasStatistics.protocolStatisticsType = STAT_PROT_SAS;
+                                        deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].portID = parameterCode;
+                                        deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].sasProtStatsValid = true;
+                                        for (uint8_t phyIter = 0; phyIter < numberOfPhys && phyOffset < pageLength && phyCounter < SAS_STATISTICS_MAX_PHYS; ++phyIter, phyOffset += phyDescriptorLength + 4, ++phyCounter)
+                                        {
+                                            //now at the actual phy data, so we can read what we want to report
+                                            phyDescriptorLength = protSpData[phyOffset + 3];
+                                            if (phyDescriptorLength > 0)
+                                            {
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].sasPhyStatsValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyID = protSpData[phyOffset + 1];
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 32], protSpData[phyOffset + 33], protSpData[phyOffset + 34], protSpData[phyOffset + 35]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 36], protSpData[phyOffset + 37], protSpData[phyOffset + 38], protSpData[phyOffset + 39]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 40], protSpData[phyOffset + 41], protSpData[phyOffset + 42], protSpData[phyOffset + 43]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isSupported = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isValueValid = true;
+                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 44], protSpData[phyOffset + 45], protSpData[phyOffset + 46], protSpData[phyOffset + 47]);
+                                                ++deviceStats->sasStatistics.statisticsPopulated;
+                                                ++deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount;
+                                                //TODO: Phy event descriptors? Not sure this is needed right now -TJE
+                                                //      Events would be yet another loop depending on how many are reported.
+                                            }
+                                            else
+                                            {
+                                                continue;
+                                            }
+                                        }
+                                        ++deviceStats->sasStatistics.sasProtStats.portCount;
+                                    }
+                                    //TODO: If other protocols report data here, we will need to add it. So far no other protocol spec lists a log page - TJE
+                                }
+                                else
+                                {
+                                    //parameters without a length mean move on to the next one since no additional data was provided.
+                                    continue;
+                                }
+                            }
+                        }
+                        safe_Free_aligned(protSpData);
+                    }
+                }
                 break;
             default:
                 break;
@@ -6255,6 +6623,151 @@ int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         deviceStats->sasStatistics.dateAndTimeTimestamp.isSupported = true;
         deviceStats->sasStatistics.dateAndTimeTimestamp.isValueValid = true;
         deviceStats->sasStatistics.dateAndTimeTimestamp.statisticValue = M_BytesTo8ByteValue(0, 0, tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7], tempLogBuf[8], tempLogBuf[9]);
+    }
+    //Get the Grown list count
+    bool gotGrownDefectCount = false;
+    eSCSIAddressDescriptors defectFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    int defectRet = SUCCESS;
+    if (device->drive_info.deviceMaxLba > UINT32_MAX)
+    {
+        defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    }
+    while (!gotGrownDefectCount)
+    {
+        //This loop is so that we can retry with different formats if it does not work the first time - TJE
+        //Attempt LBA mode, then attempt pchs, then call it quits if neither works.
+        //If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
+        //NOTE: SBC2 and later added extended formats
+        uint32_t defectListLength = 0;
+        memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, false, true, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        {
+            gotGrownDefectCount = true;
+            defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
+        }
+        else
+        {
+            defectRet = scsi_Read_Defect_Data_10(device, false, true, defectFormat, 4, tempLogBuf);
+            if (defectRet == SUCCESS)
+            {
+                gotGrownDefectCount = true;
+                defectListLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+            }
+        }
+        if (defectRet != SUCCESS && !gotGrownDefectCount)
+        {
+            if (defectFormat == AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                //special case to restart the loop again with long address types in case short are not supported, but it isn't a high capacity devices
+                defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else
+            {
+                break;
+            }
+        }
+        else
+        {
+            deviceStats->sasStatistics.defectStatisticsSupported = true;
+            deviceStats->sasStatistics.grownDefects.isSupported = true;
+            ++deviceStats->sasStatistics.statisticsPopulated;
+            switch (defectFormat)
+            {
+            case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.grownDefects.isValueValid = true;
+                deviceStats->sasStatistics.grownDefects.statisticValue = defectListLength / 4;
+                break;
+            case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.grownDefects.isValueValid = true;
+                deviceStats->sasStatistics.grownDefects.statisticValue = defectListLength / 8;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    //Get the primary list count
+    //most likely the primary list in block format won't work, but trying it anyways as a first step - TJE
+    bool gotPrimaryDefectCount = false;
+    defectFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    defectRet = SUCCESS;
+    if (device->drive_info.deviceMaxLba > UINT32_MAX)
+    {
+        defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+    }
+    while (!gotPrimaryDefectCount)
+    {
+        //This loop is so that we can retry with different formats if it does not work the first time - TJE
+        //Attempt LBA mode, then attempt pchs, then call it quits if neither works.
+        //If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
+        //NOTE: SBC2 and later added extended formats
+        uint32_t defectListLength = 0;
+        memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, true, false, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        {
+            gotPrimaryDefectCount = true;
+            defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
+        }
+        else
+        {
+            defectRet = scsi_Read_Defect_Data_10(device, true, false, defectFormat, 4, tempLogBuf);
+            if (defectRet == SUCCESS)
+            {
+                gotPrimaryDefectCount = true;
+                defectListLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+            }
+        }
+        if (defectRet != SUCCESS && !gotPrimaryDefectCount)
+        {
+            if (defectFormat == AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                defectFormat = AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else if (defectFormat == AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR)
+            {
+                //special case to restart the loop again with long address types in case short are not supported, but it isn't a high capacity devices
+                defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else
+            {
+                break;
+            }
+        }
+        else
+        {
+            deviceStats->sasStatistics.defectStatisticsSupported = true;
+            deviceStats->sasStatistics.primaryDefects.isSupported = true;
+            ++deviceStats->sasStatistics.statisticsPopulated;
+            switch (defectFormat)
+            {
+            case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.primaryDefects.isValueValid = true;
+                deviceStats->sasStatistics.primaryDefects.statisticValue = defectListLength / 4;
+                break;
+            case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
+            case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
+                deviceStats->sasStatistics.primaryDefects.isValueValid = true;
+                deviceStats->sasStatistics.primaryDefects.statisticValue = defectListLength / 8;
+                break;
+            default:
+                break;
+            }
+        }
     }
     return ret;
 }
@@ -6313,11 +6826,13 @@ void scsi_Threshold_Comparison(statistic *ptrStatistic)
     return;
 }
 
+#define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
+
 void print_Count_Statistic(statistic theStatistic, char *statisticName, char *statisticUnit)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6340,29 +6855,29 @@ void print_Count_Statistic(statistic theStatistic, char *statisticName, char *st
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6385,7 +6900,7 @@ void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisti
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6408,36 +6923,36 @@ void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisti
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
             if (theStatistic.statisticValue != 65535)
             {
-                double workloadUtilization = (double)theStatistic.statisticValue;
+                double workloadUtilization = C_CAST(double, theStatistic.statisticValue);
                 workloadUtilization *= 0.01;//convert to fractional percentage
                 printf("%0.02f%%", workloadUtilization);
             }
@@ -6458,7 +6973,7 @@ void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statis
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6481,29 +6996,29 @@ void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statis
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6562,7 +7077,7 @@ void print_Resource_Availability_Statistic(statistic theStatistic, char *statist
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6585,34 +7100,34 @@ void print_Resource_Availability_Statistic(statistic theStatistic, char *statist
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            double fractionAvailable = (double)M_Word0(theStatistic.statisticValue) / 65535.0;
+            double fractionAvailable = C_CAST(double, M_Word0(theStatistic.statisticValue)) / 65535.0;
             printf("%0.02f%% Available", fractionAvailable);
         }
         else
@@ -6627,7 +7142,7 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6650,29 +7165,29 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6699,7 +7214,7 @@ void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticNa
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6722,29 +7237,29 @@ void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticNa
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6777,7 +7292,7 @@ void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6800,34 +7315,34 @@ void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            printf("%"PRId8" C", (int8_t)theStatistic.statisticValue);
+            printf("%"PRId8" C", C_CAST(int8_t, theStatistic.statisticValue));
         }
         else
         {
@@ -6841,7 +7356,7 @@ void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *stati
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6864,29 +7379,29 @@ void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *stati
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6909,7 +7424,7 @@ void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6932,29 +7447,29 @@ void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6985,7 +7500,7 @@ void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7008,29 +7523,29 @@ void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7066,7 +7581,7 @@ void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticN
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7089,29 +7604,29 @@ void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticN
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7161,11 +7676,12 @@ void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticN
     }
 }
 
-void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
+//This is a different function to be more specific to SAS environmental limits/reporting pages
+void print_Environmental_Temperature_Statistic(statistic theStatistic, char* statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[30] = { 0 };
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7188,40 +7704,126 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName)
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                sprintf(displayThreshold, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                sprintf(displayThreshold, "=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                sprintf(displayThreshold, "!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                sprintf(displayThreshold, ">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                sprintf(displayThreshold, "<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                sprintf(displayThreshold, "%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            sprintf(displayThreshold, "N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+        }
+        printf(" %-16s ", displayThreshold);
+        if (theStatistic.isValueValid)
+        {
+            int8_t temperatureValue = C_CAST(int8_t, theStatistic.statisticValue);
+            if (temperatureValue == -128)
+            {
+                if (isLimit)
+                {
+                    printf("No Temperature Limit");
+                }
+                else
+                {
+                    printf("No Valid Temperature");
+                }
+            }
+            else
+            {
+                printf("%" PRId8 " C", temperatureValue);
+            }
+        }
+        else
+        {
+            printf("Invalid");
+        }
+        printf("\n");
+    }
+}
+
+void print_Humidity_Statistic(statistic theStatistic, char *statisticName, bool isLimit)
+{
+    if (theStatistic.isSupported)
+    {
+        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        if (theStatistic.monitoredConditionMet)
+        {
+            printf("!");
+        }
+        else if (theStatistic.isThresholdValid)
+        {
+            printf("*");
+        }
+        else if (theStatistic.supportsNotification)
+        {
+            printf("-");
+        }
+        else
+        {
+            printf(" ");
+        }
+        printf("%-60s", statisticName);
+        if (theStatistic.isThresholdValid)
+        {
+            switch (theStatistic.threshType)
+            {
+            case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_NO_TRIGGER:
+            default:
+                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                break;
+            }
+        }
+        else
+        {
+            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
             if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
             {
-                printf("%"PRIu8"", (uint8_t)theStatistic.statisticValue);
+                printf("%"PRIu8"", C_CAST(uint8_t, theStatistic.statisticValue));
             }
             else if (theStatistic.statisticValue == 255)
             {
-                printf("No valid relative humidity");
+                if (isLimit)
+                {
+                    printf("No relative humidity limit");
+                }
+                else
+                {
+                    printf("No valid relative humidity");
+                }
             }
             else
             {
@@ -7345,22 +7947,23 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
         }
         for (uint8_t vendorSpecificIter = 0, statisticsFound = 0; vendorSpecificIter < 64 && statisticsFound < deviceStats->sataStatistics.vendorSpecificStatisticsPopulated; ++vendorSpecificIter)
         {
-            char statisticName[64] = { 0 };
+            #define VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH 64
+            char statisticName[VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH] = { 0 };
             if (SEAGATE == is_Seagate_Family(device))
             {
                 switch (vendorSpecificIter + 1)
                 {
                 case 1://pressure
-                    sprintf(statisticName, "Pressure Min/Max Reached");
+                    snprintf(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH, "Pressure Min/Max Reached");
                     break;
                 default:
-                    sprintf(statisticName, "Vendor Specific Statistic %"PRIu8, vendorSpecificIter + 1);
+                    snprintf(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
                     break;
                 }
             }
             else
             {
-                sprintf(statisticName, "Vendor Specific Statistic %"PRIu8, vendorSpecificIter + 1);
+                snprintf(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH, "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
             }
             if (deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter].isSupported)
             {
@@ -7460,36 +8063,40 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
     if (deviceStats->sasStatistics.environmentReportingSupported)
     {
         printf("\n---Environmental Reporting---\n");
-        print_Temperature_Statistic(deviceStats->sasStatistics.currentTemperature, "Temperature");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMaximumTemperature, "Lifetime Maximum Temperature");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMinimumTemperature, "Lifetime Minimum Temperature");
-        print_Temperature_Statistic(deviceStats->sasStatistics.maximumTemperatureSincePowerOn, "Maximum Temperature Since Power On");
-        print_Temperature_Statistic(deviceStats->sasStatistics.minimumTemperatureSincePowerOn, "Minimum Temperature Since Power On");
-        print_Humidity_Statistic(deviceStats->sasStatistics.currentRelativeHumidity, "Relative Humidity");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMaximumRelativeHumidity, "Lifetime Maximum Relative Humidity");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMinumumRelativeHumidity, "Lifetime Minimum Relative Humidity");
-        print_Humidity_Statistic(deviceStats->sasStatistics.maximumRelativeHumiditySincePoweron, "Maximum Relative Humidity Since Power On");
-        print_Humidity_Statistic(deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron, "Minimum Relative Humidity Since Power On");
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.currentTemperature, "Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMaximumTemperature, "Lifetime Maximum Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMinimumTemperature, "Lifetime Minimum Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.maximumTemperatureSincePowerOn, "Maximum Temperature Since Power On", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.minimumTemperatureSincePowerOn, "Minimum Temperature Since Power On", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.maximumOtherTemperature, "Maximum Other Temperature", false);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.minimumOtherTemperature, "Minimum Other Temperature", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.currentRelativeHumidity, "Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMaximumRelativeHumidity, "Lifetime Maximum Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lifetimeMinumumRelativeHumidity, "Lifetime Minimum Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.maximumRelativeHumiditySincePoweron, "Maximum Relative Humidity Since Power On", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron, "Minimum Relative Humidity Since Power On", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.maximumOtherRelativeHumidity, "Maximum Other Relative Humidity", false);
+        print_Humidity_Statistic(deviceStats->sasStatistics.minimumOtherRelativeHumidity, "Minimum Other Relative Humidity", false);
     }
     if (deviceStats->sasStatistics.environmentReportingSupported)
     {
         printf("\n---Environmental Limits---\n");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitTrigger, "High Critical Temperature Limit Trigger");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitReset, "High Critical Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitReset, "Low Critical Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitTrigger, "Low Critical Temperature Limit Trigger");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitTrigger, "High Operating Temperature Limit Trigger");
-        print_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitReset, "High Operating Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitReset, "Low Operating Temperature Limit Reset");
-        print_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitTrigger, "Low Operating Temperature Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitTrigger, "High Critical Relative Humidity Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitReset, "High Critical Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitReset, "Low Critical Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitTrigger, "Low Critical Relative Humidity Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitTrigger, "High Operating Relative Humidity Limit Trigger");
-        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitReset, "High Operating Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitReset, "Low Operating Relative Humidity Limit Reset");
-        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger, "Low Operating Relative Humidity Limit Trigger");
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitTrigger, "High Critical Temperature Limit Trigger", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitReset, "High Critical Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitReset, "Low Critical Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowCriticalTemperatureLimitTrigger, "Low Critical Temperature Limit Trigger", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitTrigger, "High Operating Temperature Limit Trigger", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highOperatingTemperatureLimitReset, "High Operating Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitReset, "Low Operating Temperature Limit Reset", true);
+        print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lowOperatingTemperatureLimitTrigger, "Low Operating Temperature Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitTrigger, "High Critical Relative Humidity Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highCriticalHumidityLimitReset, "High Critical Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitReset, "Low Critical Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowCriticalHumidityLimitTrigger, "Low Critical Relative Humidity Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitTrigger, "High Operating Relative Humidity Limit Trigger", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.highOperatingHumidityLimitReset, "High Operating Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitReset, "Low Operating Relative Humidity Limit Reset", true);
+        print_Humidity_Statistic(deviceStats->sasStatistics.lowOperatingHumidityLimitTrigger, "Low Operating Relative Humidity Limit Trigger", true);
     }
     if (deviceStats->sasStatistics.startStopCycleCounterSupported)
     {
@@ -7500,6 +8107,16 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedStartStopCycles, "Accumulated Start-Stop Cycles", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime, "Specified Load-Unload Count Over Device Lifetime", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedLoadUnloadCycles, "Accumulated Load-Unload Cycles", NULL);
+    }
+    if (deviceStats->sasStatistics.powerConditionTransitionsSupported)
+    {
+        printf("\n---Power Condition Transitions---\n");
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToActive, "Accumulated Transitions to Active", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleA, "Accumulated Transitions to Idle A", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleB, "Accumulated Transitions to Idle B", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleC, "Accumulated Transitions to Idle C", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyZ, "Accumulated Transitions to Standby Z", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyY, "Accumulated Transitions to Standby Y", NULL);
     }
     if (deviceStats->sasStatistics.utilizationSupported)
     {
@@ -7518,6 +8135,12 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedPowerOnMinutes, "Accumulated Power On Minutes", "minutes");
         print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundScansPerformed, "Number Of Background Scans Performed", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundMediaScansPerformed, "Number Of Background Media Scans Performed", NULL);
+    }
+    if (deviceStats->sasStatistics.defectStatisticsSupported)
+    {
+        printf("\n---Defect Statistics---\n");
+        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", NULL);
     }
     if (deviceStats->sasStatistics.pendingDefectsSupported)
     {
@@ -7586,6 +8209,33 @@ int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatisti
         print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
         print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones, "Maximum Implicitly Open Sequential Or Before Required Zones", NULL);
+    }
+    if (deviceStats->sasStatistics.protocolSpecificStatisticsSupported)
+    {
+        if (deviceStats->sasStatistics.protocolStatisticsType == STAT_PROT_SAS)
+        {
+            printf("\n---SAS Protocol Statistics---\n");
+            //SAS protocol can have multiple ports and multiple phys per port
+            //So this needs to loop and output which port ID and phy ID each statistic is for
+            for (uint16_t portIter = 0; portIter < SAS_STATISTICS_MAX_PORTS && portIter < deviceStats->sasStatistics.sasProtStats.portCount; ++portIter)
+            {
+                if (deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].sasProtStatsValid)
+                {
+                    for (uint8_t phyIter = 0; phyIter < SAS_STATISTICS_MAX_PHYS && phyIter < deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].phyCount; ++phyIter)
+                    {
+                        if (deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].sasPhyStatsValid)
+                        {
+                            printf("\t--Port %" PRIu16 " - Phy %" PRIu8 "--\n", deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID, deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyID);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].invalidDWORDCount, "Invalid Dword Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].runningDisparityErrorCount, "Running Disparit Error Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].lossOfDWORDSynchronizationCount, "Loss of Dword Snchronization Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyResetProblemCount, "Phy Reset Problem Count", NULL);
+                        }
+                    }
+                }
+            }
+        }
     }
     return ret;
 }

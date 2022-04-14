@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,6 @@
 // 
 #pragma once
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 #include "operations_Common.h"
 #include "nvme_helper.h"
 
@@ -94,10 +93,9 @@ extern "C"
     //  Entry:
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void nvme_Print_Feature_Identifiers_Help();
+    OPENSEA_OPERATIONS_API void nvme_Print_Feature_Identifiers_Help(void);
 
     //-----------------------------------------------------------------------------
     //
@@ -186,4 +184,3 @@ extern "C"
 #if defined (__cplusplus)
 }
 #endif
-#endif //DISABLE_NVME_PASSTHROUGH

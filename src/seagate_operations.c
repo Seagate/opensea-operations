@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,7 +28,7 @@
 int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
     int ret = UNKNOWN;
-    uint8_t *sctSATAPhySpeed = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *sctSATAPhySpeed = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (sctSATAPhySpeed == NULL)
     {
         perror("Calloc Failure!\n");
@@ -37,17 +37,17 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
     //speedGen = 1 means generation 1 (1.5Gb/s), 2 =  2nd Generation (3.0Gb/s), 3 = 3rd Generation (6.0Gb/s)
     if (speedGen > 3)
     {
-        safe_Free_aligned(sctSATAPhySpeed);
+        safe_Free_aligned(sctSATAPhySpeed)
         return BAD_PARAMETER;
     }
 
     //fill in the buffer with the correct information
     //action code
-    sctSATAPhySpeed[0] = (uint8_t)SCT_SEAGATE_SPEED_CONTROL;
-    sctSATAPhySpeed[1] = (uint8_t)(SCT_SEAGATE_SPEED_CONTROL >> 8);
+    sctSATAPhySpeed[0] = M_Byte0(SCT_SEAGATE_SPEED_CONTROL);
+    sctSATAPhySpeed[1] = M_Byte1(SCT_SEAGATE_SPEED_CONTROL);
     //function code
-    sctSATAPhySpeed[2] = (uint8_t)BIST_SET_SATA_PHY_SPEED;
-    sctSATAPhySpeed[3] = (uint8_t)(BIST_SET_SATA_PHY_SPEED >> 8);
+    sctSATAPhySpeed[2] = M_Byte0(BIST_SET_SATA_PHY_SPEED);
+    sctSATAPhySpeed[3] = M_Byte1(BIST_SET_SATA_PHY_SPEED);
     //feature code
     sctSATAPhySpeed[4] = RESERVED;
     sctSATAPhySpeed[5] = RESERVED;
@@ -64,7 +64,7 @@ int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 
     ret = send_ATA_SCT_Command(device, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
 
-    safe_Free_aligned(sctSATAPhySpeed);
+    safe_Free_aligned(sctSATAPhySpeed)
     return ret;
 }
 
@@ -89,7 +89,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
         return NOT_SUPPORTED;
     }
     uint16_t phyControlLength = 104 + MODE_PARAMETER_HEADER_10_LEN;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + then add 8 bytes for mode parameter header. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
-    uint8_t *sasPhyControl = (uint8_t*)calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *sasPhyControl = C_CAST(uint8_t*, calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!sasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -116,7 +116,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                 sasPhyControl = temp;
                 if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
                 {
-                    safe_Free_aligned(sasPhyControl);
+                    safe_Free_aligned(sasPhyControl)
                     return FAILURE;
                 }
             }
@@ -124,7 +124,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
             {
                 uint8_t numberOfPhys = sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 7];
                 uint32_t phyDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 8;//this will be set to the beginning of the phy descriptors so that when looping through them, it is easier code to read.
-                for (uint16_t phyIter = 0; phyIter < (uint16_t)numberOfPhys && phyDescriptorOffset < phyControlLength; ++phyIter, phyDescriptorOffset += 48)
+                for (uint16_t phyIter = 0; phyIter < C_CAST(uint16_t, numberOfPhys) && phyDescriptorOffset < phyControlLength; ++phyIter, phyDescriptorOffset += 48)
                 {
                     uint8_t phyIdentifier = sasPhyControl[phyDescriptorOffset + 1];
                     //check if the caller requested changing all phys or a specific phy and only modify it's descriptor if either of those are true.
@@ -184,7 +184,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         ret = FAILURE;
     }
-    safe_Free_aligned(sasPhyControl);
+    safe_Free_aligned(sasPhyControl)
     return ret;
 }
 
@@ -286,7 +286,7 @@ int seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLe
     if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
     {
         uint16_t saveToDrive = 0x0001;//always set this because this feature requires saving for it to even work.
-        uint16_t state = (uint16_t)spinupLevel;
+        uint16_t state = C_CAST(uint16_t, spinupLevel);
         if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_SET_STATE_AND_OPTIONS, SEAGATE_SCT_FEATURE_CONTROL_LOW_CURRENT_SPINUP, &state, &saveToDrive))
         {
             ret = SUCCESS;
@@ -324,7 +324,7 @@ int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state)
             {
                 return NOT_SUPPORTED;
             }
-            if (SUCCESS == ata_Set_Features(device, (eATASetFeaturesSubcommands)SEAGATE_SF_LOW_CURRENT_SPINUP, 0, secCnt, LOW_CURRENT_SPINUP_LBA_MID_SIG, LOW_CURRENT_SPINUP_LBA_HI_SIG))
+            if (SUCCESS == ata_Set_Features(device, C_CAST(eATASetFeaturesSubcommands, SEAGATE_SF_LOW_CURRENT_SPINUP), 0, secCnt, LOW_CURRENT_SPINUP_LBA_MID_SIG, LOW_CURRENT_SPINUP_LBA_HI_SIG))
             {
                 ret = SUCCESS;
             }
@@ -342,7 +342,7 @@ int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
         {
             if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
             {
-                uint16_t state = (uint16_t)mode;
+                uint16_t state = C_CAST(uint16_t, mode);
                 uint16_t saveToDrive = 0x0001;
                 if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_SET_STATE_AND_OPTIONS, SEAGATE_SCT_FEATURE_CONTROL_SPEAD_SPECTRUM_CLOCKING, &state, &saveToDrive))
                 {
@@ -380,7 +380,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
                 if (SUCCESS == send_ATA_SCT_Feature_Control(device, SCT_FEATURE_FUNCTION_RETURN_CURRENT_STATE, SEAGATE_SCT_FEATURE_CONTROL_SPEAD_SPECTRUM_CLOCKING, &state, &saveToDrive))
                 {
                     ret = SUCCESS;
-                    *mode = (eSSCFeatureState)state;
+                    *mode = C_CAST(eSSCFeatureState, state);
                 }
                 else
                 {
@@ -647,7 +647,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                 }
                 return SUCCESS;
             }
-            uint8_t *pcModePage = (uint8_t*)calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
@@ -710,30 +710,36 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                     }
                 }
             }
-            safe_Free_aligned(pcModePage);
+            safe_Free_aligned(pcModePage)
         }
     }
     return ret;
 }
 
-int seagate_Set_Power_Balance(tDevice *device, bool enable)
+int seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (enable)
-        {
-            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
-        }
-        else
-        {
-            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
-        }
+		switch (powerMode)
+		{
+		case POWER_BAL_ENABLE:
+			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
+			break;
+		case POWER_BAL_DISABLE:
+			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
+			break;
+		case POWER_BAL_LIMITED:
+			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_LIMITED, 0, 0);
+			break;
+		default:
+			break;
+		}
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         bool oldMethod = false;
-        uint8_t *pcModePage = (uint8_t*)calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!pcModePage)
         {
             return MEMORY_FAILURE;
@@ -755,7 +761,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             if (oldMethod)
             {
                 //Active field is NOT used, only the power condition identifier, which must be 0 or 1.
-                if (enable)
+                if (powerMode == POWER_BAL_ENABLE)
                 {
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = 1;
                 }
@@ -767,7 +773,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             else
             {
                 //Active field IS used and must be set to highest (disabled) or lowest (enabled)
-                if (enable)
+                if (powerMode == POWER_BAL_ENABLE)
                 {
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] = 3;
                 }
@@ -779,7 +785,7 @@ int seagate_Set_Power_Balance(tDevice *device, bool enable)
             //now do mode select with the data for the mode to set
             ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
         }
-        safe_Free_aligned(pcModePage);
+        safe_Free_aligned(pcModePage)
     }
     return ret;
 }
@@ -793,7 +799,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *smartData = (uint8_t*)calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *smartData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!smartData)
             {
                 return MEMORY_FAILURE;
@@ -814,7 +820,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(smartData);
+            safe_Free_aligned(smartData)
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -822,7 +828,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (iddDiagPage)
             {
                 if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15))
@@ -832,7 +838,7 @@ int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport)
                     iddSupport->iddLong = true;//long
                 }
             }
-            safe_Free_aligned(iddDiagPage);
+            safe_Free_aligned(iddDiagPage)
         }
     }
     return ret;
@@ -913,7 +919,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //read diagnostic page
-        uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (iddDiagPage)
         {
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
@@ -943,7 +949,7 @@ int get_IDD_Status(tDevice *device, uint8_t *status)
         {
             ret = MEMORY_FAILURE;
         }
-        safe_Free_aligned(iddDiagPage);
+        safe_Free_aligned(iddDiagPage)
     }
     return ret;
 }
@@ -961,71 +967,71 @@ void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool
     case 0x00:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD routine completed without error.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine completed without error.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD routine completed without error or no IDD has ever been run.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD routine completed without error or no IDD has ever been run.");
         }
         break;
     case 0x01:
 
-        sprintf(translatedString, "The IDD routine was aborted by the host.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine was aborted by the host.");
         break;
     case 0x02:
-        sprintf(translatedString, "The IDD routine was interrupted by the host with a hardware or software reset.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine was interrupted by the host with a hardware or software reset.");
         break;
     case 0x03:
-        sprintf(translatedString, "A fatal error or unknown test error occurred while the device was executing its IDD routine and the device was unable to complete the IDD routine.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "A fatal error or unknown test error occurred while the device was executing its IDD routine and the device was unable to complete the IDD routine.");
         break;
     case 0x04:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having a test element that failed and the test element that failed is not known.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having a test element that failed and the test element that failed is not known.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having a test element that failed and the test element that failed is not known.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having a test element that failed and the test element that failed is not known.");
         }
         break;
     case 0x05:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having the electrical element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having the electrical element of the test failed.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having the electrical element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having the electrical element of the test failed.");
         }
         break;
     case 0x06:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having the servo (and/or seek) test element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having the servo (and/or seek) test element of the test failed.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
         }
         break;
     case 0x07:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having the read element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having the read element of the test failed.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having the read element of the test failed.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having the read element of the test failed.");
         }
         break;
     case 0x08:
         if (justRanDST)
         {
-            sprintf(translatedString, "The IDD completed having a test element that failed and the device is suspected of having handling damage.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD completed having a test element that failed and the device is suspected of having handling damage.");
         }
         else
         {
-            sprintf(translatedString, "The previous IDD completed having a test element that failed and the device is suspected of having handling damage.");
+            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The previous IDD completed having a test element that failed and the device is suspected of having handling damage.");
         }
         break;
     case 0x09:
@@ -1034,19 +1040,19 @@ void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool
     case 0x0C:
     case 0x0D:
     case 0x0E:
-        sprintf(translatedString, "Reserved Status.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
         break;
     case 0x0F:
-        sprintf(translatedString, "IDD in progress.");
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "IDD in progress.");
         break;
     default:
-        sprintf(translatedString, "Error, unknown status: %" PRIX8 "h.", status);
+        snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
     }
     return;
 }
 
 
-int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveForeground)
+static int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveForeground)
 {
     int ret = NOT_SUPPORTED;
     os_Lock_Device(device);
@@ -1089,7 +1095,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //send diagnostic
-        uint8_t *iddDiagPage = (uint8_t*)calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (iddDiagPage)
         {
             uint32_t commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;
@@ -1103,7 +1109,7 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
                 iddDiagPage[1] |= BIT6;
                 break;
             default:
-                safe_Free(iddDiagPage);
+                safe_Free(iddDiagPage)
                 os_Unlock_Device(device);
                 return NOT_SUPPORTED;
             }
@@ -1127,12 +1133,42 @@ int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool captiveFor
             iddDiagPage[3] = 0x08;//page length
             iddDiagPage[4] = 1 << 4;//revision number 1, status of zero
             ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 12, iddDiagPage, 12, commandTimeoutSeconds);
-            safe_Free_aligned(iddDiagPage);
+            safe_Free_aligned(iddDiagPage)
         }
         else
         {
             ret = MEMORY_FAILURE;
         }
+    }
+    if (ret != SUCCESS)
+    {
+        if (device->drive_info.drive_type == SCSI_DRIVE)
+        {
+            //check the sense data. The problem may be that captive/foreground mode isn't supported for the long test
+            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
+            {
+                //TODO: Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
+                return NOT_SUPPORTED;
+            }
+            else
+            {
+                return FAILURE;
+            }
+        }
+        else
+        {
+            return FAILURE;
+        }
+    }
+    uint32_t commandTimeSeconds = C_CAST(uint32_t, device->drive_info.lastCommandTimeNanoSeconds / 1e9);
+    if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
+    {
+        //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
+        //It needs time to spin back up and be ready to accept commands again.
+        //This is being done in both captive/foreground and offline/background modes due to differences between some drive firmwares.
+        delay_Seconds(IDD_READY_TIME_SECONDS - commandTimeSeconds);
     }
     os_Unlock_Device(device);
     return ret;
@@ -1176,7 +1212,9 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                 }
                 //if we are here, then an operation isn't already in progress so time to start it
                 result = start_IDD_Operation(device, IDDtest, captiveForeground);
-                if (result != SUCCESS)
+                //Moving this code to start_IDD_Operation function, as we want to lock the drive for 2 mins.
+                //This is to make sure that drive is not getting any command, even outside of tool for 2 mins.
+                /*if (result != SUCCESS)
                 {
                     if (device->drive_info.drive_type == SCSI_DRIVE)
                     {
@@ -1198,14 +1236,14 @@ int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool capti
                         return FAILURE;
                     }
                 }
-                uint32_t commandTimeSeconds = (uint32_t)(device->drive_info.lastCommandTimeNanoSeconds / 1e9);
+                uint32_t commandTimeSeconds = C_CAST(uint32_t, device->drive_info.lastCommandTimeNanoSeconds / 1e9);
                 if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
                 {
                     //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
                     //It needs time to spin back up and be ready to accept commands again.
                     //This is being done in both captive/foreground and offline/background modes due to differences between some drive firmwares.
                     delay_Seconds(IDD_READY_TIME_SECONDS - commandTimeSeconds);
-                }
+                }*/
                 if (SUCCESS == result && captiveForeground)
                 {
                     int ret = get_IDD_Status(device, &status);
@@ -1363,13 +1401,13 @@ int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t pwrTelLogPg[512] = { 0 };
-        pwrTelLogPg[0] = (uint8_t)SEAGATE_ATA_LOG_POWER_TELEMETRY;
+        pwrTelLogPg[0] = C_CAST(uint8_t, SEAGATE_ATA_LOG_POWER_TELEMETRY);
         pwrTelLogPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
         pwrTelLogPg[2] = RESERVED;
         pwrTelLogPg[3] = RESERVED;
         pwrTelLogPg[4] = M_Byte0(timeMeasurementSeconds);
         pwrTelLogPg[5] = M_Byte1(timeMeasurementSeconds);
-        pwrTelLogPg[6] = (uint8_t)measurementOption;
+        pwrTelLogPg[6] = C_CAST(uint8_t, measurementOption);
         //remaining bytes are reserved
         //send write log ext
         ret = ata_Write_Log_Ext(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, 0, pwrTelLogPg, 512, device->drive_info.ata_Options.readLogWriteLogDMASupported, false);
@@ -1377,13 +1415,13 @@ int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, 
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t pwrTelDiagPg[16] = { 0 };
-        pwrTelDiagPg[0] = (uint8_t)SEAGATE_DIAG_POWER_MEASUREMENT;
+        pwrTelDiagPg[0] = C_CAST(uint8_t, SEAGATE_DIAG_POWER_MEASUREMENT);
         pwrTelDiagPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
         pwrTelDiagPg[2] = M_Byte1(12);//page length msb
         pwrTelDiagPg[3] = M_Byte0(12);//page length lsb
         pwrTelDiagPg[4] = M_Byte1(timeMeasurementSeconds);
         pwrTelDiagPg[5] = M_Byte0(timeMeasurementSeconds);
-        pwrTelDiagPg[6] = (uint8_t)measurementOption;
+        pwrTelDiagPg[6] = C_CAST(uint8_t, measurementOption);
         pwrTelDiagPg[7] = RESERVED;
         pwrTelDiagPg[8] = RESERVED;
         pwrTelDiagPg[9] = RESERVED;
@@ -1414,7 +1452,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         ret = get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &powerTelemetryLogSize, true, false);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
                 ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, NULL, NULL, true, false, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, 0);
@@ -1435,7 +1473,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         ret = get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &powerTelemetryLogSize, false, rb16);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = (uint8_t *)calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+            powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
                 ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, NULL, false, rb16, NULL, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, NULL);
@@ -1487,7 +1525,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
             }
         }
     }
-    safe_Free_aligned(powerTelemetryLog);
+    safe_Free_aligned(powerTelemetryLog)
     return ret;
 }
 

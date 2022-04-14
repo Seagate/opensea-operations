@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -94,7 +94,6 @@ extern "C" {
     //!   \param[in] elementList = pointer to the element list that holds each of the physical element descriptors
     //!   \param[in] depopulateTime = time to perform a depopulate. Will be displayed on the screen by this function
     //  Exit:
-    //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalElement elementList, uint64_t depopulateTime);

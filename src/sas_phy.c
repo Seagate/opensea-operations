@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,7 +27,6 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
             {
             case DIAG_PAGE_PROTOCOL_SPECIFIC:
                 return true; //TODO: rather than just return true, we should make sure that the protocol is actually SAS by checking for protocol identifier 6h from somewhere...-TJE
-                break;
             default:
                 break;
             }
@@ -48,12 +47,12 @@ int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, e
     diagPage[2] = 0x00;
     diagPage[3] = 0x1C;//see SPL
     diagPage[4] = phyIdentifier;
-    diagPage[5] = (uint8_t)testFunction;
-    diagPage[6] = (uint8_t)pattern;
+    diagPage[5] = C_CAST(uint8_t, testFunction);
+    diagPage[6] = C_CAST(uint8_t, pattern);
     //link rate
     diagPage[7] = linkRate;
     //phy test function ssc
-    diagPage[7] |= (uint8_t)testFunctionSSC << 4;
+    diagPage[7] |= C_CAST(uint8_t, testFunctionSSC) << 4;
     //phy test function SATA
     if (sataTestFunction)
     {
@@ -62,7 +61,7 @@ int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, e
     diagPage[8] = RESERVED;
     diagPage[9] = RESERVED;
     diagPage[10] = RESERVED;
-    diagPage[11] = (uint8_t)dwordControl;
+    diagPage[11] = C_CAST(uint8_t, dwordControl);
     diagPage[12] = M_Byte7(phyTestPatternDwords);
     diagPage[13] = M_Byte6(phyTestPatternDwords);
     diagPage[14] = M_Byte5(phyTestPatternDwords);

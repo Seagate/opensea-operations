@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,7 +53,7 @@ int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
     int ret = UNKNOWN;
-    uint8_t *scsiDataBuffer = (uint8_t*)calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment);//this should be big enough to get back the block descriptor we care about
+    uint8_t *scsiDataBuffer = C_CAST(uint8_t*, calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment));//this should be big enough to get back the block descriptor we care about
     if (scsiDataBuffer == NULL)
     {
         perror("calloc failure");
@@ -72,14 +72,14 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         if (reset == false)
         {
             //set the input LBA starting at the end of the header
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN] = (uint8_t)(newMaxLBA >> 56);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 1] = (uint8_t)(newMaxLBA >> 48);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] = (uint8_t)(newMaxLBA >> 40);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] = (uint8_t)(newMaxLBA >> 32);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 4] = (uint8_t)(newMaxLBA >> 24);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 5] = (uint8_t)(newMaxLBA >> 16);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 6] = (uint8_t)(newMaxLBA >> 8);
-            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 7] = (uint8_t)newMaxLBA;
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN] = M_Byte7(newMaxLBA);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 1] = M_Byte6(newMaxLBA);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 2] = M_Byte5(newMaxLBA);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 3] = M_Byte4(newMaxLBA);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 4] = M_Byte3(newMaxLBA);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 5] = M_Byte2(newMaxLBA);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 6] = M_Byte1(newMaxLBA);
+            scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + 7] = M_Byte0(newMaxLBA);
         }
         else
         {
@@ -136,7 +136,7 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         ret = FAILURE;
     }
-    safe_Free_aligned(scsiDataBuffer);
+    safe_Free_aligned(scsiDataBuffer)
     return ret;
 }
 
@@ -167,7 +167,7 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
             {
                 if (newMaxLBA <= MAX_28BIT)
                 {
-                    ret = ata_Set_Max_Address(device, (uint32_t)newMaxLBA, true); //this is a non-volitile command
+                    ret = ata_Set_Max_Address(device, C_CAST(uint32_t, newMaxLBA), true); //this is a non-volitile command
                 }
                 else
                 {

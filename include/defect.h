@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -92,7 +92,6 @@ extern "C" {
     //!   \param[in] defects = The defect list to free
     //!
     //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void free_Defect_List(scsiDefectList **defects);
@@ -107,7 +106,6 @@ extern "C" {
     //!   \param[in] defects = The defect list to print
     //!
     //  Exit:
-    //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_SCSI_Defect_List(ptrSCSIDefectList defects);

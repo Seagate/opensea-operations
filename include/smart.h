@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,14 +25,13 @@ extern "C"
     typedef struct _smartLogData { 
         union {
         ataSMARTLog ataSMARTAttr;
-#if !defined(DISABLE_NVME_PASSTHROUGH)
         nvmeSmartLog nvmeSMARTAttr;
-#endif
         } attributes;
     } smartLogData; 
 
     #define MAX_ATTRIBUTE_NAME_LENGTH 43 //This leaves room for a NULL terminating character
 
+    //SMART attributes are NOT standardized. Use these definitions with caution as they may have different meanings between vendors and firmwares. - TJE
     #define ATTRB_NUM_RETIRED_SECTOR    (5)
     #define ATTRB_NUM_SEEK_ERRORS       (7)
     #define ATTRB_NUM_POH               (9) //Power On Hours. 
@@ -61,14 +60,15 @@ extern "C"
     typedef enum _eSMARTAttrOutMode
     {
         SMART_ATTR_OUTPUT_RAW,
-        SMART_ATTR_OUTPUT_ANALYZED
+        SMART_ATTR_OUTPUT_ANALYZED,
+        SMART_ATTR_OUTPUT_HYBRID
     }eSMARTAttrOutMode;
 
     //-----------------------------------------------------------------------------
     //
     // print_SMART_Attributes( tDevice * device )
     //
-    //! \brief   Pulls the SMART attributes and parses them for display to the user
+    //! \brief   Pulls the SMART attributes and parses them for display to the user (SATA only)
     //
     //  Entry:
     //!   \param[in]  device file descriptor
@@ -79,6 +79,22 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode);
+
+    //-----------------------------------------------------------------------------
+    //
+    // show_NVMe_Health( tDevice * device )
+    //
+    //! \brief   Pulls the NVMe health data and displays it to stdout
+    //
+    //  Entry:
+    //!   \param[in]  device file descriptor
+    //!   \param[in] outputMode -  mode to use for displaying the attributes
+    //
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int show_NVMe_Health(tDevice* device);
 
     typedef enum _eSMARTTripInfoType
     {
@@ -114,9 +130,9 @@ extern "C"
                 bool nvmSubsystemDegraded;
                 bool mediaReadOnly;
                 bool volatileMemoryBackupFailed;
-                bool reservedBit5;//reserved as of nvme 1.3
-                bool reservedBit6;//reserved as of nvme 1.3
-                bool reservedBit7;//reserved as of nvme 1.3
+                bool persistentMemoryRegionReadOnlyOrUnreliable;
+                bool reservedBit6;//reserved as of nvme 1.4c
+                bool reservedBit7;//reserved as of nvme 1.4c
             }nvmeCriticalWarning;
         };
     }smartTripInfo, *ptrSmartTripInfo;
@@ -460,7 +476,6 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault);
 
-
     #define SMART_ERROR_STATE_MASK 0x0F //highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below
     typedef enum _eSMARTErrorState //Low nibble only!!! high nibble is vendor unique!
     {
@@ -616,7 +631,6 @@ extern "C"
     //!   \param errorLogData - pointer to the summary SMART error log structure to print out
     //!   \param genericOutput - true = generic output showing registers in hex. false = detailed output that is translated from the reported regiters according to ATA spec
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput);
@@ -647,7 +661,6 @@ extern "C"
     //!   \param errorLogData - pointer to the summary SMART error log structure to print out
     //!   \param genericOutput - true = generic output showing registers in hex. false = detailed output that is translated from the reported regiters according to ATA spec
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);

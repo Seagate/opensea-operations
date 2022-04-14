@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@
 #include "operations.h"
 #include "host_erase.h"
 #include "cmds.h"
+#include "platform_helper.h"
 
 int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEnd, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
 {
@@ -24,7 +25,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseRangeStart);
-    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase range");
@@ -34,6 +35,12 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     {
         printf("\n");
     }
+    os_Lock_Device(device);
+    if (eraseRangeStart == 0)
+    {
+        //only unmount when we are touching boot sectors!
+        os_Unmount_File_Systems_On_Device(device);
+    }
     if (eraseRangeStart != alignedLBA)
     {
         uint64_t adjustmentAmount = eraseRangeStart - alignedLBA;
@@ -42,11 +49,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
         {
             if (alignedLBA + sectors > eraseRangeEnd)
             {
-                sectors = (uint16_t)(eraseRangeEnd - alignedLBA);
+                sectors = C_CAST(uint16_t, eraseRangeEnd - alignedLBA);
                 dataLength = sectors * device->drive_info.deviceBlockSize;
             }
             //set the pattern, or clear the buffer at the LBA the user requested
-            uint32_t adjustmentBytes = (uint32_t)(adjustmentAmount * device->drive_info.deviceBlockSize);
+            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
             if (pattern)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes], dataLength - adjustmentBytes);
@@ -61,6 +68,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                 fflush(stdout);
             }
             ret = write_LBA(device, alignedLBA, false, writeBuffer, dataLength);
+            if (alignedLBA == 0)
+            {
+                //update the filesystem cache after writing the boot partition sectors so that no other LBA writes have permission errors - TJE
+                os_Update_File_System_Cache(device);
+            }
             eraseRangeStart -= adjustmentAmount;
             eraseRangeStart += sectors;
         }
@@ -77,7 +89,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
             {
                 if (iter + sectors > device->drive_info.deviceMaxLba)
                 {
-                    sectors = (uint16_t)(eraseRangeEnd - iter);
+                    sectors = C_CAST(uint16_t, eraseRangeEnd - iter);
                     dataLength = sectors * device->drive_info.deviceBlockSize;
                 }
                 else //we aren't going to the end of the drive and may need to read the nearby data to keep anything the user didn't want to overwrite
@@ -87,11 +99,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
                         //modify only the LBAs we want to overwrite
                         if (pattern)
                         {
-                            fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, writeBuffer, (uint32_t)((eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
+                            fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, writeBuffer, C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
                         }
                         else
                         {
-                            memset(writeBuffer, 0, (uint32_t)((eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
+                            memset(writeBuffer, 0, C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
                         }
                     }
                 }
@@ -106,6 +118,11 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
             {
                 ret = FAILURE;
                 break;
+            }
+            if (iter == 0)
+            {
+                //update the filesystem cache after writing the boot partition sectors so that no other LBA writes have permission errors - TJE
+                os_Update_File_System_Cache(device);
             }
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && FAILURE != ret && !hideLBACounter)
@@ -126,7 +143,9 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     {
         printf("\n");
     }
-    safe_Free_aligned(writeBuffer);
+    safe_Free_aligned(writeBuffer)
+    os_Unlock_Device(device);
+    os_Update_File_System_Cache(device);
     return ret;
 }
 
@@ -139,7 +158,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseStartLBA);
-    uint8_t *writeBuffer = (uint8_t*)calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (writeBuffer == NULL)
     {
         perror("calloc failure! Write Buffer - erase time");
@@ -147,7 +166,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     }
     if (device->drive_info.deviceMaxLba == 0)
     {
-        safe_Free(writeBuffer);
+        safe_Free(writeBuffer)
         return NOT_SUPPORTED;
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -156,6 +175,12 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     }
     time(&currentTime);//get the current time before starting the loop
     startTime = currentTime;
+    os_Lock_Device(device);
+    if (eraseStartLBA == 0)
+    {
+        //only unmount when we are touching boot sectors!
+        os_Unmount_File_Systems_On_Device(device);
+    }
     if (eraseStartLBA != alignedLBA)
     {
         uint64_t adjustmentAmount = eraseStartLBA - alignedLBA;
@@ -164,11 +189,11 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
         {
             if (alignedLBA + sectors > device->drive_info.deviceMaxLba)
             {
-                sectors = (uint16_t)(device->drive_info.deviceMaxLba - alignedLBA);
+                sectors = C_CAST(uint16_t, device->drive_info.deviceMaxLba - alignedLBA);
                 dataLength = sectors * device->drive_info.deviceBlockSize;
             }
             //set the pattern, or clear the buffer at the LBA the user requested
-            uint32_t adjustmentBytes = (uint32_t)(adjustmentAmount * device->drive_info.deviceBlockSize);
+            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
             if (pattern)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes], dataLength - adjustmentBytes);
@@ -185,6 +210,10 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             ret = write_LBA(device, alignedLBA, false, writeBuffer, dataLength);
             eraseStartLBA -= adjustmentAmount;
             eraseStartLBA += sectors;
+            if (alignedLBA == 0)
+            {
+                os_Update_File_System_Cache(device);
+            }
         }
     }
     if (pattern)
@@ -195,7 +224,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     {
         if (iter + sectors > device->drive_info.deviceMaxLba)
         {
-            sectors = (uint16_t)(device->drive_info.deviceMaxLba - iter);
+            sectors = C_CAST(uint16_t, device->drive_info.deviceMaxLba - iter);
             dataLength = sectors * device->drive_info.deviceBlockSize;
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
@@ -209,6 +238,11 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             ret = FAILURE;
             break;
         }
+        if (iter == 0)
+        {
+            //update the filesystem cache after writing the boot partition sectors so that no other LBA writes have permission errors - TJE
+            os_Update_File_System_Cache(device);
+        }
         if (iter + sectors >= device->drive_info.deviceMaxLba)
         {
             //reset the sector count back to what it was and set iter back to 0
@@ -216,10 +250,13 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             sectors = get_Sector_Count_For_Read_Write(device);
         }
     }
+    flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
     }
-    safe_Free_aligned(writeBuffer);
+    safe_Free_aligned(writeBuffer)
+    os_Unlock_Device(device);
+    os_Update_File_System_Cache(device);
     return ret;
 }

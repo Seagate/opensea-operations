@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -66,7 +66,6 @@ extern "C"
     //!   \param[in] numberOfErrors = this is the number of items in the list to print (list length)
     //!
     //  Exit:
-    //!   \return void
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors);

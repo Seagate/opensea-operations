@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
     int ret = UNKNOWN;
     uint16_t logicalPerPhysical = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
     uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
-    uint8_t *dataBuf = (uint8_t*)calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -39,10 +39,10 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             uint8_t *temp = NULL;
             logicalPerPhysical = C_CAST(uint16_t, device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize);
             dataSize = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
-            temp = (uint8_t*)realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment);
+            temp = C_CAST(uint8_t*, realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!temp)
             {
-                safe_Free_aligned(dataBuf);
+                safe_Free_aligned(dataBuf)
                 return MEMORY_FAILURE;
             }
             dataBuf = temp;
@@ -217,7 +217,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
                             {
                                 //update the list to remove LBAs before this one
                                 reassignLBA = LBA->errorAddress;
-                                for (iter = 0, offset = 4; iter < (uint32_t)logicalPerPhysical; ++iter, ++reassignLBA)
+                                for (iter = 0, offset = 4; iter < C_CAST(uint32_t, logicalPerPhysical); ++iter, ++reassignLBA)
                                 {
                                     if (commandSpecificLba <= reassignLBA)
                                     {
@@ -258,7 +258,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
                                 //add this LBA to the list to be reassigned
                                 reassignLBA = LBA->errorAddress;
                                 bool infoLBAAdded = false;
-                                for (iter = 0, offset = 4; iter < ((uint32_t)logicalPerPhysical + 1); ++iter, offset += increment)
+                                for (iter = 0, offset = 4; iter < (C_CAST(uint32_t, logicalPerPhysical) + UINT32_C(1)); ++iter, offset += increment)
                                 {
                                     uint64_t listLBA = reassignLBA;
                                     if (!infoLBAAdded && informationLba < reassignLBA)
@@ -315,7 +315,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             }
         }
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free_aligned(dataBuf)
     switch (ret)
     {
     case SUCCESS:
@@ -426,7 +426,6 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
         }
         ret = SUCCESS;
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         if (automaticReadReallocationEnabled)
@@ -439,7 +438,6 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
         }
         ret = SUCCESS;
     }
-#endif
     else
     {
         //Assume it's SCSI and read the read-write error recovery mode page
@@ -483,8 +481,8 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
 
 int errorLBACompare(const void *a, const void *b)
 {
-    ptrErrorLBA lba1 = (ptrErrorLBA)a;
-    ptrErrorLBA lba2 = (ptrErrorLBA)b;
+    ptrErrorLBA lba1 = C_CAST(ptrErrorLBA, a);
+    ptrErrorLBA lba2 = C_CAST(ptrErrorLBA, b);
     if (lba1->errorAddress < lba2->errorAddress)
     {
         return -1;

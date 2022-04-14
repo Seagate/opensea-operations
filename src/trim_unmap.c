@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@
 // \file trim_unmap.c
 
 #include "trim_unmap.h"
+#include "platform_helper.h"
 
 bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
 {
@@ -25,11 +26,11 @@ bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
             //find the supported capabilities page in the list, then read it
             uint8_t pageNumber = logBuffer[2];
             uint16_t revision = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
-            if (pageNumber == (uint8_t)ATA_ID_DATA_LOG_SUPPORTED_PAGES && revision >= 0x0001)
+            if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
             {
                 //data is valid, so figure out supported pages
                 uint8_t listLen = logBuffer[8];
-                for (uint16_t iter = 9; iter < (uint16_t)(listLen + 8) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
+                for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
                 {
                     switch (logBuffer[iter])
                     {
@@ -92,7 +93,6 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
         }
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT2)
         {
             supported = true;
@@ -107,7 +107,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 //TODO: If we find other OS's with limitations we may need to change the #if or use some other kind of check instead.
                 if (NULL != maxTrimOrUnmapBlockDescriptors && NULL != maxLBACount)
                 {
-                    uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+                    uint8_t *blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
                     if (!blockLimits)
                     {
                         perror("calloc failure!");
@@ -118,17 +118,16 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                         *maxTrimOrUnmapBlockDescriptors = M_BytesTo4ByteValue(blockLimits[24], blockLimits[25], blockLimits[26], blockLimits[27]);
                         *maxLBACount = M_BytesTo4ByteValue(blockLimits[20], blockLimits[21], blockLimits[22], blockLimits[23]);
                     }
-                    safe_Free_aligned(blockLimits);
+                    safe_Free_aligned(blockLimits)
                 }
 #endif
             }
         }
         break;
-#endif
     case SCSI_DRIVE:
     {
         //check the bit in logical block provisioning VPD page
-        uint8_t *lbpPage = (uint8_t*)calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *lbpPage = C_CAST(uint8_t*, calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (NULL == lbpPage)
         {
             perror("calloc failure!");
@@ -141,10 +140,10 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 supported = true;
             }
         }
-        safe_Free_aligned(lbpPage);
+        safe_Free_aligned(lbpPage)
         if (supported == true && NULL != maxTrimOrUnmapBlockDescriptors && NULL != maxLBACount)
         {
-            uint8_t *blockLimits = (uint8_t*)calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment);
+            uint8_t *blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (NULL == blockLimits)
             {
                 perror("calloc failure!");
@@ -155,7 +154,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 *maxTrimOrUnmapBlockDescriptors = M_BytesTo4ByteValue(blockLimits[24], blockLimits[25], blockLimits[26], blockLimits[27]);
                 *maxLBACount = M_BytesTo4ByteValue(blockLimits[20], blockLimits[21], blockLimits[22], blockLimits[23]);
             }
-            safe_Free_aligned(blockLimits);
+            safe_Free_aligned(blockLimits)
         }
     }
     break;
@@ -174,10 +173,8 @@ int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         ret = ata_Trim_Range(device, startLBA, range);
         break;
     case NVME_DRIVE:
-#if !defined(DISABLE_NVME_PASSTHROUGH)
         ret = nvme_Deallocate_Range(device, startLBA, range);
         break;
-#endif
     case SCSI_DRIVE:
         ret = scsi_Unmap_Range(device, startLBA, range);
         break;
@@ -188,7 +185,6 @@ int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     return ret;
 }
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
 int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
     int ret = UNKNOWN;
@@ -200,9 +196,15 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         //TODO: handle limitations to maxLBACount & maxTrimOrUnmapBlockDescriptors. This makes this funciton MUCH more complicated than it currently is...basically would look like a SCSI unmap command below - TJE
         uint32_t contextAttributes = 0;//this is here in case we want to enable setting these bits some time later. - TJE
         uint8_t deallocate[4096] = { 0 };//This will hold the maximum number of ranges/descriptors we can.
-        uint32_t deallocateRange = (uint32_t)M_Min(M_Min(range, UINT32_MAX), maxLBACount);
+        uint32_t deallocateRange = C_CAST(uint32_t, M_Min(M_Min(range, UINT32_MAX), maxLBACount));
         uint64_t finalLBA = startLBA + range;
         uint32_t descriptorCount = 0;
+        os_Lock_Device(device);
+        if (startLBA == 0)
+        {
+            //only unmount when we are touching boot sectors!
+            os_Unmount_File_Systems_On_Device(device);
+        }
         for (uint64_t deallocateLBA = startLBA, offset = 0; deallocateLBA < finalLBA && descriptorCount <= maxTrimOrUnmapBlockDescriptors; deallocateLBA += deallocateRange, offset += 16)
         {
             //context attributes
@@ -228,7 +230,9 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             ++descriptorCount;
         }
         //send the command(s) to the drive....currently only 1 command to do this. May need to revisit later - TJE
-        ret = nvme_Dataset_Management(device, (uint8_t)(descriptorCount - 1), true, false, false, deallocate, 4096);
+        ret = nvme_Dataset_Management(device, C_CAST(uint8_t, descriptorCount - 1), true, false, false, deallocate, 4096);
+        os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
     }
     else
     {
@@ -236,7 +240,6 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     }
     return ret;
 }
-#endif
 
 int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
@@ -258,15 +261,15 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         uint64_t bufferIter = 0;
         uint16_t trimCommands = 0;
         uint16_t maxTRIMdataBlocks = C_CAST(uint16_t, maxTrimOrUnmapBlockDescriptors / maxEntriesPerPage);
-        uint16_t numberOfTRIMCommandsRequired = (uint16_t)((((trimBufferLen / LEGACY_DRIVE_SEC_SIZE) + maxTRIMdataBlocks) - 1) / maxTRIMdataBlocks);
-        uint32_t trimCommandLen = C_CAST(uint32_t, M_Min(C_CAST(uint64_t, maxTRIMdataBlocks * LEGACY_DRIVE_SEC_SIZE), trimBufferLen));
+        uint16_t numberOfTRIMCommandsRequired = C_CAST(uint16_t, (((trimBufferLen / LEGACY_DRIVE_SEC_SIZE) + maxTRIMdataBlocks) - 1) / maxTRIMdataBlocks);
+        uint32_t trimCommandLen = C_CAST(uint32_t, M_Min(C_CAST(uint64_t, maxTRIMdataBlocks) * LEGACY_DRIVE_SEC_SIZE, trimBufferLen));
         if (!trimBuffer)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
         }
         //fill in the data buffer for a TRIM command
-        for (trimLBA = startLBA; trimLBA < finalLBA && (bufferIter + (xlCommand - 1)) < trimBufferLen; trimLBA += trimRange, bufferIter += entryLengthBytes)
+        for (trimLBA = startLBA; trimLBA < finalLBA && (bufferIter + (entryLengthBytes - 1)) < trimBufferLen; trimLBA += trimRange, bufferIter += entryLengthBytes)
         {
             //make sure we don't go beyond the ending LBA for our TRIM, so adjust the range to fit
             if ((trimLBA + trimRange) > finalLBA)
@@ -304,15 +307,21 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 #if defined(_DEBUG)
         printf("TRIM buffer size: %"PRIu64"\n", trimBufferLen);
 #endif
+        os_Lock_Device(device);
+        if (startLBA == 0)
+        {
+            //only unmount when we are touching boot sectors!
+            os_Unmount_File_Systems_On_Device(device);
+        }
         uint32_t trimOffset = 0;
         for (trimCommands = 0; trimCommands < numberOfTRIMCommandsRequired; trimCommands++)
         {
 #if defined(_DEBUG)
             printf("TRIM Offset: %"PRIu32"\n", trimOffset);
 #endif
-            if ((trimCommandLen * (trimCommands + 1)) > trimBufferLen)
+            if ((C_CAST(uint64_t, trimCommandLen) * (C_CAST(uint64_t, trimCommands) + UINT64_C(1))) > trimBufferLen)
             {
-                trimCommandLen = (uint32_t)(trimBufferLen - (trimCommandLen * trimCommands));
+                trimCommandLen = C_CAST(uint32_t, trimBufferLen - (C_CAST(uint64_t, trimCommandLen) * C_CAST(uint64_t, trimCommands)));
             }
             if (ata_Data_Set_Management(device, true, &trimBuffer[trimOffset], trimCommandLen, xlCommand) != SUCCESS)
             {
@@ -325,10 +334,12 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             }
             trimOffset += trimCommandLen;
         }
+        os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
 #if defined(_DEBUG)
         printf("TRIM Offset: %"PRIu32"\n", trimOffset);
 #endif
-        safe_Free_aligned(trimBuffer);
+        safe_Free_aligned(trimBuffer)
     }
     else
     {
@@ -344,14 +355,14 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {
         //create the buffer first, then send the command
-        uint32_t unmapRange = (uint32_t)(M_Min(((startLBA + range) - startLBA), maxLBACount));//this may truncate but that is expected since the maximum range you can specify for a UNMAP command is 0xFFFFFFFF
-        uint32_t unmapDescriptors = (uint32_t)(((((startLBA + range) - startLBA) + unmapRange) - 1) / unmapRange);//need to round this division up o we won't unmap the whole range that was requested
-        uint32_t unmapBufferLen = unmapDescriptors * 16;//this is JUST the descriptors. The header will need to be tacked onto the beginning of this for each command.
-        uint8_t *unmapBuffer = (uint8_t*)calloc_aligned(unmapBufferLen, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint32_t unmapRange = C_CAST(uint32_t, M_Min(((startLBA + range) - startLBA), maxLBACount));//this may truncate but that is expected since the maximum range you can specify for a UNMAP command is 0xFFFFFFFF
+        uint32_t unmapDescriptors = C_CAST(uint32_t, ((((startLBA + range) - startLBA) + unmapRange) - 1) / unmapRange);//need to round this division up o we won't unmap the whole range that was requested
+        uint32_t unmapBufferLen = unmapDescriptors * UINT32_C(16);//this is JUST the descriptors. The header will need to be tacked onto the beginning of this for each command.
+        uint8_t *unmapBuffer = C_CAST(uint8_t*, calloc_aligned(unmapBufferLen, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint64_t unmapLBA = 0;
         uint64_t bufferIter = 0;
         uint32_t unmapCommands = 0;
-        uint32_t numberOfUnmapCommandsRequired = ((unmapDescriptors + maxTrimOrUnmapBlockDescriptors) - 1) / maxTrimOrUnmapBlockDescriptors;
+        uint32_t numberOfUnmapCommandsRequired = ((unmapDescriptors + maxTrimOrUnmapBlockDescriptors) - UINT32_C(1)) / maxTrimOrUnmapBlockDescriptors;
         uint32_t unmapCommandDataLen = 0;
         uint32_t descriptorsPerCommand = 0;
         if (unmapRange == maxLBACount)
@@ -366,27 +377,27 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             return MEMORY_FAILURE;
         }
         //unmap block descriptors
-        for (unmapLBA = startLBA, bufferIter = 0; unmapLBA < (startLBA + range) && bufferIter < unmapBufferLen; unmapLBA += unmapRange, bufferIter += 16)
+        for (unmapLBA = startLBA, bufferIter = 0; unmapLBA < (startLBA + range) && bufferIter < unmapBufferLen; unmapLBA += unmapRange, bufferIter += UINT64_C(16))
         {
             //make sure we don't go beyond the ending LBA for our TRIM, so adjust the range to fit
-            if (unmapLBA + unmapRange >(startLBA + range))
+            if (unmapLBA + unmapRange > (startLBA + range))
             {
-                unmapRange = (uint32_t)((startLBA + range) - unmapLBA);
+                unmapRange = C_CAST(uint32_t, (startLBA + range) - unmapLBA);
             }
             //set the LBA
-            unmapBuffer[bufferIter + 0] = (uint8_t)(unmapLBA >> 56);
-            unmapBuffer[bufferIter + 1] = (uint8_t)(unmapLBA >> 48);
-            unmapBuffer[bufferIter + 2] = (uint8_t)(unmapLBA >> 40);
-            unmapBuffer[bufferIter + 3] = (uint8_t)(unmapLBA >> 32);
-            unmapBuffer[bufferIter + 4] = (uint8_t)(unmapLBA >> 24);
-            unmapBuffer[bufferIter + 5] = (uint8_t)(unmapLBA >> 16);
-            unmapBuffer[bufferIter + 6] = (uint8_t)(unmapLBA >> 8);
-            unmapBuffer[bufferIter + 7] = (uint8_t)(unmapLBA & UINT8_MAX);
+            unmapBuffer[bufferIter + 0] = M_Byte7(unmapLBA);
+            unmapBuffer[bufferIter + 1] = M_Byte6(unmapLBA);
+            unmapBuffer[bufferIter + 2] = M_Byte5(unmapLBA);
+            unmapBuffer[bufferIter + 3] = M_Byte4(unmapLBA);
+            unmapBuffer[bufferIter + 4] = M_Byte3(unmapLBA);
+            unmapBuffer[bufferIter + 5] = M_Byte2(unmapLBA);
+            unmapBuffer[bufferIter + 6] = M_Byte1(unmapLBA);
+            unmapBuffer[bufferIter + 7] = M_Byte0(unmapLBA);
             //set the range
-            unmapBuffer[bufferIter + 8] = (uint8_t)(unmapRange >> 24);
-            unmapBuffer[bufferIter + 9] = (uint8_t)(unmapRange >> 16);
-            unmapBuffer[bufferIter + 10] = (uint8_t)(unmapRange >> 8);
-            unmapBuffer[bufferIter + 11] = (uint8_t)(unmapRange & UINT8_MAX);
+            unmapBuffer[bufferIter + 8] = M_Byte3(unmapRange);
+            unmapBuffer[bufferIter + 9] = M_Byte2(unmapRange);
+            unmapBuffer[bufferIter + 10] = M_Byte1(unmapRange);
+            unmapBuffer[bufferIter + 11] = M_Byte0(unmapRange);
             //reserved
             unmapBuffer[bufferIter + 12] = RESERVED;
             unmapBuffer[bufferIter + 13] = RESERVED;
@@ -399,11 +410,17 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 #endif
         uint32_t unmapOffset = 0;
         //allocate a buffer to hold the descriptors AND header. Earlier buffer was just to build the descriptors into it.
-        uint8_t* unmapCommandBuffer = (uint8_t*)calloc_aligned(unmapCommandDataLen, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t* unmapCommandBuffer = C_CAST(uint8_t*, calloc_aligned(unmapCommandDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (NULL == unmapCommandBuffer)
         {
             perror("calloc failure");
             return MEMORY_FAILURE;
+        }
+        os_Lock_Device(device);
+        if (startLBA == 0)
+        {
+            //only unmount when we are touching boot sectors!
+            os_Unmount_File_Systems_On_Device(device);
         }
         for (unmapCommands = 0; unmapCommands < numberOfUnmapCommandsRequired; unmapCommands++)
         {
@@ -426,11 +443,11 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             }
             //fill in the data buffer for a UNMAP command with the header
             //unmap data length
-            unmapCommandBuffer[0] = (uint8_t)((unmapCommandDataLen - 2) >> 8);
-            unmapCommandBuffer[1] = (uint8_t)((unmapCommandDataLen & 0x0000FFFF) - 2);
+            unmapCommandBuffer[0] = M_Byte1(unmapCommandDataLen - 2);
+            unmapCommandBuffer[1] = M_Byte0(unmapCommandDataLen - 2);
             //unmap block descriptor data length (number of entries * 16...this should ALWAYS fit inside the buffer length we calculated earlier)
-            unmapCommandBuffer[2] = (uint8_t)((unmapCommandDataLen - 8) >> 8);
-            unmapCommandBuffer[3] = (uint8_t)((unmapCommandDataLen - 8) & 0x0000FFFF);
+            unmapCommandBuffer[2] = M_Byte1(unmapCommandDataLen - 8);
+            unmapCommandBuffer[3] = M_Byte0(unmapCommandDataLen - 8);
             //reserved
             unmapCommandBuffer[4] = RESERVED;
             unmapCommandBuffer[5] = RESERVED;
@@ -439,7 +456,7 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             //now copy the number of descriptors for this command into the allocated buffer
             memcpy(&unmapCommandBuffer[8], &unmapBuffer[unmapOffset], (unmapCommandDataLen - 8));
             //send the command
-            if (SUCCESS != scsi_Unmap(device, false, 0, (uint16_t)(unmapCommandDataLen), unmapCommandBuffer))
+            if (SUCCESS != scsi_Unmap(device, false, 0, C_CAST(uint16_t, unmapCommandDataLen), unmapCommandBuffer))
             {
                 ret = FAILURE;
                 break;
@@ -451,11 +468,13 @@ int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
             unmapOffset += (unmapCommandDataLen - 8);
             memset(unmapCommandBuffer, 0, unmapCommandDataLen);
         }
+        os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
 #if defined(_DEBUG)
         printf("UNMAP offset: %"PRIu32"\n", unmapOffset);
 #endif
-        safe_Free_aligned(unmapCommandBuffer);
-        safe_Free_aligned(unmapBuffer);
+        safe_Free_aligned(unmapCommandBuffer)
+        safe_Free_aligned(unmapBuffer)
     }
     else
     {

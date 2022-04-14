@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@
 
 #include "operations_Common.h"
 #include "sanitize.h"
+#include "platform_helper.h"
 
 int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
@@ -86,7 +87,7 @@ int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitiz
     *percentComplete /= 65536.0;
     return result;
 }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
+
 int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     int result = UNKNOWN;
@@ -132,7 +133,6 @@ int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSaniti
     *percentComplete /= 65536.0;
     return result;
 }
-#endif
 
 int get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
@@ -175,10 +175,8 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeSta
         result = get_ATA_Sanitize_Progress(device, percentComplete, sanitizeStatus);
         break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         result = get_NVMe_Sanitize_Progress(device, percentComplete, sanitizeStatus);
         break;
-#endif
     case SCSI_DRIVE:
         result = get_SCSI_Sanitize_Progress(device, percentComplete, sanitizeStatus);
     break;
@@ -188,7 +186,6 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeSta
             printf("Not supported on this device type at this time");
         }
         return NOT_SUPPORTED;
-        break;
     }
     return result;
 }
@@ -365,7 +362,7 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
     }
     return ret;
 }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
+
 int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
 {
     int ret = NOT_SUPPORTED;
@@ -393,7 +390,6 @@ int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
     }
     return ret;
 }
-#endif
 
 int get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opts)
 {
@@ -401,10 +397,8 @@ int get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opt
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         ret = get_NVMe_Sanitize_Supported_Features(device, opts);
         break;
-#endif
     case SCSI_DRIVE:
         ret = get_SCSI_Sanitize_Supported_Features(device, opts);
         break;
@@ -454,7 +448,8 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
     {
         return BAD_PARAMETER;
     }
-
+    os_Lock_Device(device);
+    os_Unmount_File_Systems_On_Device(device);
     //start the sanitize operation requested
     switch (sanitizeOperation)
     {
@@ -557,6 +552,8 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
             printf("\n");
         }
         //TODO: Now that we have more detail on the sanitize status, especially ATA failure, do we want to show it here???
+        os_Update_File_System_Cache(device);
     }
+    os_Unlock_Device(device);
     return ret;
 }

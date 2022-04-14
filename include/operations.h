@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -349,7 +349,6 @@ extern "C"
     //!   \param overwriteEraseTimeEstimateMinutes - a time estimate in minutes for an overwrite erase to complete on a drive (whole drive). (optional)
     //!
     //  Exit:
-    //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
@@ -418,6 +417,7 @@ extern "C"
     OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput);
 
     //Should this go into a different file???
+    //NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
     OPENSEA_OPERATIONS_API int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.
 
     //NOTE: SPC4 and higher is required to reset only a specific page. Prior to that, all pages will be reset (logpage and logSubPage both set to zero)
@@ -497,7 +497,6 @@ extern "C"
     //!   \param ranges - pointer to a structure filled in with the concurrent positioning information from a device.
     //!
     //  Exit:
-    //!   \return void
     //
     //-----------------------------------------------------------------------------
     void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -113,7 +113,6 @@ extern "C"
     //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it since it allows the SATL to control the erase and incomming commands.
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus, bool useSAT);
@@ -133,7 +132,6 @@ extern "C"
     //!   \param[in] eraseUnit = set to true when using the buffer to send the security erase command so that the zac options bit can be set.
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPassword ataPassword, bool setPassword, bool eraseUnit);
@@ -149,7 +147,6 @@ extern "C"
     //!   \param[in] eraseType = enhanced or normal ATA Security erase.
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseType eraseType);

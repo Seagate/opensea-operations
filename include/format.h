@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -186,9 +186,8 @@ extern "C"
     //! \brief   Description:  Shows a SCSI device's format status log information.
     //
     //  Entry:
-    //!   \param[int] formatStatus = pointer to structure that holds all the information about the last format command that was run and logged by the device.
+    //!   \param[in] formatStatus = pointer to structure that holds all the information about the last format command that was run and logged by the device.
     //  Exit:
-    //!   \return void
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Format_Status_Log(ptrFormatStatus formatStatus);
@@ -213,6 +212,7 @@ extern "C"
     //  set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
     //
     //! \brief   Description: Sends the command to quickly change the sector size. On ATA this is the set sector configuration command, on SAS, this is a fast format.
+    //!                       This will erase the first and last sector of the drive to ensure that weird issues due to a dummy MBR do not occur for the user.
     //
     //  Entry:
     //!   \param[in] device = file descriptor
@@ -342,7 +342,6 @@ extern "C"
     //!   \param[in] formats = pointer to the formats that were read already.
     //!
     //  Exit:
-    //!   \return SUCCESS = success showing sector sizes, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFormats formats);
@@ -364,8 +363,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex);
-
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 
     typedef enum _nvmFmtSecureErase
     {
@@ -456,8 +453,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int show_NVM_Format_Progress(tDevice *device);
-
-#endif
 
 #if defined (__cplusplus)
 }

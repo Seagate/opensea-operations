@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -140,7 +140,6 @@ extern "C"
     //!   \param[in] supportedModes = pointer to a supported DL modes structure that has been filled in with valid information
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes);

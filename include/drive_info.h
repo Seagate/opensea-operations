@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -85,15 +85,17 @@ extern "C"
         uint8_t portSpeedsNegotiated[MAX_PORTS];//0 = not reported, 1 = gen 1 (1.5Gb/s), 2 = gen 2 (3.0Gb/s), 3 = gen 3 (6.0Gb/s), 4 = gen 4 (12.0Gb/s)
     }ifSerialSpeed;
 
+#define PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH 20
+
     typedef struct _ifParallelSpeed
     {
         bool negotiatedValid;//may be false if old parallel interface that doesn't report this...
         double negotiatedSpeed;//MB/s
         double maxSpeed;//MB/s
         bool negModeNameValid;
-        char negModeName[20];//Hold something like UDMA6, or FAST320, etc
+        char negModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
         bool maxModeNameValid;
-        char maxModeName[20];//Hold something like UDMA6, or FAST320, etc
+        char maxModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
     }ifParallelSpeed;
     typedef struct _ifFibreSpeed
     {
@@ -348,7 +350,6 @@ extern "C"
     //!   \param ataDriveInfo = pointer to the struct to filled in with SCSI drive information
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo, ptrDriveInformationSAS_SATA scsiDriveInfo, ptrDriveInformationSAS_SATA ataDriveInfo);
@@ -365,7 +366,6 @@ extern "C"
     //!   \param driveInfo = pointer to the driveInformationSAS_Sata struct with information to print to the screen
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo);
@@ -382,7 +382,6 @@ extern "C"
     //!   \param driveInfo = pointer to the driveInformation struct with information to print to the screen
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Device_Information(ptrDriveInformation driveInfo);
@@ -398,7 +397,6 @@ extern "C"
     //!   \param ataDriveInfo = pointer to the driveInformation struct with ATA information to print to the screen
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Parent_And_Child_Information(ptrDriveInformation scsiDriveInfo, ptrDriveInformation ataDriveInfo);
@@ -435,14 +433,12 @@ extern "C"
     //!   \param[in] scsiport1maxSpeed = pointer to string for port1 max speed value
     //!
     //  Exit:
-    //!   \return VOID
     //
     //-----------------------------------------------------------------------------
     void get_SAS_Interface_Speeds(tDevice *device, char **scsiport0negSpeed, char **scsiport1negSpeed, char **scsiport0maxSpeed, char **scsiport1maxSpeed);
 
     char * print_drive_type(tDevice *device);
 
-#if !defined(DISABLE_NVME_PASSTHROUGH)
     //-----------------------------------------------------------------------------
     //
     //  print_Nvme_Ctrl_Information()
@@ -457,7 +453,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     int print_Nvme_Ctrl_Information(tDevice *device);
-#endif
 
 #if defined (__cplusplus)
 }

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -117,7 +117,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     ptrDefects->containsGrownList = listHasGrownDescriptors;
                                     ptrDefects->containsPrimaryList = listHasPrimaryDescriptors;
                                     ptrDefects->format = returnedDefectListFormat;
-                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
                                     uint8_t increment = 0;
                                     switch (returnedDefectListFormat)
                                     {
@@ -225,7 +225,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     bool filledInListInfo = false;
                                     memset(ptrDefects, 0, sizeof(scsiDefectList) + defectAlloc);
                                     ptrDefects->numberOfElements = numberOfElements;
-                                    ptrDefects->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
+                                    ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
                                     while (elementNumber < numberOfElements)
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
@@ -430,7 +430,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     temp->containsPrimaryList = listHasPrimaryDescriptors;
                     temp->generation = generationCode;
                     temp->format = returnedDefectListFormat;
-                    temp->deviceHasMultipleLogicalUnits = (device->drive_info.numberOfLUs > 0) ? true : false;
+                    temp->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
                     ret = SUCCESS;
                 }
                 else
@@ -439,7 +439,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                 }
             }
         }
-        safe_Free_aligned(defectData);
+        safe_Free_aligned(defectData)
     }
     else
     {
@@ -450,7 +450,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
 
 void free_Defect_List(scsiDefectList **defects)
 {
-    safe_Free(*defects);
+    safe_Free(*defects)
 }
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
@@ -716,7 +716,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf);
+            safe_Free_aligned(dataBuf)
         }
     }
     return ret;
@@ -887,7 +887,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 //now write back the data with a write long command
                 ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, NULL, NULL);
             }
-            safe_Free_aligned(data);
+            safe_Free_aligned(data)
         }
         else if (device->drive_info.IdentifyData.ata.Word022 > 0 && device->drive_info.IdentifyData.ata.Word022 < UINT16_MAX && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
         {
@@ -955,7 +955,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     setFeaturesToChangeECCBytes = false;
                 }
             }
-            safe_Free_aligned(data);
+            safe_Free_aligned(data)
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -970,7 +970,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         }
         else
         {
-            ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, (uint32_t)corruptLBA, dataLength, dataBuffer);
+            ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
         }
         //ret should not be success and we should have an illegal length indicator set so we can reallocate and read the ecc bytes
         memset(&senseFields, 0, sizeof(senseDataFields));
@@ -996,7 +996,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
                 else
                 {
-                    ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, (uint32_t)corruptLBA, dataLength, dataBuffer);
+                    ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
                 }
                 if (ret != SUCCESS)
                 {
@@ -1031,7 +1031,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         {
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(dataBuffer);
+        safe_Free_aligned(dataBuffer)
     }
     return ret;
 }
@@ -1082,7 +1082,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf);
+            safe_Free_aligned(dataBuf)
         }
     }
     return ret;

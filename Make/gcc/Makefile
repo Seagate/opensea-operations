@@ -1,7 +1,7 @@
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012 - 2019 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012 - 2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -54,44 +54,12 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)zoned_operations.c\
 	$(SRC_DIR)buffer_test.c\
 	$(SRC_DIR)defect.c\
-	$(SRC_DIR)nvme_operations.c
+	$(SRC_DIR)nvme_operations.c\
+	$(SRC_DIR)reservations.c
 
 UNAME := $(shell uname)
 
-ifeq ($(UNAME),Linux)
-	#determine the proper NVMe include file. SEA_NVME_IOCTL_H, SEA_NVME_H, or SEA_UAPI_NVME_H
-	NVME_IOCTL_H = /usr/include/linux/nvme_ioctl.h 
-	NVME_H = /usr/include/linux/nvme.h 
-	UAPI_NVME_H = /usr/include/uapi/nvme.h 
-
-	ifeq ($(shell test -f $(NVME_IOCTL_H) && printf "yes"),yes)
-		PROJECT_DEFINES += -DSEA_NVME_IOCTL_H
-	else
-		ifeq ($(shell test -f $(NVME_H) && printf "yes"),yes)
-			PROJECT_DEFINES += -DSEA_NVME_H
-		else
-			ifeq ($(shell test -f $(UAPI_NVME_H) && printf "yes"),yes)
-				PROJECT_DEFINES += -DSEA_UAPI_NVME_H
-			else
-				PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
-			endif
-		endif
-	endif
-endif
-
-ifeq ($(UNAME),SunOS)
-	PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
-endif
-
-ifeq ($(UNAME),FreeBSD)
-	FREEBSD_NVME_H = /usr/include/dev/nvme/nvme.h
-	ifneq ($(shell test -f $(FREEBSD_NVME_H) && printf "yes"),yes)
-		PROJECT_DEFINES += -DDISABLE_NVME_PASSTHROUGH
-	endif
-endif
-
-
-PROJECT_DEFINES += #-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG
+PROJECT_DEFINES += #-D_DEBUG
 
 #All of the source files have associated object files
 LIB_OBJ_FILES = $(LIB_SRC_FILES:.c=.o)

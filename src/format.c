@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2021 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -194,7 +194,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     }
     //dataSize += 1;//adding 1 to make sure we don't go over the end of out memory
     //allocate memory
-    dataBuf = (uint8_t*)calloc_aligned(dataSize *sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment);
+    dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize *sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -312,7 +312,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
                 //all else fails, try mode sense 6
                 if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
                 {
-                    safe_Free_aligned(dataBuf);
+                    safe_Free_aligned(dataBuf)
                     return NOT_SUPPORTED;
                 }
             }
@@ -399,7 +399,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         else
         {
             //invalid block descriptor length
-            safe_Free_aligned(dataBuf);
+            safe_Free_aligned(dataBuf)
             return NOT_SUPPORTED;
         }
         //now send a mode select command
@@ -492,13 +492,14 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             {
                 printf("\n");
             }
+            os_Update_File_System_Cache(device);
         }
         else
         {
             //check if there was an invalid parameter field specifying the security initialize bit...if so, print a message and return not supported - TJE
         }
     }
-    safe_Free_aligned(dataBuf);
+    safe_Free_aligned(dataBuf)
     return ret;
 }
 
@@ -516,7 +517,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
     //4 + 8 for param 2
     //4 + 8 for param 3
     //4 + 4 for param 4
-    uint8_t *formatStatusPage = (uint8_t*)calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *formatStatusPage = C_CAST(uint8_t*, calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!formatStatusPage)
     {
         return MEMORY_FAILURE;
@@ -545,14 +546,14 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                 case 0://format data out
                     formatStatus->lastFormatParametersValid = true;
                     {
-                        uint8_t *allFs = (uint8_t*)calloc(formatStatusPage[offset + 3], sizeof(uint8_t*));
+                        uint8_t *allFs = C_CAST(uint8_t*, calloc(formatStatusPage[offset + 3], sizeof(uint8_t*)));
                         if (allFs)
                         {
                             if (memcmp(allFs, &formatStatusPage[offset + 4], formatStatusPage[offset + 3]) == 0)
                             {
                                 lastFormatUnitAllFs = true;
                             }
-                            safe_Free(allFs);
+                            safe_Free(allFs)
                         }
                         else
                         {
@@ -641,7 +642,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
             formatStatus->totalNewBlocksReassignedValid = false;
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(formatStatusPage);
+        safe_Free_aligned(formatStatusPage)
     }
     else
     {
@@ -727,7 +728,7 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
                 //convert the time to seconds, then print it in a displayable format
                 printf("Power On Time Since Last Format: ");
                 uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
-                convert_Seconds_To_Displayable_Time(formatStatus->powerOnMinutesSinceFormat * UINT32_C(60), &years, &days, &hours, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, formatStatus->powerOnMinutesSinceFormat) * UINT64_C(60), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
             }
@@ -824,12 +825,10 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
         }
         return scsiSectorSizesSupported;
     }
-#if !defined (DISABLE_NVME_PASSTHROUGH)
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         return device->drive_info.IdentifyData.nvme.ns.nlbaf + 1;//zeros based value so add 1
     }
-#endif
     else
     {
         return 0;
@@ -888,7 +887,7 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     int ret = NOT_SUPPORTED;
-    uint8_t *inquiryData = (uint8_t*)calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment);
+    uint8_t *inquiryData = C_CAST(uint8_t*, calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!inquiryData)
     {
         return MEMORY_FAILURE;
@@ -954,13 +953,13 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             }
         }
     }
-    safe_Free_aligned(inquiryData);
+    safe_Free_aligned(inquiryData)
     bool dummyUpCommonSizes = true;
     uint32_t supportedSectorSizesDataLength = 0;
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
     if (formats->protectionInformationSupported.protectionReportedPerSectorSize || supportedSectorSizesDataLength)
     {
-        uint8_t *supportedBlockLengthsData = (uint8_t*)calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t *supportedBlockLengthsData = C_CAST(uint8_t*, calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!supportedBlockLengthsData)
         {
             return MEMORY_FAILURE;
@@ -976,12 +975,12 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                 formats->sectorSizes[sectorSizeCounter].logicalBlockLength = M_BytesTo4ByteValue(supportedBlockLengthsData[iter + 0], supportedBlockLengthsData[iter + 1], supportedBlockLengthsData[iter + 2], supportedBlockLengthsData[iter + 3]);
                 formats->sectorSizes[sectorSizeCounter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
                 formats->sectorSizes[sectorSizeCounter].scsiSectorBits.piSupportBitsValid = true;
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.p_i_i_sup = (bool)(supportedBlockLengthsData[iter + 4] & BIT6);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.no_pi_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT3);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.grd_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT2);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.app_chk = (bool)(supportedBlockLengthsData[iter + 4] & BIT1);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.ref_chk = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
-                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps = (bool)(supportedBlockLengthsData[iter + 5] & BIT0);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.p_i_i_sup = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT6);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.no_pi_chk = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT3);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.grd_chk = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT2);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.app_chk = M_ToBool(supportedBlockLengthsData[iter + 4] & BIT1);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.ref_chk = M_ToBool(supportedBlockLengthsData[iter + 5] & BIT0);
+                formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t0ps = M_ToBool(supportedBlockLengthsData[iter + 5] & BIT0);
                 if (supportedBlockLengthsData[iter + 5] & BIT1)
                 {
                     formats->sectorSizes[sectorSizeCounter].scsiSectorBits.t1ps = true;
@@ -1037,7 +1036,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
             }
             ret = SUCCESS;
         }
-        safe_Free_aligned(supportedBlockLengthsData);
+        safe_Free_aligned(supportedBlockLengthsData)
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))
     {
@@ -1175,7 +1174,6 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     return ret;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     //read the PI support from identify namespace structure
@@ -1213,7 +1211,7 @@ int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
         if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
         {
             formats->sectorSizes[iter].valid = true;
-            formats->sectorSizes[iter].logicalBlockLength = (uint32_t)power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS);
+            formats->sectorSizes[iter].logicalBlockLength = C_CAST(uint32_t, power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS));
             formats->sectorSizes[iter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NVME;
             formats->sectorSizes[iter].nvmeSectorBits.relativePerformance = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].rp, 1, 0);
             formats->sectorSizes[iter].nvmeSectorBits.metadataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[iter].ms;
@@ -1225,7 +1223,6 @@ int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     formats->sectorSizes[M_Nibble0(device->drive_info.IdentifyData.nvme.ns.flbas)].currentFormat = true;
     return SUCCESS;
 }
-#endif
 
 int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
@@ -1238,15 +1235,10 @@ int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     {
     case ATA_DRIVE:
         return ata_Get_Supported_Formats(device, formats);
-        break;
     case NVME_DRIVE:
-#if !defined (DISABLE_NVME_PASSTHROUGH)
         return nvme_Get_Supported_Formats(device, formats);
-        break;
-#endif
     case SCSI_DRIVE:
         return scsi_Get_Supported_Formats(device, formats);
-        break;
     default:
         break;
     }
@@ -1282,10 +1274,12 @@ void show_Supported_Formats(ptrSupportedFormats formats)
             char pi1 = 0;
             char pi2 = 0;
             char pi3 = 0;
-            char perf[10] = { 0 };
-            char metaSize[10] = { 0 };
-            sprintf(perf, "N/A");
-            sprintf(metaSize, "N/A");
+#define PERF_STRING_SIZE 10
+#define META_STRING_SIZE 10
+            char perf[PERF_STRING_SIZE] = { 0 };
+            char metaSize[META_STRING_SIZE] = { 0 };
+            snprintf(perf, PERF_STRING_SIZE, "N/A");
+            snprintf(metaSize, META_STRING_SIZE, "N/A");
             if (formats->protectionInformationSupported.deviceSupportsProtection)
             {
                 pi0 = 'Y';
@@ -1374,23 +1368,23 @@ void show_Supported_Formats(ptrSupportedFormats formats)
                 switch (formats->sectorSizes[iter].nvmeSectorBits.relativePerformance)
                 {
                 case 0:
-                    sprintf(perf, "Best");
+                    snprintf(perf, PERF_STRING_SIZE, "Best");
                     break;
                 case 1:
-                    sprintf(perf, "Better");
+                    snprintf(perf, PERF_STRING_SIZE, "Better");
                     break;
                 case 2:
-                    sprintf(perf, "Good");
+                    snprintf(perf, PERF_STRING_SIZE, "Good");
                     break;
                 case 3:
-                    sprintf(perf, "Degraded");
+                    snprintf(perf, PERF_STRING_SIZE, "Degraded");
                     break;
                 default:
-                    sprintf(perf, "N/A");
+                    snprintf(perf, PERF_STRING_SIZE, "N/A");
                     break;
                 }
-                memset(metaSize, 0, 10);
-                sprintf(metaSize, "%" PRIu16, formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
+                memset(metaSize, 0, META_STRING_SIZE);
+                snprintf(metaSize, META_STRING_SIZE, "%" PRIu16, formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
                 break;
             default:
                 break;
@@ -1462,7 +1456,7 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
     {
         uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
         uint32_t formatsDataSize = sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats);
-        ptrSupportedFormats formats = (ptrSupportedFormats)malloc(formatsDataSize);
+        ptrSupportedFormats formats = C_CAST(ptrSupportedFormats, malloc(formatsDataSize));
         if (!formats)
         {
             return MEMORY_FAILURE;
@@ -1527,6 +1521,39 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             printf("the drive unusable or require performing this command again!!\n");
         }
         os_Lock_Device(device);
+        os_Unmount_File_Systems_On_Device(device);
+        //a weird case was found when changing the sector size on a drive with an existing partition on it.
+        //Since the MBR was a "dummy" for GPT, it is setup to look like the entire disk has a partition to stop an
+        //old OS from overwriting partitions setup with GPT.
+        //So Windows blocks the ability to change the partition.
+        //The solution is simple: erase the MBR before the format.
+        //This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
+        bool mbrEraseWarning = false;
+        uint8_t* eraseMBR = C_CAST(uint8_t*, calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (eraseMBR)
+        {
+            //write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is erased and not causing a problem
+            //NOTE: last sector is sometimes used as a backup of the MBR, which is why it will also be erased
+            int writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+            int writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
+            if (!writeBackupMBR || !writeMBR)
+            {
+                mbrEraseWarning = true;
+            }
+            safe_Free_aligned(eraseMBR);
+        }
+        else
+        {
+            mbrEraseWarning = true;
+        }
+        if(mbrEraseWarning)
+        {
+            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+            {
+                printf("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the first sector of the device\n");
+                printf("         and the last sector (max LBA) then try creating new partitions again.\n");
+            }
+        }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             uint16_t descriptorCheck = 0;
@@ -1543,7 +1570,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             memset(&formatUnitParameters, 0, sizeof(runFormatUnitParameters));
             formatUnitParameters.formatType = FORMAT_FAST_WRITE_NOT_REQUIRED;
             formatUnitParameters.currentBlockSize = false;
-            formatUnitParameters.newBlockSize = (uint16_t)sectorSize;
+            formatUnitParameters.newBlockSize = C_CAST(uint16_t, sectorSize);
             formatUnitParameters.gList = NULL;
             formatUnitParameters.glistSize = 0;
             formatUnitParameters.completeList = false;
@@ -1564,11 +1591,11 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             ret = run_Format_Unit(device, formatUnitParameters, false);
         }
         os_Unlock_Device(device);
+        os_Update_File_System_Cache(device);
     }
     return ret;
 }
 
-#if !defined (DISABLE_NVME_PASSTHROUGH)
 int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
 {
     int ret = SUCCESS;
@@ -1584,8 +1611,11 @@ int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
         {
             if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
             {
-                *percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
-                ret = IN_PROGRESS;
+                if (M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0) != 0)
+                {
+                    *percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
+                    ret = IN_PROGRESS;
+                }
             }
         }
     }
@@ -1750,7 +1780,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
         {
             printf("\n");
         }
+        os_Update_File_System_Cache(device);
     }
     return ret;
 }
-#endif
