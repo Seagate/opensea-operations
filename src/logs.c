@@ -1987,12 +1987,12 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
         if (currentOrSaved == true)
         {
             //current/host
-            islLogToPull = NVME_LOG_TELEMETRY_HOST;
+            islLogToPull = NVME_LOG_TELEMETRY_HOST_ID;
         }
         else
         {
             //saved/controller
-            islLogToPull = NVME_LOG_TELEMETRY_CTRL;
+            islLogToPull = NVME_LOG_TELEMETRY_CTRL_ID;
         }
         {
             if (saveToFile == true)
@@ -2105,6 +2105,7 @@ int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
                     return MEMORY_FAILURE;
                 }
                 dataBuffer = temp;
+                telemOpts.addr = dataBuffer;//update the data buffer after the reallocation - TJE
                 memset(dataBuffer, 0, pullChunkSize);
                 //read the remaining data
                 for (pageNumber = UINT16_C(1); pageNumber < islPullingSize; pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
@@ -2566,7 +2567,7 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
     {
         readSupporteLogPagesLog = true;
     }
-    else if (is_Seagate(device, false)) //TODO: This only applies to specific model numbers and we will need to refine this to those models in the future - TJE
+    else if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
         logPageMap suptLogPage;
         nvmeGetLogPageCmdOpts suptLogOpts;
