@@ -855,7 +855,13 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
                 {
                     formats->sectorSizes[sectorSizeCounter].valid = true;
                     formats->sectorSizes[sectorSizeCounter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
-                    if (formats->sectorSizes[sectorSizeCounter].logicalBlockLength == device->drive_info.deviceBlockSize)
+                    //special case for USB attached ATA drives to set the indicator for the current configuration.
+                    //Since this is done as a SAT passthrough command on USB, we need to check the child drive information rather than the primary information.
+                    if (device->drive_info.bridge_info.isValid && formats->sectorSizes[sectorSizeCounter].logicalBlockLength == device->drive_info.bridge_info.childDeviceBlockSize)
+                    {
+                        formats->sectorSizes[sectorSizeCounter].currentFormat = true;
+                    }
+                    else if (formats->sectorSizes[sectorSizeCounter].logicalBlockLength == device->drive_info.deviceBlockSize)
                     {
                         formats->sectorSizes[sectorSizeCounter].currentFormat = true;
                     }
