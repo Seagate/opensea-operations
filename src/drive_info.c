@@ -3919,8 +3919,9 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (pageRead)
                             {
-                                driveInfo->writeCacheSupported = cachingPage[headerLength + 2] & BIT2 ? true : false;
-                                driveInfo->readLookAheadSupported = cachingPage[headerLength + 12] & BIT5 ? false : true;
+                                //changable dictates if a bit can be changed or not. So unlike above where it is indicating state, this indicates if it is supported or can be changed at all from the current state
+                                driveInfo->writeCacheSupported = M_ToBool(cachingPage[headerLength + 2] & BIT2);
+                                driveInfo->readLookAheadSupported = M_ToBool(cachingPage[headerLength + 12] & BIT5);
                             }
                         }
                     }
