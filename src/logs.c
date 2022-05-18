@@ -786,7 +786,10 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
                 ret = FAILURE;
                 break;
             }
-            delay_Milliseconds(delayTime);
+            if (delayTime)
+            {
+                delay_Milliseconds(delayTime);
+            }     
         }
         if (logFileOpened && fp_History)
         {
@@ -1252,10 +1255,9 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 ret = FAILURE;
             }
         }
-        if (delayTime >= 0)
+        if (delayTime)
         {
             delay_Milliseconds(delayTime);
-            printf("TAN Print set time delay inside get_ATA_log ==> %"PRIu32" \n", delayTime);
         }
         if (fileOpened)
         {
