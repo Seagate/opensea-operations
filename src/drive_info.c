@@ -2893,6 +2893,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                 if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
                 {
+                    if (!driveInfo->isFormatCorrupt)
+                    {
+                        snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                        driveInfo->numberOfFeaturesSupported++;
+                    }
                     driveInfo->isFormatCorrupt = true;
                 }
             }
@@ -2904,6 +2909,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
             {
+                if (!driveInfo->isFormatCorrupt)
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                    driveInfo->numberOfFeaturesSupported++;
+                }
                 driveInfo->isFormatCorrupt = true;
             }
 
@@ -2946,6 +2956,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
             {
+                if (!driveInfo->isFormatCorrupt)
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                    driveInfo->numberOfFeaturesSupported++;
+                }
                 driveInfo->isFormatCorrupt = true;
             }
         }
@@ -5119,6 +5134,17 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 break;
             default:
                 break;
+            }
+        }
+        //check for format corrupt
+        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+        if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+        {
+            if (!driveInfo->isFormatCorrupt)
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                driveInfo->numberOfFeaturesSupported++;
             }
         }
         if (formatSupported)
