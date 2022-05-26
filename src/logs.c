@@ -270,7 +270,7 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
                 }
                 break;
             case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
-                if (is_Selective_Self_Test_Supported(device))
+                if (is_Self_Test_Supported(device) && is_Selective_Self_Test_Supported(device))
                 {
                     *logFileSize = UINT32_C(512);
                 }
@@ -2396,25 +2396,22 @@ static void format_print_ata_logs_info(uint16_t log, uint32_t logSize, bool smar
 int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
+    bool legacyDriveNoLogDir = false;
     uint8_t *gplLogBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     uint8_t *smartLogBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
     if (smartLogBuffer)
     {
-        if (is_SMART_Enabled(device))
+        if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))
         {
-            if (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0)//checking that SMART error logging is supported
+            retStatus = ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, smartLogBuffer, 512);
+            if (retStatus != SUCCESS && retStatus != WARN_INVALID_CHECKSUM)
             {
-                retStatus = ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, smartLogBuffer, 512);
-                if (retStatus != SUCCESS && retStatus != WARN_INVALID_CHECKSUM)
-                {
-                    safe_Free_aligned(smartLogBuffer)
-                }
+                safe_Free_aligned(smartLogBuffer)
             }
             else
             {
-                retStatus = NOT_SUPPORTED;
-                safe_Free_aligned(smartLogBuffer)
+                legacyDriveNoLogDir = true;
             }
         }
         else
@@ -2436,7 +2433,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             safe_Free_aligned(gplLogBuffer)
         }
     }
-    if (gplLogBuffer || smartLogBuffer)
+    if (gplLogBuffer || smartLogBuffer || legacyDriveNoLogDir)
     {
         uint16_t log = 0;
         uint16_t gplLogSize = 0, smartLogSize = 0;
@@ -2461,6 +2458,38 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             if (smartLogBuffer)
             {
                 smartLogSize = M_BytesTo2ByteValue(smartLogBuffer[(log * 2) + 1], smartLogBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            }
+            else if (legacyDriveNoLogDir)
+            {
+                //special case for old drives that support only single sector logs. In this case they do not support the smart directory
+                //So for each log being looked at, dummy up the size
+                switch (log)
+                {
+                case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
+                    smartLogSize = UINT16_C(512);
+                    break;
+                case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
+                    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word080) && (device->drive_info.IdentifyData.ata.Word080 & 0xFFC0))
+                    {
+                        smartLogSize = UINT16_C(512);
+                    }
+                    break;
+                case ATA_LOG_SMART_SELF_TEST_LOG:
+                    if (is_Self_Test_Supported(device))
+                    {
+                        smartLogSize = UINT16_C(512);
+                    }
+                    break;
+                case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+                    if (is_Self_Test_Supported(device) && is_Selective_Self_Test_Supported(device))
+                    {
+                        smartLogSize = UINT16_C(512);
+                    }
+                    break;
+                default:
+                    smartLogSize = 0;
+                    break;
+                }
             }
             //Here we need to check if the drive is reporting certain logs that are only accessible with GPL or only with SMART to set the "bug" field
             switch (log)
@@ -2581,6 +2610,12 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
         safe_Free_aligned(smartLogBuffer)
         safe_Free_aligned(gplLogBuffer)
         retStatus = SUCCESS;//set success if we were able to get at least one of the log directories to use
+        if (legacyDriveNoLogDir)
+        {
+            printf("\tNOTE: SMART log detection came from identify & smart data bits. This device\n");
+            printf("\t      does not support the SMART log directory, and therefore no multi-sector\n");
+            printf("\t       logs either. It may not be possible to get all possible logs on this device.\n\n");
+        }
         if (atLeastOneBug)
         {
             printf("\nWARNING - At least one log was reported in a non-standard way (GPL log in SMART\n");
