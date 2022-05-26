@@ -3765,6 +3765,15 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
                             if (memcmp(&errorLog[offset], zeros, SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
                             {
                                 //restart the loop to find another entry (if any)
+                                //Adjust the offset to move past the empty entry.
+                                if (offset >= 92)//second entry or higher
+                                {
+                                    offset -= SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE;
+                                }
+                                else //we must be at the 1st entry, so we need to reset to the end
+                                {
+                                    offset = 362;//final entry in the log
+                                }
                                 continue;
                             }
                             //each entry has 5 command data structures to fill in followed by error data
