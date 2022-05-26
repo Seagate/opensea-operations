@@ -1383,7 +1383,7 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         else
         {
             //This is a case for old drives. They will only support single sector logs when this is set like this
-            if (is_Self_Test_Supported)
+            if (is_Self_Test_Supported(device))
             {
                 smartSelfTest = UINT32_C(512);
             }
