@@ -409,8 +409,8 @@ bool is_Self_Test_Supported(tDevice *device)
         if (is_SMART_Enabled(device))
         {
             //also check that self test is supported by the drive
-            if((device->drive_info.IdentifyData.ata.Word084 > 0 && device->drive_info.IdentifyData.ata.Word084 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word084 & BIT1)
-                || (device->drive_info.IdentifyData.ata.Word087 > 0 && device->drive_info.IdentifyData.ata.Word087 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word087 & BIT1))
+            if((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT1)
+                || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT1))
             {
                 supported = true;
             }
@@ -431,6 +431,23 @@ bool is_Conveyence_Self_Test_Supported(tDevice *device)
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
             if (smartReadData[367] & BIT5)
+            {
+                supported = true;
+            }
+        }
+    }
+    return supported;
+}
+
+bool is_Selective_Self_Test_Supported(tDevice* device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
+        {
+            if (smartReadData[367] & BIT6)
             {
                 supported = true;
             }
@@ -1552,7 +1569,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             }
         }
     }
-    else if (is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
+    else if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
     {
         selfTestResults = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!selfTestResults)

@@ -15,6 +15,7 @@
 #include "nvme_helper.h"
 #include "nvme_operations.h"
 #include "smart.h"
+#include "dst.h"
 #include "operations_Common.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
@@ -245,9 +246,51 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
             //if we already tried the GPL buffer, make sure we clean it back up before we check again just to be safe.
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
         }
-        if (ata_SMART_Read_Log(device, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
+        if (ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
         {
             *logFileSize = M_BytesTo2ByteValue(logBuffer[(logAddress * 2) + 1], logBuffer[(logAddress * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            if (*logFileSize > 0)
+            {
+                ret = SUCCESS;
+            }
+        }
+        else if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))
+        {
+            //The directory log is marked as optional and is supposed to return aborted IF the drive does not support multi-sector logs.
+            //Only do this for summary error, comprehensive error, self-test log, and selective self-test log
+            switch (logAddress)
+            {
+            case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
+                *logFileSize = UINT32_C(512);
+                break;
+            case ATA_LOG_SMART_SELF_TEST_LOG:
+                if (is_Self_Test_Supported(device))
+                {
+                    *logFileSize = UINT32_C(512);
+                }
+                break;
+            case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+                if (is_Selective_Self_Test_Supported(device))
+                {
+                    *logFileSize = UINT32_C(512);
+                }
+                break;
+            case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
+                //first appears in ATA/ATAPI-6
+                //If the drive does not report at least this version, do not return a size for it as it will not be supported
+                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word080) && (device->drive_info.IdentifyData.ata.Word080 & 0xFFC0))
+                {
+                    *logFileSize = UINT32_C(512);
+                }
+                else
+                {
+                    *logFileSize = UINT32_C(0);
+                }
+                break;
+            default:
+                *logFileSize = UINT32_C(0);
+                break;
+            }
             if (*logFileSize > 0)
             {
                 ret = SUCCESS;

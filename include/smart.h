@@ -665,6 +665,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);
 
+    OPENSEA_OPERATIONS_API bool is_SMART_Error_Logging_Supported(tDevice* device);
+
 #if defined (__cplusplus)
 }
 #endif
