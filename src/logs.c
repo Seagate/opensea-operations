@@ -2407,11 +2407,8 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             retStatus = ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, smartLogBuffer, 512);
             if (retStatus != SUCCESS && retStatus != WARN_INVALID_CHECKSUM)
             {
+                legacyDriveNoLogDir = true; //for old drives that do not support multi-sector logs we will rely on Identify/SMART data bits to generate the output
                 safe_Free_aligned(smartLogBuffer)
-            }
-            else
-            {
-                legacyDriveNoLogDir = true;
             }
         }
         else
@@ -2612,9 +2609,9 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
         retStatus = SUCCESS;//set success if we were able to get at least one of the log directories to use
         if (legacyDriveNoLogDir)
         {
-            printf("\tNOTE: SMART log detection came from identify & smart data bits. This device\n");
-            printf("\t      does not support the SMART log directory, and therefore no multi-sector\n");
-            printf("\t       logs either. It may not be possible to get all possible logs on this device.\n\n");
+            printf("\nNOTE: SMART log detection came from identify & smart data bits. This device\n");
+            printf("      does not support the SMART log directory, and therefore no multi-sector\n");
+            printf("      logs either. It may not be possible to get all possible logs on this device.\n\n");
         }
         if (atLeastOneBug)
         {
