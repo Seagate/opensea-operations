@@ -614,10 +614,10 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                     {
                         if (captiveForeground)
                         {
-                            commandTimeout = hours * 3600 + minutes * 60;//this is a value in seconds
+                            commandTimeout = C_CAST(uint32_t, hours) * UINT32_C(3600) + C_CAST(uint32_t, minutes) * UINT32_C(60);//this is a value in seconds
                         }
-                        totalDSTTimeSeconds = hours * 3600 + minutes * 60;
-                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
+                        totalDSTTimeSeconds = hours * UINT32_C(3600) + minutes * UINT32_C(60);
+                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * UINT32_C(5);//TODO: add some kind of multiplier or something to this
                     }
                     else
                     {
@@ -1540,7 +1540,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         #if ENABLE_DST_LOG_DEBUG
                         printf("\n");
                         #endif
-                        if(offsetCheck < 4 || offsetCheck > 472)
+                        if(offsetCheck < 4 || offsetCheck > UINT32_C(472))
                         {
                             if (pageNumber > 0)
                             {
@@ -1550,7 +1550,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                             {
                                 pageNumber = lastPage;
                             }
-                            offset = 472 + (pageNumber * LEGACY_DRIVE_SEC_SIZE);
+                            offset = UINT32_C(472) + (pageNumber * LEGACY_DRIVE_SEC_SIZE);
                         }
                     }
                     else
@@ -1558,7 +1558,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         #if ENABLE_DST_LOG_DEBUG
                         printf("\tsetting offset to 472 on last page read\n");
                         #endif
-                        offset = 472 + (lastPage * LEGACY_DRIVE_SEC_SIZE);
+                        offset = UINT32_C(472) + (lastPage * LEGACY_DRIVE_SEC_SIZE);
                     }
                     ++counter;
                     if(entries->numberOfEntries >= MAX_DST_ENTRIES)
@@ -1589,7 +1589,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                 uint8_t zeroCompare[24] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
                 uint16_t offset = descriptorOffset;
                 uint16_t counter = 0;//when this get's larger than our max, we need to break out of the loop. This is always incremented. - TJE
-                while(counter < MAX_DST_ENTRIES && counter < 21)//max of 21 dst entries in this log
+                while(counter < MAX_DST_ENTRIES /*&& counter < 21*/)//max of 21 dst entries in this log
                 {
                     if (memcmp(&selfTestResults[offset], zeroCompare, descriptorLength))//invalid entires will be all zeros-TJE
                     {

@@ -33,9 +33,9 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     }
     memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
-    if (SUCCESS == ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata, LEGACY_DRIVE_SEC_SIZE))
+    if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE))
     {
-        uint8_t *bytePtr = (uint8_t*)&device->drive_info.IdentifyData.ata.Word000;
+        uint8_t *bytePtr = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
         uint16_t *wordPtr = &device->drive_info.IdentifyData.ata.Word000;
         //MN
         memcpy(driveInfo->modelNumber, device->drive_info.IdentifyData.ata.ModelNum, MODEL_NUM_LEN);
@@ -5889,7 +5889,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         metric_Unit_Convert(&mTotalCapacity, &mTotalCapUnit);
         capacity_Unit_Convert(&totalCapacity, &totalCapUnit);
         printf("\tTotal NVM Capacity (%s/%s): %0.02f/%0.02f\n", mTotalCapUnit, totalCapUnit, mTotalCapacity, totalCapacity);
-        if (driveInfo->controllerData.unallocatedNVMCapacityD)
+        if (driveInfo->controllerData.unallocatedNVMCapacityD > 0)
         {
             char mUnCapUnits[4] = { 0 }, unCapUnits[4] = { 0 };
             char *mUnCapUnit = &mUnCapUnits[0], *unCapUnit = &unCapUnits[0];

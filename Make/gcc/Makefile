@@ -27,7 +27,8 @@ CC ?= gcc
 AR ?= ar
 #override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
 CFLAGS ?= -Wall -Wextra 
-CFLAGS += -c -fPIC -I. -std=gnu99
+CFLAGS += -c -fPIC -I. -std=gnu99 -Wcast-align=strict -Wshadow=compatible-local -Wvla -Wfloat-equal -Wnull-dereference -Wunused-const-variable \
+	-Wduplicated-cond -Wjump-misses-init -Wstringop-overflow -Wlogical-op -Wshift-overflow=2 -Wsign-conversion -Wdouble-promotion -Wformat-security
 
 LFLAGS ?= -Wl,-Map,output.map -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
 LIB_SRC_FILES = \
