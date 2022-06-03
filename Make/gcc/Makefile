@@ -25,9 +25,9 @@ SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
 CC ?= gcc
 AR ?= ar
-#override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
+#override CFLAGS = -Wall -c -fPIC -I.
 CFLAGS ?= -Wall -Wextra 
-CFLAGS += -c -fPIC -I. -std=gnu99
+CFLAGS += -c -fPIC -I.
 
 #NOTE -Wsign-conversion can be useful but warns way too much by default. Only enable it if debugging specific problems
 COMPILER_VERSION := $(shell $(CC) --version)
@@ -84,6 +84,10 @@ else
 			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
 				CFLAGS += -Wlogical-not-parentheses
 			endif
+		else
+			#GCC less that v 5.x.x needs to set gnu99 standard
+			#as of 5.x.x, gnu11 is default
+			CFLAGS += -std=gnu99
 		endif
 		
 		CFLAGS += -Wvla -Wfloat-equal -Wjump-misses-init -Wlogical-op -Wdouble-promotion -Wformat-security
