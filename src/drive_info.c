@@ -5959,7 +5959,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tLast DST information:\n");
         if (driveInfo->dstInfo.informationValid)
         {
-            if (driveInfo->smartData.powerOnHoursD - (driveInfo->dstInfo.powerOnHours) != driveInfo->smartData.powerOnHoursD)
+            if (driveInfo->smartData.powerOnHoursD - (driveInfo->dstInfo.powerOnHours) < driveInfo->smartData.powerOnHoursD)
             {
                 double timeSinceLastDST = C_CAST(double, driveInfo->smartData.powerOnHoursD) - C_CAST(double, driveInfo->dstInfo.powerOnHours);
                 printf("\t\tTime since last DST (hours): ");
