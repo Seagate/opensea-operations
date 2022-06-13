@@ -19,6 +19,7 @@
 #include "nvme_helper_func.h"
 #include "firmware_download.h"
 #include "usb_hacks.h"
+#include <ctype.h>
 
 int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo)
 {
