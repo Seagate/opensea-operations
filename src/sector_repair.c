@@ -479,7 +479,7 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
     return ret;
 }
 
-int errorLBACompare(const void *a, const void *b)
+static int errorLBACompare(const void *a, const void *b)
 {
     ptrErrorLBA lba1 = C_CAST(ptrErrorLBA, a);
     ptrErrorLBA lba2 = C_CAST(ptrErrorLBA, b);

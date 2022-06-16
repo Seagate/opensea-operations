@@ -1736,7 +1736,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
 
 //This function is very similar to the "user_Sequential_Test" call, but the error list is allocated outside of this function instead of having it self containted.
 //Rather than change the user_Sequential_Test and make it potentially break others or complicated its already long list of parameters, I wrote this function instead.
-int diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+static int diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     bool errorLimitReached = false;
@@ -1929,7 +1929,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
 }
 
 //this function is similar to the range function, but looks for a time limit to run for instead.
-int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, uint64_t *numberOfLbasAccessed, bool hideLBACounter)
+static int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, uint64_t *numberOfLbasAccessed, bool hideLBACounter)
 {
     int ret = SUCCESS;
     bool errorLimitReached = false;

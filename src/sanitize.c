@@ -16,7 +16,7 @@
 #include "sanitize.h"
 #include "platform_helper.h"
 
-int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     int result = ata_Sanitize_Status(device, false);
     if (result == SUCCESS)
@@ -88,7 +88,7 @@ int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitiz
     return result;
 }
 
-int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     int result = UNKNOWN;
     //read the sanitize status log
@@ -134,7 +134,7 @@ int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSaniti
     return result;
 }
 
-int get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static int get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     uint8_t req_sense_buf[SPC3_SENSE_LEN] = { 0 };
     uint8_t acq = 0, ascq = 0, senseKey = 0, fru = 0;

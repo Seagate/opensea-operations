@@ -124,7 +124,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
     return SUCCESS;
 }
 
-void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
+static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
 {
     if (zoneDescriptor.descriptorValid)
     {

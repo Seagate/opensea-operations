@@ -1517,7 +1517,7 @@ int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeData
 
 #define SCSI_MODE_PAGE_NAME_MAX_LENGTH 40
 //TODO: this doesn't take into account some pages being device type specific. It does try for page 1Ch an 1Dh
-void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char *mpName)
+static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char *mpName)
 {
     scsiDeviceType = M_GETBITRANGE(scsiDeviceType, 4, 0);//strip off the qualifier if it was passed
     switch (modePage)
@@ -1953,7 +1953,7 @@ void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage,
 }
 
 //this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
-void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
+static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
 {
     if (modeData && modeDataLen > 2)
     {
@@ -2249,7 +2249,7 @@ void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage
 }
 
 //if yes, a page and subpage can be provided when doing a log page reset
-bool reset_Specific_Log_Page_Supported(tDevice *device)
+static bool reset_Specific_Log_Page_Supported(tDevice *device)
 {
     bool supported = false;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)

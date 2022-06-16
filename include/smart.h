@@ -667,6 +667,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API bool is_SMART_Error_Logging_Supported(tDevice* device);
 
+    OPENSEA_OPERATIONS_API bool is_SMART_Command_Transport_Supported(tDevice *device);
+
 #if defined (__cplusplus)
 }
 #endif

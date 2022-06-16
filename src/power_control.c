@@ -19,7 +19,7 @@
 #include "operations.h" //for reset to defaults bit check
 
 //There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see with ATA
-int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
+static int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
 {
     int ret = UNKNOWN;
 
@@ -445,7 +445,7 @@ int transition_NVM_Power_State(tDevice *device, uint8_t newState)
     return ret;
 }
 
-int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, ptrPowerConditionSettings powerConditionSettings)
+static int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, ptrPowerConditionSettings powerConditionSettings)
 {
     int ret = SUCCESS;
     if (!powerConditionSettings || powerCondition == PWR_CND_ACTIVE)
@@ -846,7 +846,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
     return ret;
 }
 
-int scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+static int scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
     //TODO: Check to make sure the changes being requested are supported by the device.
     return scsi_Set_Power_Conditions(device, restoreAllToDefaults, powerConditions);
@@ -854,7 +854,7 @@ int scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, pt
 
 //This function will go through and change each requested setting.
 //The first failure that happens will cause the function to fail and not proceed to set any other timer values.
-int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+static int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.ata.Word119 & BIT7)
@@ -1718,7 +1718,7 @@ int get_APM_Level(tDevice *device, uint8_t *apmLevel)
     return ret;
 }
 
-int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
+static int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
 {
     int ret = NOT_SUPPORTED;
     if (!epcSettings)
@@ -1804,7 +1804,7 @@ int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     return ret;
 }
 
-int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
+static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
 {
     int ret = NOT_SUPPORTED;
     if (!epcSettings)
@@ -1979,7 +1979,7 @@ int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     }
 }
 
-void print_Power_Condition(ptrPowerConditionInfo condition, char *conditionName)
+static void print_Power_Condition(ptrPowerConditionInfo condition, char *conditionName)
 {
     printf("%-10s ", conditionName);
     if (condition->currentTimerEnabled)
@@ -2093,7 +2093,7 @@ int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults,
 }
 
 //using 100 millisecond increments since that is what SCSI uses and the methodology in here will match SAT spec. This seemed simpler - TJE
-int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements)
+static int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.ata.Word049 & BIT13)//this is the only bit across all ATA standards that will most likely work. Prior to ATA3, there was no other support bit for the power management feature set.
