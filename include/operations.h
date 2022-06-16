@@ -71,6 +71,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool scsi_is_NV_DIS_Bit_Set(tDevice *device);
 
+    OPENSEA_OPERATIONS_API bool scsi_Is_NV_Cache_Supported(tDevice *device);
+
     OPENSEA_OPERATIONS_API bool is_NV_Cache_Supported(tDevice *device);
 
     OPENSEA_OPERATIONS_API bool is_NV_Cache_Enabled(tDevice *device);
@@ -187,6 +189,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
+    OPENSEA_OPERATIONS_API int nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+
     //-----------------------------------------------------------------------------
     //
     //  is_Read_Look_Ahead_Enabled( tDevice * device )
@@ -237,6 +241,10 @@ extern "C"
     OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device);
 
     OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Enabled(tDevice *device);
+
+    OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Supported(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //

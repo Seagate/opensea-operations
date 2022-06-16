@@ -35,7 +35,7 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
     return false;
 }
 
-int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, eSASPhyTestFunction testFunction, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
+static int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, eSASPhyTestFunction testFunction, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
 {
     int ret = SUCCESS;
     if (!diagPage)

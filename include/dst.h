@@ -184,6 +184,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
 
+    OPENSEA_OPERATIONS_API int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
+
     //-----------------------------------------------------------------------------
     //
     //  scsi_Abort_DST()
@@ -198,6 +200,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int scsi_Abort_DST(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int nvme_Abort_DST(tDevice *device, uint32_t nsid);
 
     //-----------------------------------------------------------------------------
     //
@@ -246,6 +250,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba);
+
+    OPENSEA_OPERATIONS_API bool get_Error_LBA_From_NVMe_DST_Log(tDevice *device, uint64_t *lba);
 
 
     typedef struct _dstAndCleanErrorList

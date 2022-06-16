@@ -835,7 +835,7 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
     }
 }
 
-int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     int ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device))
@@ -890,7 +890,7 @@ int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     return ret;
 }
 
-int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     int ret = NOT_SUPPORTED;
     uint8_t *inquiryData = C_CAST(uint8_t*, calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -1180,7 +1180,7 @@ int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
     return ret;
 }
 
-int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     //read the PI support from identify namespace structure
     if (device->drive_info.IdentifyData.nvme.ns.dpc > 0)
@@ -1495,7 +1495,7 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
 }
 
 //this is used to determine which fast format mode to use.
-bool is_Requested_Sector_Size_Multiple(tDevice *device, uint32_t sectorSize)
+static bool is_Requested_Sector_Size_Multiple(tDevice *device, uint32_t sectorSize)
 {
     uint32_t larger = device->drive_info.deviceBlockSize > sectorSize ? device->drive_info.deviceBlockSize : sectorSize;
     uint32_t smaller = device->drive_info.deviceBlockSize < sectorSize ? device->drive_info.deviceBlockSize : sectorSize;
@@ -1654,7 +1654,7 @@ int show_NVM_Format_Progress(tDevice *device)
     return ret;
 }
 
-uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
+static uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
 {
     uint8_t fmtNum = 16;//invalid value to catch errors!
     for (uint8_t fmtIter = 0; fmtIter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++fmtIter)

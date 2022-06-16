@@ -1496,7 +1496,7 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
     return ret;
 }
 
-int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
+static int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
                              bool saveToFile, uint8_t* ptrData, uint32_t dataSize,\
                             const char * const filePath, uint32_t transferSizeBytes)
 {
@@ -1729,7 +1729,7 @@ int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islData
     return ret;
 }
 
-int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
+static int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
                               bool saveToFile, uint8_t* ptrData, uint32_t dataSize,\
                               const char * const filePath, uint32_t transferSizeBytes)
 {
@@ -2005,7 +2005,7 @@ int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDat
     return ret;
 }
 
-int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, \
+static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, \
     bool saveToFile, uint8_t* ptrData, uint32_t dataSize, \
     const char * const filePath, uint32_t transferSizeBytes)
 {

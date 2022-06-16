@@ -400,7 +400,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
     return ret;
 }
 
-int seagate_SAS_Get_JIT_Modes(tDevice *device, ptrSeagateJITModes jitModes)
+static int seagate_SAS_Get_JIT_Modes(tDevice *device, ptrSeagateJITModes jitModes)
 {
     int ret = NOT_SUPPORTED;
     eSeagateFamily family = is_Seagate_Family(device);
@@ -473,7 +473,7 @@ int seagate_Get_JIT_Modes(tDevice *device, ptrSeagateJITModes jitModes)
     return ret;
 }
 
-int seagate_SAS_Set_JIT_Modes(tDevice *device, bool disableVjit, uint8_t jitMode, bool revertToDefaults, bool nonvolatile)
+static int seagate_SAS_Set_JIT_Modes(tDevice *device, bool disableVjit, uint8_t jitMode, bool revertToDefaults, bool nonvolatile)
 {
     int ret = NOT_SUPPORTED;
     eSeagateFamily family = is_Seagate_Family(device);
@@ -1689,4 +1689,438 @@ int seagate_Quick_Format(tDevice *device)
         os_Unlock_Device(device);
     }
     return ret;
+}
+
+//These are in the nvme-cli plugin.
+//This applies to older enterprise drives, but not the current products. 
+//Check for SEAGATE_VENDOR_SSD_PJ
+
+/***************************************
+* Extended-SMART Information
+***************************************/
+char* print_ext_smart_id(uint8_t attrId)
+{
+    switch (attrId) {
+    case VS_ATTR_ID_SOFT_READ_ERROR_RATE:
+        return "Soft ECC error count";
+    case VS_ATTR_ID_REALLOCATED_SECTOR_COUNT:
+        return "Bad NAND block count";
+    case VS_ATTR_ID_POWER_ON_HOURS:
+        return "Power On Hours";
+    case VS_ATTR_ID_POWER_FAIL_EVENT_COUNT:
+        return "Power Fail Event Count";
+    case VS_ATTR_ID_DEVICE_POWER_CYCLE_COUNT:
+        return "Device Power Cycle Count";
+    case VS_ATTR_ID_RAW_READ_ERROR_RATE:
+        return "Uncorrectable read error count";
+        /**********************************************
+                case 30:
+                    return "LIFETIME_WRITES0_TO_FLASH";
+                case 31:
+                    return "LIFETIME_WRITES1_TO_FLASH";
+                case 32:
+                    return "LIFETIME_WRITES0_FROM_HOST";
+                case 33:
+                    return "LIFETIME_WRITES1_FROM_HOST";
+                case 34:
+                    return "LIFETIME_READ0_FROM_HOST";
+                case 35:
+                    return "LIFETIME_READ1_FROM_HOST";
+                case 36:
+                    return "PCIE_PHY_CRC_ERROR";
+                case 37:
+                    return "BAD_BLOCK_COUNT_SYSTEM";
+                case 38:
+                    return "BAD_BLOCK_COUNT_USER";
+                case 39:
+                    return "THERMAL_THROTTLING_STATUS";
+        **********************************************/
+    case VS_ATTR_ID_GROWN_BAD_BLOCK_COUNT:
+        return "Bad NAND block count";
+    case VS_ATTR_ID_END_2_END_CORRECTION_COUNT:
+        return "SSD End to end correction counts";
+    case VS_ATTR_ID_MIN_MAX_WEAR_RANGE_COUNT:
+        return "User data erase counts";
+    case VS_ATTR_ID_REFRESH_COUNT:
+        return "Refresh count";
+    case VS_ATTR_ID_BAD_BLOCK_COUNT_USER:
+        return "User data erase fail count";
+    case VS_ATTR_ID_BAD_BLOCK_COUNT_SYSTEM:
+        return "System area erase fail count";
+    case VS_ATTR_ID_THERMAL_THROTTLING_STATUS:
+        return "Thermal throttling status and count";
+    case VS_ATTR_ID_ALL_PCIE_CORRECTABLE_ERROR_COUNT:
+        return "PCIe Correctable Error count";
+    case VS_ATTR_ID_ALL_PCIE_UNCORRECTABLE_ERROR_COUNT:
+        return "PCIe Uncorrectable Error count";
+    case VS_ATTR_ID_INCOMPLETE_SHUTDOWN_COUNT:
+        return "Incomplete shutdowns";
+    case VS_ATTR_ID_GB_ERASED_LSB:
+        return "LSB of Flash GB erased";
+    case VS_ATTR_ID_GB_ERASED_MSB:
+        return "MSB of Flash GB erased";
+    case VS_ATTR_ID_LIFETIME_DEVSLEEP_EXIT_COUNT:
+        return "LIFETIME_DEV_SLEEP_EXIT_COUNT";
+    case VS_ATTR_ID_LIFETIME_ENTERING_PS4_COUNT:
+        return "LIFETIME_ENTERING_PS4_COUNT";
+    case VS_ATTR_ID_LIFETIME_ENTERING_PS3_COUNT:
+        return "LIFETIME_ENTERING_PS3_COUNT";
+    case VS_ATTR_ID_RETIRED_BLOCK_COUNT:
+        return "Retired block count"; /*VS_ATTR_ID_RETIRED_BLOCK_COUNT*/
+    case VS_ATTR_ID_PROGRAM_FAILURE_COUNT:
+        return "Program fail count";
+    case VS_ATTR_ID_ERASE_FAIL_COUNT:
+        return "Erase Fail Count";
+    case VS_ATTR_ID_AVG_ERASE_COUNT:
+        return "System data % used";
+    case VS_ATTR_ID_UNEXPECTED_POWER_LOSS_COUNT:
+        return "Unexpected power loss count";
+    case VS_ATTR_ID_WEAR_RANGE_DELTA:
+        return "Wear range delta";
+    case VS_ATTR_ID_SATA_INTERFACE_DOWNSHIFT_COUNT:
+        return "PCIE_INTF_DOWNSHIFT_COUNT";
+    case VS_ATTR_ID_END_TO_END_CRC_ERROR_COUNT:
+        return "E2E_CRC_ERROR_COUNT";
+    case VS_ATTR_ID_UNCORRECTABLE_ECC_ERRORS:
+        return "Soft ECC error count";
+    case VS_ATTR_ID_MAX_LIFE_TEMPERATURE:
+        return "Max lifetime temperature";/*VS_ATTR_ID_MAX_LIFE_TEMPERATURE for extended*/
+    case VS_ATTR_ID_RAISE_ECC_CORRECTABLE_ERROR_COUNT:
+        return "RAIS_ECC_CORRECT_ERR_COUNT";
+    case VS_ATTR_ID_UNCORRECTABLE_RAISE_ERRORS:
+        return "Uncorrectable read error count";/*VS_ATTR_ID_UNCORRECTABLE_RAISE_ERRORS*/
+    case VS_ATTR_ID_DRIVE_LIFE_PROTECTION_STATUS:
+        return "DRIVE_LIFE_PROTECTION_STATUS";
+    case VS_ATTR_ID_REMAINING_SSD_LIFE:
+        return "Remaining SSD life";
+    case VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB:
+        return "LSB of Physical (NAND) bytes written";
+    case VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_MSB:
+        return "MSB of Physical (NAND) bytes written";
+    case VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB:
+        return "LSB of Physical (HOST) bytes written";
+    case VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_MSB:
+        return "MSB of Physical (HOST) bytes written";
+    case VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB:
+        return "LSB of Physical (NAND) bytes read";
+    case VS_ATTR_ID_LIFETIME_READS_TO_HOST_MSB:
+        return "MSB of Physical (NAND) bytes read";
+    case VS_ATTR_ID_FREE_SPACE:
+        return "Free Space";
+    case VS_ATTR_ID_TRIM_COUNT_LSB:
+        return "LSB of Trim count";
+    case VS_ATTR_ID_TRIM_COUNT_MSB:
+        return "MSB of Trim count";
+    case VS_ATTR_ID_OP_PERCENTAGE:
+        return "OP percentage";
+    case VS_ATTR_ID_MAX_SOC_LIFE_TEMPERATURE:
+        return "Max lifetime SOC temperature";
+    default:
+        return "Un-Known";
+    }
+}
+
+uint64_t smart_attribute_vs(uint16_t verNo, SmartVendorSpecific attr)
+{
+    uint64_t val = 0;
+    fb_smart_attribute_data *attrFb;
+
+    /**
+     * These are all FaceBook specific attributes.
+     */
+    if (verNo >= EXTENDED_SMART_VERSION_FB) {
+        attrFb = (fb_smart_attribute_data *)&attr;
+        val = attrFb->MSDword;
+        val = (val << 32) | attrFb->LSDword;
+        return val;
+    }
+
+    /******************************************************************
+        if(attr.AttributeNumber == VS_ATTR_POWER_CONSUMPTION) {
+            attrFb = (fb_smart_attribute_data *)&attr;
+            return attrFb->LSDword;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_THERMAL_THROTTLING_STATUS) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            return attrFb->LSDword;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_PCIE_PHY_CRC_ERROR) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            return attrFb->LSDword;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_BAD_BLOCK_COUNT_USER) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            return attrFb->LSDword;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_BAD_BLOCK_COUNT_SYSTEM) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            return attrFb->LSDword;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_LIFETIME_READ1_FROM_HOST) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            val = attrFb->MSDword;
+            val = (val << 32) | attrFb->LSDword ;
+            return val;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_LIFETIME_READ0_FROM_HOST) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            val = attrFb->MSDword;
+            val = (val << 32) | attrFb->LSDword ;
+            return val;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_LIFETIME_WRITES1_FROM_HOST) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            val = attrFb->MSDword;
+            val = (val << 32) | attrFb->LSDword ;
+            return val;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_LIFETIME_WRITES0_FROM_HOST) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            val = attrFb->MSDword;
+            val = (val << 32) | attrFb->LSDword ;
+            return val;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_LIFETIME_WRITES1_TO_FLASH) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            val = attrFb->MSDword;
+            val = (val << 32) | attrFb->LSDword ;
+            return val;
+        }
+        else if(attr.AttributeNumber == VS_ATTR_LIFETIME_WRITES0_TO_FLASH) {
+            fb_smart_attribute_data *attrFb;
+            attrFb = (fb_smart_attribute_data *)&attr;
+            val = attrFb->MSDword;
+            val = (val << 32) | attrFb->LSDword ;
+            return val;
+        }
+    ******************************************************************/
+
+    else
+        return attr.Raw0_3;
+}
+
+
+
+void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
+{
+    static uint64_t lsbGbErased = 0, msbGbErased = 0, lsbLifWrtToFlash = 0, msbLifWrtToFlash = 0, lsbLifWrtFrmHost = 0, msbLifWrtFrmHost = 0, lsbLifRdToHost = 0, msbLifRdToHost = 0, lsbTrimCnt = 0, msbTrimCnt = 0;
+    char buf[40] = { 0 };
+#define NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH 35
+    char strBuf[NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH] = { 0 };
+    int hideAttr = 0;
+
+    if (attr.AttributeNumber == VS_ATTR_ID_GB_ERASED_LSB)
+    {
+        lsbGbErased = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_GB_ERASED_MSB)
+    {
+        msbGbErased = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB)
+    {
+        lsbLifWrtToFlash = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_MSB)
+    {
+        msbLifWrtToFlash = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB)
+    {
+        lsbLifWrtFrmHost = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_MSB) {
+        msbLifWrtFrmHost = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) {
+        lsbLifRdToHost = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_LIFETIME_READS_TO_HOST_MSB)
+    {
+        msbLifRdToHost = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_TRIM_COUNT_LSB)
+    {
+        lsbTrimCnt = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if (attr.AttributeNumber == VS_ATTR_ID_TRIM_COUNT_MSB)
+    {
+        msbTrimCnt = smart_attribute_vs(verNo, attr);
+        hideAttr = 1;
+    }
+
+    if ((attr.AttributeNumber != 0) && (hideAttr != 1)) {
+        printf("%-40s", print_ext_smart_id(attr.AttributeNumber));
+        printf("%-15d", attr.AttributeNumber);
+        printf(" 0x%016" PRIX64 "", smart_attribute_vs(verNo, attr));
+        printf("\n");
+    }
+
+    if (lastAttr == 1) {
+
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_GB_ERASED_LSB) + 7));
+        printf("%-40s", strBuf);
+
+        printf("%-15d", VS_ATTR_ID_GB_ERASED_MSB << 8 | VS_ATTR_ID_GB_ERASED_LSB);
+
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "", msbGbErased, lsbGbErased);
+        printf(" %s", buf);
+        printf("\n");
+
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
+        printf("%-40s", strBuf);
+
+        printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB);
+
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtToFlash, lsbLifWrtToFlash);
+        printf(" %s", buf);
+        printf("\n");
+
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
+        printf("%-40s", strBuf);
+
+        printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB);
+
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtFrmHost, lsbLifWrtFrmHost);
+        printf(" %s", buf);
+        printf("\n");
+
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
+        printf("%-40s", strBuf);
+
+        printf("%-15d", VS_ATTR_ID_LIFETIME_READS_TO_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB);
+
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifRdToHost, lsbLifRdToHost);
+        printf(" %s", buf);
+        printf("\n");
+
+        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s", (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
+        printf("%-40s", strBuf);
+        printf("%-15d", VS_ATTR_ID_TRIM_COUNT_MSB << 8 | VS_ATTR_ID_TRIM_COUNT_LSB);
+
+        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt, lsbTrimCnt);
+        printf(" %s", buf);
+        printf("\n");
+    }
+}
+
+void print_smart_log_CF(fb_log_page_CF *pLogPageCF)
+{
+    uint64_t currentTemp, maxTemp;
+    printf("\n\nSeagate DRAM Supercap SMART Attributes :\n");
+    printf("%-39s %-19s \n", "Description", "Supercap Attributes");
+
+    printf("%-40s", "Super-cap current temperature");
+    currentTemp = pLogPageCF->AttrCF.SuperCapCurrentTemperature;
+    /*currentTemp = currentTemp ? currentTemp - 273 : 0;*/
+    printf(" 0x%016" PRIX64 "", currentTemp);
+    printf("\n");
+
+    maxTemp = pLogPageCF->AttrCF.SuperCapMaximumTemperature;
+    /*maxTemp = maxTemp ? maxTemp - 273 : 0;*/
+    printf("%-40s", "Super-cap maximum temperature");
+    printf(" 0x%016" PRIX64 "", maxTemp);
+    printf("\n");
+
+    printf("%-40s", "Super-cap status");
+    printf(" 0x%016" PRIX64 "", C_CAST(uint64_t, pLogPageCF->AttrCF.SuperCapStatus));
+    printf("\n");
+
+    printf("%-40s", "Data units read to DRAM namespace");
+    printf(" 0x%016" PRIX64 "%016" PRIX64 "", pLogPageCF->AttrCF.DataUnitsReadToDramNamespace.MSU64,
+        pLogPageCF->AttrCF.DataUnitsReadToDramNamespace.LSU64);
+    printf("\n");
+
+    printf("%-40s", "Data units written to DRAM namespace");
+    printf(" 0x%016" PRIX64 "%016" PRIX64 "", pLogPageCF->AttrCF.DataUnitsWrittenToDramNamespace.MSU64,
+        pLogPageCF->AttrCF.DataUnitsWrittenToDramNamespace.LSU64);
+    printf("\n");
+
+    printf("%-40s", "DRAM correctable error count");
+    printf(" 0x%016" PRIX64 "", pLogPageCF->AttrCF.DramCorrectableErrorCount);
+    printf("\n");
+
+    printf("%-40s", "DRAM uncorrectable error count");
+    printf(" 0x%016" PRIX64 "", pLogPageCF->AttrCF.DramUncorrectableErrorCount);
+    printf("\n");
+
+}
+
+//Seagate Unique...
+int get_Ext_Smrt_Log(tDevice *device)//, nvmeGetLogPageCmdOpts * getLogPageCmdOpts)
+{
+    if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
+    {
+#ifdef _DEBUG
+        printf("-->%s\n", __FUNCTION__);
+#endif
+        int ret = 0, index = 0;
+        EXTENDED_SMART_INFO_T ExtdSMARTInfo;
+        memset(&ExtdSMARTInfo, 0x00, sizeof(ExtdSMARTInfo));
+        ret = nvme_Read_Ext_Smt_Log(device, &ExtdSMARTInfo);
+        if (!ret) {
+            printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
+            for (index = 0; index < 80; index++)
+                printf("-");
+            printf("\n");
+            for (index = 0; index < NUMBER_EXTENDED_SMART_ATTRIBUTES; index++)
+                print_smart_log(ExtdSMARTInfo.Version, ExtdSMARTInfo.vendorData[index], index == (NUMBER_EXTENDED_SMART_ATTRIBUTES - 1));
+
+        }
+        return 0;
+    }
+    else
+    {
+        return NOT_SUPPORTED;
+    }
+}
+
+int clr_Pcie_Correctable_Errs(tDevice *device)
+{
+    if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
+    {
+        //const char *desc = "Clear Seagate PCIe Correctable counters for the given device ";
+        //const char *save = "specifies that the controller shall save the attribute";
+        int err = SUCCESS;
+
+        nvmeFeaturesCmdOpt clearPCIeCorrectableErrors;
+        memset(&clearPCIeCorrectableErrors, 0, sizeof(nvmeFeaturesCmdOpt));
+        clearPCIeCorrectableErrors.fid = 0xE1;
+        clearPCIeCorrectableErrors.featSetGetValue = 0xCB;
+        clearPCIeCorrectableErrors.sv = false;
+        err = nvme_Set_Features(device, &clearPCIeCorrectableErrors);
+
+        return err;
+    }
+    else
+    {
+        return NOT_SUPPORTED;
+    }
 }

@@ -14,7 +14,7 @@
 #include "trim_unmap.h"
 #include "platform_helper.h"
 
-bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
+static bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
 {
     bool supported = false;
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported)

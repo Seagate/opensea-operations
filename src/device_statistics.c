@@ -29,7 +29,7 @@ int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *devi
 */
 void scsi_Threshold_Comparison(statistic *ptrStatistic);//prototype
 
-int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = NOT_SUPPORTED;
     if (!deviceStats)
@@ -1219,7 +1219,7 @@ int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     return ret;
 }
 
-int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = NOT_SUPPORTED;
     if (!deviceStats)
@@ -6828,7 +6828,7 @@ void scsi_Threshold_Comparison(statistic *ptrStatistic)
 
 #define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
 
-void print_Count_Statistic(statistic theStatistic, char *statisticName, char *statisticUnit)
+static void print_Count_Statistic(statistic theStatistic, char *statisticName, char *statisticUnit)
 {
     if (theStatistic.isSupported)
     {
@@ -6896,7 +6896,7 @@ void print_Count_Statistic(statistic theStatistic, char *statisticName, char *st
     }
 }
 
-void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisticName)
+static void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -6969,7 +6969,7 @@ void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisti
     }
 }
 
-void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statisticName)
+static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7073,7 +7073,7 @@ void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statis
     }
 }
 
-void print_Resource_Availability_Statistic(statistic theStatistic, char *statisticName)
+static void print_Resource_Availability_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7138,7 +7138,7 @@ void print_Resource_Availability_Statistic(statistic theStatistic, char *statist
     }
 }
 
-void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *statisticName)
+static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7210,7 +7210,7 @@ void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *s
     }
 }
 
-void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticName)
+static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7288,7 +7288,7 @@ void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticNa
     }
 }
 
-void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
+static void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7352,7 +7352,7 @@ void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
     }
 }
 
-void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *statisticName)
+static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7420,7 +7420,7 @@ void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *stati
     }
 }
 //the statistic value must be a time in minutes for this function
-void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
+static void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7496,7 +7496,7 @@ void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
 }
 
 //for accounting date and date of manufacture
-void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
+static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7577,7 +7577,7 @@ void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
     }
 }
 
-void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticName)
+static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7677,7 +7677,7 @@ void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticN
 }
 
 //This is a different function to be more specific to SAS environmental limits/reporting pages
-void print_Environmental_Temperature_Statistic(statistic theStatistic, char* statisticName, bool isLimit)
+static void print_Environmental_Temperature_Statistic(statistic theStatistic, char* statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
@@ -7756,7 +7756,7 @@ void print_Environmental_Temperature_Statistic(statistic theStatistic, char* sta
     }
 }
 
-void print_Humidity_Statistic(statistic theStatistic, char *statisticName, bool isLimit)
+static void print_Humidity_Statistic(statistic theStatistic, char *statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
@@ -7838,7 +7838,7 @@ void print_Humidity_Statistic(statistic theStatistic, char *statisticName, bool 
     }
 }
 
-int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = SUCCESS;
     if (!deviceStats)
@@ -7975,7 +7975,7 @@ int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
     return ret;
 }
 
-int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
+static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
 {
     int ret = SUCCESS;
     if (!deviceStats)

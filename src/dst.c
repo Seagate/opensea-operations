@@ -1397,7 +1397,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
 }
 #define ENABLE_DST_LOG_DEBUG 0 //set to non zero to enable this debug.
 //TODO: This should grab the entries in order from most recent to oldest...current sort via timestamp won't fix getting the most recent one first.
-int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
     uint8_t *selfTestResults = NULL;
@@ -1683,7 +1683,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
     uint8_t dstLog[LP_SELF_TEST_RESULTS_LEN] = { 0 };
@@ -1719,7 +1719,7 @@ int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
     if (!entries)

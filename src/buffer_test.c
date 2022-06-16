@@ -113,7 +113,7 @@ static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offse
     return ret;
 }
 
-int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
+static int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -151,7 +151,7 @@ static int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t
     }
 }
 
-bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
+static bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
 {
     bool crc = false;
     bool checkSenseData = false;
@@ -230,7 +230,7 @@ bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
 }
 
 //Function for simple byte pattern tests. take counter for number of times to try it?
-void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
+static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 5;
     uint8_t *patternBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
@@ -315,7 +315,7 @@ void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t devic
 }
 
 //Function for Walking 1's/0's test
-void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
+static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint8_t *patternBuffer = C_CAST(uint8_t*, calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));//only send this to the drive
     uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
@@ -419,7 +419,7 @@ void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBuf
     safe_Free_aligned(returnBuffer)
 }
 //Function for random data pattern test
-void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
+static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 10;
     uint8_t *patternBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
