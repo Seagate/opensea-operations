@@ -6321,6 +6321,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                             deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.isValueValid = true;
                             deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
                             ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
                         default:
                             break;
                         }
@@ -6603,7 +6604,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                 }
                             }
                         }
-                        safe_Free_aligned(protSpData);
+                        safe_Free_aligned(protSpData)
                     }
                 }
                 break;
