@@ -2265,10 +2265,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             break;
         }
     }
-    else
-    {
-        driveInfo->smartStatus = 2;
-    }
     if (is_Seagate_Family(device) == SEAGATE)
     {
         driveInfo->lowCurrentSpinupValid = true;
