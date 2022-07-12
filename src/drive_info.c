@@ -2543,25 +2543,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             remove_Leading_And_Trailing_Whitespace(device->drive_info.serialNumber);
                             //For Seagate and LaCie USB drives, need to remove leading or trailing zeroes.
-                            if (strncmp(driveInfo->vendorID, "Seagate", strlen("Seagate")) == 0 || strncmp(driveInfo->vendorID, "LaCie", strlen("LaCie")) == 0)
+                            if (is_Seagate_USB_Vendor_ID(driveInfo->vendorID) || is_LaCie_USB_Vendor_ID(driveInfo->vendorID))
                             {
-                                //sometimes these report with padded zeroes at beginning or end. Detect this and remove the extra zeroes
-                                //All of these SNs should be only 8 characters long.
-                                char zeroes[SERIAL_NUM_LEN + 1] = { 0 };//making bigger than needed for now.
-                                memset(zeroes, '0', SERIAL_NUM_LEN);
-                                if (strncmp(zeroes, driveInfo->serialNumber, SEAGATE_SERIAL_NUMBER_LEN) == 0)
-                                {
-                                    //zeroes at the beginning. Strip them off
-                                    memmove(&driveInfo->serialNumber[0], &driveInfo->serialNumber[SEAGATE_SERIAL_NUMBER_LEN], strlen(driveInfo->serialNumber) - SEAGATE_SERIAL_NUMBER_LEN);
-                                    memset(&driveInfo->serialNumber[SEAGATE_SERIAL_NUMBER_LEN], 0, strlen(driveInfo->serialNumber) - SEAGATE_SERIAL_NUMBER_LEN);
-                                }
-                                else if (strncmp(zeroes, &driveInfo->serialNumber[SEAGATE_SERIAL_NUMBER_LEN], strlen(driveInfo->serialNumber) - SEAGATE_SERIAL_NUMBER_LEN) == 0)
-                                {
-                                    //zeroes at the end. Write nulls over them
-                                    memset(&driveInfo->serialNumber[SEAGATE_SERIAL_NUMBER_LEN], 0, strlen(driveInfo->serialNumber) - SEAGATE_SERIAL_NUMBER_LEN);
-                                }
-                                //TODO: Add more cases if we observe other strange reporting behavior.
-                                //NOTE: For LaCie, it is unknown what format their SNs were before Seagate acquired them, so may need to add different cases for these older LaCie products.
+                                char* snPtr = driveInfo->serialNumber;
+                                const char* t10VIDPtr = driveInfo->vendorID;
+                                seagate_Serial_Number_Cleanup(t10VIDPtr, &snPtr, SERIAL_NUM_LEN + 1);
                             }
                         }
                     }
