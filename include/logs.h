@@ -156,7 +156,7 @@ extern "C" {
                                         bool GPL, bool SMART, bool toBuffer,\
                                         uint8_t *myBuf, uint32_t bufSize,\
                                         const char * const filePath, \
-                                        uint32_t transferSizeBytes, uint16_t featureRegister);
+                                        uint32_t transferSizeBytes, uint16_t featureRegister, uint32_t delayTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -475,9 +475,9 @@ extern "C" {
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage,\
-        eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
+        eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
 
-    OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
+    OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -543,7 +543,7 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16,\
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
-        const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
+        const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, uint32_t delayTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -566,7 +566,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress);
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime);
 
     //-----------------------------------------------------------------------------
     //
