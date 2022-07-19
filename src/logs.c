@@ -126,7 +126,7 @@ int create_And_Open_Log_File(tDevice *device,\
             {
                 //Both logPath and logFileNameUsed have non-empty values
                 char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
-		        char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
+                char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
                 snprintf(lpathNFilename, OPENSEA_PATH_MAX, "%s", *logFileNameUsed);
                 snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
                 if (strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
@@ -1208,7 +1208,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     if (fileOpened)
                     {
                         //write out to a file
-                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
+                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), remainderPages * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(remainderPages * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
@@ -3082,51 +3082,51 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
-    	{
-    		//TODO: Instead of a scope, this should be a function.
-    		//First, setting up bools for GPL and SMART logging features based on drive capabilities
-    		bool gpl = device->drive_info.ata_Options.generalPurposeLoggingSupported;
-    		bool smart = (is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) );
-    		//Now, using switch case to handle KNOWN logs from ATA spec. Only flipping certain logs as most every modern drive uses GPL 
-    		//and most logs are GPL access now (but it wasn't always that way, and this works around some bugs in drive firmware!!!)
-    		switch (logNum)
-    		{
-    		case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
-    		case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
-    		case ATA_LOG_SMART_SELF_TEST_LOG:
-    		case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
-    		    //All of these logs are specified as access with SMART read log only, so disabling GPL. All others should be accessible with GPL when supported.
-    			gpl = false;
-    			break;
-    		default:
-    			break;
-    		}
-        	switch (mode)
-        	{
-        	case PULL_LOG_BIN_FILE_MODE:
-            	retStatus = get_ATA_Log(device, logNum, logFileName, "bin", gpl, smart, false, NULL, 0, filePath, transferSizeBytes,0);
-            	break;
-        	case PULL_LOG_RAW_MODE:
-            	if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
-            	{
-                	genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-                	if (genericLogBuf)
-                	{
-                    	retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes,0);
-                    	if (SUCCESS == retStatus)
-                    	{
-                        	print_Data_Buffer(genericLogBuf, logSize, true);
-                    	}
-                	}
-                	else
-                	{
-                    	retStatus = MEMORY_FAILURE;
-                	}
-            	}           
-            	break;
-        	default:
-            	break;
-        	}
+        {
+            //TODO: Instead of a scope, this should be a function.
+            //First, setting up bools for GPL and SMART logging features based on drive capabilities
+            bool gpl = device->drive_info.ata_Options.generalPurposeLoggingSupported;
+            bool smart = (is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) );
+            //Now, using switch case to handle KNOWN logs from ATA spec. Only flipping certain logs as most every modern drive uses GPL 
+            //and most logs are GPL access now (but it wasn't always that way, and this works around some bugs in drive firmware!!!)
+            switch (logNum)
+            {
+            case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
+            case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
+            case ATA_LOG_SMART_SELF_TEST_LOG:
+            case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+                //All of these logs are specified as access with SMART read log only, so disabling GPL. All others should be accessible with GPL when supported.
+                gpl = false;
+                break;
+            default:
+                break;
+            }
+            switch (mode)
+            {
+            case PULL_LOG_BIN_FILE_MODE:
+                retStatus = get_ATA_Log(device, logNum, logFileName, "bin", gpl, smart, false, NULL, 0, filePath, transferSizeBytes,0);
+                break;
+            case PULL_LOG_RAW_MODE:
+                if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (genericLogBuf)
+                    {
+                        retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes,0);
+                        if (SUCCESS == retStatus)
+                        {
+                            print_Data_Buffer(genericLogBuf, logSize, true);
+                        }
+                    }
+                    else
+                    {
+                        retStatus = MEMORY_FAILURE;
+                    }
+                }           
+                break;
+            default:
+                break;
+            }
         }
         break;
     case SCSI_DRIVE:
