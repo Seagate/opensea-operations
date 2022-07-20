@@ -3112,7 +3112,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
             switch (mode)
             {
             case PULL_LOG_BIN_FILE_MODE:
-                retStatus = get_ATA_Log(device, logNum, logFileName, "bin", gpl, smart, false, NULL, 0, filePath, transferSizeBytes,0);
+                retStatus = get_ATA_Log(device, logNum, logFileName, "bin", gpl, smart, false, NULL, 0, filePath, transferSizeBytes,0,delayTime);
                 break;
             case PULL_LOG_RAW_MODE:
                 if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
@@ -3120,7 +3120,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
                     genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
                     if (genericLogBuf)
                     {
-                        retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes,0);
+                        retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes,0,delayTime);
                         if (SUCCESS == retStatus)
                         {
                             print_Data_Buffer(genericLogBuf, logSize, true);
