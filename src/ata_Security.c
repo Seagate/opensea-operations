@@ -467,7 +467,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
     }
 }
 
-void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
+static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
 {
     if (ataPassword)
     {

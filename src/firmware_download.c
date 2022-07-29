@@ -42,6 +42,53 @@ typedef struct _firmwareUpdateDataV1 {
     bool ignoreStatusOfFinalSegment;//This is a legacy compatibility option. Some old drives do not return status on the last segment, but the download is successful and this ignores the failing status from the OS and reports SUCCESS when set to true.
 } firmwareUpdateDataV1;
 
+static int check_For_Power_Cycle_Required(int ret, tDevice *device)
+{
+#if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+    //Check if the device needs a power cycle to complete the update...This has been necessary in Windows with the Intel NVMe driver in some cases
+    if (ret == SUCCESS)
+    {
+        //we do not already have a "Power cycle is requied" return code, so need to check the firmware log for the NVMe device to see if the "next active" slot value is non-zero.
+        //If it is non-zero then the low-level driver did not issue the necessary reset for activation.
+        //read the firmware log for more information
+        uint8_t firmwareLog[512] = { 0 };
+        nvmeGetLogPageCmdOpts firmwareLogOpts;
+        firmwareLogOpts.addr = firmwareLog;
+        firmwareLogOpts.dataLen = 512;
+        firmwareLogOpts.lid = 3;
+        firmwareLogOpts.nsid = 0;
+        if (SUCCESS == nvme_Get_Log_Page(device, &firmwareLogOpts))
+        {
+            //uint8_t activeSlot = M_GETBITRANGE(firmwareLog[0], 2, 0);
+            uint8_t nextSlotToBeActivated = M_GETBITRANGE(firmwareLog[0], 6, 4);
+            if (nextSlotToBeActivated != 0)
+            {
+                ret = POWER_CYCLE_REQUIRED;
+            }
+            //this is a workaround where this log is reported empty, which is NOT correct, but seems to match when the power cycle is actually needed to complete activation -TJE
+            //This is most likely an Intel Driver caching problem from what I can tell when debugging this issue.
+            if (is_Empty(firmwareLog, 512))
+            {
+                ret = POWER_CYCLE_REQUIRED;
+            }
+            //set the firmware revision in each slot
+            //for (uint32_t slotIter = 0, offset = 8; slotIter <= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1) && slotIter <= 7 /*max of 7 slots in spec and structure*/ && offset < 512; ++slotIter, offset += 8)
+            //{
+            //    char rev[9] = { 0 };
+            //    memcpy(rev, &firmwareLog[offset], 8);
+            //    rev[8] = '\0';
+            //    printf("slot %u: %s\n", slotIter, rev);
+            //}
+        }
+    }
+    return ret;
+#else
+    //this is a windows only issue, so just return
+    M_USE_UNUSED(device);
+    return ret;
+#endif //_WIN32 and WINVER >= WIN10
+}
+
 int firmware_Download(tDevice *device, firmwareUpdateData * options)
 {
     int ret = SUCCESS;
@@ -76,8 +123,9 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
                 device->os_info.fwdlIOsupport.fwdlIOSupported = true;
             }
-#endif
+#endif //_WIN32 and WINVER >= WIN10
             os_Unlock_Device(device);
+            ret = check_For_Power_Cycle_Required(ret, device);
             return ret;
         }
         if (options->firmwareMemoryLength == 0)
@@ -306,6 +354,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 //send an activate command (not an existing slot, this is a new image activation)
                 ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false, false, false, 60);
                 options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+                ret = check_For_Power_Cycle_Required(ret, device);
             }
             os_Unlock_Device(device);
             if (device->deviceVerbosity > VERBOSITY_QUIET)

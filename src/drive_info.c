@@ -14,10 +14,12 @@
 #include "logs.h"
 #include "set_max_lba.h"
 #include "smart.h"
+#include "dst.h"
 #include "scsi_helper.h"
 #include "nvme_helper_func.h"
 #include "firmware_download.h"
 #include "usb_hacks.h"
+#include <ctype.h>
 
 int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo)
 {
@@ -32,9 +34,9 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
     }
     memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
-    if (SUCCESS == ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata, LEGACY_DRIVE_SEC_SIZE))
+    if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE))
     {
-        uint8_t *bytePtr = (uint8_t*)&device->drive_info.IdentifyData.ata.Word000;
+        uint8_t *bytePtr = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
         uint16_t *wordPtr = &device->drive_info.IdentifyData.ata.Word000;
         //MN
         memcpy(driveInfo->modelNumber, device->drive_info.IdentifyData.ata.ModelNum, MODEL_NUM_LEN);
@@ -1364,19 +1366,32 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
         gotLogDirectory = true;
     }
 
-    if (gotLogDirectory)
+    if (gotLogDirectory || smartErrorLoggingSupported)
     {
         //check for log sizes we are interested in
         uint32_t devStatsSize = 0, idDataLog = 0, hybridInfoSize = 0, smartSelfTest = 0, extSelfTest = 0, hostlogging = 0, sctStatus = 0, concurrentRangesSize = 0;
-        devStatsSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2) + 1], logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        idDataLog = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        hybridInfoSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2) + 1], logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        smartSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        extSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        sctStatus = M_BytesTo2ByteValue(logBuffer[(ATA_SCT_COMMAND_STATUS * 2) + 1], logBuffer[(ATA_SCT_COMMAND_STATUS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        hostlogging = M_BytesTo2ByteValue(logBuffer[(0x80 * 2) + 1], logBuffer[(0x80 * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        concurrentRangesSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2) + 1], logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-        if (hostlogging > 0)
+        if (gotLogDirectory)
+        {
+            devStatsSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2) + 1], logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            idDataLog = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            hybridInfoSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2) + 1], logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            smartSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            extSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            sctStatus = M_BytesTo2ByteValue(logBuffer[(ATA_SCT_COMMAND_STATUS * 2) + 1], logBuffer[(ATA_SCT_COMMAND_STATUS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            hostlogging = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HOST_SPECIFIC_80H * 2) + 1], logBuffer[(ATA_LOG_HOST_SPECIFIC_80H * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            concurrentRangesSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2) + 1], logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+        }
+        else
+        {
+            //This is a case for old drives. They will only support single sector logs when this is set like this
+            if (is_Self_Test_Supported(device))
+            {
+                smartSelfTest = UINT32_C(512);
+            }
+            //The only other logs to look at in here are SMART error log (summary and comprehensive) and selective self test
+            // as these are the only other single sector logs that will show up on old drives like these
+        }
+        if (hostlogging == (UINT32_C(16) * UINT16_C(512)))
         {
             snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Host Logging");
             driveInfo->numberOfFeaturesSupported++;
@@ -2250,10 +2265,6 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
             break;
         }
     }
-    else
-    {
-        driveInfo->smartStatus = 2;
-    }
     if (is_Seagate_Family(device) == SEAGATE)
     {
         driveInfo->lowCurrentSpinupValid = true;
@@ -2523,6 +2534,21 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
                             driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
                             remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                            for (uint8_t iter = 0; iter < SERIAL_NUM_LEN; ++iter)
+                            {
+                                if (!isprint(device->drive_info.serialNumber[iter]))
+                                {
+                                    device->drive_info.serialNumber[iter] = ' ';
+                                }
+                            }
+                            remove_Leading_And_Trailing_Whitespace(device->drive_info.serialNumber);
+                            //For Seagate and LaCie USB drives, need to remove leading or trailing zeroes.
+                            if (is_Seagate_USB_Vendor_ID(driveInfo->vendorID) || is_LaCie_USB_Vendor_ID(driveInfo->vendorID))
+                            {
+                                char* snPtr = driveInfo->serialNumber;
+                                const char* t10VIDPtr = driveInfo->vendorID;
+                                seagate_Serial_Number_Cleanup(t10VIDPtr, &snPtr, SERIAL_NUM_LEN + 1);
+                            }
                         }
                     }
                 }
@@ -2893,6 +2919,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                 if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
                 {
+                    if (!driveInfo->isFormatCorrupt)
+                    {
+                        snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                        driveInfo->numberOfFeaturesSupported++;
+                    }
                     driveInfo->isFormatCorrupt = true;
                 }
             }
@@ -2904,6 +2935,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
             {
+                if (!driveInfo->isFormatCorrupt)
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                    driveInfo->numberOfFeaturesSupported++;
+                }
                 driveInfo->isFormatCorrupt = true;
             }
 
@@ -2946,6 +2982,11 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
             {
+                if (!driveInfo->isFormatCorrupt)
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                    driveInfo->numberOfFeaturesSupported++;
+                }
                 driveInfo->isFormatCorrupt = true;
             }
         }
@@ -3919,8 +3960,9 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             if (pageRead)
                             {
-                                driveInfo->writeCacheSupported = cachingPage[headerLength + 2] & BIT2 ? true : false;
-                                driveInfo->readLookAheadSupported = cachingPage[headerLength + 12] & BIT5 ? false : true;
+                                //changable dictates if a bit can be changed or not. So unlike above where it is indicating state, this indicates if it is supported or can be changed at all from the current state
+                                driveInfo->writeCacheSupported = M_ToBool(cachingPage[headerLength + 2] & BIT2);
+                                driveInfo->readLookAheadSupported = M_ToBool(cachingPage[headerLength + 12] & BIT5);
                             }
                         }
                     }
@@ -5120,6 +5162,17 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 break;
             }
         }
+        //check for format corrupt
+        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+        if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+        {
+            if (!driveInfo->isFormatCorrupt)
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Corrupt - not all features identifiable.");
+                driveInfo->numberOfFeaturesSupported++;
+            }
+        }
         if (formatSupported)
         {
             snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format Unit");
@@ -5848,7 +5901,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         metric_Unit_Convert(&mTotalCapacity, &mTotalCapUnit);
         capacity_Unit_Convert(&totalCapacity, &totalCapUnit);
         printf("\tTotal NVM Capacity (%s/%s): %0.02f/%0.02f\n", mTotalCapUnit, totalCapUnit, mTotalCapacity, totalCapacity);
-        if (driveInfo->controllerData.unallocatedNVMCapacityD)
+        if (driveInfo->controllerData.unallocatedNVMCapacityD > 0)
         {
             char mUnCapUnits[4] = { 0 }, unCapUnits[4] = { 0 };
             char *mUnCapUnit = &mUnCapUnits[0], *unCapUnit = &unCapUnits[0];
@@ -5918,7 +5971,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tLast DST information:\n");
         if (driveInfo->dstInfo.informationValid)
         {
-            if (driveInfo->smartData.powerOnHoursD - (driveInfo->dstInfo.powerOnHours) != driveInfo->smartData.powerOnHoursD)
+            if (driveInfo->smartData.powerOnHoursD - (driveInfo->dstInfo.powerOnHours) < driveInfo->smartData.powerOnHoursD)
             {
                 double timeSinceLastDST = C_CAST(double, driveInfo->smartData.powerOnHoursD) - C_CAST(double, driveInfo->dstInfo.powerOnHours);
                 printf("\t\tTime since last DST (hours): ");

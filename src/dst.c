@@ -68,9 +68,8 @@ int ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *st
     {
         //get the progress
         *status = temp_buf[363];
-        //get the status before we shift it by 4 for the while condition check.
-        *percentComplete = (*status & 0x0F) * 0x0A;
-        *status = M_Nibble0((*status >> 4));
+        *percentComplete = M_Nibble0(*status) * 10;
+        *status = M_Nibble1(*status);
     }
     return result;
 }
@@ -409,8 +408,8 @@ bool is_Self_Test_Supported(tDevice *device)
         if (is_SMART_Enabled(device))
         {
             //also check that self test is supported by the drive
-            if((device->drive_info.IdentifyData.ata.Word084 > 0 && device->drive_info.IdentifyData.ata.Word084 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word084 & BIT1)
-                || (device->drive_info.IdentifyData.ata.Word087 > 0 && device->drive_info.IdentifyData.ata.Word087 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word087 & BIT1))
+            if((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT1)
+                || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT1))
             {
                 supported = true;
             }
@@ -431,6 +430,23 @@ bool is_Conveyence_Self_Test_Supported(tDevice *device)
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
             if (smartReadData[367] & BIT5)
+            {
+                supported = true;
+            }
+        }
+    }
+    return supported;
+}
+
+bool is_Selective_Self_Test_Supported(tDevice* device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
+        {
+            if (smartReadData[367] & BIT6)
             {
                 supported = true;
             }
@@ -597,10 +613,10 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
                     {
                         if (captiveForeground)
                         {
-                            commandTimeout = hours * 3600 + minutes * 60;//this is a value in seconds
+                            commandTimeout = C_CAST(uint32_t, hours) * UINT32_C(3600) + C_CAST(uint32_t, minutes) * UINT32_C(60);//this is a value in seconds
                         }
-                        totalDSTTimeSeconds = hours * 3600 + minutes * 60;
-                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
+                        totalDSTTimeSeconds = hours * UINT32_C(3600) + minutes * UINT32_C(60);
+                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * UINT32_C(5);//TODO: add some kind of multiplier or something to this
                     }
                     else
                     {
@@ -1381,7 +1397,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
 }
 #define ENABLE_DST_LOG_DEBUG 0 //set to non zero to enable this debug.
 //TODO: This should grab the entries in order from most recent to oldest...current sort via timestamp won't fix getting the most recent one first.
-int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
     uint8_t *selfTestResults = NULL;
@@ -1523,7 +1539,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         #if ENABLE_DST_LOG_DEBUG
                         printf("\n");
                         #endif
-                        if(offsetCheck < 4 || offsetCheck > 472)
+                        if(offsetCheck < 4 || offsetCheck > UINT32_C(472))
                         {
                             if (pageNumber > 0)
                             {
@@ -1533,7 +1549,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                             {
                                 pageNumber = lastPage;
                             }
-                            offset = 472 + (pageNumber * LEGACY_DRIVE_SEC_SIZE);
+                            offset = UINT32_C(472) + (pageNumber * LEGACY_DRIVE_SEC_SIZE);
                         }
                     }
                     else
@@ -1541,7 +1557,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         #if ENABLE_DST_LOG_DEBUG
                         printf("\tsetting offset to 472 on last page read\n");
                         #endif
-                        offset = 472 + (lastPage * LEGACY_DRIVE_SEC_SIZE);
+                        offset = UINT32_C(472) + (lastPage * LEGACY_DRIVE_SEC_SIZE);
                     }
                     ++counter;
                     if(entries->numberOfEntries >= MAX_DST_ENTRIES)
@@ -1552,7 +1568,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             }
         }
     }
-    else if (is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
+    else if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
     {
         selfTestResults = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!selfTestResults)
@@ -1572,7 +1588,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                 uint8_t zeroCompare[24] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
                 uint16_t offset = descriptorOffset;
                 uint16_t counter = 0;//when this get's larger than our max, we need to break out of the loop. This is always incremented. - TJE
-                while(counter < MAX_DST_ENTRIES && counter < 21)//max of 21 dst entries in this log
+                while(counter < MAX_DST_ENTRIES /*&& counter < 21*/)//max of 21 dst entries in this log
                 {
                     if (memcmp(&selfTestResults[offset], zeroCompare, descriptorLength))//invalid entires will be all zeros-TJE
                     {
@@ -1667,7 +1683,7 @@ int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
     uint8_t dstLog[LP_SELF_TEST_RESULTS_LEN] = { 0 };
@@ -1703,7 +1719,7 @@ int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     int ret = NOT_SUPPORTED;
     if (!entries)

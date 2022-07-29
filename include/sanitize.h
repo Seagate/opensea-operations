@@ -63,6 +63,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOptions);
 
+    OPENSEA_OPERATIONS_API int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts);
+
     //-----------------------------------------------------------------------------
     //
     //  get_Sanitize_Device_Features()

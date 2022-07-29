@@ -138,29 +138,6 @@ extern "C"
     // \return SUCCESS - pass, !SUCCESS fail or something went wrong
     OPENSEA_OPERATIONS_API int print_Nvme_Ctrl_Regs(tDevice * device);
 
-    OPENSEA_OPERATIONS_API void print_smart_log(uint16_t  verNo, SmartVendorSpecific attr, int lastAttr);
-    OPENSEA_OPERATIONS_API uint64_t smart_attribute_vs(uint16_t  verNo, SmartVendorSpecific attr);
-    OPENSEA_OPERATIONS_API char* print_ext_smart_id(uint8_t  attrId);
-
-
-    //-----------------------------------------------------------------------------
-    //
-    //  nvme_Get_Ext_Smrt_Log_Page
-    //
-    //! \brief   Description:  Function to send Get Extended SMART Information Log Page NVMe command to a device
-    //
-    //  Entry:
-    //!   \param[in] device = pointer to tDevice structure
-    //!   \param[in] nsid = Namespace ID for the namespace of 0xFFFFFFFF for entire controller. 
-    //!   \param[out] pData = Data buffer (suppose to be 512 bytes)
-    //!   \param[in] dataLen = Data buffer Length
-    //!
-    //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Ext_Smrt_Log(tDevice *device);
-
     //-----------------------------------------------------------------------------
     //
     //  nvme_Get_Log_Size
@@ -178,8 +155,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int nvme_Get_Log_Size(uint8_t logPageId, uint64_t * logSize);
-
-    OPENSEA_OPERATIONS_API int clr_Pcie_Correctable_Errs(tDevice *device);
 
 #if defined (__cplusplus)
 }

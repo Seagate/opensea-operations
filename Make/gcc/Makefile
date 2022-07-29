@@ -15,19 +15,86 @@
 NAME=opensea-operations
 FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
-MAJOR=2
+MAJOR=3
 #Change the Minor version when new features are added. 
 MINOR=0
 #Change the patch version when only bug fixes are made.
-PATCH=0
+PATCH=5
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
 CC ?= gcc
 AR ?= ar
-#override CFLAGS = -Wall -c -fPIC -I. -std=gnu99
+#override CFLAGS = -Wall -c -fPIC -I.
 CFLAGS ?= -Wall -Wextra 
-CFLAGS += -c -fPIC -I. -std=gnu99
+CFLAGS += -c -fPIC -I.
+
+#NOTE -Wsign-conversion can be useful but warns way too much by default. Only enable it if debugging specific problems
+COMPILER_VERSION := $(shell $(CC) --version)
+ifneq (,$(findstring clang,$(COMPILER_VERSION)))
+	#setup clang specific warnings/flags (centos 7's old version supports -Wno-unknown-warning-option so enabling all of them)
+	CFLAGS += -Wno-unknown-warning-option -Wcast-align=strict -Wvla -Wfloat-equal -Wnull-dereference -Wunused-const-variable \
+	-Wduplicated-cond -Wjump-misses-init -Wstringop-overflow -Wlogical-op -Wshift-overflow=2 -Wdouble-promotion -Wformat-security \
+	-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
+else 
+	ifneq (,$(findstring GCC,$(COMPILER_VERSION)))
+		#setup gcc specific warnings/flags
+		GCC_VERSION_STRING = $(shell $(CC) -dumpversion)
+		GCC_VER = $(subst ., ,$(GCC_VERSION_STRING))
+		GCC_MAJOR = $(word 1,$(GCC_VER))
+		GCC_MINOR = $(word 2,$(GCC_VER))
+		GCC_SUBMINOR = $(word 3,$(GCC_VER))
+		ifeq ($(GCC_MINOR),)
+			GCC_MINOR = 0
+		endif 
+		ifeq ($(GCC_SUBMINOR),)
+			GCC_SUBMINOR = 0
+		endif
+		#version 8.5 and higher
+		ifeq ($(shell test $(GCC_MAJOR) -gt 7; echo $$?),0)
+			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
+				CFLAGS += -Wcast-align=strict
+			else 
+				CFLAGS += -Wcast-align
+			endif
+		else
+			CFLAGS += -Wcast-align
+		endif
+		#version 7.5 and higher
+		ifeq ($(shell test $(GCC_MAJOR) -gt 6; echo $$?),0)
+			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
+				CFLAGS += -Wshadow=compatible-local -Wstringop-overflow
+			else 
+				CFLAGS +=
+			endif
+		else
+			CFLAGS +=
+		endif
+		#version 6.5 and higher
+		ifeq ($(shell test $(GCC_MAJOR) -gt 5; echo $$?),0)
+			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
+				CFLAGS += -Wnull-dereference -Wunused-const-variable -Wduplicated-cond -Wshift-overflow=2
+			else 
+				CFLAGS +=
+			endif
+		else
+			CFLAGS +=
+		endif
+		#version 5.5 and higher
+		ifeq ($(shell test $(GCC_MAJOR) -gt 4; echo $$?),0)
+			ifeq ($(shell test $(GCC_MINOR) -gt 4; echo $$?),0)
+				CFLAGS += -Wlogical-not-parentheses
+			endif
+		else
+			#GCC less that v 5.x.x needs to set gnu99 standard
+			#as of 5.x.x, gnu11 is default
+			CFLAGS += -std=gnu99
+		endif
+		
+		CFLAGS += -Wvla -Wfloat-equal -Wjump-misses-init -Wlogical-op -Wdouble-promotion -Wformat-security \
+			-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
+	endif
+endif
 
 LFLAGS ?= -Wl,-Map,output.map -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
 LIB_SRC_FILES = \

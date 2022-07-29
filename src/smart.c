@@ -17,6 +17,7 @@
 #include "usb_hacks.h"
 #include "logs.h"
 #include "nvme_operations.h"
+#include "seagate_operations.h"
 
 int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
@@ -1859,7 +1860,7 @@ bool is_SMART_Command_Transport_Supported(tDevice *device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT0)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT0)
         {
             supported = true;
         }
@@ -1872,9 +1873,9 @@ bool is_SMART_Error_Logging_Supported(tDevice *device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((device->drive_info.IdentifyData.ata.Word084 != 0x0000 && device->drive_info.IdentifyData.ata.Word084 != 0xFFFF && device->drive_info.IdentifyData.ata.Word084 & BIT0)
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT0)
             ||
-            (device->drive_info.IdentifyData.ata.Word087 != 0x0000 && device->drive_info.IdentifyData.ata.Word087 != 0xFFFF && device->drive_info.IdentifyData.ata.Word087 & BIT0)
+            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT0)
             )
         {
             supported = true;
@@ -1883,7 +1884,7 @@ bool is_SMART_Error_Logging_Supported(tDevice *device)
     return supported;
 }
 
-int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
+static int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
 {
     int ret = NOT_SUPPORTED;
     if (is_SMART_Command_Transport_Supported(device))
@@ -3547,7 +3548,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
         EXTENDED_SMART_INFO_T   extSmartLog;
         nvmeSuperCapDramSmart   scDramSmart;
 
-        if (is_Seagate(device, false))
+        if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
         {
             //STEP-1 : Get Current Temperature from SMART
 
@@ -3731,79 +3732,41 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
         {
             return BAD_PARAMETER;
         }
-        if (is_SMART_Enabled(device))//must be enabled to read this page
+        if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))//must be enabled to read this page
         {
-            if (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0)//checking that SMART error logging is supported
+            //Check to make sure it is in the SMART log directory
+            uint32_t smartErrorLogSize = 0;
+            get_ATA_Log_Size(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, &smartErrorLogSize, false, true);
+            if (smartErrorLogSize > 0)
             {
-                //Check to make sure it is in the SMART log directory
-                uint32_t smartErrorLogSize = 0;
-                get_ATA_Log_Size(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, &smartErrorLogSize, false, true);
-                if (smartErrorLogSize > 0)
+                uint8_t errorLog[512] = { 0 }; //This log is only 1 page in spec
+                int getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, 512);
+                if (SUCCESS == getLog || WARN_INVALID_CHECKSUM == getLog)
                 {
-                    uint8_t errorLog[512] = { 0 }; //This log is only 1 page in spec
-                    int getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, 512);
-                    if (SUCCESS == getLog || WARN_INVALID_CHECKSUM == getLog)
+                    uint8_t errorLogIndex = errorLog[1];
+                    smartErrorLog->version = errorLog[0];
+                    if (getLog == SUCCESS)
                     {
-                        uint8_t errorLogIndex = errorLog[1];
-                        smartErrorLog->version = errorLog[0];
-                        if (getLog == SUCCESS)
+                        smartErrorLog->checksumsValid = true;
+                    }
+                    else
+                    {
+                        smartErrorLog->checksumsValid = false;
+                    }
+                    smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[453], errorLog[452]);
+                    if (errorLogIndex > 0 && errorLogIndex < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE)
+                    {
+                        uint8_t zeros[SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
+                        uint32_t offset = 2 + ((errorLogIndex - 1) * SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);//first entry is at offset 2, each entry is 90 bytes long
+                        //offset should now be our starting point to populate the list
+                        uint16_t entryCount = 0;
+                        while(entryCount < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && entryCount < smartErrorLog->deviceErrorCount)
                         {
-                            smartErrorLog->checksumsValid = true;
-                        }
-                        else
-                        {
-                            smartErrorLog->checksumsValid = false;
-                        }
-                        smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[453], errorLog[452]);
-                        if (errorLogIndex > 0 && errorLogIndex < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE)
-                        {
-                            uint8_t zeros[SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
-                            uint32_t offset = 2 + ((errorLogIndex - 1) * SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);//first entry is at offset 2, each entry is 90 bytes long
-                            //offset should now be our starting point to populate the list
-                            uint16_t entryCount = 0;
-                            while(entryCount < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && entryCount < smartErrorLog->deviceErrorCount)
+                            //check if the entry is empty
+                            if (memcmp(&errorLog[offset], zeros, SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
                             {
-                                //check if the entry is empty
-                                if (memcmp(&errorLog[offset], zeros, SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
-                                {
-                                    //restart the loop to find another entry (if any)
-                                    continue;
-                                }
-                                //each entry has 5 command data structures to fill in followed by error data
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extDataStructures = false;
-                                //NOTE: don't memcpy since we aren't packing the structs
-                                uint32_t commandEntryOffset = offset;
-                                for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE)
-                                {
-                                    if (memcmp(&errorLog[commandEntryOffset + 0], zeros, SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
-                                    {
-                                        continue;
-                                    }
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].transportSpecific = errorLog[commandEntryOffset + 0];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].feature = errorLog[commandEntryOffset + 1];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].count = errorLog[commandEntryOffset + 2];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaLow = errorLog[commandEntryOffset + 3];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaMid = errorLog[commandEntryOffset + 4];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaHi = errorLog[commandEntryOffset + 5];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].device = errorLog[commandEntryOffset + 6];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].contentWritten = errorLog[commandEntryOffset + 7];
-                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 11], errorLog[commandEntryOffset + 10], errorLog[commandEntryOffset + 9], errorLog[commandEntryOffset + 8]);
-                                    ++(smartErrorLog->smartError[smartErrorLog->numberOfEntries].numberOfCommands);
-                                }
-                                //now set the error data
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.reserved = errorLog[offset + 60];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.error = errorLog[offset + 61];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.count = errorLog[offset + 62];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaLow = errorLog[offset + 63];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaMid = errorLog[offset + 64];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaHi = errorLog[offset + 65];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.device = errorLog[offset + 66];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status = errorLog[offset + 67];
-                                memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, &errorLog[offset + 68], 19);
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state = errorLog[offset + 87];
-                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
-                                ++(smartErrorLog->numberOfEntries);
-                                ++entryCount;
+                                //restart the loop to find another entry (if any)
+                                //Adjust the offset to move past the empty entry.
                                 if (offset >= 92)//second entry or higher
                                 {
                                     offset -= SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE;
@@ -3812,19 +3775,63 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
                                 {
                                     offset = 362;//final entry in the log
                                 }
+                                continue;
+                            }
+                            //each entry has 5 command data structures to fill in followed by error data
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].extDataStructures = false;
+                            //NOTE: don't memcpy since we aren't packing the structs
+                            uint32_t commandEntryOffset = offset;
+                            for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE)
+                            {
+                                if (memcmp(&errorLog[commandEntryOffset + 0], zeros, SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
+                                {
+                                    continue;
+                                }
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].transportSpecific = errorLog[commandEntryOffset + 0];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].feature = errorLog[commandEntryOffset + 1];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].count = errorLog[commandEntryOffset + 2];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaLow = errorLog[commandEntryOffset + 3];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaMid = errorLog[commandEntryOffset + 4];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaHi = errorLog[commandEntryOffset + 5];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].device = errorLog[commandEntryOffset + 6];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].contentWritten = errorLog[commandEntryOffset + 7];
+                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 11], errorLog[commandEntryOffset + 10], errorLog[commandEntryOffset + 9], errorLog[commandEntryOffset + 8]);
+                                ++(smartErrorLog->smartError[smartErrorLog->numberOfEntries].numberOfCommands);
+                            }
+                            //now set the error data
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.reserved = errorLog[offset + 60];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.error = errorLog[offset + 61];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.count = errorLog[offset + 62];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaLow = errorLog[offset + 63];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaMid = errorLog[offset + 64];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaHi = errorLog[offset + 65];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.device = errorLog[offset + 66];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status = errorLog[offset + 67];
+                            memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, &errorLog[offset + 68], 19);
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state = errorLog[offset + 87];
+                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
+                            ++(smartErrorLog->numberOfEntries);
+                            ++entryCount;
+                            if (offset >= 92)//second entry or higher
+                            {
+                                offset -= SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE;
+                            }
+                            else //we must be at the 1st entry, so we need to reset to the end
+                            {
+                                offset = 362;//final entry in the log
                             }
                         }
-                        else
-                        {
-                            //nothing to do since index zero means no entries in the list;
-                            smartErrorLog->numberOfEntries = 0;
-                        }
-                        ret = SUCCESS;
                     }
                     else
                     {
-                        ret = FAILURE;
+                        //nothing to do since index zero means no entries in the list;
+                        smartErrorLog->numberOfEntries = 0;
                     }
+                    ret = SUCCESS;
+                }
+                else
+                {
+                    ret = FAILURE;
                 }
             }
         }
@@ -3850,122 +3857,256 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
         {
             return BAD_PARAMETER;
         }
-        if (is_SMART_Enabled(device))//must be enabled to read this page
+        if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))//must be enabled to read this page
         {
-            if (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0)//checking that SMART error logging is supported
+            uint32_t compErrLogSize = 0;
+            //now check for GPL summort so we know if we are reading the ext log or not
+            if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !forceSMARTLog && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false) && compErrLogSize > 0)
             {
-                uint32_t compErrLogSize = 0;
-                //now check for GPL summort so we know if we are reading the ext log or not
-                if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !forceSMARTLog && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false) && compErrLogSize > 0)
+                //extended comprehensive SMART error log
+                //We will read each sector of the log as we need it to help with some USB compatibility (and so we don't read more than we need)
+                uint8_t errorLog[512] = { 0 };
+                uint16_t pageNumber = 0;
+                get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false);
+                uint16_t maxPage = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
+                uint16_t pageIter = 0;
+                if (compErrLogSize > 0)
                 {
-                    //extended comprehensive SMART error log
-                    //We will read each sector of the log as we need it to help with some USB compatibility (and so we don't read more than we need)
-                    uint8_t errorLog[512] = { 0 };
-                    uint16_t pageNumber = 0;
-                    get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false);
-                    uint16_t maxPage = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
-                    uint16_t pageIter = 0;
-                    if (compErrLogSize > 0)
+                    ret = SUCCESS;
+                    int getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
+                    if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                     {
-                        ret = SUCCESS;
-                        int getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
-                        if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
+                        smartErrorLog->version = errorLog[0];
+                        if (getLog == SUCCESS)
                         {
-                            smartErrorLog->version = errorLog[0];
-                            if (getLog == SUCCESS)
+                            smartErrorLog->checksumsValid = true;
+                        }
+                        else
+                        {
+                            smartErrorLog->checksumsValid = false;
+                        }
+                        smartErrorLog->extLog = true;
+                        smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[501], errorLog[500]);
+                        uint16_t errorLogIndex = M_BytesTo2ByteValue(errorLog[3], errorLog[2]);
+                        if (errorLogIndex > 0)
+                        {
+                            //get the starting page number
+                            uint8_t pageEntryNumber = errorLogIndex % EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//which entry on the page (zero indexed)
+                            uint8_t zeros[EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
+                            pageNumber = errorLogIndex / EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//4 entries per page
+                            while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)
                             {
-                                smartErrorLog->checksumsValid = true;
-                            }
-                            else
-                            {
-                                smartErrorLog->checksumsValid = false;
-                            }
-                            smartErrorLog->extLog = true;
-                            smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[501], errorLog[500]);
-                            uint16_t errorLogIndex = M_BytesTo2ByteValue(errorLog[3], errorLog[2]);
-                            if (errorLogIndex > 0)
-                            {
-                                //get the starting page number
-                                uint8_t pageEntryNumber = errorLogIndex % EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//which entry on the page (zero indexed)
-                                uint8_t zeros[EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
-                                pageNumber = errorLogIndex / EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//4 entries per page
-                                while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)
+                                while (pageIter <= maxPage)
                                 {
-                                    while (pageIter <= maxPage)
+                                    //first read this page
+                                    memset(errorLog, 0, 512);
+                                    getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
+                                    if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                                     {
-                                        //first read this page
-                                        memset(errorLog, 0, 512);
-                                        getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
-                                        if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
+                                        uint8_t pageEntryCounter = 0;
+                                        if (getLog == WARN_INVALID_CHECKSUM)
                                         {
-                                            uint8_t pageEntryCounter = 0;
-                                            if (getLog == WARN_INVALID_CHECKSUM)
+                                            smartErrorLog->checksumsValid = false;
+                                        }
+                                        while (pageEntryNumber < EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)//4 entries per page in the ext log
+                                        {
+                                            uint32_t offset = (pageEntryNumber * EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) + EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;
+                                            --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
+                                            //check if the entry is empty
+                                            if (memcmp(&errorLog[offset], zeros, EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
                                             {
-                                                smartErrorLog->checksumsValid = false;
+                                                //restart the loop to find another entry (if any)
+                                                continue;
                                             }
-                                            while (pageEntryNumber < EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)//4 entries per page in the ext log
+                                            //each entry has 5 command data structures to fill in followed by error data
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extDataStructures = true;
+                                            //NOTE: don't memcpy since we aren't packing the structs
+                                            uint32_t commandEntryOffset = offset;
+                                            for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += EXT_COMP_SMART_ERROR_LOG_COMMAND_SIZE)
                                             {
-                                                uint32_t offset = (pageEntryNumber * EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) + EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;
-                                                --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
-                                                //check if the entry is empty
-                                                if (memcmp(&errorLog[offset], zeros, EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
+                                                if (memcmp(&errorLog[commandEntryOffset + 0], zeros, EXT_COMP_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
                                                 {
-                                                    //restart the loop to find another entry (if any)
                                                     continue;
                                                 }
-                                                //each entry has 5 command data structures to fill in followed by error data
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extDataStructures = true;
-                                                //NOTE: don't memcpy since we aren't packing the structs
-                                                uint32_t commandEntryOffset = offset;
-                                                for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += EXT_COMP_SMART_ERROR_LOG_COMMAND_SIZE)
-                                                {
-                                                    if (memcmp(&errorLog[commandEntryOffset + 0], zeros, EXT_COMP_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
-                                                    {
-                                                        continue;
-                                                    }
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].deviceControl = errorLog[commandEntryOffset + 0];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].feature = errorLog[commandEntryOffset + 1];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].featureExt = errorLog[commandEntryOffset + 2];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].count = errorLog[commandEntryOffset + 3];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].countExt = errorLog[commandEntryOffset + 4];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLow = errorLog[commandEntryOffset + 5];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLowExt = errorLog[commandEntryOffset + 6];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMid = errorLog[commandEntryOffset + 7];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMidExt = errorLog[commandEntryOffset + 8];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHi = errorLog[commandEntryOffset + 9];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHiExt = errorLog[commandEntryOffset + 10];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].device = errorLog[commandEntryOffset + 11];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].contentWritten = errorLog[commandEntryOffset + 12];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].reserved = errorLog[commandEntryOffset + 13];
-                                                    smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 17], errorLog[commandEntryOffset + 16], errorLog[commandEntryOffset + 15], errorLog[commandEntryOffset + 14]);
-                                                    ++(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].numberOfCommands);
-                                                }
-                                                //now set the error data
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.transportSpecific = errorLog[offset + 90];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.error = errorLog[offset + 91];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.count = errorLog[offset + 92];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.countExt = errorLog[offset + 93];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaLow = errorLog[offset + 94];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaLowExt = errorLog[offset + 95];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaMid = errorLog[offset + 96];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaMidExt = errorLog[offset + 97];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaHi = errorLog[offset + 98];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaHiExt = errorLog[offset + 99];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.device = errorLog[offset + 100];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.status = errorLog[offset + 101];
-                                                memcpy(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.extendedErrorInformation, &errorLog[offset + 102], 19);
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.state = errorLog[offset + 121];
-                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 123], errorLog[offset + 122]);
-                                                ++(smartErrorLog->numberOfEntries);
-                                                ++pageEntryCounter;
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].deviceControl = errorLog[commandEntryOffset + 0];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].feature = errorLog[commandEntryOffset + 1];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].featureExt = errorLog[commandEntryOffset + 2];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].count = errorLog[commandEntryOffset + 3];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].countExt = errorLog[commandEntryOffset + 4];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLow = errorLog[commandEntryOffset + 5];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaLowExt = errorLog[commandEntryOffset + 6];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMid = errorLog[commandEntryOffset + 7];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaMidExt = errorLog[commandEntryOffset + 8];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHi = errorLog[commandEntryOffset + 9];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].lbaHiExt = errorLog[commandEntryOffset + 10];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].device = errorLog[commandEntryOffset + 11];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].contentWritten = errorLog[commandEntryOffset + 12];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].reserved = errorLog[commandEntryOffset + 13];
+                                                smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extCommand[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 17], errorLog[commandEntryOffset + 16], errorLog[commandEntryOffset + 15], errorLog[commandEntryOffset + 14]);
+                                                ++(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].numberOfCommands);
                                             }
-                                            //reset the pageEntry number to 4 for next page (start at the end and work backwards)
-                                            pageEntryNumber = EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;
+                                            //now set the error data
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.transportSpecific = errorLog[offset + 90];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.error = errorLog[offset + 91];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.count = errorLog[offset + 92];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.countExt = errorLog[offset + 93];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaLow = errorLog[offset + 94];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaLowExt = errorLog[offset + 95];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaMid = errorLog[offset + 96];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaMidExt = errorLog[offset + 97];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaHi = errorLog[offset + 98];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaHiExt = errorLog[offset + 99];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.device = errorLog[offset + 100];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.status = errorLog[offset + 101];
+                                            memcpy(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.extendedErrorInformation, &errorLog[offset + 102], 19);
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.state = errorLog[offset + 121];
+                                            smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 123], errorLog[offset + 122]);
+                                            ++(smartErrorLog->numberOfEntries);
+                                            ++pageEntryCounter;
                                         }
-                                        else
+                                        //reset the pageEntry number to 4 for next page (start at the end and work backwards)
+                                        pageEntryNumber = EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;
+                                    }
+                                    else
+                                    {
+                                        //break out of the loop!
+                                    }
+                                    ++pageIter;
+                                    if (pageNumber > 0)
+                                    {
+                                        --pageNumber;//go to the previous page of the log to read entries in order
+                                    }
+                                    else
+                                    {
+                                        pageNumber = maxPage - 1;//minus 1 because zero indexed
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            smartErrorLog->numberOfEntries = 0;
+                            ret = SUCCESS;
+                        }
+                    }
+                    else
+                    {
+                        ret = FAILURE;
+                    }
+                }
+            }
+            else //GPL log was not available or did not read correctly.
+            {
+                //comprehensive SMART error log
+                //read the first sector to get index and device error count. Will read the full thing if those are non-zero
+                get_ATA_Log_Size(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, false, true);
+                if (compErrLogSize > 0)
+                {
+                    ret = SUCCESS;
+                    uint8_t *errorLog = C_CAST(uint8_t*, calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!errorLog)
+                    {
+                        return MEMORY_FAILURE;
+                    }
+                    int getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog, 512);
+                    if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
+                    {
+                        smartErrorLog->version = errorLog[0];
+                        if (getLog == SUCCESS)
+                        {
+                            smartErrorLog->checksumsValid = true;
+                        }
+                        else
+                        {
+                            smartErrorLog->checksumsValid = false;
+                        }
+                        smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[453], errorLog[452]);
+                        uint8_t errorLogIndex = errorLog[1];
+                        if (errorLogIndex > 0)
+                        {
+                            //read the full log to populate all fields
+                            uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!temp)
+                            {
+                                safe_Free_aligned(errorLog)
+                                return MEMORY_FAILURE;
+                            }
+                            errorLog = temp;
+                            memset(errorLog, 0, compErrLogSize);
+                            getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog, compErrLogSize);
+                            if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
+                            {
+                                //We now have the full log in memory. 
+                                //First, figure out the first page to read. Next: need to handle switching between pages as we fill in the structure with data.
+                                uint16_t pageNumber = errorLogIndex / COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//5 entries per page
+                                uint16_t maxPages = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
+                                uint16_t pageIter = 0;
+                                //byte offset, this will point to the first entry
+                                uint8_t pageEntryNumber = errorLogIndex % COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//remainder...zero indexed
+                                uint32_t offset = 0;// (pageNumber * 512) + (pageEntryNumber * 90) + 2;
+                                //EX: Entry 28: pageNumber = 28 / 5 = 5;
+                                //              pageEntryNumber = 28 % 5 = 3;
+                                //              offset = (5 * 512) + (3 * 90) + 2;
+                                //              5 * 512 gets us to that page offset (2560)
+                                //              3 * 90 + 2 gets us to the entry offset on the page we need = 272, which is 4th entry on the page (5th page)
+                                //              this gets us entry 4 on page 5 which is entry number 28
+                                //Now, we need to loop through the data and jump between pages.
+                                //go until we fill up our structure with a max number of entries
+                                uint8_t zeros[COMP_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
+                                while (smartErrorLog->numberOfEntries < SMART_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount  && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
+                                {
+                                    while (pageIter <= maxPages)
+                                    {
+                                        uint16_t pageEntryCounter = 0;
+                                        while (pageEntryNumber < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                         {
-                                            //break out of the loop!
+                                            //calculate the offset of the first entry we need to read from this page
+                                            offset = (pageNumber * 512) + (pageEntryNumber * COMP_SMART_ERROR_LOG_ENTRY_SIZE) + 2;
+                                            --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
+                                            //read the entry into memory if it is valid, otherwise continue the loop
+                                            //check if the entry is empty
+                                            if (memcmp(&errorLog[offset], zeros, COMP_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
+                                            {
+                                                //restart the loop to find another entry (if any)
+                                                continue;
+                                            }
+                                            //each entry has 5 command data structures to fill in followed by error data
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].extDataStructures = false;
+                                            //NOTE: don't memcpy since we aren't packing the structs
+                                            uint32_t commandEntryOffset = offset;
+                                            for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += COMP_SMART_ERROR_LOG_COMMAND_SIZE)
+                                            {
+                                                if (memcmp(&errorLog[commandEntryOffset + 0], zeros, COMP_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
+                                                {
+                                                    continue;
+                                                }
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].transportSpecific = errorLog[commandEntryOffset + 0];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].feature = errorLog[commandEntryOffset + 1];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].count = errorLog[commandEntryOffset + 2];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaLow = errorLog[commandEntryOffset + 3];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaMid = errorLog[commandEntryOffset + 4];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaHi = errorLog[commandEntryOffset + 5];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].device = errorLog[commandEntryOffset + 6];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].contentWritten = errorLog[commandEntryOffset + 7];
+                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 11], errorLog[commandEntryOffset + 10], errorLog[commandEntryOffset + 9], errorLog[commandEntryOffset + 8]);
+                                                ++(smartErrorLog->smartError[smartErrorLog->numberOfEntries].numberOfCommands);
+                                            }
+                                            //now set the error data
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.reserved = errorLog[offset + 60];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.error = errorLog[offset + 61];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.count = errorLog[offset + 62];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaLow = errorLog[offset + 63];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaMid = errorLog[offset + 64];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaHi = errorLog[offset + 65];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.device = errorLog[offset + 66];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status = errorLog[offset + 67];
+                                            memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, &errorLog[offset + 68], 19);
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state = errorLog[offset + 87];
+                                            smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
+                                            ++(smartErrorLog->numberOfEntries);
+                                            ++pageEntryCounter;
                                         }
+                                        pageEntryNumber = COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//back to last entry for the previous page
                                         ++pageIter;
                                         if (pageNumber > 0)
                                         {
@@ -3973,165 +4114,28 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                         }
                                         else
                                         {
-                                            pageNumber = maxPage - 1;//minus 1 because zero indexed
+                                            pageNumber = maxPages - 1;//minus 1 because zero indexed
                                         }
                                     }
                                 }
+                                ret = SUCCESS;
                             }
                             else
                             {
-                                smartErrorLog->numberOfEntries = 0;
-                                ret = SUCCESS;
+                                ret = FAILURE;
                             }
                         }
                         else
                         {
-                            ret = FAILURE;
+                            smartErrorLog->numberOfEntries = 0;
+                            ret = SUCCESS;
                         }
                     }
-                }
-                else //GPL log was not available or did not read correctly.
-                {
-                    //comprehensive SMART error log
-                    //read the first sector to get index and device error count. Will read the full thing if those are non-zero
-                    get_ATA_Log_Size(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, false, true);
-                    if (compErrLogSize > 0)
+                    else
                     {
-                        ret = SUCCESS;
-                        uint8_t *errorLog = C_CAST(uint8_t*, calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
-                        if (!errorLog)
-                        {
-                            return MEMORY_FAILURE;
-                        }
-                        int getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog, 512);
-                        if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
-                        {
-                            smartErrorLog->version = errorLog[0];
-                            if (getLog == SUCCESS)
-                            {
-                                smartErrorLog->checksumsValid = true;
-                            }
-                            else
-                            {
-                                smartErrorLog->checksumsValid = false;
-                            }
-                            smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[453], errorLog[452]);
-                            uint8_t errorLogIndex = errorLog[1];
-                            if (errorLogIndex > 0)
-                            {
-                                //read the full log to populate all fields
-                                uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment));
-                                if (!temp)
-                                {
-                                    safe_Free_aligned(errorLog)
-                                    return MEMORY_FAILURE;
-                                }
-                                errorLog = temp;
-                                memset(errorLog, 0, compErrLogSize);
-                                getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog, compErrLogSize);
-                                if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
-                                {
-                                    //We now have the full log in memory. 
-                                    //First, figure out the first page to read. Next: need to handle switching between pages as we fill in the structure with data.
-                                    uint16_t pageNumber = errorLogIndex / COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//5 entries per page
-                                    uint16_t maxPages = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));
-                                    uint16_t pageIter = 0;
-                                    //byte offset, this will point to the first entry
-                                    uint8_t pageEntryNumber = errorLogIndex % COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//remainder...zero indexed
-                                    uint32_t offset = 0;// (pageNumber * 512) + (pageEntryNumber * 90) + 2;
-                                    //EX: Entry 28: pageNumber = 28 / 5 = 5;
-                                    //              pageEntryNumber = 28 % 5 = 3;
-                                    //              offset = (5 * 512) + (3 * 90) + 2;
-                                    //              5 * 512 gets us to that page offset (2560)
-                                    //              3 * 90 + 2 gets us to the entry offset on the page we need = 272, which is 4th entry on the page (5th page)
-                                    //              this gets us entry 4 on page 5 which is entry number 28
-                                    //Now, we need to loop through the data and jump between pages.
-                                    //go until we fill up our structure with a max number of entries
-                                    uint8_t zeros[COMP_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
-                                    while (smartErrorLog->numberOfEntries < SMART_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount  && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
-                                    {
-                                        while (pageIter <= maxPages)
-                                        {
-                                            uint16_t pageEntryCounter = 0;
-                                            while (pageEntryNumber < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
-                                            {
-                                                //calculate the offset of the first entry we need to read from this page
-                                                offset = (pageNumber * 512) + (pageEntryNumber * COMP_SMART_ERROR_LOG_ENTRY_SIZE) + 2;
-                                                --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
-                                                //read the entry into memory if it is valid, otherwise continue the loop
-                                                //check if the entry is empty
-                                                if (memcmp(&errorLog[offset], zeros, COMP_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
-                                                {
-                                                    //restart the loop to find another entry (if any)
-                                                    continue;
-                                                }
-                                                //each entry has 5 command data structures to fill in followed by error data
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].extDataStructures = false;
-                                                //NOTE: don't memcpy since we aren't packing the structs
-                                                uint32_t commandEntryOffset = offset;
-                                                for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += COMP_SMART_ERROR_LOG_COMMAND_SIZE)
-                                                {
-                                                    if (memcmp(&errorLog[commandEntryOffset + 0], zeros, COMP_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
-                                                    {
-                                                        continue;
-                                                    }
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].transportSpecific = errorLog[commandEntryOffset + 0];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].feature = errorLog[commandEntryOffset + 1];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].count = errorLog[commandEntryOffset + 2];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaLow = errorLog[commandEntryOffset + 3];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaMid = errorLog[commandEntryOffset + 4];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].lbaHi = errorLog[commandEntryOffset + 5];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].device = errorLog[commandEntryOffset + 6];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].contentWritten = errorLog[commandEntryOffset + 7];
-                                                    smartErrorLog->smartError[smartErrorLog->numberOfEntries].command[commandEntry].timestampMilliseconds = M_BytesTo4ByteValue(errorLog[commandEntryOffset + 11], errorLog[commandEntryOffset + 10], errorLog[commandEntryOffset + 9], errorLog[commandEntryOffset + 8]);
-                                                    ++(smartErrorLog->smartError[smartErrorLog->numberOfEntries].numberOfCommands);
-                                                }
-                                                //now set the error data
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.reserved = errorLog[offset + 60];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.error = errorLog[offset + 61];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.count = errorLog[offset + 62];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaLow = errorLog[offset + 63];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaMid = errorLog[offset + 64];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaHi = errorLog[offset + 65];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.device = errorLog[offset + 66];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status = errorLog[offset + 67];
-                                                memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, &errorLog[offset + 68], 19);
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state = errorLog[offset + 87];
-                                                smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
-                                                ++(smartErrorLog->numberOfEntries);
-                                                ++pageEntryCounter;
-                                            }
-                                            pageEntryNumber = COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//back to last entry for the previous page
-                                            ++pageIter;
-                                            if (pageNumber > 0)
-                                            {
-                                                --pageNumber;//go to the previous page of the log to read entries in order
-                                            }
-                                            else
-                                            {
-                                                pageNumber = maxPages - 1;//minus 1 because zero indexed
-                                            }
-                                        }
-                                    }
-                                    ret = SUCCESS;
-                                }
-                                else
-                                {
-                                    ret = FAILURE;
-                                }
-                            }
-                            else
-                            {
-                                smartErrorLog->numberOfEntries = 0;
-                                ret = SUCCESS;
-                            }
-                        }
-                        else
-                        {
-                            ret = FAILURE;
-                        }
-                        safe_Free_aligned(errorLog)
+                        ret = FAILURE;
                     }
+                    safe_Free_aligned(errorLog)
                 }
             }
         }
@@ -4141,7 +4145,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
 
 #define ATA_COMMAND_INFO_MAX_LENGTH UINT8_C(4096) //making this bigger than we need for the moment
 //only to be used for the commands defined in the switch! Other commands are not supported by this function!
-void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     bool isLBAMode = (device & LBA_MODE_BIT);//almost everything should be LBA mode. Only a few CHS things should be here, but we need to handle them
     bool ext = false;//48bit command
@@ -4327,11 +4331,12 @@ void get_Read_Write_Command_Info(const char* commandName, uint8_t commandOpCode,
     }
 }
 
-void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+#define GPL_LOG_NAME_LENGTH UINT8_C(32)
+static void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t pageNumber = M_BytesTo2ByteValue(M_Byte5(lba), M_Byte1(lba));
     uint8_t logAddress = M_Byte0(lba);
-    char logAddressName[32] = { 0 };
+    char logAddressName[GPL_LOG_NAME_LENGTH] = { 0 };
     uint32_t logPageCount = count;
     bool invalidLog = false;
     if (commandOpCode == ATA_SEND_FPDMA || commandOpCode == ATA_RECEIVE_FPDMA)//these commands can encapsulate read/write log ext commands
@@ -4345,111 +4350,111 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     switch (logAddress)
     {
     case ATA_LOG_DIRECTORY:
-        snprintf(logAddressName, 31, "Directory");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Directory");
         break;
     case ATA_LOG_SUMMARY_SMART_ERROR_LOG://smart log...should be an error using this command!
-        snprintf(logAddressName, 31, "Summary SMART Error");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Summary SMART Error");
         invalidLog = true;
         break;
     case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG://smart log...should be an error using this command!
-        snprintf(logAddressName, 31, "Comprehensive SMART Error");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Comprehensive SMART Error");
         invalidLog = true;
         break;
     case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG:
-        snprintf(logAddressName, 31, "Ext Comprehensive SMART Error");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Ext Comprehensive SMART Error");
         break;
     case ATA_LOG_DEVICE_STATISTICS:
-        snprintf(logAddressName, 31, "Device Statistics");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Device Statistics");
         break;
     case ATA_LOG_SMART_SELF_TEST_LOG://smart log...should be an error using this command!
-        snprintf(logAddressName, 31, "SMART Self-Test");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "SMART Self-Test");
         invalidLog = true;
         break;
     case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG:
-        snprintf(logAddressName, 31, "Ext SMART Self-Test");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Ext SMART Self-Test");
         break;
     case ATA_LOG_POWER_CONDITIONS:
-        snprintf(logAddressName, 31, "Power Conditions");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Power Conditions");
         break;
     case ATA_LOG_SELECTIVE_SELF_TEST_LOG://smart log...should be an error using this command!
-        snprintf(logAddressName, 31, "Selective Self-Test");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Selective Self-Test");
         invalidLog = true;
         break;
     case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION:
-        snprintf(logAddressName, 31, "Device Statistics Notification");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Device Statistics Notification");
         break;
     case ATA_LOG_PENDING_DEFECTS_LOG:
-        snprintf(logAddressName, 31, "Pending Defects");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Pending Defects");
         break;
     case ATA_LOG_LPS_MISALIGNMENT_LOG:
-        snprintf(logAddressName, 31, "LPS Misalignment");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "LPS Misalignment");
         break;
     case ATA_LOG_SENSE_DATA_FOR_SUCCESSFUL_NCQ_COMMANDS:
-        snprintf(logAddressName, 31, "Sense Data for Successful NCQ");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Sense Data for Successful NCQ");
         break;
     case ATA_LOG_NCQ_COMMAND_ERROR_LOG:
-        snprintf(logAddressName, 31, "NCQ Command Errors");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Command Errors");
         break;
     case ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG:
-        snprintf(logAddressName, 31, "SATA Phy Event Counters");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "SATA Phy Event Counters");
         break;
     case ATA_LOG_SATA_NCQ_QUEUE_MANAGEMENT_LOG:
-        snprintf(logAddressName, 31, "NCQ Queue Management");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Queue Management");
         break;
     case ATA_LOG_SATA_NCQ_SEND_AND_RECEIVE_LOG:
-        snprintf(logAddressName, 31, "NCQ Send and Receive");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Send and Receive");
         break;
     case ATA_LOG_HYBRID_INFORMATION:
-        snprintf(logAddressName, 31, "Hybrid Information");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Hybrid Information");
         break;
     case ATA_LOG_REBUILD_ASSIST:
-        snprintf(logAddressName, 31, "Rebuild Assist");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Rebuild Assist");
         break;
     case ATA_LOG_LBA_STATUS:
-        snprintf(logAddressName, 31, "LBA Status");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "LBA Status");
         break;
     case ATA_LOG_STREAMING_PERFORMANCE:
-        snprintf(logAddressName, 31, "Streaming Performance");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Streaming Performance");
         break;
     case ATA_LOG_WRITE_STREAM_ERROR_LOG:
-        snprintf(logAddressName, 31, "Write Stream Errors");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Write Stream Errors");
         break;
     case ATA_LOG_READ_STREAM_ERROR_LOG:
-        snprintf(logAddressName, 31, "Read Stream Errors");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Read Stream Errors");
         break;
     case ATA_LOG_DELAYED_LBA_LOG:
-        snprintf(logAddressName, 31, "Delayed LBA");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Delayed LBA");
         break;
     case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG:
-        snprintf(logAddressName, 31, "Current Device Internal Status");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Current Device Internal Status");
         break;
     case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG:
-        snprintf(logAddressName, 31, "Saved Device Internal Status");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Saved Device Internal Status");
         break;
     case ATA_LOG_SECTOR_CONFIGURATION_LOG:
-        snprintf(logAddressName, 31, "Sector Configuration");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Sector Configuration");
         break;
     case ATA_LOG_IDENTIFY_DEVICE_DATA:
-        snprintf(logAddressName, 31, "Identify Device Data");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Identify Device Data");
         break;
     case ATA_SCT_COMMAND_STATUS:
-        snprintf(logAddressName, 31, "SCT Command/Status");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "SCT Command/Status");
         break;
     case ATA_SCT_DATA_TRANSFER:
-        snprintf(logAddressName, 31, "SCT Data Transfer");
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "SCT Data Transfer");
         break;
     default:
         if (logAddress >= 0x80 && logAddress <= 0x9F)
         {
-            snprintf(logAddressName, 31, "Host Specific (%02" PRIX8 "h)", logAddress);
+            snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Host Specific (%02" PRIX8 "h)", logAddress);
         }
         else if (logAddress >= 0xA0 && logAddress <= 0xDF)
         {
-            snprintf(logAddressName, 31, "Vendor Specific (%02" PRIX8 "h)", logAddress);
+            snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Vendor Specific (%02" PRIX8 "h)", logAddress);
         }
         else
         {
-            snprintf(logAddressName, 31, "Unknown (%02" PRIX8 "h)", logAddress);
+            snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Unknown (%02" PRIX8 "h)", logAddress);
         }
         break;
     }
@@ -4463,46 +4468,48 @@ void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     }
 }
 
-void get_Download_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+#define DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH UINT8_C(21)
+static void get_Download_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_Byte0(features);
     uint16_t blockCount = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
     uint16_t bufferOffset = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
-    char subCommandName[21] = { 0 };
+    char subCommandName[DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH] = { 0 };
     switch (subcommand)
     {
     case 0x01://immediate temporary use (obsolete)
-        snprintf(subCommandName, 20, "Temporary");
+        snprintf(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Temporary");
         break;
     case 0x03://offsets and save immediate
-        snprintf(subCommandName, 20, "Offsets - Immediate");
+        snprintf(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Offsets - Immediate");
         break;
     case 0x07://save for immediate use (full buffer)
-        snprintf(subCommandName, 20, "Full - Immediate");
+        snprintf(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Full - Immediate");
         break;
     case 0x0E://offsets and defer for future activation
-        snprintf(subCommandName, 20, "Offsets - Deferred");
+        snprintf(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Offsets - Deferred");
         break;
     case 0x0F://Activate deferred code
-        snprintf(subCommandName, 20, "Activate");
+        snprintf(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Activate");
         break;
     default://unknown because not yet defined when this was written
-        snprintf(subCommandName, 20, "Unknown Mode (%02" PRIX8 "h)", subcommand);
+        snprintf(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Unknown Mode (%02" PRIX8 "h)", subcommand);
         break;
     }
     snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Mode: %s Block Count: %" PRIu16 " Buffer Offset: %" PRIu16 "", commandName, subCommandName, blockCount, bufferOffset);
 }
 
-void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+#define TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH UINT8_C(31)
+static void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t securityProtocol = M_Byte0(features);
     uint16_t securityProtocolSpecific = M_BytesTo2ByteValue(M_Byte3(lba), M_Byte2(lba));
     uint16_t transferLength = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
-    char securityProtocolName[31] = { 0 };
+    char securityProtocolName[TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH] = { 0 };
     switch (securityProtocol)
     {
     case SECURITY_PROTOCOL_RETURN_SUPPORTED:
-        snprintf(securityProtocolName, 30, "Supported");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Supported");
         break;
     case SECURITY_PROTOCOL_TCG_1:
     case SECURITY_PROTOCOL_TCG_2:
@@ -4510,50 +4517,50 @@ void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     case SECURITY_PROTOCOL_TCG_4:
     case SECURITY_PROTOCOL_TCG_5:
     case SECURITY_PROTOCOL_TCG_6:
-        snprintf(securityProtocolName, 30, "TCG %" PRIu8 "", securityProtocol);
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "TCG %" PRIu8 "", securityProtocol);
         break;
     case SECURITY_PROTOCOL_CbCS:
-        snprintf(securityProtocolName, 30, "CbCS");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "CbCS");
         break;
     case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
-        snprintf(securityProtocolName, 30, "Tape Encryption");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Tape Encryption");
         break;
     case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
-        snprintf(securityProtocolName, 30, "Encryption Configuration");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Encryption Configuration");
         break;
     case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
-        snprintf(securityProtocolName, 30, "SA Creation Cap");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SA Creation Cap");
         break;
     case SECURITY_PROTOCOL_IKE_V2_SCSI:
-        snprintf(securityProtocolName, 30, "IKE V2 SCSI");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "IKE V2 SCSI");
         break;
     case SECURITY_PROTOCOL_NVM_EXPRESS:
-        snprintf(securityProtocolName, 30, "NVM Express");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "NVM Express");
         break;
     case SECURITY_PROTOCOL_SCSA:
-        snprintf(securityProtocolName, 30, "SCSA");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SCSA");
         break;
     case SECURITY_PROTOCOL_JEDEC_UFS:
-        snprintf(securityProtocolName, 30, "JEDEC UFS");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "JEDEC UFS");
         break;
     case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
-        snprintf(securityProtocolName, 30, "SD Trusted Flash");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SD Trusted Flash");
         break;
     case SECURITY_PROTOCOL_IEEE_1667:
-        snprintf(securityProtocolName, 30, "IEEE 1667");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "IEEE 1667");
         break;
     case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
-        snprintf(securityProtocolName, 30, "ATA Security");
+        snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "ATA Security");
         break;
     default:
         if (securityProtocol >= 0xF0 /* && securityProtocol <= 0xFF */)
         {
-            snprintf(securityProtocolName, 30, "Vendor Specific (%02" PRIX8"h)", securityProtocol);
+            snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Vendor Specific (%02" PRIX8"h)", securityProtocol);
             break;
         }
         else
         {
-            snprintf(securityProtocolName, 30, "Unknown (%02" PRIX8"h)", securityProtocol);
+            snprintf(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Unknown (%02" PRIX8"h)", securityProtocol);
             break;
         }
     }
@@ -4577,203 +4584,205 @@ void get_Trusted_Command_Info(const char* commandName, uint8_t commandOpCode, ui
     }
 }
 
-void get_SMART_Offline_Immediate_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, M_ATTR_UNUSED uint16_t features, M_ATTR_UNUSED uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
+#define SMART_OFFLINE_TEST_NAME_LENGTH UINT8_C(41)
+static void get_SMART_Offline_Immediate_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, M_ATTR_UNUSED uint16_t features, M_ATTR_UNUSED uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
 {
     uint8_t offlineImmdTest = M_Byte0(lba);
-    char offlineTestName[41] = { 0 };
+    char offlineTestName[SMART_OFFLINE_TEST_NAME_LENGTH] = { 0 };
     switch (offlineImmdTest)
     {
     case 0://SMART off-line routine (offline mode)
-        snprintf(offlineTestName, 40, "SMART Off-line routine");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "SMART Off-line routine");
         break;
     case 0x01://short self test (offline)
-        snprintf(offlineTestName, 40, "Short Self-Test (offline)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Short Self-Test (offline)");
         break;
     case 0x02://extended self test (offline)
-        snprintf(offlineTestName, 40, "Extended Self-Test (offline)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Extended Self-Test (offline)");
         break;
     case 0x03://conveyance self test (offline)
-        snprintf(offlineTestName, 40, "Conveyance Self-Test (offline)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Conveyance Self-Test (offline)");
         break;
     case 0x04://selective self test (offline)
-        snprintf(offlineTestName, 40, "Selective Self-Test (offline)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Selective Self-Test (offline)");
         break;
     case 0x7F://abort offline test
-        snprintf(offlineTestName, 40, "Abort Self-Test");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Abort Self-Test");
         break;
     case 0x81://short self test (captive)
-        snprintf(offlineTestName, 40, "Short Self-Test (captive)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Short Self-Test (captive)");
         break;
     case 0x82://extended self test (captive)
-        snprintf(offlineTestName, 40, "Extended Self-Test (captive)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Extended Self-Test (captive)");
         break;
     case 0x83://conveyance self test (captive)
-        snprintf(offlineTestName, 40, "Conveyance Self-Test (captive)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Conveyance Self-Test (captive)");
         break;
     case 0x84://selective self test (captive)
-        snprintf(offlineTestName, 40, "Selective Self-Test (captive)");
+        snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Selective Self-Test (captive)");
         break;
     default:
         if (offlineImmdTest >= 0x05 && offlineImmdTest <= 0x3F)
         {
             //reserved (offline)
-            snprintf(offlineTestName, 40, "Unknown %" PRIX8 "h (offline)", offlineImmdTest);
+            snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Unknown %" PRIX8 "h (offline)", offlineImmdTest);
         }
         else if (offlineImmdTest == 0x80 || (offlineImmdTest >= 0x85 && offlineImmdTest <= 0x8F))
         {
             //reserved (captive)
-            snprintf(offlineTestName, 40, "Unknown %" PRIX8 "h (captive)", offlineImmdTest);
+            snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Unknown %" PRIX8 "h (captive)", offlineImmdTest);
         }
         else if (offlineImmdTest >= 0x40 && offlineImmdTest <= 0x7E)
         {
             //vendor unique (offline)
-            snprintf(offlineTestName, 40, "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
+            snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
         }
         else if (offlineImmdTest >= 0x90 /* && offlineImmdTest <= 0xFF*/ )
         {
             //vendor unique (captive)
-            snprintf(offlineTestName, 40, "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
+            snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
         }
         else
         {
             //shouldn't get here, but call it a generic unknown self test
-            snprintf(offlineTestName, 40, "Unknown %" PRIX8 "h", offlineImmdTest);
+            snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Unknown %" PRIX8 "h", offlineImmdTest);
         }
         break;
     }
     snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Offline Immediate: %s, SMART Signature %s", commandName, offlineTestName, smartSigValid);
 }
 
-void get_SMART_Log_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
+#define SMART_LOG_ADDRESS_NAME_LENGTH UINT8_C(41)
+static void get_SMART_Log_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH], const char *smartSigValid)
 {
     uint8_t logAddress = M_Byte0(lba);
-    char logAddressName[41] = { 0 };
+    char logAddressName[SMART_LOG_ADDRESS_NAME_LENGTH] = { 0 };
     uint8_t logPageCount = M_Byte0(count);
     bool invalidLog = false;
     switch (logAddress)
     {
     case ATA_LOG_DIRECTORY:
-        snprintf(logAddressName, 40, "Directory");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Directory");
         break;
     case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
-        snprintf(logAddressName, 40, "Summary SMART Error");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Summary SMART Error");
         break;
     case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
-        snprintf(logAddressName, 40, "Comprehensive SMART Error");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Comprehensive SMART Error");
         break;
     case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Ext Comprehensive SMART Error");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Ext Comprehensive SMART Error");
         invalidLog = true;
         break;
     case ATA_LOG_DEVICE_STATISTICS:
-        snprintf(logAddressName, 40, "Device Statistics");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Device Statistics");
         break;
     case ATA_LOG_SMART_SELF_TEST_LOG:
-        snprintf(logAddressName, 40, "SMART Self-Test");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SMART Self-Test");
         break;
     case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Ext SMART Self-Test");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Ext SMART Self-Test");
         invalidLog = true;
         break;
     case ATA_LOG_POWER_CONDITIONS://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Power Conditions");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Power Conditions");
         invalidLog = true;
         break;
     case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
-        snprintf(logAddressName, 40, "Selective Self-Test");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Selective Self-Test");
         break;
     case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Device Statistics Notification");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Device Statistics Notification");
         invalidLog = true;
         break;
     case ATA_LOG_PENDING_DEFECTS_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Pending Defects");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Pending Defects");
         invalidLog = true;
         break;
     case ATA_LOG_LPS_MISALIGNMENT_LOG:
-        snprintf(logAddressName, 40, "LPS Misalignment");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "LPS Misalignment");
         break;
     case ATA_LOG_SENSE_DATA_FOR_SUCCESSFUL_NCQ_COMMANDS://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Sense Data for Successful NCQ");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Sense Data for Successful NCQ");
         invalidLog = true;
         break;
     case ATA_LOG_NCQ_COMMAND_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "NCQ Command Errors");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Command Errors");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "SATA Phy Event Counters");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SATA Phy Event Counters");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_NCQ_QUEUE_MANAGEMENT_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "NCQ Queue Management");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Queue Management");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_NCQ_SEND_AND_RECEIVE_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "NCQ Send and Receive");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Send and Receive");
         invalidLog = true;
         break;
     case ATA_LOG_HYBRID_INFORMATION://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Hybrid Information");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Hybrid Information");
         invalidLog = true;
         break;
     case ATA_LOG_REBUILD_ASSIST://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Rebuild Assist");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Rebuild Assist");
         invalidLog = true;
         break;
     case ATA_LOG_LBA_STATUS://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "LBA Status");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "LBA Status");
         invalidLog = true;
         break;
     case ATA_LOG_STREAMING_PERFORMANCE://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Streaming Performance");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Streaming Performance");
         invalidLog = true;
         break;
     case ATA_LOG_WRITE_STREAM_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Write Stream Errors");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Write Stream Errors");
         invalidLog = true;
         break;
     case ATA_LOG_READ_STREAM_ERROR_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Read Stream Errors");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Read Stream Errors");
         invalidLog = true;
         break;
     case ATA_LOG_DELAYED_LBA_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Delayed LBA");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Delayed LBA");
         invalidLog = true;
         break;
     case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Current Device Internal Status");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Current Device Internal Status");
         invalidLog = true;
         break;
     case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Saved Device Internal Status");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Saved Device Internal Status");
         invalidLog = true;
         break;
     case ATA_LOG_SECTOR_CONFIGURATION_LOG://GPL log...should be an error using this command!
-        snprintf(logAddressName, 40, "Sector Configuration");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Sector Configuration");
         invalidLog = true;
         break;
     case ATA_LOG_IDENTIFY_DEVICE_DATA:
-        snprintf(logAddressName, 40, "Identify Device Data");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Identify Device Data");
         break;
     case ATA_SCT_COMMAND_STATUS:
-        snprintf(logAddressName, 40, "SCT Command/Status");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SCT Command/Status");
         break;
     case ATA_SCT_DATA_TRANSFER:
-        snprintf(logAddressName, 40, "SCT Data Transfer");
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SCT Data Transfer");
         break;
     default:
         if (logAddress >= 0x80 && logAddress <= 0x9F)
         {
-            snprintf(logAddressName, 40, "Host Specific (%02" PRIX8 "h)", logAddress);
+            snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Host Specific (%02" PRIX8 "h)", logAddress);
         }
         else if (logAddress >= 0xA0 && logAddress <= 0xDF)
         {
-            snprintf(logAddressName, 40, "Vendor Specific (%02" PRIX8 "h)", logAddress);
+            snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Vendor Specific (%02" PRIX8 "h)", logAddress);
         }
         else
         {
-            snprintf(logAddressName, 40, "Unknown (%02" PRIX8 "h)", logAddress);
+            snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Unknown (%02" PRIX8 "h)", logAddress);
         }
         break;
     }
@@ -4801,18 +4810,19 @@ void get_SMART_Log_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOp
     }
 }
 
-void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+#define SMART_SIGNATURE_VALIDITY_LENGTH UINT8_C(11)
+static void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_Byte0(features);
     uint16_t smartSignature = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
-    char smartSigValid[11] = { 0 };
-    if (smartSignature == 0xC24F)
+    char smartSigValid[SMART_SIGNATURE_VALIDITY_LENGTH] = { 0 };
+    if (smartSignature == UINT16_C(0xC24F))
     {
-        snprintf(smartSigValid, 10, "Valid");
+        snprintf(smartSigValid, SMART_SIGNATURE_VALIDITY_LENGTH, "Valid");
     }
     else
     {
-        snprintf(smartSigValid, 10, "Invalid");
+        snprintf(smartSigValid, SMART_SIGNATURE_VALIDITY_LENGTH, "Invalid");
     }
     switch (subcommand)
     {
@@ -4823,11 +4833,11 @@ void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Read SMART Threshold Data, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_SW_AUTOSAVE:
-        if (M_Byte0(count) == 0xF1)//enable
+        if (M_Byte0(count) == UINT8_C(0xF1))//enable
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
         }
-        else if (M_Byte0(count) == 0)//disable
+        else if (M_Byte0(count) == UINT8_C(0))//disable
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
         }
@@ -4871,8 +4881,8 @@ void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint
         }
         break;
     default:
-        if ((/* subcommand >= 0x00 && */ subcommand <= 0xCF)
-            || (subcommand >= 0xDC && subcommand <= 0xDF))
+        if ((/* subcommand >= UINT8_C(0x00) && */ subcommand <= UINT8_C(0xCF))
+            || (subcommand >= UINT8_C(0xDC) && subcommand <= UINT8_C(0xDF)))
         {
             //reserved
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Command %" PRIX8 "h, LBA Low: %" PRIX8 "h, Device: %" PRIX8 "h SMART Signature %s", commandName, subcommand, M_Byte0(lba), device, smartSigValid);
@@ -4886,7 +4896,8 @@ void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCode, uint
     }
 }
 
-void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+#define SANITIZE_SIGNATURE_VALID_LENGTH UINT8_C(11)
+static void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t subcommand = features;
     uint32_t signature = M_DoubleWord0(lba);//TODO: may need to byte swap this //NOTE: for overwrite, this is the pattern. 47:32 contain a signature
@@ -4898,7 +4909,7 @@ void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
     uint8_t overwritePasses = M_Nibble0(count);//overwrite only
     uint32_t overwritePattern = M_DoubleWord0(lba);//overwrite only
     uint16_t overwriteSignature = M_Word2(lba);
-    char sanitizeSignatureValid[11] = { 0 };
+    char sanitizeSignatureValid[SANITIZE_SIGNATURE_VALID_LENGTH] = { 0 };
     switch (subcommand)
     {
     case ATA_SANITIZE_STATUS:
@@ -4907,55 +4918,55 @@ void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
     case ATA_SANITIZE_CRYPTO_SCRAMBLE:
         if (signature == ATA_SANITIZE_CRYPTO_LBA)
         {
-            snprintf(sanitizeSignatureValid, 10, "Valid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf(sanitizeSignatureValid, 10, "Invalid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Crypto Scramble, ZNR: %d, Failure Mode: %d, Signature %s", commandName, zoneNoReset, failure, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_BLOCK_ERASE:
         if (signature == ATA_SANITIZE_BLOCK_ERASE_LBA)
         {
-            snprintf(sanitizeSignatureValid, 10, "Valid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf(sanitizeSignatureValid, 10, "Invalid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Block Erase, ZNR: %d, Failure Mode: %d, Signature %s", commandName, zoneNoReset, failure, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_OVERWRITE_ERASE:
         if (overwriteSignature == ATA_SANITIZE_OVERWRITE_LBA)
         {
-            snprintf(sanitizeSignatureValid, 10, "Valid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf(sanitizeSignatureValid, 10, "Invalid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Overwrite Erase, ZNR: %d, Invert: %d, Definitive Pattern: %d, Failure Mode: %d, Passes: %" PRIu8 ", Pattern: %08" PRIX32 "h, Signature %s", commandName, zoneNoReset, invertBetweenPasses, definitiveEndingPattern, failure, overwritePasses, overwritePattern, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_FREEZE_LOCK:
         if (signature == ATA_SANITIZE_FREEZE_LOCK_LBA)
         {
-            snprintf(sanitizeSignatureValid, 10, "Valid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf(sanitizeSignatureValid, 10, "Invalid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock, Signature %s", commandName, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_ANTI_FREEZE_LOCK:
         if (signature == ATA_SANITIZE_ANTI_FREEZE_LOCK_LBA)
         {
-            snprintf(sanitizeSignatureValid, 10, "Valid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf(sanitizeSignatureValid, 10, "Invalid");
+            snprintf(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Anti-Freeze Lock, Signature %s", commandName, sanitizeSignatureValid);
         break;
@@ -4965,7 +4976,7 @@ void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
     }
 }
 
-void get_DCO_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_DCO_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_Byte0(features);
     switch (subcommand)
@@ -4994,7 +5005,7 @@ void get_DCO_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t command
     }
 }
 
-void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     bool volatileValue = count & BIT0;
     if (commandOpCode == ATA_SET_MAX_EXT)
@@ -5051,23 +5062,24 @@ void get_Set_Max_Address_Command_Info(const char* commandName, uint8_t commandOp
 }
 
 //Only idle and standby...not the immediate commands!
-void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, M_ATTR_UNUSED uint16_t features, uint16_t count, M_ATTR_UNUSED uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+#define STANDBY_TIMER_PERIOD_LENGTH UINT8_C(31)
+static void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, M_ATTR_UNUSED uint16_t features, uint16_t count, M_ATTR_UNUSED uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t standbyTimerPeriod = M_Byte0(count);
-    char standbyTimerPeriodString[31] = { 0 };
+    char standbyTimerPeriodString[STANDBY_TIMER_PERIOD_LENGTH] = { 0 };
     switch (standbyTimerPeriod)
     {
     case 0x00://disabled
-        snprintf(standbyTimerPeriodString, 30, "Standby Timer Disabled");
+        snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "Standby Timer Disabled");
         break;
     case 0xFC://21min
-        snprintf(standbyTimerPeriodString, 30, "21 Minutes");
+        snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "21 Minutes");
         break;
     case 0xFD://between 8h and 12h
-        snprintf(standbyTimerPeriodString, 30, "8 to 12 Hours");
+        snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "8 to 12 Hours");
         break;
     case 0xFF://21min 15s
-        snprintf(standbyTimerPeriodString, 30, "21 Minutes 15 Seconds");
+        snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "21 Minutes 15 Seconds");
         break;
     case 0xFE://reserved (fall through)
     default:
@@ -5078,15 +5090,15 @@ void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNUSED uin
             convert_Seconds_To_Displayable_Time(timerInSeconds, NULL, NULL, NULL, &minutes, &seconds);
             if (minutes > 0 && seconds == 0)
             {
-                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Minutes", minutes);
+                snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Minutes", minutes);
             }
             else if (minutes > 0)
             {
-                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Minutes %" PRIu8 " Seconds", minutes, seconds);
+                snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Minutes %" PRIu8 " Seconds", minutes, seconds);
             }
             else
             {
-                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Seconds", seconds);
+                snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Seconds", seconds);
             }
         }
         else if (standbyTimerPeriod >= 0xF1 && standbyTimerPeriod <= 0xFB)
@@ -5096,27 +5108,27 @@ void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNUSED uin
             convert_Seconds_To_Displayable_Time(timerInSeconds, NULL, NULL, &hours, &minutes, NULL);
             if (hours > 0 && minutes == 0)
             {
-                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Hours", hours);
+                snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Hours", hours);
             }
             else if (hours > 0)
             {
-                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Hours %" PRIu8 " Minutes", hours, minutes);
+                snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Hours %" PRIu8 " Minutes", hours, minutes);
             }
             else
             {
-                snprintf(standbyTimerPeriodString, 30, "%" PRIu8 " Minutes", minutes);
+                snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Minutes", minutes);
             }
         }
         else
         {
-            snprintf(standbyTimerPeriodString, 30, "Unknown Timer Value (%02" PRIX8 "h)", standbyTimerPeriod);
+            snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "Unknown Timer Value (%02" PRIX8 "h)", standbyTimerPeriod);
         }
         break;
     }
     snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Standby Timer Period: %s", commandName, standbyTimerPeriodString);
 }
 
-void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t subcommand = features;
     switch (subcommand)
@@ -5193,7 +5205,7 @@ void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
     }
 }
 
-void get_AMAC_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_AMAC_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     switch (features)
     {
@@ -5212,9 +5224,9 @@ void get_AMAC_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t comman
     }
 }
 
-void get_Zeros_Ext_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_Zeros_Ext_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    bool trimBit = features & BIT0;
+    bool trimBit = M_ToBool(features & BIT0);
     uint32_t numberOfSectorsToWriteZeros = count;
     if (commandOpCode == ATA_FPDMA_NON_DATA)
     {
@@ -5228,66 +5240,68 @@ void get_Zeros_Ext_Command_Info(const char* commandName, uint8_t commandOpCode, 
     }
 }
 
-void get_SATA_Feature_Control_Command_Info(const char* commandName, bool enable, uint8_t subcommandCount, uint64_t lba, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+#define SATA_FEATURE_LENGTH UINT8_C(81)
+static void get_SATA_Feature_Control_Command_Info(const char* commandName, bool enable, uint8_t subcommandCount, uint64_t lba, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    char sataFeatureString[81] = { 0 };
+    char sataFeatureString[SATA_FEATURE_LENGTH] = { 0 };
     switch (subcommandCount)
     {
     case SATA_FEATURE_NONZERO_BUFFER_OFFSETS:
-        snprintf(sataFeatureString, 80, "Nonzero Buffer Offsets");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Nonzero Buffer Offsets");
         break;
     case SATA_FEATURE_DMA_SETUP_FIS_AUTO_ACTIVATE:
-        snprintf(sataFeatureString, 80, "DMA Setup FIS Auto Activation Optimization");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "DMA Setup FIS Auto Activation Optimization");
         break;
     case SATA_FEATURE_DEVICE_INITIATED_INTERFACE_POWER_STATE_TRANSITIONS:
-        snprintf(sataFeatureString, 80, "Device Initiated Interface Power State Transitions");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Device Initiated Interface Power State Transitions");
         break;
     case SATA_FEATURE_GUARANTEED_IN_ORDER_DATA_DELIVERY:
-        snprintf(sataFeatureString, 80, "Guaranteed In Order Data Delivery");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Guaranteed In Order Data Delivery");
         break;
     case SATA_FEATURE_ASYNCHRONOUS_NOTIFICATION:
-        snprintf(sataFeatureString, 80, "Asynchronous Notification");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Asynchronous Notification");
         break;
     case SATA_FEATURE_SOFTWARE_SETTINGS_PRESERVATION:
-        snprintf(sataFeatureString, 80, "Software Settings Preservation");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Software Settings Preservation");
         break;
     case SATA_FEATURE_DEVICE_AUTOMATIC_PARTIAL_TO_SLUMBER_TRANSITIONS:
-        snprintf(sataFeatureString, 80, "Device Automatic Partial To Slumber Transitions");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Device Automatic Partial To Slumber Transitions");
         break;
     case SATA_FEATURE_ENABLE_HARDWARE_FEATURE_CONTROL:
     {
-        char hardwareFeatureName[31] = { 0 };
+        #define HARDWARE_FEATURE_NAME_LENGTH UINT8_C(31)
+        char hardwareFeatureName[HARDWARE_FEATURE_NAME_LENGTH] = { 0 };
         uint16_t functionID = M_GETBITRANGE(lba, 15, 0);
         switch (functionID)
         {
         case 0x0001:
-            snprintf(hardwareFeatureName, 30, "Direct Head Unload");
+            snprintf(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH, "Direct Head Unload");
             break;
         default:
-            if (functionID >= 0xF000 /* && functionID <= 0xFFFF */)
+            if (functionID >= UINT16_C(0xF000) /* && functionID <= UINT16_C(0xFFFF) */)
             {
-                snprintf(hardwareFeatureName, 30, "Vendor Specific (%04" PRIX16 "h)", functionID);
+                snprintf(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH, "Vendor Specific (%04" PRIX16 "h)", functionID);
             }
             else
             {
-                snprintf(hardwareFeatureName, 30, "Unknown Function (%04" PRIX16 "h)", functionID);
+                snprintf(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH, "Unknown Function (%04" PRIX16 "h)", functionID);
             }
             break;
         }
-        snprintf(sataFeatureString, 80, "Enable Hardware Feature Control - %s", hardwareFeatureName);
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Enable Hardware Feature Control - %s", hardwareFeatureName);
     }
     break;
     case SATA_FEATURE_ENABLE_DISABLE_DEVICE_SLEEP:
-        snprintf(sataFeatureString, 80, "Device Sleep");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Device Sleep");
         break;
     case SATA_FEATURE_ENABLE_DISABLE_HYBRID_INFORMATION:
-        snprintf(sataFeatureString, 80, "Hybrid Information");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Hybrid Information");
         break;
     case SATA_FEATURE_ENABLE_DISABLE_POWER_DISABLE:
-        snprintf(sataFeatureString, 80, "Power Disable");
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Power Disable");
         break;
     default:
-        snprintf(sataFeatureString, 80, "Unknown SATA Feature (%02" PRIX8 "h)", subcommandCount);
+        snprintf(sataFeatureString, SATA_FEATURE_LENGTH, "Unknown SATA Feature (%02" PRIX8 "h)", subcommandCount);
         break;
     }
     if (enable)
@@ -5300,7 +5314,7 @@ void get_SATA_Feature_Control_Command_Info(const char* commandName, bool enable,
     }
 }
 
-void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t setFeaturesSubcommand = M_Byte0(features);
     uint8_t subcommandCount = M_Byte0(count);
@@ -5321,34 +5335,35 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
     {
         uint8_t transferType = M_GETBITRANGE(subcommandCount, 7, 3);
         uint8_t mode = M_GETBITRANGE(subcommandCount, 2, 0);
-        char transferMode[31] = { 0 };
+        #define TRANSFER_MODE_LENGTH UINT8_C(31)
+        char transferMode[TRANSFER_MODE_LENGTH] = { 0 };
         switch (transferType)
         {
         case SF_TRANSFER_MODE_PIO_DEFAULT:
             if (mode == 1)
             {
-                snprintf(transferMode, 30, "PIO default - Disable IORDY");
+                snprintf(transferMode, TRANSFER_MODE_LENGTH, "PIO default - Disable IORDY");
             }
             else
             {
-                snprintf(transferMode, 30, "PIO default");
+                snprintf(transferMode, TRANSFER_MODE_LENGTH, "PIO default");
             }
             break;
         case SF_TRANSFER_MODE_FLOW_CONTROL:
-            snprintf(transferMode, 30, "PIO Flow Control Mode %" PRIu8 "", mode);
+            snprintf(transferMode, TRANSFER_MODE_LENGTH, "PIO Flow Control Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_SINGLE_WORD_DMA:
-            snprintf(transferMode, 30, "SWDMA Mode %" PRIu8 "", mode);
+            snprintf(transferMode, TRANSFER_MODE_LENGTH, "SWDMA Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_MULTI_WORD_DMA:
-            snprintf(transferMode, 30, "MWDMA Mode %" PRIu8 "", mode);
+            snprintf(transferMode, TRANSFER_MODE_LENGTH, "MWDMA Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_ULTRA_DMA:
-            snprintf(transferMode, 30, "Ultra DMA Mode %" PRIu8 "", mode);
+            snprintf(transferMode, TRANSFER_MODE_LENGTH, "Ultra DMA Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_RESERVED:
         default:
-            snprintf(transferMode, 30, "Unknown %02" PRIX8 "h", subcommandCount);
+            snprintf(transferMode, TRANSFER_MODE_LENGTH, "Unknown %02" PRIX8 "h", subcommandCount);
             break;
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Transfer Mode: %s", commandName, transferMode);
@@ -5360,30 +5375,31 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
     case SF_ENABLE_APM_FEATURE:
     {
         uint8_t apmLevel = subcommandCount;
-        char apmLevelString[51] = { 0 };
+        #define APM_LEVEL_STRING_LENGTH UINT8_C(51)
+        char apmLevelString[APM_LEVEL_STRING_LENGTH] = { 0 };
         if (apmLevel == 1)
         {
-            snprintf(apmLevelString, 50, "Minimum Power Consumption w/ Standby (%02" PRIX8 "h)", apmLevel);
+            snprintf(apmLevelString, APM_LEVEL_STRING_LENGTH, "Minimum Power Consumption w/ Standby (%02" PRIX8 "h)", apmLevel);
         }
-        else if (apmLevel >= 0x02 && apmLevel <= 0x7F)
+        else if (apmLevel >= UINT8_C(0x02) && apmLevel <= UINT8_C(0x7F))
         {
-            snprintf(apmLevelString, 50, "Intermediate Power Management w/ Standby (%02" PRIX8 "h)", apmLevel);
+            snprintf(apmLevelString, APM_LEVEL_STRING_LENGTH, "Intermediate Power Management w/ Standby (%02" PRIX8 "h)", apmLevel);
         }
-        else if (apmLevel == 0x80)
+        else if (apmLevel == UINT8_C(0x80))
         {
-            snprintf(apmLevelString, 50, "Minimum Power Consumption w/o Standby (%02" PRIX8 "h)", apmLevel);
+            snprintf(apmLevelString, APM_LEVEL_STRING_LENGTH, "Minimum Power Consumption w/o Standby (%02" PRIX8 "h)", apmLevel);
         }
-        else if (apmLevel >= 0x81 && apmLevel <= 0xFD)
+        else if (apmLevel >= UINT8_C(0x81) && apmLevel <= UINT8_C(0xFD))
         {
-            snprintf(apmLevelString, 50, "Intermediate Power Management w/o Standby (%02" PRIX8 "h)", apmLevel);
+            snprintf(apmLevelString, APM_LEVEL_STRING_LENGTH, "Intermediate Power Management w/o Standby (%02" PRIX8 "h)", apmLevel);
         }
-        else if (apmLevel == 0xFE)
+        else if (apmLevel == UINT8_C(0xFE))
         {
-            snprintf(apmLevelString, 50, "Maximum Performance (%02" PRIX8 "h)", apmLevel);
+            snprintf(apmLevelString, APM_LEVEL_STRING_LENGTH, "Maximum Performance (%02" PRIX8 "h)", apmLevel);
         }
         else
         {
-            snprintf(apmLevelString, 50, "Unknown APM Level (%02" PRIX8 "h)", apmLevel);
+            snprintf(apmLevelString, APM_LEVEL_STRING_LENGTH, "Unknown APM Level (%02" PRIX8 "h)", apmLevel);
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Advanced Power Management - %s", commandName, apmLevelString);
     }
@@ -5417,7 +5433,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
             snprintf(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 2 (Vendor Specific # of Sectors)");
             break;
         case 0x03:
-            snprintf(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 3 (1st %" PRIu32 " Sectors))", C_CAST(uint32_t, subcommandCount * 1024));
+            snprintf(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 3 (1st %" PRIu32 " Sectors))", C_CAST(uint32_t, subcommandCount) * UINT32_C(1024));
             break;
         default:
             snprintf(wrvModeString, WRV_MODE_STRING_LENGTH, "Unknown WRV Mode (%02" PRIX8 "h)", wrvMode);
@@ -5433,10 +5449,10 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
         get_SATA_Feature_Control_Command_Info(commandName, true, subcommandCount, lba, commandInfo);
         break;
     case SF_TLC_SET_CCTL:
-        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Set CCTL - %" PRIu32 " milliseconds", commandName, C_CAST(uint32_t, subcommandCount * 10));
+        snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Set CCTL - %" PRIu32 " milliseconds", commandName, C_CAST(uint32_t, subcommandCount) * UINT32_C(10));
         break;
     case SF_TCL_SET_ERROR_HANDLING:
-        if (subcommandCount == 1)
+        if (subcommandCount == UINT8_C(1))
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Error Handling - Read/Write Continuous", commandName);
         }
@@ -5452,7 +5468,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Retries", commandName);
         break;
     case SF_ENABLE_FREE_FALL_CONTROL_FEATURE:
-        if (subcommandCount == 0)
+        if (subcommandCount == UINT8_C(0))
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Free-Fall Control: Vendor Recommended Sensitivity", commandName);
         }
@@ -5462,23 +5478,23 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
         }
         break;
     case SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE:
-        if (subcommandCount == 0)
+        if (subcommandCount == UINT8_C(0))
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Vendor Specific", commandName);
         }
-        else if (subcommandCount >= 0x01 && subcommandCount <= 0x7F)
+        else if (subcommandCount >= UINT8_C(0x01) && subcommandCount <= UINT8_C(0x7F))
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Retired (%02" PRIX8 "h)", commandName, subcommandCount);
         }
-        else if (subcommandCount == 0x80)
+        else if (subcommandCount == UINT8_C(0x80))
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Minimum Acoustic Emanation", commandName);
         }
-        else if (subcommandCount >= 0x81 && subcommandCount <= 0xFD)
+        else if (subcommandCount >= UINT8_C(0x81) && subcommandCount <= UINT8_C(0xFD))
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Intermediate Acoustic Mangement Levels (%02" PRIX8 "h)", commandName, subcommandCount);
         }
-        else if (subcommandCount == 0xFE)
+        else if (subcommandCount == UINT8_C(0xFE))
         {
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Automatic Acoustic Management - Maximum Performance", commandName);
         }
@@ -5776,14 +5792,14 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Method To Disable Data Transfer After Error Detection", commandName);
         break;
     default:
-        if ((setFeaturesSubcommand >= 0x56 && setFeaturesSubcommand <= 0x5C)
-            || (setFeaturesSubcommand >= 0xD6 && setFeaturesSubcommand <= 0xDC)
-            || setFeaturesSubcommand == 0xE0)
+        if ((setFeaturesSubcommand >= UINT8_C(0x56) && setFeaturesSubcommand <= UINT8_C(0x5C))
+            || (setFeaturesSubcommand >= UINT8_C(0xD6) && setFeaturesSubcommand <= UINT8_C(0xDC))
+            || setFeaturesSubcommand == UINT8_C(0xE0))
         {
             //vendor specific
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Vendor Specific (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
         }
-        else if ((setFeaturesSubcommand >= 0xF0 /* && setFeaturesSubcommand <= 0xFF */))
+        else if ((setFeaturesSubcommand >= UINT8_C(0xF0) /* && setFeaturesSubcommand <= UINT8_C(0xFF) */))
         {
             //reserved for CFA
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reserved for CFA (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h", commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
@@ -5797,7 +5813,7 @@ void get_Set_Features_Command_Info(const char* commandName, uint8_t commandOpCod
     }
 }
 
-void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t zmAction = M_Nibble0(features);
     uint8_t featuresActionSpecific = M_Byte1(features);
@@ -5872,7 +5888,7 @@ void get_ZAC_Management_In_Command_Info(const char* commandName, uint8_t command
     }
 }
 
-void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t zmAction = M_Nibble0(features);
     uint8_t featuresActionSpecific = M_Byte1(features);
@@ -5947,7 +5963,7 @@ void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t comman
     }
 }
 
-void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_Nibble0(features);
     uint8_t tag = M_GETBITRANGE(count, 7, 3);
@@ -6012,7 +6028,7 @@ void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCod
         break;
     case NCQ_NON_DATA_SET_FEATURES:
     {
-#define NCQ_SET_FEATURES_STRING_LENGTH 41
+#define NCQ_SET_FEATURES_STRING_LENGTH UINT8_C(48)
         char ncqSetFeaturesString[NCQ_SET_FEATURES_STRING_LENGTH] = { 0 };
         snprintf(ncqSetFeaturesString, NCQ_SET_FEATURES_STRING_LENGTH, "%s - Set Features. Tag: %" PRIu8 "", commandName, tag);
         get_Set_Features_Command_Info(ncqSetFeaturesString, commandOpCode, features, count, lba, device, commandInfo);
@@ -6020,7 +6036,7 @@ void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCod
         break;
     case NCQ_NON_DATA_ZERO_EXT:
     {
-#define NCQ_ZEROS_EXT_STRING_LENGTH 41
+#define NCQ_ZEROS_EXT_STRING_LENGTH UINT8_C(48)
         char ncqZerosExtString[NCQ_ZEROS_EXT_STRING_LENGTH] = { 0 };
         snprintf(ncqZerosExtString, NCQ_ZEROS_EXT_STRING_LENGTH, "%s - Zero Ext. Tag: %" PRIu8 "", commandName, tag);
         get_Zeros_Ext_Command_Info(ncqZerosExtString, commandOpCode, features, count, lba, device, commandInfo);
@@ -6028,7 +6044,7 @@ void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCod
         break;
     case NCQ_NON_DATA_ZAC_MANAGEMENT_OUT:
     {
-#define NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH 41
+#define NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH UINT8_C(48)
         char ncqZacMgmtOutString[NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH] = { 0 };
         snprintf(ncqZacMgmtOutString, NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH, "%s - ZAC Management Out. Tag: %" PRIu8 "", commandName, tag);
         get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device, commandInfo);
@@ -6040,7 +6056,7 @@ void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t commandOpCod
     }
 }
 
-void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_GETBITRANGE(count, 12, 8);
     uint8_t tag = M_GETBITRANGE(count, 7, 3);
@@ -6049,17 +6065,17 @@ void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCo
     {
     case RECEIVE_FPDMA_READ_LOG_DMA_EXT:
     {
-#define RECEIVE_FPDMA_READ_LOG_STRING_LENGTH 41
+#define RECEIVE_FPDMA_READ_LOG_STRING_LENGTH UINT8_C(53)
         char recieveFPDMAReadLogString[RECEIVE_FPDMA_READ_LOG_STRING_LENGTH] = { 0 };
-        snprintf(recieveFPDMAReadLogString, RECEIVE_FPDMA_READ_LOG_STRING_LENGTH, "%s - Read Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        snprintf(recieveFPDMAReadLogString, RECEIVE_FPDMA_READ_LOG_STRING_LENGTH, "%s - Read Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
         get_GPL_Log_Command_Info(recieveFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
     }
         break;
     case RECEIVE_FPDMA_ZAC_MANAGEMENT_IN:
     {
-#define NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH 41
+#define NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH UINT8_C(53)
         char ncqZacMgmtInString[NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH] = { 0 };
-        snprintf(ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH, "%s - ZAC Management In. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        snprintf(ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH, "%s - ZAC Management In. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
         get_ZAC_Management_In_Command_Info(ncqZacMgmtInString, commandOpCode, features, count, lba, device, commandInfo);
     }
         break;
@@ -6069,7 +6085,7 @@ void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCo
     }
 }
 
-void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_GETBITRANGE(count, 12, 8);
     uint8_t tag = M_GETBITRANGE(count, 7, 3);
@@ -6089,7 +6105,7 @@ void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode,
         break;
     case SEND_FPDMA_WRITE_LOG_DMA_EXT:
     {
-#define SEND_FPDMA_READ_LOG_STRING_LENGTH 41
+#define SEND_FPDMA_READ_LOG_STRING_LENGTH UINT8_C(53)
         char sendFPDMAReadLogString[SEND_FPDMA_READ_LOG_STRING_LENGTH] = { 0 };
         snprintf(sendFPDMAReadLogString, SEND_FPDMA_READ_LOG_STRING_LENGTH, "%s - Write Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
         get_GPL_Log_Command_Info(sendFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
@@ -6097,7 +6113,7 @@ void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode,
         break;
     case SEND_FPDMA_ZAC_MANAGEMENT_OUT:
     {
-#define SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH 41
+#define SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH UINT8_C(53)
         char ncqZacMgmtOutString[SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH] = { 0 };
         snprintf(ncqZacMgmtOutString, SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH, "%s - ZAC Management Out. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
         get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device, commandInfo);
@@ -6112,7 +6128,7 @@ void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t commandOpCode,
     }
 }
 
-void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
+static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     //TODO: some commands leave some registers reserved. Add handling when some of these reserved registers are set to non-zero values
     switch (commandOpCode)
@@ -6612,7 +6628,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
     case ATA_IDLE_IMMEDIATE_CMD:
         if (M_Byte0(features) == IDLE_IMMEDIATE_UNLOAD_FEATURE)
         {
-            uint32_t idleImmdLBA = C_CAST(uint32_t, lba & 0x00FFFFFFFF) | (M_Nibble0(device) << 24);
+            uint32_t idleImmdLBA = C_CAST(uint32_t, lba & UINT32_C(0x00FFFFFFFF)) | (M_Nibble0(device) << 24);
             if (IDLE_IMMEDIATE_UNLOAD_LBA == idleImmdLBA)
             {
                 snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate - Unload");
@@ -6721,12 +6737,12 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
         get_Set_Max_Address_Command_Info("Set Max Address", commandOpCode, features, count, lba, device, commandInfo);
         break;
     default:
-        if ((commandOpCode >= 0x80 && commandOpCode <= 0x8F)
-            || commandOpCode == 0x9A
-            || (commandOpCode >= 0xC0 && commandOpCode <= 0xC3)
-            || commandOpCode == 0xF0
-            || commandOpCode == 0xF7
-            || (commandOpCode >= 0xFA /* && commandOpCode <= 0xFF */)
+        if ((commandOpCode >= UINT8_C(0x80) && commandOpCode <= UINT8_C(0x8F))
+            || commandOpCode == UINT8_C(0x9A)
+            || (commandOpCode >= UINT8_C(0xC0) && commandOpCode <= UINT8_C(0xC3))
+            || commandOpCode == UINT8_C(0xF0)
+            || commandOpCode == UINT8_C(0xF7)
+            || (commandOpCode >= UINT8_C(0xFA) /* && commandOpCode <= UINT8_C(0xFF) */)
             )
         {
             //NOTE: The above if is far from perfect...there are some commands that were once VU in old standards that have been defined in newer ones...this is as close as I care to get this.
@@ -6742,7 +6758,7 @@ void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, 
 }
 
 #define TIMESTRING_MAX_LEN 30
-void convert_Milliseconds_To_Time_String(uint64_t milliseconds, char timeString[TIMESTRING_MAX_LEN + 1])
+static void convert_Milliseconds_To_Time_String(uint64_t milliseconds, char timeString[TIMESTRING_MAX_LEN + 1])
 {
     uint8_t days = C_CAST(uint8_t, milliseconds / (UINT64_C(24) * UINT64_C(60) * UINT64_C(60) * UINT64_C(1000)));
     milliseconds %= (UINT64_C(24) * UINT64_C(60) * UINT64_C(60) * UINT64_C(1000));
@@ -6755,7 +6771,7 @@ void convert_Milliseconds_To_Time_String(uint64_t milliseconds, char timeString[
     snprintf(timeString, TIMESTRING_MAX_LEN, "%" PRIu8 "D:%" PRIu8 "H:%" PRIu8 "M:%" PRIu8 "S:%" PRIu64 "MS", days, hours, minutes, seconds, milliseconds);
 }
 
-bool is_Read_Write_Command(uint8_t commandOpCode)
+static bool is_Read_Write_Command(uint8_t commandOpCode)
 {
     bool isReadWrite = false;
     switch (commandOpCode)
@@ -6805,7 +6821,7 @@ bool is_Read_Write_Command(uint8_t commandOpCode)
     return isReadWrite;
 }
 
-bool is_Ext_Read_Write_Command(uint8_t commandOpCode)
+static bool is_Ext_Read_Write_Command(uint8_t commandOpCode)
 {
     bool isReadWrite = false;
     switch (commandOpCode)
@@ -6836,7 +6852,7 @@ bool is_Ext_Read_Write_Command(uint8_t commandOpCode)
     return isReadWrite;
 }
 
-bool is_Stream_Command(uint8_t commandOpCode)
+static bool is_Stream_Command(uint8_t commandOpCode)
 {
     bool isStream = false;
     switch (commandOpCode)
@@ -6853,25 +6869,26 @@ bool is_Stream_Command(uint8_t commandOpCode)
     return isStream;
 }
 
-bool is_DMA_Queued_Command(uint8_t commandOpCode)
-{
-    bool isDMAQueued = false;
-    switch (commandOpCode)
-    {
-    case ATA_READ_DMA_QUE_EXT:
-    case ATA_WRITE_DMA_QUE_FUA_EXT:
-    case ATA_WRITE_DMA_QUE_EXT:
-    case ATA_WRITE_DMA_QUEUED_CMD:
-    case ATA_READ_DMA_QUEUED_CMD:
-        isDMAQueued = true;
-        break;
-    default://unknown command...
-        break;
-    }
-    return isDMAQueued;
-}
+//Not currently in use, but may be helpful at some point - TJE
+// static bool is_DMA_Queued_Command(uint8_t commandOpCode)
+// {
+//     bool isDMAQueued = false;
+//     switch (commandOpCode)
+//     {
+//     case ATA_READ_DMA_QUE_EXT:
+//     case ATA_WRITE_DMA_QUE_FUA_EXT:
+//     case ATA_WRITE_DMA_QUE_EXT:
+//     case ATA_WRITE_DMA_QUEUED_CMD:
+//     case ATA_READ_DMA_QUEUED_CMD:
+//         isDMAQueued = true;
+//         break;
+//     default://unknown command...
+//         break;
+//     }
+//     return isDMAQueued;
+// }
 
-bool is_Possible_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
+static bool is_Possible_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 {
     if (M_Nibble1(commandOpCodeThatCausedError) == 0x1)//All possible recalibrate commands start with nibble 0 set to 1
     {
@@ -6883,7 +6900,7 @@ bool is_Possible_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
     }
 }
 
-bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
+static bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 {
     if (commandOpCodeThatCausedError == ATA_RECALIBRATE)
     {
@@ -6898,7 +6915,7 @@ bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 #define ATA_ERROR_INFO_MAX_LENGTH UINT8_C(4096) //making this bigger than we need for the moment
 #define ATA_ERROR_MESSAGE_MAX_LENGTH UINT8_C(256) //making this bigger than we need for the moment
 #define ATA_STATUS_MESSAGE_MAX_LENGTH UINT8_C(256) //making this bigger than we need for the moment
-void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceReg, uint8_t status, uint8_t error, M_ATTR_UNUSED uint16_t count, uint64_t lba, uint8_t device, M_ATTR_UNUSED uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
+static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t commandDeviceReg, uint8_t status, uint8_t error, M_ATTR_UNUSED uint16_t count, uint64_t lba, uint8_t device, M_ATTR_UNUSED uint8_t transportSpecific, char errorInfo[ATA_ERROR_INFO_MAX_LENGTH + 1])
 {
     //bool isDMAQueued = is_DMA_Queued_Command(commandOpCodeThatCausedError);
     bool isStream = is_Stream_Command(commandOpCodeThatCausedError);
