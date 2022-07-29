@@ -2543,14 +2543,12 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             }
                             remove_Leading_And_Trailing_Whitespace(device->drive_info.serialNumber);
                             //For Seagate and LaCie USB drives, need to remove leading or trailing zeroes.
-                            /*
                             if (is_Seagate_USB_Vendor_ID(driveInfo->vendorID) || is_LaCie_USB_Vendor_ID(driveInfo->vendorID))
                             {
                                 char* snPtr = driveInfo->serialNumber;
                                 const char* t10VIDPtr = driveInfo->vendorID;
                                 seagate_Serial_Number_Cleanup(t10VIDPtr, &snPtr, SERIAL_NUM_LEN + 1);
                             }
-                            */
                         }
                     }
                 }
