@@ -103,6 +103,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)firmware_download.c \
 	$(SRC_DIR)host_erase.c \
 	$(SRC_DIR)logs.c \
+	$ (SRC_DIR)farm_log.c \
 	$(SRC_DIR)operations.c \
 	$(SRC_DIR)power_control.c \
 	$(SRC_DIR)sanitize.c \
