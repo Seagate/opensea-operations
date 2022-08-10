@@ -15,6 +15,7 @@
 #include "nvme_helper.h"
 #include "nvme_operations.h"
 #include "smart.h"
+#include "dst.h"
 #include "operations_Common.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
@@ -245,9 +246,51 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
             //if we already tried the GPL buffer, make sure we clean it back up before we check again just to be safe.
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
         }
-        if (ata_SMART_Read_Log(device, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
+        if (ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
         {
             *logFileSize = M_BytesTo2ByteValue(logBuffer[(logAddress * 2) + 1], logBuffer[(logAddress * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            if (*logFileSize > 0)
+            {
+                ret = SUCCESS;
+            }
+        }
+        else if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))
+        {
+            //The directory log is marked as optional and is supposed to return aborted IF the drive does not support multi-sector logs.
+            //Only do this for summary error, comprehensive error, self-test log, and selective self-test log
+            switch (logAddress)
+            {
+            case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
+                *logFileSize = UINT32_C(512);
+                break;
+            case ATA_LOG_SMART_SELF_TEST_LOG:
+                if (is_Self_Test_Supported(device))
+                {
+                    *logFileSize = UINT32_C(512);
+                }
+                break;
+            case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+                if (is_Self_Test_Supported(device) && is_Selective_Self_Test_Supported(device))
+                {
+                    *logFileSize = UINT32_C(512);
+                }
+                break;
+            case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
+                //first appears in ATA/ATAPI-6
+                //If the drive does not report at least this version, do not return a size for it as it will not be supported
+                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word080) && (device->drive_info.IdentifyData.ata.Word080 & 0xFFC0))
+                {
+                    *logFileSize = UINT32_C(512);
+                }
+                else
+                {
+                    *logFileSize = UINT32_C(0);
+                }
+                break;
+            default:
+                *logFileSize = UINT32_C(0);
+                break;
+            }
             if (*logFileSize > 0)
             {
                 ret = SUCCESS;
@@ -1103,8 +1146,11 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     {
                         if (currentPage % 20 == 0)
                         {
-                            printf(".");
-                            fflush(stdout);
+                            if (!toBuffer)
+                            {
+                                printf(".");
+                                fflush(stdout);
+                            }
                         }
                     }
                     if (!toBuffer && !fileOpened)
@@ -2353,24 +2399,18 @@ static void format_print_ata_logs_info(uint16_t log, uint32_t logSize, bool smar
 int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
     int retStatus = NOT_SUPPORTED;
+    bool legacyDriveNoLogDir = false;
     uint8_t *gplLogBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     uint8_t *smartLogBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
     if (smartLogBuffer)
     {
-        if (is_SMART_Enabled(device))
+        if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))
         {
-            if (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0)//checking that SMART error logging is supported
+            retStatus = ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, smartLogBuffer, 512);
+            if (retStatus != SUCCESS && retStatus != WARN_INVALID_CHECKSUM)
             {
-                retStatus = ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, smartLogBuffer, 512);
-                if (retStatus != SUCCESS && retStatus != WARN_INVALID_CHECKSUM)
-                {
-                    safe_Free_aligned(smartLogBuffer)
-                }
-            }
-            else
-            {
-                retStatus = NOT_SUPPORTED;
+                legacyDriveNoLogDir = true; //for old drives that do not support multi-sector logs we will rely on Identify/SMART data bits to generate the output
                 safe_Free_aligned(smartLogBuffer)
             }
         }
@@ -2393,7 +2433,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             safe_Free_aligned(gplLogBuffer)
         }
     }
-    if (gplLogBuffer || smartLogBuffer)
+    if (gplLogBuffer || smartLogBuffer || legacyDriveNoLogDir)
     {
         uint16_t log = 0;
         uint16_t gplLogSize = 0, smartLogSize = 0;
@@ -2418,6 +2458,38 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             if (smartLogBuffer)
             {
                 smartLogSize = M_BytesTo2ByteValue(smartLogBuffer[(log * 2) + 1], smartLogBuffer[(log * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            }
+            else if (legacyDriveNoLogDir)
+            {
+                //special case for old drives that support only single sector logs. In this case they do not support the smart directory
+                //So for each log being looked at, dummy up the size
+                switch (log)
+                {
+                case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
+                    smartLogSize = UINT16_C(512);
+                    break;
+                case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
+                    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word080) && (device->drive_info.IdentifyData.ata.Word080 & 0xFFC0))
+                    {
+                        smartLogSize = UINT16_C(512);
+                    }
+                    break;
+                case ATA_LOG_SMART_SELF_TEST_LOG:
+                    if (is_Self_Test_Supported(device))
+                    {
+                        smartLogSize = UINT16_C(512);
+                    }
+                    break;
+                case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+                    if (is_Self_Test_Supported(device) && is_Selective_Self_Test_Supported(device))
+                    {
+                        smartLogSize = UINT16_C(512);
+                    }
+                    break;
+                default:
+                    smartLogSize = 0;
+                    break;
+                }
             }
             //Here we need to check if the drive is reporting certain logs that are only accessible with GPL or only with SMART to set the "bug" field
             switch (log)
@@ -2538,6 +2610,12 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
         safe_Free_aligned(smartLogBuffer)
         safe_Free_aligned(gplLogBuffer)
         retStatus = SUCCESS;//set success if we were able to get at least one of the log directories to use
+        if (legacyDriveNoLogDir)
+        {
+            printf("\nNOTE: SMART log detection came from identify & smart data bits. This device\n");
+            printf("      does not support the SMART log directory, and therefore no multi-sector\n");
+            printf("      logs either. It may not be possible to get all possible logs on this device.\n\n");
+        }
         if (atLeastOneBug)
         {
             printf("\nWARNING - At least one log was reported in a non-standard way (GPL log in SMART\n");
@@ -3135,20 +3213,68 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     return retStatus;
 }
 
-int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress)
+int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode)
 {
     int ret = UNKNOWN;
+    uint32_t logSize = 0;
+    uint8_t* genericLogBuf = NULL;
     if (device->drive_info.drive_type == ATA_DRIVE)
-    {        
+    {
         switch (logAddress)
         {
-            case SEAGATE_ATA_LOG_FARM_TIME_SERIES:
+        case SEAGATE_ATA_LOG_FARM_TIME_SERIES:
+            switch (mode)
             {
+            case PULL_LOG_PIPE_MODE:
+            case PULL_LOG_RAW_MODE:
+                ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
+                if (ret == SUCCESS && logSize > 0)
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (genericLogBuf)
+                {
+                    if (issueFactory == 2)
+                    {
+                        ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_FLASH);
+                    }
+                    else if (issueFactory == 3)
+                    {
+                        ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_WLTR);
+                    }
+                    else
+                    {
+                        ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_DISC);
+                    }
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (SUCCESS == ret)
+                {
+                    if (mode == PULL_LOG_PIPE_MODE)
+                    {
+                        print_Pipe_Data(genericLogBuf, logSize);
+                    }
+                    else
+                    {
+                        print_Data_Buffer(genericLogBuf, logSize, true);
+                    }
+                }
+                break;
+            case PULL_LOG_BIN_FILE_MODE:
+            default:
                 //FARM pull time series subpages   
                 //1 (feature register 0) - Default: Report all FARM frames from disc (~250ms) (SATA only)
                 //2 (feature register 1) - Report all FARM data (~250ms)(SATA only)
                 //3 (feature register 2) - Return WLTR data (SATA only)
-
                 if (issueFactory == 2)
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_TIME_SERIES_FLASH", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH);
@@ -3156,16 +3282,71 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
                 else if (issueFactory == 3)
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_WLTR", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR);
-                }               
+                }
                 else
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_TIME_SERIES_DISC", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC);
                 }
-
                 break;
             }
-            default:
+        default:
+            switch (mode)
             {
+            case PULL_LOG_PIPE_MODE:
+            case PULL_LOG_RAW_MODE:
+                //FARM pull Factory subpages   
+                //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+                //1 � Generate and report new FARM data and save to disc(~45ms)(SATA only)
+                //2 � Report previous FARM data from disc(~20ms)(SATA only)
+                //3 � Report FARM factory data from disc(~20ms)(SATA only)
+                ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
+                if (ret == SUCCESS && logSize > 0)
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (genericLogBuf)
+                {
+                    if (issueFactory == 1)
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_GENERATE_NEW_AND_SAVE);
+                    }
+                    else if (issueFactory == 2)
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_REPORT_SAVED);
+                    }
+                    else if (issueFactory == 3)
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_REPORT_FACTORY_DATA);
+                    }
+                    else
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_CURRENT);
+                    }
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (SUCCESS == ret)
+                {
+                    if (mode == PULL_LOG_PIPE_MODE)
+                    {
+                        print_Pipe_Data(genericLogBuf, logSize);
+                    }
+                    else
+                    {
+                        print_Data_Buffer(genericLogBuf, logSize, true);
+                    }
+                }
+                break;
+            case PULL_LOG_BIN_FILE_MODE:
+            default:
                 //FARM pull Factory subpages   
                 //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
                 //1 � Generate and report new FARM data and save to disc(~45ms)(SATA only)
@@ -3189,28 +3370,81 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
                 }
                 break;
             }
-
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        //FARM pull Factory subpages   
-       //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-       //4 - factory subpage (SAS only)
-        if (issueFactory == 4)
+        switch (mode)
         {
-            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
-            
-        }
-        else
-        {
-            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, "FARM", "bin", false, NULL, 0, filePath);
+        case PULL_LOG_PIPE_MODE:
+        case PULL_LOG_RAW_MODE:
+            //FARM pull Factory subpages   
+            //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+            //4 - factory subpage (SAS only)
+            if (issueFactory == 4)
+            {
+                if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (genericLogBuf)
+                    {
+                        ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, NULL, NULL, true, genericLogBuf, logSize, NULL);
+                    }
+                    else
+                    {
+                        ret = MEMORY_FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (genericLogBuf)
+                    {
+                        ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, NULL, NULL, true, genericLogBuf, logSize, NULL);
+                    }
+                    else
+                    {
+                        ret = MEMORY_FAILURE;
+                    }
+                }
+            }
+            if (SUCCESS == ret)
+            {
+                if (mode == PULL_LOG_PIPE_MODE)
+                {
+                    print_Pipe_Data(genericLogBuf, logSize);
+                }
+                else
+                {
+                    print_Data_Buffer(genericLogBuf, logSize, true);
+                }
+            }
+            break;
+        case PULL_LOG_BIN_FILE_MODE:
+        default:
+            //FARM pull Factory subpages   
+            //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+            //4 - factory subpage (SAS only)
+            if (issueFactory == 4)
+            {
+                ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
+
+            }
+            else
+            {
+                ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, "FARM", "bin", false, NULL, 0, filePath);
+            }
+            break;
         }
     }
     else
     {
         ret = NOT_SUPPORTED;
     }
+    safe_Free_aligned(genericLogBuf)
     return ret;
 }
 
