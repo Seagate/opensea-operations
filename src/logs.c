@@ -3334,6 +3334,10 @@ bool is_FARM_Time_Series_Log_Supported(tDevice *device)
     {
         supported = true;
     }
+	else if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0x10, &logSize) == SUCCESS))
+	{
+		supported = true;
+	}
     //else currently not supported on SAS or NVMe. 
 #ifdef _DEBUG
     printf("%s <-- (%d)\n", __FUNCTION__, supported);
