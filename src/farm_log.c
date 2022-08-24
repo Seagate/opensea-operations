@@ -104,21 +104,30 @@ void generateSCSIDataSetEntryHeaders(tDevice *device, uint32_t *numberOfDataSets
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSaveHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmStickyHeader, uint8_t *farmWorkLoadTraceHeader,
     bool *isFarmCurrentValid, bool *isFarmFactoryValid, bool *isFarmSavedValid, bool *isFarmTimeSeriesValid, bool *isFarmStickyValid, bool *isFarmWorkloadValid)
 {
+	uint32_t returnValue = FAILURE;
+	uint32_t logSize, timeSeriesLogSize = 0, stickyLogSize = 0;
+
 	//check for farm series
 	if (is_FARM_Log_Supported(device))
 	{
-		printf("\nFARM log supported");
-		*isFarmCurrentValid = *isFarmFactoryValid = true;
-		uint32_t returnValue = FAILURE;
-		uint32_t logSize;
+		printf("\nCurrent FARM log supported");
+		*isFarmCurrentValid = true;
 
 		//get length of FARM current page
 		returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, &logSize);
 		//add entry for FARM current page (0x3D - 0x03)
 		addDataSetEntry(SUBPAGE_TYPE_FARM_CURRENT, farmCurrentHeader, numberOfDataSets, headerLength, dataSetHeaderLength, farmContentField, logSize);
 
+	}
+
+	if (is_Factory_FARM_Log_Supported(device))
+	{
+		printf("\nFactory FARM log supported.");
+		*isFarmFactoryValid = true;
+
 		//get length of Factory FARM page
 		returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize);
+		printf("\nFactory FARM length %ld", logSize);
 		//add entry for FARM Factory page (0x3D - 0x04)
 		addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, numberOfDataSets, headerLength, dataSetHeaderLength, farmContentField, logSize);
 	}
@@ -127,6 +136,33 @@ void generateSCSIDataSetEntryHeaders(tDevice *device, uint32_t *numberOfDataSets
 	{
 		printf("\nFarm Time Series supported");
 		*isFarmTimeSeriesValid = true;
+
+		//get length of FARM time series log 
+		for (size_t i = SEAGATE_FARM_SP_TIME_SERIES_START; i <= SEAGATE_FARM_SP_TIME_SERIES_END; i++)
+		{
+			returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, i, &logSize);
+			timeSeriesLogSize = timeSeriesLogSize + logSize;
+		}
+
+		printf("\nTotal Time Series Log Size: %ld", timeSeriesLogSize);
+		//add entry for FARM Stcky Page (0x3D : 0xC0-0xC7)
+		addDataSetEntry(SUBPAGE_TYPE_FARM_TIMESERIES, farmTimeSeriesHeader, numberOfDataSets, headerLength, dataSetHeaderLength, farmContentField, timeSeriesLogSize);
+	}
+
+	if (is_FARM_Sticky_Log_Supported(device))
+	{
+		printf("\nFarm Sticky Log Supported");
+		*isFarmStickyValid = true;
+
+		//get length of FARM sticky log
+		for (size_t i = SEAGATE_FARM_SP_STICKY_START; i <= SEAGATE_FARM_SP_STICKY_END; i++)
+		{
+			returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, i, &logSize);
+			stickyLogSize = stickyLogSize + logSize;
+		}
+		printf("\nTotal Sticky Log size: %ld", stickyLogSize);
+		//add entry for FARM Sticky Log Page (0x3D : 0x10-0x1F)
+		addDataSetEntry(SUBPAGE_TYPE_FARM_STICKY, farmStickyHeader, numberOfDataSets, headerLength, dataSetHeaderLength, farmContentField, stickyLogSize);
 	}
 
 
@@ -244,75 +280,166 @@ int32_t pullSCSIFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t d
 	printf("\nPulling SCSI FARM logs");
 	int32_t returnValue = FAILURE;
 	uint64_t startTimeInMilliSecs = 0, endTimeInMilliSecs = 0;
-	uint32_t currentLogSize, factoryLogSize; 
+	uint32_t currentLogSize, factoryLogSize, timeSeriesLogSize, stickyLogSize, logSize; 
 
 	memcpy(&currentLogSize, farmCurrentHeader + 12, sizeof(uint32_t));
 	memcpy(&factoryLogSize, farmFactoryHeader + 12, sizeof(uint32_t));
-	printf("\nFactory Log Size: %ld", factoryLogSize);
+
+	if (is_FARM_Time_Series_Log_Supported(device))
+	{
+		memcpy(&timeSeriesLogSize, farmTimeSeriesHeader + 12, sizeof(uint32_t));
+	}
+
+	if (is_FARM_Sticky_Log_Supported(device))
+	{
+		memcpy(&stickyLogSize, farmStickyHeader + 12, sizeof(uint32_t));
+	}
 
 	//Get Current FARM log for SAS
-	startTimeInMilliSecs = time(NULL) * 1000;
-	returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, NULL, NULL, true, farmCurrentLog, currentLogSize , NULL);
-	if (returnValue != SUCCESS)
+	if (is_FARM_Log_Supported(device))
 	{
-		//print error
-		printf("error in farm current get_ATA_Log, %d\n", returnValue);
-		return returnValue;
-	}
-	else
-	{
-		printf("\nSuccessfully pulled current FARM log");
-		endTimeInMilliSecs = time(NULL) * 1000;
-		//update dataset header entry
-		updateDataSetEntry(farmCurrentHeader, startTimeInMilliSecs, endTimeInMilliSecs, logOffset);
-		logOffset += currentLogSize;
-
-		FILE *tempFile = fopen("farmcurrent.bin", "w+b");
-		if (tempFile != NULL)
+		startTimeInMilliSecs = time(NULL) * 1000;
+		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, NULL, NULL, true, farmCurrentLog, currentLogSize, NULL);
+		if (returnValue != SUCCESS)
 		{
-			printf("writing into farmcurrent.bin file\n");
-			if (fwrite(farmCurrentLog, sizeof(uint8_t), currentLogSize, tempFile) != C_CAST(size_t, currentLogSize)
-				|| ferror(tempFile))
+			//print error
+			printf("error in farm current get_ATA_Log, %d\n", returnValue);
+			return returnValue;
+		}
+		else
+		{
+			printf("\nSuccessfully pulled current FARM log");
+			endTimeInMilliSecs = time(NULL) * 1000;
+			//update dataset header entry
+			updateDataSetEntry(farmCurrentHeader, startTimeInMilliSecs, endTimeInMilliSecs, logOffset);
+			logOffset += currentLogSize;
+
+			FILE *tempFile = fopen("farmcurrent.bin", "w+b");
+			if (tempFile != NULL)
 			{
-				printf("error in writing farmcurrent.bin file\n");
+				printf("writing into farmcurrent.bin file\n");
+				if (fwrite(farmCurrentLog, sizeof(uint8_t), currentLogSize, tempFile) != C_CAST(size_t, currentLogSize)
+					|| ferror(tempFile))
+				{
+					printf("error in writing farmcurrent.bin file\n");
+				}
+				fclose(tempFile);
 			}
-			fclose(tempFile);
 		}
 	}
 
 	//Get Factory FARM log for SAS
-	startTimeInMilliSecs = time(NULL) * 1000;
-	returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, NULL, NULL, true, farmFactoryLog, factoryLogSize, NULL);
-	if (returnValue != SUCCESS)
+	if (is_Factory_FARM_Log_Supported(device))
 	{
-		//print error
-		printf("error in farm factory get_SCSI_Log, %d\n", returnValue);
-		return returnValue;
+		printf("\nFARM Factory is supported. Pulling FARM Factory now");
+		startTimeInMilliSecs = time(NULL) * 1000;
+		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, NULL, NULL, true, farmFactoryLog, factoryLogSize, NULL);
+		if (returnValue != SUCCESS)
+		{
+			//print error
+			printf("error in farm factory get_SCSI_Log, %d\n", returnValue);
+			//return returnValue;
+		}
+		else
+		{
+			printf("\nSuccessfully pulled factory FARM log");
+			endTimeInMilliSecs = time(NULL) * 1000;
+			//update dataset header entry
+			updateDataSetEntry(farmFactoryHeader, startTimeInMilliSecs, endTimeInMilliSecs, logOffset);
+			logOffset += factoryLogSize;
+
+			FILE *tempFile = fopen("farmFactory.bin", "w+b");
+			if (tempFile != NULL)
+			{
+				printf("writing into farmFactory.bin file\n");
+				if (fwrite(farmFactoryLog, sizeof(uint8_t), factoryLogSize, tempFile) != C_CAST(size_t, factoryLogSize)
+					|| ferror(tempFile))
+				{
+					printf("error in writing farmFactory.bin file\n");
+				}
+				fclose(tempFile);
+			}
+		}
 	}
-	else
+
+	//Get Time Series FARM log for SAS
+	if (is_FARM_Time_Series_Log_Supported(device))
 	{
-		printf("\nSuccessfully pulled factory FARM log");
+		printf("\nPulling Time Series Log.");
+		uint8_t *tempTimeSeries = farmTimeSeriesLog;
+		startTimeInMilliSecs = time(NULL) * 1000;
+		for (size_t i = SEAGATE_FARM_SP_TIME_SERIES_START; i <= SEAGATE_FARM_SP_TIME_SERIES_END; i++)
+		{
+			returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, i, &logSize);
+			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempTimeSeries, logSize, NULL);
+			if (returnValue != SUCCESS)
+			{
+				//print error
+				printf("error in farm time series get_SCSI_Log, %d\n", returnValue);
+				return returnValue;
+			}
+			else
+			{
+				printf("\nSuccessfully pulled Time Series FARM log subpage %d", i);
+				tempTimeSeries = tempTimeSeries + logSize;
+			}
+		}
+		FILE *tempFile = fopen("farmTimeSeries.bin", "w+b");
+		if (tempFile != NULL)
+		{
+			printf("writing into farmTimeSeries.bin file\n");
+			if (fwrite(farmTimeSeriesLog, sizeof(uint8_t), timeSeriesLogSize, tempFile) != C_CAST(size_t, logSize)
+				|| ferror(tempFile))
+			{
+				printf("error in writing farmTimeSeries.bin file\n");
+			}
+		}
 		endTimeInMilliSecs = time(NULL) * 1000;
 		//update dataset header entry
 		updateDataSetEntry(farmFactoryHeader, startTimeInMilliSecs, endTimeInMilliSecs, logOffset);
-		logOffset += factoryLogSize;
-
-		FILE *tempFile = fopen("farmFactory.bin", "w+b");
-		if (tempFile != NULL)
-		{
-			printf("writing into farmFactory.bin file\n");
-			if (fwrite(farmFactoryLog, sizeof(uint8_t), factoryLogSize, tempFile) != C_CAST(size_t, factoryLogSize)
-				|| ferror(tempFile))
-			{
-				printf("error in writing farmFactory.bin file\n");
-			}
-			fclose(tempFile);
-		}
+		logOffset += timeSeriesLogSize;
+		fclose(tempFile);
 	}
-	   	 
 
-
-    //return NOT_SUPPORTED;
+	//Get Sticky FARM Log for SAS
+	if (is_FARM_Sticky_Log_Supported(device))
+	{
+		printf("\nPulling Sticky FARM");
+		uint8_t *temp_sticky = farmStickyLog;
+		//Get Sticky FARM log for SAS
+		startTimeInMilliSecs = time(NULL) * 1000;
+		for (size_t i = SEAGATE_FARM_SP_STICKY_START; i <= SEAGATE_FARM_SP_STICKY_END; i++)
+		{
+			returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, i, &logSize);
+			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, temp_sticky, logSize, NULL);
+			if (returnValue != SUCCESS)
+			{
+				//print error
+				printf("error in farm time sticky get_SCSI_Log, %d\n", returnValue);
+				return returnValue;
+			}
+			else
+			{
+				printf("\nSuccessfully pulled Sticky FARM log subpage %d", i);
+				temp_sticky = temp_sticky + logSize;
+			}
+		}
+		FILE *tempStickyFile = fopen("farmSticky.bin", "w+b");
+		if (tempStickyFile != NULL)
+		{
+			printf("writing into farmSticky.bin file\n");
+			if (fwrite(farmStickyLog, sizeof(uint8_t), stickyLogSize, tempStickyFile) != C_CAST(size_t, logSize)
+				|| ferror(tempStickyFile))
+			{
+				printf("error in writing farmSticky.bin file\n");
+			}
+		}
+		endTimeInMilliSecs = time(NULL) * 1000;
+		//update dataset header entry
+		updateDataSetEntry(farmFactoryHeader, startTimeInMilliSecs, endTimeInMilliSecs, logOffset);
+		logOffset += stickyLogSize;
+		fclose(tempStickyFile);
+	}
 }
 
 int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime)
@@ -426,14 +553,25 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
         }
         else if (device->drive_info.drive_type == SCSI_DRIVE)
         {
-			uint32_t currentLogSize, factoryLogSize;
+			uint32_t currentLogSize, factoryLogSize, timeSeriesLogSize, stickyLogSize;
 
+			//get lengths of all sub logpages for SAS FARM
 			memcpy(&currentLogSize, farmCurrentHeader + 12, sizeof(uint32_t));
 			memcpy(&factoryLogSize, farmFactoryHeader + 12, sizeof(uint32_t));
+			if (is_FARM_Time_Series_Log_Supported(device))
+			{
+				memcpy(&timeSeriesLogSize, farmTimeSeriesHeader + 12, sizeof(uint32_t));
+			}
+			if (is_FARM_Sticky_Log_Supported(device))
+			{
+				memcpy(&stickyLogSize, farmStickyHeader + 12, sizeof(uint32_t));
+			}
 
 			//Initialize Log Buffers
 			farmCurrentLog = C_CAST(uint8_t*, calloc_aligned(currentLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));               
-			farmFactoryLog = C_CAST(uint8_t*, calloc_aligned(factoryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));  
+			farmFactoryLog = C_CAST(uint8_t*, calloc_aligned(factoryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment)); 
+			farmTimeSeriesLog = C_CAST(uint8_t*, calloc_aligned(timeSeriesLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+			farmStickyLog = C_CAST(uint8_t*, calloc_aligned(stickyLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
 
 			returnValue = pullSCSIFarmLogs(device, transferSizeBytes, delayTime, logPageOffset,
 				farmCurrentHeader, farmFactoryHeader, farmSaveHeader, farmTimeSeriesHeader, farmStickyHeader, farmWorkLoadTraceHeader,

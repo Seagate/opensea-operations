@@ -1360,7 +1360,9 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
     uint8_t *logBuffer = NULL;
     char *fileNameUsed = &name[0];
     
+	printf("\nLog address %d \t Subpage %d", logAddress, subpage);
     ret = get_SCSI_Log_Size(device, logAddress, subpage, &pageLen);
+	printf("\nLog length: %ld", pageLen);
     
     if (ret == SUCCESS)
     {
@@ -3277,16 +3279,18 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
+		printf("\nGet SCSi Log");
         //FARM pull Factory subpages   
        //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
        //4 - factory subpage (SAS only)
         if (issueFactory == 4)
         {
-            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
-            
+			printf("\nGet SCSi Factory FARM");
+            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, "FACTORY_FARM", "bin", false, NULL, 0, filePath);        
         }
         else
         {
+			printf("\nGet SCSi Current FARM");
             ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, "FARM", "bin", false, NULL, 0, filePath);
         }
     }
@@ -3322,6 +3326,26 @@ bool is_FARM_Log_Supported(tDevice *device)
 
 }
 
+bool is_Factory_FARM_Log_Supported(tDevice *device)
+{
+	bool supported = false;
+	uint32_t logSize = 0;
+#ifdef _DEBUG
+	printf("%s -->\n", __FUNCTION__);
+#endif
+	
+	if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0x04, &logSize) == SUCCESS))
+	{
+		supported = true;
+	}
+
+#ifdef _DEBUG
+	printf("%s <-- (%d)\n", __FUNCTION__, supported);
+#endif
+
+	return supported;
+}
+
 bool is_FARM_Time_Series_Log_Supported(tDevice *device)
 {
     bool supported = false;
@@ -3344,5 +3368,24 @@ bool is_FARM_Time_Series_Log_Supported(tDevice *device)
 #endif
 
     return supported;
+
+}
+
+bool is_FARM_Sticky_Log_Supported(tDevice *device)
+{
+	bool supported = false;
+	uint32_t logSize = 0;
+#ifdef _DEBUG
+	printf("%s -->\n", __FUNCTION__);
+#endif
+
+	if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0xC0, &logSize) == SUCCESS))
+	{
+		supported = true;
+	}
+
+#ifdef _DEBUG
+	printf("%s <-- (%d)\n", __FUNCTION__, supported);
+#endif
 
 }

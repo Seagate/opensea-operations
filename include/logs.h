@@ -582,7 +582,11 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(tDevice *device);
 
+	OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(tDevice *device);
+
     OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(tDevice *device);
+
+	OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(tDevice *device);
 
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
 
