@@ -1150,8 +1150,11 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     {
                         if (currentPage % 20 == 0)
                         {
-                            printf(".");
-                            fflush(stdout);
+                            if (!toBuffer)
+                            {
+                                printf(".");
+                                fflush(stdout);
+                            }
                         }
                     }
                     if (!toBuffer && !fileOpened)
@@ -3218,20 +3221,68 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     return retStatus;
 }
 
-int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime)
+int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode)
 {
     int ret = UNKNOWN;
+    uint32_t logSize = 0;
+    uint8_t* genericLogBuf = NULL;
     if (device->drive_info.drive_type == ATA_DRIVE)
-    {        
+    {
         switch (logAddress)
         {
-            case SEAGATE_ATA_LOG_FARM_TIME_SERIES:
+        case SEAGATE_ATA_LOG_FARM_TIME_SERIES:
+            switch (mode)
             {
+            case PULL_LOG_PIPE_MODE:
+            case PULL_LOG_RAW_MODE:
+                ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
+                if (ret == SUCCESS && logSize > 0)
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (genericLogBuf)
+                {
+                    if (issueFactory == 2)
+                    {
+                        ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_FLASH, 0);
+                    }
+                    else if (issueFactory == 3)
+                    {
+                        ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_WLTR, 0);
+                    }
+                    else
+                    {
+                        ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_DISC, 0);
+                    }
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (SUCCESS == ret)
+                {
+                    if (mode == PULL_LOG_PIPE_MODE)
+                    {
+                        print_Pipe_Data(genericLogBuf, logSize);
+                    }
+                    else
+                    {
+                        print_Data_Buffer(genericLogBuf, logSize, true);
+                    }
+                }
+                break;
+            case PULL_LOG_BIN_FILE_MODE:
+            default:
                 //FARM pull time series subpages   
                 //1 (feature register 0) - Default: Report all FARM frames from disc (~250ms) (SATA only)
                 //2 (feature register 1) - Report all FARM data (~250ms)(SATA only)
                 //3 (feature register 2) - Return WLTR data (SATA only)
-
                 if (issueFactory == 2)
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_TIME_SERIES_FLASH", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH, delayTime);
@@ -3239,16 +3290,71 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
                 else if (issueFactory == 3)
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_WLTR", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR, delayTime);
-                }               
+                }
                 else
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_TIME_SERIES_DISC", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC, delayTime);
                 }
-
                 break;
             }
-            default:
+        default:
+            switch (mode)
             {
+            case PULL_LOG_PIPE_MODE:
+            case PULL_LOG_RAW_MODE:
+                //FARM pull Factory subpages   
+                //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+                //1 � Generate and report new FARM data and save to disc(~45ms)(SATA only)
+                //2 � Report previous FARM data from disc(~20ms)(SATA only)
+                //3 � Report FARM factory data from disc(~20ms)(SATA only)
+                ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
+                if (ret == SUCCESS && logSize > 0)
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (genericLogBuf)
+                {
+                    if (issueFactory == 1)
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_GENERATE_NEW_AND_SAVE, 0);
+                    }
+                    else if (issueFactory == 2)
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_REPORT_SAVED, 0);
+                    }
+                    else if (issueFactory == 3)
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_REPORT_FACTORY_DATA, 0);
+                    }
+                    else
+                    {
+                        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_CURRENT, 0);
+                    }
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+
+                if (SUCCESS == ret)
+                {
+                    if (mode == PULL_LOG_PIPE_MODE)
+                    {
+                        print_Pipe_Data(genericLogBuf, logSize);
+                    }
+                    else
+                    {
+                        print_Data_Buffer(genericLogBuf, logSize, true);
+                    }
+                }
+                break;
+            case PULL_LOG_BIN_FILE_MODE:
+            default:
                 //FARM pull Factory subpages   
                 //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
                 //1 � Generate and report new FARM data and save to disc(~45ms)(SATA only)
@@ -3272,28 +3378,81 @@ int pull_FARM_Log(tDevice *device,const char * const filePath, uint32_t transfer
                 }
                 break;
             }
-
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        //FARM pull Factory subpages   
-       //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-       //4 - factory subpage (SAS only)
-        if (issueFactory == 4)
+        switch (mode)
         {
-            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
-            
-        }
-        else
-        {
-            ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, "FARM", "bin", false, NULL, 0, filePath);
+        case PULL_LOG_PIPE_MODE:
+        case PULL_LOG_RAW_MODE:
+            //FARM pull Factory subpages   
+            //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+            //4 - factory subpage (SAS only)
+            if (issueFactory == 4)
+            {
+                if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (genericLogBuf)
+                    {
+                        ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, NULL, NULL, true, genericLogBuf, logSize, NULL);
+                    }
+                    else
+                    {
+                        ret = MEMORY_FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
+                {
+                    genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (genericLogBuf)
+                    {
+                        ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, NULL, NULL, true, genericLogBuf, logSize, NULL);
+                    }
+                    else
+                    {
+                        ret = MEMORY_FAILURE;
+                    }
+                }
+            }
+            if (SUCCESS == ret)
+            {
+                if (mode == PULL_LOG_PIPE_MODE)
+                {
+                    print_Pipe_Data(genericLogBuf, logSize);
+                }
+                else
+                {
+                    print_Data_Buffer(genericLogBuf, logSize, true);
+                }
+            }
+            break;
+        case PULL_LOG_BIN_FILE_MODE:
+        default:
+            //FARM pull Factory subpages   
+            //0 � Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+            //4 - factory subpage (SAS only)
+            if (issueFactory == 4)
+            {
+                ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, "FACTORY_FARM", "bin", false, NULL, 0, filePath);
+
+            }
+            else
+            {
+                ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, "FARM", "bin", false, NULL, 0, filePath);
+            }
+            break;
         }
     }
     else
     {
         ret = NOT_SUPPORTED;
     }
+    safe_Free_aligned(genericLogBuf)
     return ret;
 }
 

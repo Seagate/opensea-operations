@@ -35,6 +35,7 @@ extern "C" {
         PULL_LOG_RAW_MODE,          // Dump it to stdout. 
         PULL_LOG_BIN_FILE_MODE,     // Create a binary file 
         PULL_LOG_ANALYZE_MODE,      // Humanize the log
+        PULL_LOG_PIPE_MODE,         // Dump it to stdout and send the result to openSeaChest_LogParser
     } eLogPullMode;
 
     OPENSEA_OPERATIONS_API int generate_Logfile_Name(tDevice *device,\
@@ -566,7 +567,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime);
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode);
 
     //-----------------------------------------------------------------------------
     //
