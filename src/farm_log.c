@@ -302,16 +302,15 @@ int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t de
     return SUCCESS;
 }
 
-int32_t pullSCSIFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t delayTime, uint8_t *header,
-    uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSavedHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmStickyHeader, uint8_t *farmWorkLoadTraceHeader,
-    uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmSavedLog, uint8_t *farmTimeSeriesLog, uint8_t *farmStickyLog, uint8_t *farmWorkLoadTraceLog, farmSublogpageSize logpageSize)
+int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, 
+	uint8_t *farmTimeSeriesHeader, uint8_t *farmStickyHeader, uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, 
+	uint8_t *farmTimeSeriesLog, uint8_t *farmStickyLog, tSASLogpageSize logpageSize)
 {
 	int32_t returnValue = FAILURE;
 	uint64_t startTimeInMilliSecs = 0, endTimeInMilliSecs = 0;
 	uint16_t numberOfDataSets = 0;
 	uint16_t headerLength = FARMC_LOG_HEADER_LENGTH;
 	uint32_t farmContentField = 0;
-	uint32_t logSize;
 
 	//get Current FARM for SAS logpage 0x3D - feature 0x03
 	if (is_FARM_Log_Supported(device))
@@ -321,8 +320,10 @@ int32_t pullSCSIFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t d
 		if (returnValue != SUCCESS)
 		{
 			//print error
-			printf("error in farm current get_SCSI_Log, %d\n", returnValue);
-			return returnValue;
+			if (VERBOSITY_QUIET < device->deviceVerbosity)
+			{
+				printf("Error pulling Farm Current log\n");
+			}
 		}
 		else
 		{
@@ -354,8 +355,10 @@ int32_t pullSCSIFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t d
 		if (returnValue != SUCCESS)
 		{
 			//print error
-			printf("error in farm factory get_SCSI_Log, %d\n", returnValue);
-			//return returnValue;
+			if (VERBOSITY_QUIET < device->deviceVerbosity)
+			{
+				printf("Error pulling Farm Factory log\n");
+			}
 		}
 		else
 		{
@@ -385,44 +388,47 @@ int32_t pullSCSIFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t d
 		startTimeInMilliSecs = time(NULL) * 1000;
 		for (uint8_t i = SEAGATE_FARM_SP_TIME_SERIES_START; i <= SEAGATE_FARM_SP_TIME_SERIES_END; i++)
 		{
-			returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, i, &logSize);
-			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempTimeSeries, logSize, NULL);
+			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog/18, NULL);
 			if (returnValue != SUCCESS)
 			{
 				//print error
-				printf("error in farm time series get_SCSI_Log, %d\n", returnValue);
-				return returnValue;
+				if (VERBOSITY_QUIET < device->deviceVerbosity)
+				{
+					printf("Error pulling Farm TimeSeries log Subpage %d\n", i);
+				}
 			}
 			else
 			{
-				tempTimeSeries = tempTimeSeries + logSize;
+				tempTimeSeries = tempTimeSeries + (logpageSize.timeSeriesLog/18);
 			}
 		}
 
 		//get subpage C0
-		returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, &logSize);
-		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, NULL, NULL, true, tempTimeSeries, logSize, NULL);
+		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog/18, NULL);
 		if (returnValue != SUCCESS)
 		{
-			printf("\nerror in farm time series get_SCSI_Log, %d\n", returnValue);
-			return returnValue;
+			if (VERBOSITY_QUIET < device->deviceVerbosity)
+			{
+				printf("Error pulling Farm TimeSeries log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD1);
+			}
 		}
 		else
 		{
-			tempTimeSeries = tempTimeSeries + logSize;
+			tempTimeSeries = tempTimeSeries + (logpageSize.timeSeriesLog/18);
 		}
 
 		//get subpage C1
-		returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD2, &logSize);
-		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD2, NULL, NULL, true, tempTimeSeries, logSize, NULL);
+		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD2, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog/18, NULL);
 		if (returnValue != SUCCESS)
 		{
-			printf("\nerror in farm time series get_SCSI_Log, %d\n", returnValue);
-			return returnValue;
+			if (VERBOSITY_QUIET < device->deviceVerbosity)
+			{
+				printf("Error pulling Farm TimeSeries log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD2);
+			}
 		}
 		else
 		{
-			tempTimeSeries = tempTimeSeries + logSize;
+			tempTimeSeries = tempTimeSeries + (logpageSize.timeSeriesLog/18);
 		}
 
 		endTimeInMilliSecs = time(NULL) * 1000;
@@ -449,17 +455,18 @@ int32_t pullSCSIFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t d
 		startTimeInMilliSecs = time(NULL) * 1000;
 		for (uint8_t i = SEAGATE_FARM_SP_STICKY_START; i <= SEAGATE_FARM_SP_STICKY_END; i++)
 		{
-			returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, i, &logSize);
-			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, temp_sticky, logSize, NULL);
+			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, temp_sticky, logpageSize.stickyLog/6, NULL);
 			if (returnValue != SUCCESS)
 			{
 				//print error
-				printf("error in farm time sticky get_SCSI_Log, %d\n", returnValue);
-				return returnValue;
+				if (VERBOSITY_QUIET < device->deviceVerbosity)
+				{
+					printf("Error pulling Farm Sticky log Subpage %d\n", i);
+				}
 			}
 			else
 			{
-				temp_sticky = temp_sticky + logSize;
+				temp_sticky = temp_sticky + (logpageSize.stickyLog/6);
 			}
 		}
 
@@ -477,8 +484,6 @@ int32_t pullSCSIFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t d
 			}
 		}
 #endif // _DEBUG
-
-
 	}
 
 	//update subheader entry
@@ -659,7 +664,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
         else if (device->drive_info.drive_type == SCSI_DRIVE)
         {
 			uint32_t logSize;
-			farmSublogpageSize logpageSize;
+			tSASLogpageSize logpageSize;
 
 			//get the log size of all log subpages
 			if (is_FARM_Log_Supported(device))
@@ -697,9 +702,9 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
 			}
 
 			//pull the FARM SCSi log 
-			returnValue = pullSCSIFarmLogs(device, transferSizeBytes, delayTime, header,
-				farmCurrentHeader, farmFactoryHeader, farmSavedHeader, farmTimeSeriesHeader, farmStickyHeader, farmWorkLoadTraceHeader,
-				farmCurrentLog, farmFactoryLog, farmSavedLog, farmTimeSeriesLog, farmStickyLog, farmWorkLoadTraceLog, logpageSize);
+			returnValue = pullSCSIFarmLogs(device, header, farmCurrentHeader, 
+				farmFactoryHeader, farmTimeSeriesHeader, farmStickyHeader, 
+				farmCurrentLog, farmFactoryLog, farmTimeSeriesLog, farmStickyLog, logpageSize);
 			if (returnValue != SUCCESS)
 			{
 				break;
