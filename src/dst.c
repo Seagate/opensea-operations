@@ -1417,7 +1417,7 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             return MEMORY_FAILURE;
         }
         //read the extended self test results log with read log ext
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, NULL, NULL, true, false, true, selfTestResults, extLogSize, NULL, 0,0,0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, NULL, NULL, true, false, true, selfTestResults, extLogSize, NULL, 0, 0, 0))
         //if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
         {
             ret = SUCCESS;
@@ -1465,15 +1465,23 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         entries->dstEntry[entries->numberOfEntries].lifetimeTimestamp = M_BytesTo2ByteValue(selfTestResults[offset + 3], selfTestResults[offset + 2]);
                         entries->dstEntry[entries->numberOfEntries].checkPointByte = selfTestResults[offset + 4];
                         entries->dstEntry[entries->numberOfEntries].lbaOfFailure = M_BytesTo8ByteValue(0, 0, selfTestResults[offset + 10], selfTestResults[offset + 9], selfTestResults[offset + 8], selfTestResults[offset + 7], selfTestResults[offset + 6], selfTestResults[offset + 5]);
+                        //if LBA field is all F's, this is meant to signify an invalid value like T10 specs say to do - TJE
+                        if (entries->dstEntry[entries->numberOfEntries].lbaOfFailure == MAX_48_BIT_LBA)
+                        {
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
+                        }
+
                         memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], &selfTestResults[offset + 11], 15);
                         //dummy up sense data...
-                        switch (entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus)
+                        switch (M_Nibble1(entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus))
                         {
                         case 0:
                         case 15:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_NO_ERROR;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCode = 0;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCodeQualifier = 0;
+                            //NOTE: This is a workaround to clear out the LBA on success:
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
                             break;
                         case 1:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_ABORTED_COMMAND;
@@ -1599,14 +1607,23 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         entries->dstEntry[entries->numberOfEntries].checkPointByte = selfTestResults[offset + 4];
                         entries->dstEntry[entries->numberOfEntries].lbaOfFailure = M_BytesTo4ByteValue(selfTestResults[offset + 8], selfTestResults[offset + 7], selfTestResults[offset + 6], selfTestResults[offset + 5]);
                         memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], &selfTestResults[offset + 9], 15);
+                        //if LBA field is all F's, this is meant to signify an invalid value like T10 specs say to do - TJE
+                        //filtering 28bit all F's and 32bit all F's since it is not clear exactly how many drives will report this invalid value -TJE
+                        if (entries->dstEntry[entries->numberOfEntries].lbaOfFailure == MAX_28_BIT_LBA || entries->dstEntry[entries->numberOfEntries].lbaOfFailure == UINT32_MAX)
+                        {
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
+                        }
+
                         //dummy up sense data...
-                        switch (entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus)
+                        switch (M_Nibble1(entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus))
                         {
                         case 0:
                         case 15:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_NO_ERROR;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCode = 0;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCodeQualifier = 0;
+                            //NOTE: This is a workaround to clear out the LBA on success:
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
                             break;
                         case 1:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_ABORTED_COMMAND;
