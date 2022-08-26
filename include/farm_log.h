@@ -20,6 +20,13 @@ extern "C"
 {
 #endif
 
+	typedef struct _farmSublogpageSize
+	{
+		uint32_t currentLog;
+		uint32_t factoryLog;
+		uint32_t timeSeriesLog;
+		uint32_t stickyLog;
+	} farmSublogpageSize;
     //-----------------------------------------------------------------------------
     //
     //  pull_FARM_Combined_Log(tDevice *device, const char * const filePath);

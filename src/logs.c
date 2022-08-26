@@ -3481,6 +3481,26 @@ bool is_FARM_Log_Supported(tDevice *device)
 
 }
 
+bool is_Factory_FARM_Log_Supported(tDevice *device)
+{
+	bool supported = false;
+	uint32_t logSize = 0;
+#ifdef _DEBUG
+	printf("%s -->\n", __FUNCTION__);
+#endif
+
+	if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0x04, &logSize) == SUCCESS))
+	{
+		supported = true;
+	}
+
+#ifdef _DEBUG
+	printf("%s <-- (%d)\n", __FUNCTION__, supported);
+#endif
+
+	return supported;
+}
+
 bool is_FARM_Time_Series_Log_Supported(tDevice *device)
 {
     bool supported = false;
@@ -3493,7 +3513,11 @@ bool is_FARM_Time_Series_Log_Supported(tDevice *device)
     {
         supported = true;
     }
-    //else currently not supported on SAS or NVMe. 
+	else if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0x10, &logSize) == SUCCESS))
+	{
+		supported = true;
+	}
+    //else currently not supported on  NVMe. 
 #ifdef _DEBUG
     printf("%s <-- (%d)\n", __FUNCTION__, supported);
 #endif
@@ -3501,3 +3525,24 @@ bool is_FARM_Time_Series_Log_Supported(tDevice *device)
     return supported;
 
 }
+
+bool is_FARM_Sticky_Log_Supported(tDevice *device)
+{
+	bool supported = false;
+	uint32_t logSize = 0;
+#ifdef _DEBUG
+	printf("%s -->\n", __FUNCTION__);
+#endif
+
+	if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0xC2, &logSize) == SUCCESS))
+	{
+		supported = true;
+	}
+
+#ifdef _DEBUG
+	printf("%s <-- (%d)\n", __FUNCTION__, supported);
+#endif
+
+	return supported;
+}
+

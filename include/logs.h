@@ -573,7 +573,7 @@ extern "C" {
     //
     //  is_FARM_Log_Supported(tDevice *device);
     //
-    //! \brief   Description: This function check's if the Seagate FARM log is supported
+    //! \brief   Description: This function check's if the Seagate Current FARM log is supported
     //
     //  Entry:
     //!   \param[in] device = poiner to a valid device structure with a device handle
@@ -583,7 +583,47 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(tDevice *device);
 
+	//-----------------------------------------------------------------------------
+    //
+    //  is_Factory_FARM_Log_Supported(tDevice *device);
+    //
+    //! \brief   Description: This function check's if the Seagate FARM Factory log is supported
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+	OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(tDevice *device);
+
+	//-----------------------------------------------------------------------------
+    //
+    //  is_FARM_Log_Supported(tDevice *device);
+    //
+    //! \brief   Description: This function check's if the Seagate FARM Time-Series log is supported
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(tDevice *device);
+
+	//-----------------------------------------------------------------------------
+    //
+    //  is_FARM_Sticky_Log_Supported(tDevice *device);
+    //
+    //! \brief   Description: This function check's if the Seagate FARM Sticky log is supported
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+	OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(tDevice *device);
 
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
 
