@@ -665,6 +665,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
         {
 			uint32_t logSize;
 			tSASLogpageSize logpageSize;
+            memset(&logpageSize, 0, sizeof(tSASLogpageSize));
 
 			//get the log size of all log subpages
 			if (is_FARM_Log_Supported(device))
