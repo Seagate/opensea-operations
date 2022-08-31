@@ -475,7 +475,7 @@ extern "C" {
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage,\
+    OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, \
         eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
 
     OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
@@ -542,7 +542,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16,\
+    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, uint32_t delayTime);
 
@@ -583,7 +583,7 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(tDevice *device);
 
-	//-----------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------
     //
     //  is_Factory_FARM_Log_Supported(tDevice *device);
     //
@@ -595,9 +595,9 @@ extern "C" {
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(tDevice *device);
 
-	//-----------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------
     //
     //  is_FARM_Log_Supported(tDevice *device);
     //
@@ -611,7 +611,7 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(tDevice *device);
 
-	//-----------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------
     //
     //  is_FARM_Sticky_Log_Supported(tDevice *device);
     //
@@ -623,7 +623,21 @@ extern "C" {
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-	OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(tDevice *device);
+    OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(tDevice *device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_FARM_Long_Saved_Log_Supported(tDevice *device);
+    //
+    //! \brief   Description: This function check's if the Seagate FARM Sticky log is supported
+    //
+    //  Entry:
+    //!   \param[in] device = poiner to a valid device structure with a device handle
+    //  Exit:
+    //!   \return true = supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(tDevice *device);
 
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
 

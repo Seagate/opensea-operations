@@ -24,6 +24,7 @@
 #define ATA_TIMESERIES_FRAME_LOG_SIZE       (27 * 96 * 1024)    //27 * 96 KB
 #define FARM_SIGNATURE_LENGTH               16
 #define FARM_DATASET_SIGNATURE_LENGTH       8
+#define DATASET_ENTRY_START_OFFSET          512
 
 #define FARMC_LOG_MAJOR_VERSION             1
 #define FARMC_LOG_MINOR_VERSION             0
@@ -41,6 +42,25 @@ typedef enum _eFarmSubPageType
     SUBPAGE_TYPE_FARM_SAVE,
     SUBPAGE_TYPE_MAX,
 } eFarmSubPageType;
+
+typedef struct _tSASLogpageSize
+{
+    uint32_t currentLog;
+    uint32_t factoryLog;
+    uint32_t savedLog;          //each frame size
+    uint32_t timeSeriesLog;     //each frame size
+    uint32_t stickyLog;         //each frame size
+} tSASLogpageSize;
+
+typedef struct _tZeroPaddingBufferSize
+{
+    uint32_t headerZeroPadding;
+    uint32_t farmCurrentZeroPadding;
+    uint32_t farmFactoryZeroPadding;
+    uint32_t farmSavedZeroPadding;
+    uint32_t farmTimeSeriesZeroPadding;
+    uint32_t farmStickyZeroPadding;
+} tZeroPaddingBufferSize;
 
 char farmSubPageSignatureId[SUBPAGE_TYPE_MAX][FARM_DATASET_SIGNATURE_LENGTH + 1] = { "FARM", "FACTORY", "FARMTIME", "FARMSTCK", "WORKLDTC", "FARMSAVE" };
 
@@ -65,7 +85,7 @@ void updateDataSetEntryOffset(uint8_t *dataSetHeader, uint32_t dataSetOffset)
     memcpy(dataSetHeader + 8, &dataSetOffset, sizeof(uint32_t));
 }
 
-int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t delayTime, uint8_t *header,
+int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t delayTime, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSavedHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmStickyHeader, uint8_t *farmWorkLoadTraceHeader,
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmSavedLog, uint8_t *farmTimeSeriesLog, uint8_t *farmStickyLog, uint8_t *farmWorkLoadTraceLog)
 {
@@ -258,37 +278,68 @@ int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t de
 
     //update subheader entry
     uint32_t datasetOffset = headerLength;
-    if (farmContentField && BIT0)
+    if (headerLength % DATASET_ENTRY_START_OFFSET)
+    {
+        datasetOffset = ((headerLength / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET;
+        zeroPaddingBufferSize->headerZeroPadding = datasetOffset - headerLength;
+    }
+
+    if (farmContentField & BIT0)
     {
         updateDataSetEntryOffset(farmCurrentHeader, datasetOffset);
         datasetOffset += ATA_FARM_LOG_PAGE_SIZE;
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmCurrentZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmCurrentZeroPadding;
+        }
     }
 
-    if (farmContentField && BIT1)
+    if (farmContentField & BIT1)
     {
         updateDataSetEntryOffset(farmFactoryHeader, datasetOffset);
         datasetOffset += ATA_FARM_LOG_PAGE_SIZE;
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmFactoryZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmFactoryZeroPadding;
+        }
     }
 
-    if (farmContentField && BIT2)
+    if (farmContentField & BIT5)
     {
         updateDataSetEntryOffset(farmSavedHeader, datasetOffset);
         datasetOffset += ATA_FARM_LOG_PAGE_SIZE;
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmSavedZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmSavedZeroPadding;
+        }
     }
 
-    if (farmContentField && BIT3)
+    if (farmContentField & BIT2)
     {
         updateDataSetEntryOffset(farmTimeSeriesHeader, datasetOffset);
         datasetOffset += (16 * ATA_FARM_LOG_PAGE_SIZE);
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmTimeSeriesZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmTimeSeriesZeroPadding;
+        }
     }
 
-    if (farmContentField && BIT4)
+    if (farmContentField & BIT3)
     {
         updateDataSetEntryOffset(farmStickyHeader, datasetOffset);
         datasetOffset += (6 * ATA_FARM_LOG_PAGE_SIZE);
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmStickyZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmStickyZeroPadding;
+        }
     }
 
-    if (farmContentField && BIT5)
+    if (farmContentField & BIT4)
     {
         updateDataSetEntryOffset(farmWorkLoadTraceHeader, datasetOffset);
         datasetOffset += ATA_WORKLOAD_TRACE_PAGE_SIZE;
@@ -302,229 +353,329 @@ int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t de
     return SUCCESS;
 }
 
-int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, 
-	uint8_t *farmTimeSeriesHeader, uint8_t *farmStickyHeader, uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, 
-	uint8_t *farmTimeSeriesLog, uint8_t *farmStickyLog, tSASLogpageSize logpageSize)
+int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
+    uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSavedHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmStickyHeader,
+    uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmSavedLog, uint8_t *farmTimeSeriesLog, uint8_t *farmStickyLog, tSASLogpageSize logpageSize)
 {
-	int32_t returnValue = FAILURE;
-	uint64_t startTimeInMilliSecs = 0, endTimeInMilliSecs = 0;
-	uint16_t numberOfDataSets = 0;
-	uint16_t headerLength = FARMC_LOG_HEADER_LENGTH;
-	uint32_t farmContentField = 0;
+    int32_t returnValue = FAILURE;
+    uint64_t startTimeInMilliSecs = 0, endTimeInMilliSecs = 0;
+    uint16_t numberOfDataSets = 0;
+    uint16_t headerLength = FARMC_LOG_HEADER_LENGTH;
+    uint32_t farmContentField = 0;
+    uint32_t savedLogLength = 0, timeSeriesLogLength = 0, stickyLogLength = 0;
 
-	//get Current FARM for SAS logpage 0x3D - feature 0x03
-	if (is_FARM_Log_Supported(device))
-	{
-		startTimeInMilliSecs = time(NULL) * 1000;
-		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, NULL, NULL, true, farmCurrentLog, logpageSize.currentLog, NULL);
-		if (returnValue != SUCCESS)
-		{
-			//print error
-			if (VERBOSITY_QUIET < device->deviceVerbosity)
-			{
-				printf("Error pulling Farm Current log\n");
-			}
-		}
-		else
-		{
-			endTimeInMilliSecs = time(NULL) * 1000;
-			addDataSetEntry(SUBPAGE_TYPE_FARM_CURRENT, farmCurrentHeader, &numberOfDataSets, &headerLength, &farmContentField, logpageSize.currentLog, startTimeInMilliSecs, endTimeInMilliSecs);
-
-#ifdef  _DEBUG
-			FILE *tempFile = fopen("farmcurrent.bin", "w+b");
-			if (tempFile != NULL)
-			{
-				printf("writing into farmcurrent.bin file\n");
-				if (fwrite(farmCurrentLog, sizeof(uint8_t), logpageSize.currentLog, tempFile) != C_CAST(size_t, logpageSize.currentLog)
-					|| ferror(tempFile))
-				{
-					printf("error in writing farmcurrent.bin file\n");
-				}
-				fclose(tempFile);
-			}
-#endif //  _DEBUG
-
-		}
-	}
-
-	//get Factory FARM for SAS logpage 0x3D - feature 0x04
-	if (is_Factory_FARM_Log_Supported(device))
-	{
-		startTimeInMilliSecs = time(NULL) * 1000;
-		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, NULL, NULL, true, farmFactoryLog, logpageSize.factoryLog, NULL);
-		if (returnValue != SUCCESS)
-		{
-			//print error
-			if (VERBOSITY_QUIET < device->deviceVerbosity)
-			{
-				printf("Error pulling Farm Factory log\n");
-			}
-		}
-		else
-		{
-			endTimeInMilliSecs = time(NULL) * 1000;
-			addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, &numberOfDataSets, &headerLength, &farmContentField, logpageSize.factoryLog, startTimeInMilliSecs, endTimeInMilliSecs);
+    //get Current FARM for SAS logpage 0x3D - feature 0x03
+    if (is_FARM_Log_Supported(device))
+    {
+        startTimeInMilliSecs = time(NULL) * 1000;
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, NULL, NULL, true, farmCurrentLog, logpageSize.currentLog, NULL);
+        if (returnValue != SUCCESS)
+        {
+            //print error
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("Error pulling Farm Current log\n");
+            }
+        }
+        else
+        {
+            endTimeInMilliSecs = time(NULL) * 1000;
+            addDataSetEntry(SUBPAGE_TYPE_FARM_CURRENT, farmCurrentHeader, &numberOfDataSets, &headerLength, &farmContentField, logpageSize.currentLog, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef  _DEBUG
-			FILE *tempFile = fopen("farmfactory.bin", "w+b");
-			if (tempFile != NULL)
-			{
-				printf("writing into farmfactory.bin file\n");
-				if (fwrite(farmFactoryLog, sizeof(uint8_t), logpageSize.factoryLog, tempFile) != C_CAST(size_t, logpageSize.factoryLog)
-					|| ferror(tempFile))
-				{
-					printf("error in writing farmfactory.bin file\n");
-				}
-				fclose(tempFile);
-			}
+            FILE *tempFile = fopen("farmcurrent.bin", "w+b");
+            if (tempFile != NULL)
+            {
+                if (fwrite(farmCurrentLog, sizeof(uint8_t), logpageSize.currentLog, tempFile) != C_CAST(size_t, logpageSize.currentLog)
+                    || ferror(tempFile))
+                {
+                    printf("error in writing farmcurrent.bin file\n");
+                    return ERROR_WRITING_FILE;
+                }
+                fclose(tempFile);
+            }
 #endif //  _DEBUG
-		}
-	}
+        }
+    }
 
-	//get Time Series FARM for SAS logpage 0x3D - feature 0x10 - 0x1F, 0xC0, 0xC1
-	if (is_FARM_Time_Series_Log_Supported(device))
-	{
-		uint8_t *tempTimeSeries = farmTimeSeriesLog;
-		startTimeInMilliSecs = time(NULL) * 1000;
-		for (uint8_t i = SEAGATE_FARM_SP_TIME_SERIES_START; i <= SEAGATE_FARM_SP_TIME_SERIES_END; i++)
-		{
-			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog/18, NULL);
-			if (returnValue != SUCCESS)
-			{
-				//print error
-				if (VERBOSITY_QUIET < device->deviceVerbosity)
-				{
-					printf("Error pulling Farm TimeSeries log Subpage %d\n", i);
-				}
-			}
-			else
-			{
-				tempTimeSeries = tempTimeSeries + (logpageSize.timeSeriesLog/18);
-			}
-		}
+    //get Factory FARM for SAS logpage 0x3D - feature 0x04
+    if (is_Factory_FARM_Log_Supported(device))
+    {
+        startTimeInMilliSecs = time(NULL) * 1000;
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, NULL, NULL, true, farmFactoryLog, logpageSize.factoryLog, NULL);
+        if (returnValue != SUCCESS)
+        {
+            //print error
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("Error pulling Farm Factory log\n");
+            }
+        }
+        else
+        {
+            endTimeInMilliSecs = time(NULL) * 1000;
+            addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, &numberOfDataSets, &headerLength, &farmContentField, logpageSize.factoryLog, startTimeInMilliSecs, endTimeInMilliSecs);
 
-		//get subpage C0
-		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog/18, NULL);
-		if (returnValue != SUCCESS)
-		{
-			if (VERBOSITY_QUIET < device->deviceVerbosity)
-			{
-				printf("Error pulling Farm TimeSeries log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD1);
-			}
-		}
-		else
-		{
-			tempTimeSeries = tempTimeSeries + (logpageSize.timeSeriesLog/18);
-		}
+#ifdef  _DEBUG
+            FILE *tempFile = fopen("farmfactory.bin", "w+b");
+            if (tempFile != NULL)
+            {
+                if (fwrite(farmFactoryLog, sizeof(uint8_t), logpageSize.factoryLog, tempFile) != C_CAST(size_t, logpageSize.factoryLog)
+                    || ferror(tempFile))
+                {
+                    printf("error in writing farmfactory.bin file\n");
+                    return ERROR_WRITING_FILE;
+                }
+                fclose(tempFile);
+            }
+#endif //  _DEBUG
+        }
+    }
 
-		//get subpage C1
-		returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD2, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog/18, NULL);
-		if (returnValue != SUCCESS)
-		{
-			if (VERBOSITY_QUIET < device->deviceVerbosity)
-			{
-				printf("Error pulling Farm TimeSeries log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD2);
-			}
-		}
-		else
-		{
-			tempTimeSeries = tempTimeSeries + (logpageSize.timeSeriesLog/18);
-		}
+    //get Long term saved Farm frames logpage 0x3D - 0xC0, 0xC1
+    if (is_FARM_Long_Saved_Log_Supported(device))
+    {
+        uint8_t *tempSavedFarm = farmSavedLog;
+        bool isSavedPulled = false;
+        startTimeInMilliSecs = time(NULL) * 1000;
 
-		endTimeInMilliSecs = time(NULL) * 1000;
-		addDataSetEntry(SUBPAGE_TYPE_FARM_TIMESERIES, farmTimeSeriesHeader, &numberOfDataSets, &headerLength, &farmContentField, logpageSize.timeSeriesLog, startTimeInMilliSecs, endTimeInMilliSecs);
+        //pull 0xC0
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, NULL, NULL, true, tempSavedFarm, logpageSize.savedLog, NULL);
+        if (returnValue != SUCCESS)
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("Error pulling Farm Saved log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD1);
+            }
+        }
+        else
+        {
+            //set the flag to true, which indicates atleast on saved frame was pulled
+            isSavedPulled = true;
+            tempSavedFarm = tempSavedFarm + logpageSize.savedLog;
+            savedLogLength += logpageSize.savedLog;
+        }
+
+        //pull 0xC1
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD2, NULL, NULL, true, tempSavedFarm, logpageSize.savedLog, NULL);
+        if (returnValue != SUCCESS)
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("Error pulling Farm Saved log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD2);
+            }
+        }
+        else
+        {
+            //set the flag to true, which indicates atleast one saved frame was pulled
+            isSavedPulled = true;
+            tempSavedFarm = tempSavedFarm + logpageSize.savedLog;
+            savedLogLength += logpageSize.savedLog;
+        }
+
+        if (isSavedPulled)  //if atleast one saved frame was pulled then add into the dataset entry
+        {
+            endTimeInMilliSecs = time(NULL) * 1000;
+            addDataSetEntry(SUBPAGE_TYPE_FARM_SAVE, farmSavedHeader, &numberOfDataSets, &headerLength, &farmContentField, savedLogLength, startTimeInMilliSecs, endTimeInMilliSecs);
+
 #ifdef _DEBUG
-		FILE *tempFile = fopen("farmtimeseries.bin", "w+b");
-		if (tempFile != NULL)
-		{
-			printf("writing into farmtimeseries.bin file\n");
-			if (fwrite(farmTimeSeriesLog, sizeof(uint8_t), logpageSize.timeSeriesLog, tempFile) != C_CAST(size_t, logpageSize.timeSeriesLog)
-				|| ferror(tempFile))
-			{
-				printf("error in writing farmtimeseries.bin file\n");
-			}
-			fclose(tempFile);
-		}
+            FILE *tempFile = fopen("farmsaved.bin", "w+b");
+            if (tempFile != NULL)
+            {
+                if (fwrite(farmSavedLog, sizeof(uint8_t), savedLogLength, tempFile) != C_CAST(size_t, savedLogLength)
+                    || ferror(tempFile))
+                {
+                    printf("error in writing farmsaved.bin file\n");
+                    return ERROR_WRITING_FILE;
+                }
+                fclose(tempFile);
+            }
 #endif // DEBUG
-	}
+        }
+    }
 
-	//Get Sticky FARM Log for SAS logpage 0x3D - feature 0xC2 - 0xC7
-	if (is_FARM_Sticky_Log_Supported(device))
-	{
-		uint8_t *temp_sticky = farmStickyLog;
-		startTimeInMilliSecs = time(NULL) * 1000;
-		for (uint8_t i = SEAGATE_FARM_SP_STICKY_START; i <= SEAGATE_FARM_SP_STICKY_END; i++)
-		{
-			returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, temp_sticky, logpageSize.stickyLog/6, NULL);
-			if (returnValue != SUCCESS)
-			{
-				//print error
-				if (VERBOSITY_QUIET < device->deviceVerbosity)
-				{
-					printf("Error pulling Farm Sticky log Subpage %d\n", i);
-				}
-			}
-			else
-			{
-				temp_sticky = temp_sticky + (logpageSize.stickyLog/6);
-			}
-		}
+    //get Time Series FARM for SAS logpage 0x3D - 0x10 : 0x1F
+    if (is_FARM_Time_Series_Log_Supported(device))
+    {
+        uint8_t *tempTimeSeries = farmTimeSeriesLog;
+        bool isTimeSeriesPulled = false;
+        startTimeInMilliSecs = time(NULL) * 1000;
 
-		endTimeInMilliSecs = time(NULL) * 1000;
-		addDataSetEntry(SUBPAGE_TYPE_FARM_STICKY, farmStickyHeader, &numberOfDataSets, &headerLength, &farmContentField, logpageSize.stickyLog, startTimeInMilliSecs, endTimeInMilliSecs);
+        for (uint8_t i = SEAGATE_FARM_SP_TIME_SERIES_START; i <= SEAGATE_FARM_SP_TIME_SERIES_END; i++)
+        {
+            returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog, NULL);
+            if (returnValue != SUCCESS)
+            {
+                //print error
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("Error pulling Farm TimeSeries log Subpage %d\n", i);
+                }
+            }
+            else
+            {
+                //set the flag to true, which indicates atleast one timeseries frame was pulled
+                isTimeSeriesPulled = true;
+                tempTimeSeries = tempTimeSeries + logpageSize.timeSeriesLog;
+                timeSeriesLogLength += logpageSize.timeSeriesLog;
+            }
+        }
+
+        if (isTimeSeriesPulled)  //if atleast one time series frame was pulled then add into the dataset entry
+        {
+            endTimeInMilliSecs = time(NULL) * 1000;
+            addDataSetEntry(SUBPAGE_TYPE_FARM_TIMESERIES, farmTimeSeriesHeader, &numberOfDataSets, &headerLength, &farmContentField, timeSeriesLogLength, startTimeInMilliSecs, endTimeInMilliSecs);
+
 #ifdef _DEBUG
-		FILE *tempFile = fopen("farmSticky.bin", "w+b");
-		if (tempFile != NULL)
-		{
-			printf("writing into farmSticky.bin file\n");
-			if (fwrite(farmStickyLog, sizeof(uint8_t), logpageSize.stickyLog, tempFile) != C_CAST(size_t, logpageSize.stickyLog)
-				|| ferror(tempFile))
-			{
-				printf("error in writing farmSticky.bin file\n");
-			}
-		}
+            FILE *tempFile = fopen("farmtimeseries.bin", "w+b");
+            if (tempFile != NULL)
+            {
+                printf("writing into farmtimeseries.bin file\n");
+                if (fwrite(farmTimeSeriesLog, sizeof(uint8_t), timeSeriesLogLength, tempFile) != C_CAST(size_t, timeSeriesLogLength)
+                    || ferror(tempFile))
+                {
+                    printf("error in writing farmtimeseries.bin file\n");
+                    return ERROR_WRITING_FILE;
+                }
+                fclose(tempFile);
+            }
+#endif // DEBUG
+        }
+    }
+
+    //Get Sticky FARM Log for SAS logpage 0x3D - feature 0xC2 - 0xC7
+    if (is_FARM_Sticky_Log_Supported(device))
+    {
+        uint8_t *tempSticky = farmStickyLog;
+        bool isStickyPulled = false;
+
+        startTimeInMilliSecs = time(NULL) * 1000;
+        for (uint8_t i = SEAGATE_FARM_SP_STICKY_START; i <= SEAGATE_FARM_SP_STICKY_END; i++)
+        {
+            returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempSticky, logpageSize.stickyLog, NULL);
+            if (returnValue != SUCCESS)
+            {
+                //print error
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("Error pulling Farm Sticky log Subpage %d\n", i);
+                }
+            }
+            else
+            {
+                //set the flag to true, which indicates atleast one sticky frame was pulled
+                isStickyPulled = true;
+                tempSticky = tempSticky + logpageSize.stickyLog;
+                stickyLogLength += logpageSize.stickyLog;
+            }
+        }
+
+        if (isStickyPulled)
+        {
+            endTimeInMilliSecs = time(NULL) * 1000;
+            addDataSetEntry(SUBPAGE_TYPE_FARM_STICKY, farmStickyHeader, &numberOfDataSets, &headerLength, &farmContentField, stickyLogLength, startTimeInMilliSecs, endTimeInMilliSecs);
+
+#ifdef _DEBUG
+            FILE *tempFile = fopen("farmsticky.bin", "w+b");
+            if (tempFile != NULL)
+            {
+                if (fwrite(farmStickyLog, sizeof(uint8_t), stickyLogLength, tempFile) != C_CAST(size_t, stickyLogLength)
+                    || ferror(tempFile))
+                {
+                    printf("error in writing farmsticky.bin file\n");
+                    return ERROR_WRITING_FILE;
+                }
+                fclose(tempFile);
+            }
 #endif // _DEBUG
-	}
+        }
+    }
 
-	//update subheader entry
-	uint32_t datasetOffset = headerLength;
-	if (farmContentField && BIT0)
-	{
-		updateDataSetEntryOffset(farmCurrentHeader, datasetOffset);
-		datasetOffset += logpageSize.currentLog;
-	}
+    //update subheader entry
+    uint32_t datasetOffset = headerLength;
+    if (headerLength % DATASET_ENTRY_START_OFFSET)
+    {
+        datasetOffset = ((headerLength / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET;
+        zeroPaddingBufferSize->headerZeroPadding = datasetOffset - headerLength;
+    }
 
-	if (farmContentField && BIT1)
-	{
-		updateDataSetEntryOffset(farmFactoryHeader, datasetOffset);
-		datasetOffset += logpageSize.factoryLog;
-	}
+    if (farmContentField & BIT0)
+    {
+        updateDataSetEntryOffset(farmCurrentHeader, datasetOffset);
+        datasetOffset += logpageSize.currentLog;
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmCurrentZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmCurrentZeroPadding;
+        }
+    }
 
-	if (farmContentField && BIT3)
-	{
-		updateDataSetEntryOffset(farmTimeSeriesHeader, datasetOffset);
-		datasetOffset += logpageSize.timeSeriesLog;
-	}
+    if (farmContentField & BIT1)
+    {
+        updateDataSetEntryOffset(farmFactoryHeader, datasetOffset);
+        datasetOffset += logpageSize.factoryLog;
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmFactoryZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmFactoryZeroPadding;
+        }
+    }
 
-	if (farmContentField && BIT4)
-	{
-		updateDataSetEntryOffset(farmStickyHeader, datasetOffset);
-		datasetOffset += logpageSize.stickyLog;
-	}
+    if (farmContentField & BIT5)
+    {
+        updateDataSetEntryOffset(farmSavedHeader, datasetOffset);
+        datasetOffset += savedLogLength;
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmSavedZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmSavedZeroPadding;
+        }
+    }
 
-	//copy remaing fields for header information
-	memcpy(header + 116, &headerLength, sizeof(uint16_t));
-	memcpy(header + 118, &farmContentField, sizeof(uint32_t));
-	memcpy(header + 252, &numberOfDataSets, sizeof(uint16_t));
+    if (farmContentField & BIT2)
+    {
+        updateDataSetEntryOffset(farmTimeSeriesHeader, datasetOffset);
+        datasetOffset += timeSeriesLogLength;
+        if (datasetOffset % DATASET_ENTRY_START_OFFSET)
+        {
+            zeroPaddingBufferSize->farmTimeSeriesZeroPadding = ((datasetOffset / DATASET_ENTRY_START_OFFSET) + 1) * DATASET_ENTRY_START_OFFSET - datasetOffset;
+            datasetOffset += zeroPaddingBufferSize->farmTimeSeriesZeroPadding;
+        }
+    }
 
-	return SUCCESS;
+    if (farmContentField & BIT3)
+    {
+        updateDataSetEntryOffset(farmStickyHeader, datasetOffset);
+        datasetOffset += stickyLogLength;
+    }
+
+    //copy remaing fields for header information
+    memcpy(header + 116, &headerLength, sizeof(uint16_t));
+    memcpy(header + 118, &farmContentField, sizeof(uint32_t));
+    memcpy(header + 252, &numberOfDataSets, sizeof(uint16_t));
+
+    return SUCCESS;
 }
 
 int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime)
 {
     int32_t returnValue = NOT_SUPPORTED;
 
-    if (!(is_FARM_Log_Supported(device) || is_FARM_Time_Series_Log_Supported(device))) //No farm or farm timeseries supported, then return
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (!(is_FARM_Log_Supported(device) || is_FARM_Time_Series_Log_Supported(device))) //No farm or farm timeseries supported, then return
+        {
+            return returnValue;
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        if (!(is_FARM_Log_Supported(device) || is_Factory_FARM_Log_Supported(device) || is_FARM_Long_Saved_Log_Supported(device) || is_FARM_Time_Series_Log_Supported(device) || is_FARM_Sticky_Log_Supported(device))) //No farm or farm timeseries supported, then return
+        {
+            return returnValue;
+        }
+    }
+    else
     {
         return returnValue;
     }
@@ -542,6 +693,13 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
     uint8_t *farmTimeSeriesLog = NULL;
     uint8_t *farmStickyLog = NULL;
     uint8_t *farmWorkLoadTraceLog = NULL;
+    uint8_t *zeroPaddingHeader = NULL;
+    uint8_t *farmCurrentZeroPaddingBuffer = NULL;
+    uint8_t *farmFactoryZeroPaddingBuffer = NULL;
+    uint8_t *farmSavedZeroPaddingBuffer = NULL;
+    uint8_t *farmTimeSeriesZeroPaddingBuffer = NULL;
+    uint8_t *farmStickyZeroPaddingBuffer = NULL;
+    tZeroPaddingBufferSize zeroPaddingBufferSize = { 0 };
 
     //set signature
     char signature[FARM_SIGNATURE_LENGTH + 1] = { 0 };
@@ -651,11 +809,9 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                 }
                 return MEMORY_FAILURE;
             }
-            returnValue = pullATAFarmLogs(device, transferSizeBytes, delayTime, header,
-                farmCurrentHeader, farmFactoryHeader, farmSavedHeader,
-                farmTimeSeriesHeader, farmStickyHeader, farmWorkLoadTraceHeader,
-                farmCurrentLog, farmFactoryLog, farmSavedLog,
-                farmTimeSeriesLog, farmStickyLog, farmWorkLoadTraceLog);
+            returnValue = pullATAFarmLogs(device, transferSizeBytes, delayTime, header, &zeroPaddingBufferSize,
+                farmCurrentHeader, farmFactoryHeader, farmSavedHeader, farmTimeSeriesHeader, farmStickyHeader, farmWorkLoadTraceHeader,
+                farmCurrentLog, farmFactoryLog, farmSavedLog, farmTimeSeriesLog, farmStickyLog, farmWorkLoadTraceLog);
             if (returnValue != SUCCESS)
             {
                 break;
@@ -663,53 +819,98 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
         }
         else if (device->drive_info.drive_type == SCSI_DRIVE)
         {
-			uint32_t logSize;
-			tSASLogpageSize logpageSize;
-            memset(&logpageSize, 0, sizeof(tSASLogpageSize));
+            uint32_t logSize;
+            tSASLogpageSize logpageSize = { 0 };
 
-			//get the log size of all log subpages
-			if (is_FARM_Log_Supported(device))
-			{
-				//get length of FARM current page
-				returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, &logSize);
-				logpageSize.currentLog = logSize;
-				farmCurrentLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.currentLog, sizeof(uint8_t), device->os_info.minimumAlignment));               
-			}
+            //get the log size of all log subpages
+            if (is_FARM_Log_Supported(device))
+            {
+                //get length of FARM current page
+                returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, &logSize);
+                logpageSize.currentLog = logSize;
+                farmCurrentLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.currentLog, sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!farmCurrentLog)
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        perror("error memory allocation for farmCurrentLog");
+                    }
+                    return MEMORY_FAILURE;
+                }
+            }
 
-			if (is_Factory_FARM_Log_Supported(device))
-			{
-				//get length of Factory FARM page
-				returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize);
-				logpageSize.factoryLog = logSize;
-				farmFactoryLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.factoryLog, sizeof(uint8_t), device->os_info.minimumAlignment));               
+            if (is_Factory_FARM_Log_Supported(device))
+            {
+                //get length of Factory FARM page
+                returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize);
+                logpageSize.factoryLog = logSize;
+                farmFactoryLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.factoryLog, sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!farmFactoryLog)
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        perror("error memory allocation for farmFactoryLog");
+                    }
+                    return MEMORY_FAILURE;
+                }
+            }
 
-			}
+            if (is_FARM_Long_Saved_Log_Supported(device))
+            {
+                //get length of Farm Long saved frames
+                returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, &logSize);
+                logpageSize.savedLog = logSize;
+                farmSavedLog = C_CAST(uint8_t*, calloc_aligned((logpageSize.savedLog * 2), sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!farmSavedLog)
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        perror("error memory allocation for farmSavedLog");
+                    }
+                    return MEMORY_FAILURE;
+                }
+            }
 
-			if (is_FARM_Time_Series_Log_Supported(device))
-			{
+            if (is_FARM_Time_Series_Log_Supported(device))
+            {
+                //get length of FARM time series log 
+                returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_START, &logSize);
+                logpageSize.timeSeriesLog = logSize;
+                farmTimeSeriesLog = C_CAST(uint8_t*, calloc_aligned((logpageSize.timeSeriesLog * 16), sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!farmTimeSeriesLog)
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        perror("error memory allocation for farmTimeSeriesLog");
+                    }
+                    return MEMORY_FAILURE;
+                }
+            }
 
-				//get length of FARM time series log 
-				returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_START, &logSize);				
-				logpageSize.timeSeriesLog = logSize * 18;
-				farmTimeSeriesLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.timeSeriesLog, sizeof(uint8_t), device->os_info.minimumAlignment));       
-			}
+            if (is_FARM_Sticky_Log_Supported(device))
+            {
+                //get length of FARM sticky log
+                returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_STICKY_START, &logSize);
+                logpageSize.stickyLog = logSize;
+                farmStickyLog = C_CAST(uint8_t*, calloc_aligned((logpageSize.stickyLog * 6), sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!farmStickyLog)
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        perror("error memory allocation for farmStickyLog");
+                    }
+                    return MEMORY_FAILURE;
+                }
+            }
 
-			if (is_FARM_Sticky_Log_Supported(device))
-			{
-				//get length of FARM sticky log
-				returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_STICKY_START, &logSize);
-				logpageSize.stickyLog = logSize * 6;
-				farmStickyLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.stickyLog, sizeof(uint8_t), device->os_info.minimumAlignment));            
-			}
-
-			//pull the FARM SCSi log 
-			returnValue = pullSCSIFarmLogs(device, header, farmCurrentHeader, 
-				farmFactoryHeader, farmTimeSeriesHeader, farmStickyHeader, 
-				farmCurrentLog, farmFactoryLog, farmTimeSeriesLog, farmStickyLog, logpageSize);
-			if (returnValue != SUCCESS)
-			{
-				break;
-			}
+            //pull the FARM SCSi log 
+            returnValue = pullSCSIFarmLogs(device, header, &zeroPaddingBufferSize,
+                farmCurrentHeader, farmFactoryHeader, farmSavedHeader, farmTimeSeriesHeader, farmStickyHeader,
+                farmCurrentLog, farmFactoryLog, farmSavedLog, farmTimeSeriesLog, farmStickyLog, logpageSize);
+            if (returnValue != SUCCESS)
+            {
+                break;
+            }
         }
         else
         {
@@ -717,7 +918,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
         }
 
         uint32_t farmContentField = C_CAST(uint32_t, header[118]);
-        if (!((farmContentField && BIT0) || (farmContentField && BIT1) || (farmContentField && BIT2) || (farmContentField && BIT3) || (farmContentField && BIT4) || (farmContentField && BIT5)))
+        if (!((farmContentField & BIT0) || (farmContentField & BIT1) || (farmContentField & BIT2) || (farmContentField & BIT3) || (farmContentField & BIT4) || (farmContentField & BIT5)))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
@@ -730,7 +931,6 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
         //create and open the log file
         FILE *farmCombinedLog = NULL;
         char *fileNameUsed = NULL;
-
         if (SUCCESS != create_And_Open_Log_File(device, &farmCombinedLog, filePath, "FARMC", "frmc", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -756,7 +956,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
 
         //write dataset entry header
         {
-            if (farmContentField && BIT0)
+            if (farmContentField & BIT0)
             {
                 if ((fwrite(farmCurrentHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
                     || ferror(farmCombinedLog))
@@ -771,7 +971,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                 }
             }
 
-            if (farmContentField && BIT1)
+            if (farmContentField & BIT1)
             {
                 if ((fwrite(farmFactoryHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
                     || ferror(farmCombinedLog))
@@ -786,7 +986,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                 }
             }
 
-            if (farmContentField && BIT2)
+            if (farmContentField & BIT5)
             {
                 if ((fwrite(farmSavedHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
                     || ferror(farmCombinedLog))
@@ -801,7 +1001,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                 }
             }
 
-            if (farmContentField && BIT3)
+            if (farmContentField & BIT2)
             {
                 if ((fwrite(farmTimeSeriesHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
                     || ferror(farmCombinedLog))
@@ -816,7 +1016,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                 }
             }
 
-            if (farmContentField && BIT4)
+            if (farmContentField & BIT3)
             {
                 if ((fwrite(farmStickyHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
                     || ferror(farmCombinedLog))
@@ -831,7 +1031,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                 }
             }
 
-            if (farmContentField && BIT5)
+            if (farmContentField & BIT4)
             {
                 if ((fwrite(farmWorkLoadTraceHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
                     || ferror(farmCombinedLog))
@@ -845,11 +1045,28 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                     break;
                 }
             }
+
+            //write zero padding
+            if (zeroPaddingBufferSize.headerZeroPadding != 0)
+            {
+                zeroPaddingHeader = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                if ((fwrite(zeroPaddingHeader, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding))
+                    || ferror(farmCombinedLog))
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        perror("Error in writing zero padding header data to a file!\n");
+                    }
+                    fclose(farmCombinedLog);
+                    returnValue = ERROR_WRITING_FILE;
+                    break;
+                }
+            }
         }
 
         //write log buffer
         {
-            if (farmContentField && BIT0)
+            if (farmContentField & BIT0)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmCurrentHeader + 12);
                 if ((fwrite(farmCurrentLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
@@ -863,9 +1080,26 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
+
+                //add zero padding
+                if (zeroPaddingBufferSize.farmCurrentZeroPadding != 0)
+                {
+                    farmCurrentZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if ((fwrite(farmCurrentZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding))
+                        || ferror(farmCombinedLog))
+                    {
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            perror("Error in writing farm current zero padding data to a file!\n");
+                        }
+                        fclose(farmCombinedLog);
+                        returnValue = ERROR_WRITING_FILE;
+                        break;
+                    }
+                }
             }
 
-            if (farmContentField && BIT1)
+            if (farmContentField & BIT1)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmFactoryHeader + 12);
                 if ((fwrite(farmFactoryLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
@@ -879,9 +1113,26 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
+
+                //add zero padding
+                if (zeroPaddingBufferSize.farmFactoryZeroPadding != 0)
+                {
+                    farmFactoryZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if ((fwrite(farmFactoryZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding))
+                        || ferror(farmCombinedLog))
+                    {
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            perror("Error in writing farm factory zero padding data to a file!\n");
+                        }
+                        fclose(farmCombinedLog);
+                        returnValue = ERROR_WRITING_FILE;
+                        break;
+                    }
+                }
             }
 
-            if (farmContentField && BIT2)
+            if (farmContentField & BIT5)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmSavedHeader + 12);
                 if ((fwrite(farmSavedLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
@@ -895,9 +1146,26 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
+
+                //add zero padding
+                if (zeroPaddingBufferSize.farmSavedZeroPadding != 0)
+                {
+                    farmSavedZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if ((fwrite(farmSavedZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding))
+                        || ferror(farmCombinedLog))
+                    {
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            perror("Error in writing farm saved zero padding data to a file!\n");
+                        }
+                        fclose(farmCombinedLog);
+                        returnValue = ERROR_WRITING_FILE;
+                        break;
+                    }
+                }
             }
 
-            if (farmContentField && BIT3)
+            if (farmContentField & BIT2)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmTimeSeriesHeader + 12);
                 if ((fwrite(farmTimeSeriesLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
@@ -911,9 +1179,26 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
+
+                //add zero padding
+                if (zeroPaddingBufferSize.farmTimeSeriesZeroPadding != 0)
+                {
+                    farmTimeSeriesZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if ((fwrite(farmTimeSeriesZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding))
+                        || ferror(farmCombinedLog))
+                    {
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            perror("Error in writing farm time series zero padding data to a file!\n");
+                        }
+                        fclose(farmCombinedLog);
+                        returnValue = ERROR_WRITING_FILE;
+                        break;
+                    }
+                }
             }
 
-            if (farmContentField && BIT4)
+            if (farmContentField & BIT3)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmStickyHeader + 12);
                 if ((fwrite(farmStickyLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
@@ -927,9 +1212,26 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
+
+                //add zero padding
+                if (zeroPaddingBufferSize.farmStickyZeroPadding != 0)
+                {
+                    farmStickyZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if ((fwrite(farmStickyZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding))
+                        || ferror(farmCombinedLog))
+                    {
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            perror("Error in writing farm sticky frams zero padding data to a file!\n");
+                        }
+                        fclose(farmCombinedLog);
+                        returnValue = ERROR_WRITING_FILE;
+                        break;
+                    }
+                }
             }
 
-            if (farmContentField && BIT5)
+            if (farmContentField & BIT4)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmWorkLoadTraceHeader + 12);
                 if ((fwrite(farmWorkLoadTraceLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
@@ -960,12 +1262,18 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
         fclose(farmCombinedLog);
     } while (0);
 
-    safe_Free_aligned(farmCurrentLog);
-    safe_Free_aligned(farmFactoryLog);
-    safe_Free_aligned(farmSavedLog);
-    safe_Free_aligned(farmTimeSeriesLog);
-    safe_Free_aligned(farmStickyLog);
-    safe_Free_aligned(farmWorkLoadTraceLog);
+    safe_Free_aligned(farmCurrentLog)
+    safe_Free_aligned(farmFactoryLog)
+    safe_Free_aligned(farmSavedLog)
+    safe_Free_aligned(farmTimeSeriesLog)
+    safe_Free_aligned(farmStickyLog)
+    safe_Free_aligned(farmWorkLoadTraceLog)
+    safe_Free_aligned(zeroPaddingHeader)
+    safe_Free_aligned(farmCurrentZeroPaddingBuffer)
+    safe_Free_aligned(farmFactoryZeroPaddingBuffer)
+    safe_Free_aligned(farmSavedZeroPaddingBuffer)
+    safe_Free_aligned(farmTimeSeriesZeroPaddingBuffer)
+    safe_Free_aligned(farmStickyZeroPaddingBuffer)
 
     return returnValue;
 }
