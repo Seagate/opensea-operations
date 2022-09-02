@@ -438,6 +438,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)buffer_test.c\
 	$(SRC_DIR)defect.c \
 	$(SRC_DIR)nvme_operations.c\
+	$(SRC_DIR)reservations.c\
 	$(SRC_DIR)reservations.c
 
 #Only define public stuff
