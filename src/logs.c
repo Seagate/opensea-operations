@@ -3297,6 +3297,7 @@ int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transfe
                 }
                 break;
             }
+            break;
         default:
             switch (mode)
             {
