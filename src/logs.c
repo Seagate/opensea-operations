@@ -2180,6 +2180,7 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     //read each remaining chunk with the trigger bit set to 0
                     telemOpts.lsp = 0;
                     telemOpts.offset = pageNumber * 512;
+                    telemOpts.dataLen = pullChunkSize;
                     if (SUCCESS == nvme_Get_Log_Page(device, &telemOpts))
                     {
                         //save to file, or copy to the ptr we were given
