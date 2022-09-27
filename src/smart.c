@@ -6523,7 +6523,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters. Logical Sectors Per Track: %" PRIu8 "  Max Head: %" PRIu8 "", sectorsPerTrack, maxHead);
     }
         break;
-    case ATA_DOWNLOAD_MICROCODE:
+    case ATA_DOWNLOAD_MICROCODE_CMD:
         get_Download_Command_Info("Download Microcode", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_DOWNLOAD_MICROCODE_DMA:
