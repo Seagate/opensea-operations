@@ -4162,8 +4162,8 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
     case ATA_WRITE_LONG_NORETRY:
     case ATA_READ_LONG_NORETRY:
         //noRetries = true;
-    case ATA_READ_LONG_RETRY:
-    case ATA_WRITE_LONG_RETRY:
+    case ATA_READ_LONG_RETRY_CMD:
+    case ATA_WRITE_LONG_RETRY_CMD:
         //longCmd = true;
         break;
     case ATA_READ_SECT_NORETRY:
@@ -4174,10 +4174,10 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
     case ATA_READ_SECT:
     case ATA_WRITE_SECT:
     case ATA_WRITE_SECTV_RETRY:
-    case ATA_READ_MULTIPLE:
-    case ATA_WRITE_MULTIPLE:
-    case ATA_READ_DMA_RETRY:
-    case ATA_WRITE_DMA_RETRY:
+    case ATA_READ_MULTIPLE_CMD:
+    case ATA_WRITE_MULTIPLE_CMD:
+    case ATA_READ_DMA_RETRY_CMD:
+    case ATA_WRITE_DMA_RETRY_CMD:
         break;
     case ATA_READ_SECT_EXT:
     case ATA_READ_DMA_EXT:
@@ -6197,7 +6197,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_REQUEST_SENSE_DATA:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Request Sense Data");
         break;
-    case ATA_RECALIBRATE://this can have various values for the lower nibble which conflict with new command standards
+    case ATA_RECALIBRATE_CMD://this can have various values for the lower nibble which conflict with new command standards
     case 0x11:
     //case ATA_GET_PHYSICAL_ELEMENT_STATUS://or recalibrate? check the count register...it should be non-zero
     case 0x12:
@@ -6236,7 +6236,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_READ_SECT_NORETRY:
         get_Read_Write_Command_Info("Read Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_READ_LONG_RETRY:
+    case ATA_READ_LONG_RETRY_CMD:
         get_Read_Write_Command_Info("Read Long", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_LONG_NORETRY:
@@ -6272,7 +6272,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_WRITE_SECT_NORETRY:
         get_Read_Write_Command_Info("Write Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_WRITE_LONG_RETRY:
+    case ATA_WRITE_LONG_RETRY_CMD:
         get_Read_Write_Command_Info("Write Long", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_WRITE_LONG_NORETRY:
@@ -6358,7 +6358,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_ZONE_MANAGEMENT_IN:
         get_ZAC_Management_In_Command_Info("ZAC Management In", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_FORMAT_TRACK:
+    case ATA_FORMAT_TRACK_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
         break;
     case ATA_CONFIGURE_STREAM:
@@ -6556,7 +6556,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATAPI_IDENTIFY:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
         break;
-    case ATA_SMART:
+    case ATA_SMART_CMD:
         get_SMART_Command_Info("SMART", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_DCO:
@@ -6574,10 +6574,10 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_NV_CACHE:
         get_NV_Cache_Command_Info("NV Cache", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_READ_MULTIPLE:
+    case ATA_READ_MULTIPLE_CMD:
         get_Read_Write_Command_Info("Read Multiple", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_WRITE_MULTIPLE:
+    case ATA_WRITE_MULTIPLE_CMD:
         get_Read_Write_Command_Info("Write Multiple", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_SET_MULTIPLE:
@@ -6586,13 +6586,13 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_READ_DMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Read DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_READ_DMA_RETRY:
+    case ATA_READ_DMA_RETRY_CMD:
         get_Read_Write_Command_Info("Read DMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_DMA_NORETRY:
         get_Read_Write_Command_Info("Read DMA (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_WRITE_DMA_RETRY:
+    case ATA_WRITE_DMA_RETRY_CMD:
         get_Read_Write_Command_Info("Write DMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_WRITE_DMA_NORETRY:
@@ -6616,10 +6616,10 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_PRE_BOOT:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Pre Boot");
         break;
-    case ATA_DOOR_LOCK:
+    case ATA_DOOR_LOCK_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Lock");
         break;
-    case ATA_DOOR_UNLOCK:
+    case ATA_DOOR_UNLOCK_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Unlock");
         break;
     case ATA_STANDBY_IMMD:
@@ -6643,22 +6643,22 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
         }
         break;
-    case ATA_STANDBY:
+    case ATA_STANDBY_CMD:
         get_Idle_Or_Standby_Command_Info("Standby", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_IDLE:
+    case ATA_IDLE_CMD:
         get_Idle_Or_Standby_Command_Info("Idle", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_BUF:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
         break;
-    case ATA_CHECK_POWER_MODE:
+    case ATA_CHECK_POWER_MODE_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Check Power Mode");
         break;
     case ATA_SLEEP_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sleep");
         break;
-    case ATA_FLUSH_CACHE:
+    case ATA_FLUSH_CACHE_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache");
         break;
     case ATA_WRITE_BUF:
@@ -6778,8 +6778,8 @@ static bool is_Read_Write_Command(uint8_t commandOpCode)
     {
     case ATA_WRITE_LONG_NORETRY:
     case ATA_READ_LONG_NORETRY:
-    case ATA_READ_LONG_RETRY:
-    case ATA_WRITE_LONG_RETRY:
+    case ATA_READ_LONG_RETRY_CMD:
+    case ATA_WRITE_LONG_RETRY_CMD:
     case ATA_READ_SECT_NORETRY:
     case ATA_WRITE_SECT_NORETRY:
     case ATA_READ_DMA_NORETRY:
@@ -6787,10 +6787,10 @@ static bool is_Read_Write_Command(uint8_t commandOpCode)
     case ATA_READ_SECT:
     case ATA_WRITE_SECT:
     case ATA_WRITE_SECTV_RETRY:
-    case ATA_READ_MULTIPLE:
-    case ATA_WRITE_MULTIPLE:
-    case ATA_READ_DMA_RETRY:
-    case ATA_WRITE_DMA_RETRY:
+    case ATA_READ_MULTIPLE_CMD:
+    case ATA_WRITE_MULTIPLE_CMD:
+    case ATA_READ_DMA_RETRY_CMD:
+    case ATA_WRITE_DMA_RETRY_CMD:
     case ATA_READ_SECT_EXT:
     case ATA_READ_DMA_EXT:
     case ATA_READ_READ_MULTIPLE_EXT:
@@ -6902,7 +6902,7 @@ static bool is_Possible_Recalibrate_Command(uint8_t commandOpCodeThatCausedError
 
 static bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 {
-    if (commandOpCodeThatCausedError == ATA_RECALIBRATE)
+    if (commandOpCodeThatCausedError == ATA_RECALIBRATE_CMD)
     {
         return true;
     }

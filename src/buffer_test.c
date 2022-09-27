@@ -252,7 +252,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -281,7 +281,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -359,7 +359,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -388,7 +388,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -438,7 +438,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -467,7 +467,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
