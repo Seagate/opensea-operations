@@ -119,7 +119,7 @@ int print_Current_Power_Mode(tDevice *device)
         }
         safe_Free_aligned(identifyData)
 
-        if (SUCCESS == ata_Check_Power_Mode(device, &powerMode))
+        if (SUCCESS == ATA_CHECK_POWER_MODE_CMD(device, &powerMode))
         {
             printf("Device is in the ");
             switch (powerMode)
@@ -327,14 +327,14 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             ret = SUCCESS;
             break;
         case PWR_CND_IDLE://send idle immediate
-            ret = ata_Idle_Immediate(device, false);
+            ret = ATA_IDLE_IMMEDIATE_CMD(device, false);
             break;
         case PWR_CND_IDLE_UNLOAD://send idle immediate - unload
             if ((device->drive_info.IdentifyData.ata.Word084 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word084 != 0 && device->drive_info.IdentifyData.ata.Word084 & BIT13) ||
                 (device->drive_info.IdentifyData.ata.Word087 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word087 != 0 && device->drive_info.IdentifyData.ata.Word087 & BIT13)
                 )
             {
-                ret = ata_Idle_Immediate(device, true);
+                ret = ATA_IDLE_IMMEDIATE_CMD(device, true);
             }
             else
             {
@@ -2406,12 +2406,12 @@ int transition_To_Idle(tDevice *device, bool unload)
             if (device->drive_info.IdentifyData.ata.Word084 & BIT13 || device->drive_info.IdentifyData.ata.Word087 & BIT13)
             {
                 //send the command since it supports the unload feature...otherwise we return NOT_SUPPORTED
-                ret = ata_Idle_Immediate(device, true);
+                ret = ATA_IDLE_IMMEDIATE_CMD(device, true);
             }
         }
         else
         {
-            ret = ata_Idle_Immediate(device, false);
+            ret = ATA_IDLE_IMMEDIATE_CMD(device, false);
         }
     }
     else
