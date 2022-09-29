@@ -1102,36 +1102,16 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             //read each log 1 page at a time since some can get to be so large some controllers won't let you pull it.
             uint16_t pagesToReadAtATime = 1;
             uint16_t numberOfLogPages = C_CAST(uint16_t, logSize / LEGACY_DRIVE_SEC_SIZE);
-            uint16_t remainderPages = 0;
+            uint16_t pagesToReadNow = 1;
             uint16_t currentPage = 0;
-            switch (logAddress)
+            if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
             {
-            case 0xA2:
-                if (is_Seagate_Family(device) == SEAGATE)
-                {
-                    //this log needs to be read 16 pages at a time (upped from 8 to 16 for ST10000NM*...)
-                    pagesToReadAtATime = 16;
-                    break;
-                }
-                M_FALLTHROUGH
-            default:
-                if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
-                {
-                    if (numberOfLogPages >= UINT16_C(32))
-                    {
-                        pagesToReadAtATime = C_CAST(uint16_t, (M_Min(UINT16_C(32), logSize / LEGACY_DRIVE_SEC_SIZE)));//16k at a time should be a little faster...especially on larger logs
-                    }
-                    else
-                    {
-                        pagesToReadAtATime = C_CAST(uint16_t, (logSize / LEGACY_DRIVE_SEC_SIZE));
-                    }
-                }
-                else
-                {
-                    //USB and IEEE 1394 should only ever be read 1 page at a time since these interfaces use cheap bridge chips that typically don't allow larger transfers.
-                    pagesToReadAtATime = 1;
-                }
-                break;
+                pagesToReadAtATime = 32;
+            }
+            else
+            {
+                //USB and IEEE 1394 should only ever be read 1 page at a time since these interfaces use cheap bridge chips that typically don't allow larger transfers.
+                pagesToReadAtATime = 1;
             }
             if (transferSizeBytes)
             {
@@ -1139,12 +1119,12 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / LEGACY_DRIVE_SEC_SIZE));
             }
             logFromGPL = true;
-            remainderPages = numberOfLogPages % pagesToReadAtATime;
-            for (currentPage = 0; currentPage < (numberOfLogPages - remainderPages); currentPage += pagesToReadAtATime)
+            for (currentPage = 0; currentPage < numberOfLogPages; currentPage += pagesToReadAtATime)
             {
                 ret = SUCCESS;//assume success
+                pagesToReadNow = M_Min(numberOfLogPages - currentPage, pagesToReadAtATime);
                 //loop and read each page or set of pages, then save to a file
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, featureRegister))
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, featureRegister))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
@@ -1167,7 +1147,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     if (fileOpened)
                     {
                         //write out to a file
-                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
+                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(pagesToReadNow * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
@@ -1184,7 +1164,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     {
                         if (bufSize >= logSize)
                         {
-                            memcpy(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE);
+                            memcpy(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE);
                         }
                         else
                         {
@@ -1198,53 +1178,6 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     logSize = 0;
                     logFromGPL = true;
                     break;
-                }
-            }
-            if (remainderPages > 0 && ret == SUCCESS)
-            {
-                //read the remaining chunk of pages at once.
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], remainderPages * LEGACY_DRIVE_SEC_SIZE, 0))
-                {
-                    if (!toBuffer && !fileOpened)
-                    {
-                        if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
-                        {
-                            fileOpened = true;
-                        }
-                    }
-                    if (fileOpened)
-                    {
-                        //write out to a file
-                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), remainderPages * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(remainderPages * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
-                        {
-                            if (VERBOSITY_QUIET < device->deviceVerbosity)
-                            {
-                                perror("Error writing a file!\n");
-                            }
-                            fclose(fp_log);
-                            fileOpened = false;
-                            safe_Free_aligned(logBuffer)
-                            return ERROR_WRITING_FILE;
-                        }
-                        ret = SUCCESS;
-                    }
-                    if (toBuffer)
-                    {
-                        if (bufSize >= logSize)
-                        {
-                            memcpy(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], remainderPages * LEGACY_DRIVE_SEC_SIZE);
-                        }
-                        else
-                        {
-                            return BAD_PARAMETER;
-                        }
-                    }
-                }
-                else
-                {
-                    ret = FAILURE;
-                    logSize = 0;
-                    logFromGPL = true;
                 }
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
