@@ -95,8 +95,14 @@ else
 			-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
 	endif
 endif
-
-LFLAGS ?= -Wl,-Map,output.map -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
+UNAME := $(shell uname -s)
+#removed this linker option for now: -Wl,-Map,output.map
+#This was incompatible with AIX's linker and seems more related to debugging a memory problem.
+LFLAGS ?= -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a -lm
+#AIX wants all linker libraries for the .so. Need libodm and libcfg in addition to the above to resolve all symbols
+ifeq ($(UNAME),AIX)
+	LFLAGS += -lodm -lcfg
+endif
 LIB_SRC_FILES = \
 	$(SRC_DIR)ata_Security.c \
 	$(SRC_DIR)dst.c \
