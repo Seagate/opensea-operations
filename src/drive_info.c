@@ -2604,15 +2604,17 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                             if (designatorType == 0x03)
                             {
                                 driveInfo->worldWideNameSupported = true;
-                                memcpy(&driveInfo->worldWideName, &deviceIdentification[deviceIdentificationIter + 4], 8);
-                                byte_Swap_64(&driveInfo->worldWideName);
+                                //all NAA values other than 6 currently are 8 bytes long, so get all 8 of those bytes in.
+                                driveInfo->worldWideName = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 4], deviceIdentification[deviceIdentificationIter + 5], deviceIdentification[deviceIdentificationIter + 6],
+                                                        deviceIdentification[deviceIdentificationIter + 7], deviceIdentification[deviceIdentificationIter + 8], deviceIdentification[deviceIdentificationIter + 9], deviceIdentification[deviceIdentificationIter + 10], deviceIdentification[deviceIdentificationIter + 11]);
                                 //check NAA to see if it's an extended WWN
                                 uint8_t naa = M_Nibble15(driveInfo->worldWideName);
                                 if (naa == 6)
                                 {
+                                    //extension is valid, so get the next 8 bytes
                                     driveInfo->worldWideNameExtensionValid = true;
-                                    memcpy(&driveInfo->worldWideNameExtension, &deviceIdentification[deviceIdentificationIter + 4 + 8], 8);
-									byte_Swap_64(&driveInfo->worldWideNameExtension);
+                                    driveInfo->worldWideNameExtension = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 12], deviceIdentification[deviceIdentificationIter + 13], deviceIdentification[deviceIdentificationIter + 14],
+                                                        deviceIdentification[deviceIdentificationIter + 15], deviceIdentification[deviceIdentificationIter + 16], deviceIdentification[deviceIdentificationIter + 17], deviceIdentification[deviceIdentificationIter + 18], deviceIdentification[deviceIdentificationIter + 19]);
                                 }
                             }
                             break;
@@ -2622,8 +2624,9 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                                 if (protocolIdentifier == 0x06 && designatorType == 0x03)//SAS->only place that getting a port number makes sense right now since we aren't gathering port speed for other interfaces since it isn't reported.
                                 {
                                     //we know we have found the right designator, so read the WWN, and check the lowest nibble for the port number
-                                    memcpy(&accotiatedWWN, &deviceIdentification[deviceIdentificationIter + 4], 8);
-                                    byte_Swap_64(&accotiatedWWN);
+                                    accotiatedWWN = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 4], deviceIdentification[deviceIdentificationIter + 5], deviceIdentification[deviceIdentificationIter + 6],
+                                                    deviceIdentification[deviceIdentificationIter + 7], deviceIdentification[deviceIdentificationIter + 8], deviceIdentification[deviceIdentificationIter + 9], deviceIdentification[deviceIdentificationIter + 10], deviceIdentification[deviceIdentificationIter + 11]);
+
                                     uint8_t lowNibble = M_Nibble0(accotiatedWWN);
                                     lowNibble &= 0x3;
                                     if (lowNibble == 1)
