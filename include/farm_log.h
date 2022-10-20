@@ -19,6 +19,12 @@
 extern "C"
 {
 #endif
+    typedef enum _eSataFarmCopyType
+    {
+        SATA_FARM_COPY_TYPE_UNKNOWN,
+        SATA_FARM_COPY_TYPE_DISC,
+        SATA_FARM_COPY_TYPE_FLASH,
+    } eSataFarmCopyType;
 
     //-----------------------------------------------------------------------------
     //
@@ -36,7 +42,7 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
+    OPENSEA_OPERATIONS_API int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime, int sataFarmCopyType);
 
 #if defined (__cplusplus)
 }
