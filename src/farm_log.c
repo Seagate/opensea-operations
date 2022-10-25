@@ -66,7 +66,7 @@ typedef struct _tZeroPaddingBufferSize
 
 char farmSubPageSignatureId[SUBPAGE_TYPE_MAX][FARM_DATASET_SIGNATURE_LENGTH + 1] = { "FARM", "FACTORY", "FARMTIME", "FARMSTCK", "WORKLDTC", "FARMSAVE", "FARMLONG" };
 
-void addDataSetEntry(int32_t subPageType, uint8_t *dataSetHeader, uint16_t *numberOfDataSets, uint16_t *headerLength, uint32_t *farmContentField,
+static void addDataSetEntry(int32_t subPageType, uint8_t *dataSetHeader, uint16_t *numberOfDataSets, uint16_t *headerLength, uint32_t *farmContentField,
     uint32_t dataSetLength, uint64_t startTimeStamp, uint64_t endTimeStamp)
 {
     //farm current signature
@@ -82,12 +82,12 @@ void addDataSetEntry(int32_t subPageType, uint8_t *dataSetHeader, uint16_t *numb
     *farmContentField |= M_BitN(subPageType);
 }
 
-void updateDataSetEntryOffset(uint8_t *dataSetHeader, uint32_t dataSetOffset)
+static void updateDataSetEntryOffset(uint8_t *dataSetHeader, uint32_t dataSetOffset)
 {
     memcpy(dataSetHeader + 8, &dataSetOffset, sizeof(uint32_t));
 }
 
-int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t delayTime, int sataFarmCopyType, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
+static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t delayTime, int sataFarmCopyType, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSavedHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmLongSavedHeader, uint8_t *farmStickyHeader, uint8_t *farmWorkLoadTraceHeader,
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmSavedLog, uint8_t *farmTimeSeriesLog, uint8_t *farmLongSavedLog, uint8_t *farmStickyLog, uint8_t *farmWorkLoadTraceLog)
 {
@@ -562,7 +562,7 @@ int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t de
     return SUCCESS;
 }
 
-int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
+static int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmLongSavedHeader, uint8_t *farmStickyHeader,
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmTimeSeriesLog, uint8_t *farmLongSavedLog, uint8_t *farmStickyLog, tSASLogpageSize logpageSize)
 {
