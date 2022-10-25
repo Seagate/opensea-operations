@@ -1483,7 +1483,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1542,7 +1542,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1602,7 +1602,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1668,7 +1668,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1707,7 +1707,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
