@@ -22,7 +22,7 @@ extern "C"
 {
 #endif
 
-#define FIRMWARE_UPDATE_DATA_VERSION 1
+    #define FIRMWARE_UPDATE_DATA_VERSION 2
 
     typedef struct _firmwareUpdateData {
         size_t size; //set to sizeof(firmwareUpdateData)
@@ -40,6 +40,9 @@ extern "C"
         };
         bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
         bool ignoreStatusOfFinalSegment;//This is a legacy compatibility option. Some old drives do not return status on the last segment, but the download is successful and this ignores the failing status from the OS and reports SUCCESS when set to true.
+        bool forceCommitActionValid;//NVMe only.
+        uint8_t forceCommitAction;//NVMe only. forceCommitActionValid must be true to use this.
+        bool disableResetAfterCommit;//NVMe only.
     } firmwareUpdateData;
     //-----------------------------------------------------------------------------
     //

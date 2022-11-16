@@ -42,6 +42,29 @@ typedef struct _firmwareUpdateDataV1 {
     bool ignoreStatusOfFinalSegment;//This is a legacy compatibility option. Some old drives do not return status on the last segment, but the download is successful and this ignores the failing status from the OS and reports SUCCESS when set to true.
 } firmwareUpdateDataV1;
 
+#define FIRMWARE_UPDATE_DATA_VERSION_V2 2
+
+typedef struct _firmwareUpdateDataV2 {
+    size_t size; //set to sizeof(firmwareUpdateData)
+    uint32_t version; //set to FIRMWARE_UPDATE_DATA_VERSION
+    eDownloadMode   dlMode; //how to do the download. Full, Segmented, Deferred, etc
+    uint16_t        segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
+    uint8_t* firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
+    uint32_t        firmwareMemoryLength; //length of the memory the firmware file was read into. This should be a multiple of 512B sizes...
+    uint64_t        avgSegmentDlTime; //stores the average segment time for the download
+    uint64_t        activateFWTime; //stores the amount of time it took to issue the last segment and activate the new code (on segmented). On deferred this is only the time to activate.
+    union
+    {
+        uint8_t firmwareSlot;//NVMe
+        uint8_t bufferID;//SCSI
+    };
+    bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
+    bool ignoreStatusOfFinalSegment;//This is a legacy compatibility option. Some old drives do not return status on the last segment, but the download is successful and this ignores the failing status from the OS and reports SUCCESS when set to true.
+    bool forceCommitActionValid;
+    uint8_t forceCommitAction;//NVMe only. forceCommitActionValid must be true to use this.
+    bool disableResetAfterCommit;//NVMe only
+} firmwareUpdateDataV2;
+
 static int check_For_Power_Cycle_Required(int ret, tDevice *device)
 {
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
@@ -100,6 +123,16 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     if (options && options->version >= FIRMWARE_UPDATE_DATA_VERSION_V1 && options->size >= sizeof(firmwareUpdateDataV1))
     {
         //NOTE: No further validation is required at this time for the update data structure v1. If v2 is added, more may be necessary
+        //If V2 is provided, there is more information to read for NVMe force flags. set these to what would otherwise be backwards compatible.
+        bool nvmeForceCA = false;
+        bool nvmeforceDisableReset = false;
+        uint8_t nvmeForceCommitAction = 0;//since bool is zero, this will not matter
+        if (options->version >= FIRMWARE_UPDATE_DATA_VERSION_V2 && options->size >= sizeof(firmwareUpdateDataV2))
+        {
+            nvmeForceCA = options->forceCommitActionValid;
+            nvmeForceCommitAction = options->forceCommitAction;
+            nvmeforceDisableReset = options->disableResetAfterCommit;
+        }
         if (options->dlMode == DL_FW_ACTIVATE)
         {
             if (device->drive_info.drive_type == NVME_DRIVE && options->existingFirmwareImage && options->firmwareSlot == 0)
@@ -109,7 +142,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 return NOT_SUPPORTED;
             }
             os_Lock_Device(device);
-            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60);//giving 60 seconds to activate the firmware
+            ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);//giving 60 seconds to activate the firmware
             options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
             if (device->drive_info.drive_type != NVME_DRIVE && ret == OS_PASSTHROUGH_FAILURE && device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
@@ -119,7 +152,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 //Instead, we should disable the use of the API and retry with passthrough to perform the activation. This is not preferred at all. 
                 //We want to use the Win10 API whenever possible so the system is ready for the changes to the bus and drive information so that it is less likely to BSOD like we used to see in older versions of Windows.
                 device->os_info.fwdlIOsupport.fwdlIOSupported = false;
-                ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60);
+                ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, options->existingFirmwareImage, false, false, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
                 options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
                 device->os_info.fwdlIOsupport.fwdlIOSupported = true;
             }
@@ -140,7 +173,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         {
             os_Lock_Device(device);
             //single command to do the whole download
-            ret = firmware_Download_Command(device, options->dlMode, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID, false, true, true, 60);
+            ret = firmware_Download_Command(device, options->dlMode, 0, options->firmwareMemoryLength, options->firmwareFileMem, options->bufferID, false, true, true, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
             options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
             os_Unlock_Device(device);
         }
@@ -235,7 +268,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 {
                     firstSegment = true;
                 }
-                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID, false, firstSegment, lastSegment, fwdlTimeout);
+                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadSize, &options->firmwareFileMem[downloadOffset], options->bufferID, false, firstSegment, lastSegment, fwdlTimeout, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
                 options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
 
                 if (currentDownloadBlock % 20 == 0)
@@ -297,7 +330,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                     if (downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize && (downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment == 0))
                     {
                         //we're fine, just issue the command
-                        ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+                        ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
                     }
                     else if (!(downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize))
                     {
@@ -312,15 +345,15 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 }
                 else //not supported, so nothing else needs to be done other than issue the command
                 {
-                    ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+                    ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
                 }
 #else
                 //not windows 10 API, so just issue the command
-                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
 #endif
 #else
                 //not windows 10 API, so just issue the command
-                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60);
+                ret = firmware_Download_Command(device, options->dlMode, downloadOffset, downloadRemainder, &options->firmwareFileMem[downloadOffset], options->bufferID, false, false, true, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
 #endif
                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                 {
@@ -352,7 +385,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 delay_Milliseconds(100);//This is here because there seems to be a need for a delay. If activating too quickly after the Firmware is downloaded, it seems to fail. This works - TJE
                 //send an activate command (not an existing slot, this is a new image activation)
-                ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false, false, false, 60);
+                ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem, options->firmwareSlot, false, false, false, 60, nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
                 options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
                 ret = check_For_Power_Cycle_Required(ret, device);
             }
