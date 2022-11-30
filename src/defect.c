@@ -84,7 +84,6 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     ret = BAD_PARAMETER;
                     break;
                 }
-                --numberOfElements;//subtracting one since we are not keeping in mind that the defect list length calculation above is zero based.
                 if (ret == SUCCESS)
                 {
                     if (tenByte)
@@ -132,7 +131,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                         increment = 8;
                                         break;
                                     }
-                                    for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < defectListLength; ++elementNumber, offset += increment)
+                                    for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < defectListLength + 4; ++elementNumber, offset += increment)
                                     {
                                         switch (returnedDefectListFormat)
                                         {
@@ -263,7 +262,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                             }
                                             if (increment > 0)
                                             {
-                                                for (; elementNumber < numberOfElements && offset < defectListLength && offset < dataLength; ++elementNumber, offset += increment)
+                                                for (; elementNumber < numberOfElements && offset < defectListLength && offset < (dataLength + 8); ++elementNumber, offset += increment)
                                                 {
                                                     switch (returnedDefectListFormat)
                                                     {
@@ -369,7 +368,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                             increment = 8;
                                             break;
                                         }
-                                        for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < defectListLength; ++elementNumber, offset += increment)
+                                        for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < (defectListLength + 8); ++elementNumber, offset += increment)
                                         {
                                             switch (returnedDefectListFormat)
                                             {
