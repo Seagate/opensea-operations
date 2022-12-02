@@ -84,7 +84,6 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     ret = BAD_PARAMETER;
                     break;
                 }
-                --numberOfElements;//subtracting one since we are not keeping in mind that the defect list length calculation above is zero based.
                 if (ret == SUCCESS)
                 {
                     if (tenByte)
@@ -132,7 +131,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                         increment = 8;
                                         break;
                                     }
-                                    for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < defectListLength; ++elementNumber, offset += increment)
+                                    for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < defectListLength + 4; ++elementNumber, offset += increment)
                                     {
                                         switch (returnedDefectListFormat)
                                         {
@@ -263,7 +262,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                             }
                                             if (increment > 0)
                                             {
-                                                for (; elementNumber < numberOfElements && offset < defectListLength && offset < dataLength; ++elementNumber, offset += increment)
+                                                for (; elementNumber < numberOfElements && offset < defectListLength && offset < (dataLength + 8); ++elementNumber, offset += increment)
                                                 {
                                                     switch (returnedDefectListFormat)
                                                     {
@@ -369,7 +368,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                             increment = 8;
                                             break;
                                         }
-                                        for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < defectListLength; ++elementNumber, offset += increment)
+                                        for (uint32_t elementNumber = 0; elementNumber < numberOfElements && offset < (defectListLength + 8); ++elementNumber, offset += increment)
                                         {
                                             switch (returnedDefectListFormat)
                                             {
@@ -482,6 +481,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             printf("---Short Block Format---\n");
             if (defects->numberOfElements > 0)
             {
+                printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     printf("%" PRIu32 "\n", defects->block[iter].shortBlockAddress);
@@ -496,6 +496,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             printf("---Long Block Format---\n");
             if (defects->numberOfElements > 0)
             {
+                printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     printf("%" PRIu64 "\n", defects->block[iter].longBlockAddress);
@@ -508,9 +509,10 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Extended Physical Sector Format---\n");
-            printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
             if (defects->numberOfElements > 0)
             {
+                printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
+                printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     char multi = ' ';
@@ -549,9 +551,10 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Physical Sector Format---\n");
-            printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
             if (defects->numberOfElements > 0)
             {
+                printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
+                printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     if (defects->physical[iter].sectorNumber == UINT32_MAX)
@@ -571,9 +574,10 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Extended Bytes From Index Format---\n");
-            printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
             if (defects->numberOfElements > 0)
             {
+                printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
+                printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     char multi = ' ';
@@ -611,9 +615,10 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Bytes From Index Format---\n");
-            printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
             if (defects->numberOfElements > 0)
             {
+                printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
+                printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
                 for (uint64_t iter = 0; iter < defects->numberOfElements; ++iter)
                 {
                     if (defects->bfi[iter].bytesFromIndex == UINT32_MAX)

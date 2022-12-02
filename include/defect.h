@@ -54,13 +54,13 @@ extern "C" {
         bool containsGrownList;
         uint16_t generation;//0 is an invalid or not supported generation code. Should be 1 through FFFFh
         bool overflow;//This will be set if the defect list length is so long it cannot be read entirely, or if it can only be read in one command and is too big of a transfer for the host to handle. (>128k in size for Windows)
+        bool deviceHasMultipleLogicalUnits;
         union
         {
             blockFormatAddress block[1];
             bytesFromIndexAddress bfi[1];
             physicalSectorAddress physical[1];
         };
-        bool deviceHasMultipleLogicalUnits;
     }scsiDefectList, *ptrSCSIDefectList;
 
     //-----------------------------------------------------------------------------
