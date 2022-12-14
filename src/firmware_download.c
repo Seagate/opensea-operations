@@ -82,26 +82,35 @@ static int check_For_Power_Cycle_Required(int ret, tDevice *device)
         firmwareLogOpts.nsid = 0;
         if (SUCCESS == nvme_Get_Log_Page(device, &firmwareLogOpts))
         {
-            //uint8_t activeSlot = M_GETBITRANGE(firmwareLog[0], 2, 0);
-            uint8_t nextSlotToBeActivated = M_GETBITRANGE(firmwareLog[0], 6, 4);
-            if (nextSlotToBeActivated != 0)
-            {
-                ret = POWER_CYCLE_REQUIRED;
-            }
-            //this is a workaround where this log is reported empty, which is NOT correct, but seems to match when the power cycle is actually needed to complete activation -TJE
-            //This is most likely an Intel Driver caching problem from what I can tell when debugging this issue.
             if (is_Empty(firmwareLog, 512))
             {
+                //if the driver is saying this command passed, but the data is empty, it is a driver bug but this is a driver with a known need for the power cycle to happen.
+                //For some reason, this driver will do the update, but attempting to read this log gives back zeros until you close all software (closing all handles is not enough) and return empty data for this log.
                 ret = POWER_CYCLE_REQUIRED;
             }
-            //set the firmware revision in each slot
-            //for (uint32_t slotIter = 0, offset = 8; slotIter <= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1) && slotIter <= 7 /*max of 7 slots in spec and structure*/ && offset < 512; ++slotIter, offset += 8)
-            //{
-            //    char rev[9] = { 0 };
-            //    memcpy(rev, &firmwareLog[offset], 8);
-            //    rev[8] = '\0';
-            //    printf("slot %u: %s\n", slotIter, rev);
-            //}
+            else
+            {
+                //uint8_t activeSlot = M_GETBITRANGE(firmwareLog[0], 2, 0);
+                uint8_t nextSlotToBeActivated = M_GETBITRANGE(firmwareLog[0], 6, 4);
+                if (nextSlotToBeActivated != 0)
+                {
+                    ret = POWER_CYCLE_REQUIRED;
+                }
+                //this is a workaround where this log is reported empty, which is NOT correct, but seems to match when the power cycle is actually needed to complete activation -TJE
+                //This is most likely an Intel Driver caching problem from what I can tell when debugging this issue.
+                if (is_Empty(firmwareLog, 512))
+                {
+                    ret = POWER_CYCLE_REQUIRED;
+                }
+                //set the firmware revision in each slot
+                //for (uint32_t slotIter = 0, offset = 8; slotIter <= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1) && slotIter <= 7 /*max of 7 slots in spec and structure*/ && offset < 512; ++slotIter, offset += 8)
+                //{
+                //    char rev[9] = { 0 };
+                //    memcpy(rev, &firmwareLog[offset], 8);
+                //    rev[8] = '\0';
+                //    printf("slot %u: %s\n", slotIter, rev);
+                //}
+            }
         }
     }
     return ret;
@@ -122,8 +131,6 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     //first verify the provided structure info to make sure it is compatible.
     if (options && options->version >= FIRMWARE_UPDATE_DATA_VERSION_V1 && options->size >= sizeof(firmwareUpdateDataV1))
     {
-        //NOTE: No further validation is required at this time for the update data structure v1. If v2 is added, more may be necessary
-        //If V2 is provided, there is more information to read for NVMe force flags. set these to what would otherwise be backwards compatible.
         bool nvmeForceCA = false;
         bool nvmeforceDisableReset = false;
         uint8_t nvmeForceCommitAction = 0;//since bool is zero, this will not matter
