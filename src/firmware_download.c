@@ -128,6 +128,9 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     printf("--> %s\n",__FUNCTION__);
 #endif
 
+    //Adding a flush cache here because it is occasionally needed on some devices. It is just a precaution to avoid potential issues with firmware not flushing when it activates new code.
+    flush_Cache(device);
+
     //first verify the provided structure info to make sure it is compatible.
     if (options && options->version >= FIRMWARE_UPDATE_DATA_VERSION_V1 && options->size >= sizeof(firmwareUpdateDataV1))
     {
