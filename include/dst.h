@@ -219,40 +219,6 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba);
 
-    //-----------------------------------------------------------------------------
-    //
-    //  get_Error_LBA_From_ATA_DST_Log()
-    //
-    //! \brief   Description:  Function to get the error LBA from the attached device from the appropriate ATA DST log
-    //
-    //  Entry:
-    //!   \param[in] device - pointer to the device structure
-    //!   \param[out] lba - pointer to a uint64_t that will hold the LBA of the last error
-    //!
-    //  Exit:
-    //!   \return true = valid LBA returned, false = invalid LBA. Could not read log, or status indicates failure other than read failure
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  get_Error_LBA_From_SCSI_DST_Log()
-    //
-    //! \brief   Description:  Function to get the error LBA from the attached device from the SCSI DST log
-    //
-    //  Entry:
-    //!   \param[in] device - pointer to the device structure
-    //!   \param[out] lba - pointer to a uint64_t that will hold the LBA of the last error
-    //!
-    //  Exit:
-    //!   \return true = valid LBA returned, false = invlaid LBA. Could not read log, or status indicates failure other than read failure
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba);
-
-    OPENSEA_OPERATIONS_API bool get_Error_LBA_From_NVMe_DST_Log(tDevice *device, uint64_t *lba);
-
 
     typedef struct _dstAndCleanErrorList
     {
