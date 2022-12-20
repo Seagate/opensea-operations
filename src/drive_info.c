@@ -1506,8 +1506,16 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                         {
                             if (supportedCapabilitiesQWord18 & BIT1 && supportedCapabilitiesQWord18 & BIT0)//checking for both commands to be supported
                             {
-                                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation");
-                                driveInfo->numberOfFeaturesSupported++;
+                                if (supportedCapabilitiesQWord18 & BIT2)
+                                {
+                                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation + Restore");
+                                    driveInfo->numberOfFeaturesSupported++;
+                                }
+                                else
+                                {
+                                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation");
+                                    driveInfo->numberOfFeaturesSupported++;
+                                }
                             }
                         }
                     }
@@ -1634,7 +1642,12 @@ int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA drive
                                             uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(logBuffer[offset + 159], logBuffer[offset + 158], logBuffer[offset + 157], logBuffer[offset + 156], logBuffer[offset + 155], logBuffer[offset + 154], logBuffer[offset + 153], logBuffer[offset + 152]);
                                             if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
                                             {
-                                                if (supportedCapabilitiesQWord18 & BIT1 && supportedCapabilitiesQWord18 & BIT0)//checking for both commands to be supported
+                                                if (supportedCapabilitiesQWord18 & BIT2)
+                                                {
+                                                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation + Restore");
+                                                    driveInfo->numberOfFeaturesSupported++;
+                                                }
+                                                else
                                                 {
                                                     snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation");
                                                     driveInfo->numberOfFeaturesSupported++;
@@ -5257,6 +5270,7 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
         //storage element depopulation
         bool getElementStatusSupported = false;
         bool removeAndTruncateSupported = false;
+        bool restoreElementsSupported = false;
         if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x17, 20, supportedCommands))
         {
             switch (supportedCommands[1] & 0x07)
@@ -5287,10 +5301,33 @@ int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driv
                 break;
             }
         }
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x19, 20, supportedCommands))
+        {
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                restoreElementsSupported = true;
+                break;
+            default:
+                break;
+            }
+        }
         if (removeAndTruncateSupported && getElementStatusSupported)
         {
-            snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation");
-            driveInfo->numberOfFeaturesSupported++;
+            if (restoreElementsSupported)
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation + Restore");
+                driveInfo->numberOfFeaturesSupported++;
+            }
+            else
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Storage Element Depopulation");
+                driveInfo->numberOfFeaturesSupported++;
+            }
         }
 
 
