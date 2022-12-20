@@ -1126,7 +1126,6 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
 {
     int ret = SUCCESS;//assume this works successfully
     errorLBA *errorList = NULL;
-    bool localErrorList = false;
     uint64_t *errorIndex = NULL;
     uint64_t localErrorIndex = 0;
     uint64_t totalErrors = 0;
@@ -1156,7 +1155,6 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
             return MEMORY_FAILURE;
         }
         errorList[0].errorAddress = UINT64_MAX;
-        localErrorList = true;
         errorIndex = &localErrorIndex;
     }
     else
@@ -1373,23 +1371,26 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     {
         ret = FAILURE;
     }
-    if (device->deviceVerbosity > VERBOSITY_QUIET && localErrorList)
+    if (!externalErrorList)
     {
-        if (errorList[0].errorAddress != UINT64_MAX)
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            print_LBA_Error_List(errorList, C_CAST(uint16_t, *errorIndex));
-            if (unableToRepair)
+            if (errorList[0].errorAddress != UINT64_MAX)
             {
-                printf("Other errors were found during DST, but were unable to be repaired.\n");
+                print_LBA_Error_List(errorList, C_CAST(uint16_t, *errorIndex));
+                if (unableToRepair)
+                {
+                    printf("Other errors were found during DST, but were unable to be repaired.\n");
+                }
             }
-        }
-        else if (unableToRepair)
-        {
-            printf("An error was detected during DST but it is unable to be repaired.\n");
-        }
-        else
-        {
-            printf("No bad LBAs detected during DST and Clean.\n");
+            else if (unableToRepair)
+            {
+                printf("An error was detected during DST but it is unable to be repaired.\n");
+            }
+            else
+            {
+                printf("No bad LBAs detected during DST and Clean.\n");
+            }
         }
         safe_Free_aligned(errorList)
     }
