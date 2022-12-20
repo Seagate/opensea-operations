@@ -1180,7 +1180,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
             printf("Running DST.\n");
         }
 
-        if (SUCCESS == run_DST(device, 1, false, false, true))
+        if (SUCCESS == run_DST(device, DST_TYPE_SHORT, false, false, true))
         {
             //poll until it finished
             delay_Seconds(1);
@@ -1325,9 +1325,9 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                                     printf("Reparing LBA %"PRIu64"\n", iter);
                                 }
                                 //add the LBA to the error list we have going, then repair it
-                                errorList[totalErrors].repairStatus = NOT_REPAIRED;
-                                errorList[totalErrors].errorAddress = iter;
-                                repairRet = repair_LBA(device, &errorList[totalErrors], passthroughWrite, autoWriteReassign, autoReadReassign);
+                                errorList[*errorIndex].repairStatus = NOT_REPAIRED;
+                                errorList[*errorIndex].errorAddress = iter;
+                                repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
                                 ++totalErrors;
                                 ++(*errorIndex);
                                 if (FAILURE == repairRet)
