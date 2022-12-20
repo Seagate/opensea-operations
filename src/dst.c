@@ -1154,7 +1154,6 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
             perror("calloc failure\n");
             return MEMORY_FAILURE;
         }
-        errorList[0].errorAddress = UINT64_MAX;
         errorIndex = &localErrorIndex;
     }
     else
@@ -1375,7 +1374,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            if (errorList[0].errorAddress != UINT64_MAX)
+            if (totalErrors > 0)
             {
                 print_LBA_Error_List(errorList, C_CAST(uint16_t, *errorIndex));
                 if (unableToRepair)
