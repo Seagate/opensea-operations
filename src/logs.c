@@ -3155,6 +3155,47 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     return retStatus;
 }
 
+int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint32_t logPage, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode)
+{
+    bool fileOpened = false;
+    FILE *fp_log = NULL;
+    int ret;
+    char *fileNameUsed = NULL;
+    //printf("\nTransferSizeByte: %ld, logAddress: %d, issueFactory: %d, logpage: %d", transferSizeBytes, logAddress, issueFactory, logPage);
+
+    const char logType[OPENSEA_PATH_MAX];
+    sprintf(logType, "FARM_FACTORY_PAGE_%d", logPage);
+	
+    if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logType, "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+    {
+        fileOpened = true;
+    }
+
+    transferSizeBytes = 16384;		//REmove hardcoding from here
+    uint8_t *logBuffer = C_CAST(uint8_t *, calloc_aligned(transferSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (fileOpened)
+        ret = send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage*32), logBuffer, transferSizeBytes, issueFactory);
+
+    if (fileOpened && ret != FAILURE)
+    {
+        //write the vpd page to a file
+        if ((fwrite(logBuffer, sizeof(uint8_t), transferSizeBytes, fp_log) != transferSizeBytes) || ferror(fp_log))
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                perror("Error writing vpd data to a file!\n");
+            }
+            fclose(fp_log);
+            fileOpened = false;
+            safe_Free_aligned(logBuffer)
+                return ERROR_WRITING_FILE;
+        }
+
+    }
+
+    return SUCCESS;
+}
+
 int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode)
 {
     int ret = UNKNOWN;
