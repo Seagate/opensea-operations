@@ -3161,7 +3161,8 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
     FILE *fp_log = NULL;
     int ret;
     char *fileNameUsed = NULL;
-    //printf("\nTransferSizeByte: %ld, logAddress: %d, issueFactory: %d, logpage: %d", transferSizeBytes, logAddress, issueFactory, logPage);
+	uint16_t pagesToReadAtATime = 32;
+	uint8_t *logBuffer = C_CAST(uint8_t *, calloc_aligned((pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t), device->os_info.minimumAlignment));
 
     const char logType[OPENSEA_PATH_MAX];
     sprintf(logType, "FARM_FACTORY_PAGE_%d", logPage);
@@ -3171,15 +3172,13 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
         fileOpened = true;
     }
 
-    transferSizeBytes = 16384;		//REmove hardcoding from here
-    uint8_t *logBuffer = C_CAST(uint8_t *, calloc_aligned(transferSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (fileOpened)
-        ret = send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage*32), logBuffer, transferSizeBytes, issueFactory);
+        ret = send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage*32), logBuffer, (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), issueFactory);
 
     if (fileOpened && ret != FAILURE)
     {
         //write the vpd page to a file
-        if ((fwrite(logBuffer, sizeof(uint8_t), transferSizeBytes, fp_log) != transferSizeBytes) || ferror(fp_log))
+        if ((fwrite(logBuffer, sizeof(uint8_t), (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), fp_log) != (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
