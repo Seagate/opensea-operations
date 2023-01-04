@@ -3164,35 +3164,53 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 	uint16_t pagesToReadAtATime = 32;
 	uint8_t *logBuffer = C_CAST(uint8_t *, calloc_aligned((pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t), device->os_info.minimumAlignment));
 
-    const char logType[OPENSEA_PATH_MAX];
-    sprintf(logType, "FARM_FACTORY_PAGE_%d", logPage);
-	
-    if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logType, "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
-    {
-        fileOpened = true;
-    }
+	if (device->drive_info.drive_type == ATA_DRIVE)
+	{
+		const char logType[OPENSEA_PATH_MAX];
+		sprintf(logType, "FARM_FACTORY_PAGE_%d", logPage);
 
-    if (fileOpened)
-        ret = send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage*32), logBuffer, (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), issueFactory);
+		if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logType, "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+		{
+			fileOpened = true;
+		}
 
-    if (fileOpened && ret != FAILURE)
-    {
-        //write the vpd page to a file
-        if ((fwrite(logBuffer, sizeof(uint8_t), (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), fp_log) != (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
-        {
-            if (VERBOSITY_QUIET < device->deviceVerbosity)
-            {
-                perror("Error writing vpd data to a file!\n");
-            }
-            fclose(fp_log);
-            fileOpened = false;
-            safe_Free_aligned(logBuffer)
-                return ERROR_WRITING_FILE;
-        }
+		if (fileOpened)
+			ret = send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage * 32), logBuffer, (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), issueFactory);
 
-    }
+		if (fileOpened && ret != FAILURE)
+		{
+			//write the vpd page to a file
+			if ((fwrite(logBuffer, sizeof(uint8_t), (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE), fp_log) != (pagesToReadAtATime * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
+			{
+				if (VERBOSITY_QUIET < device->deviceVerbosity)
+				{
+					perror("Error writing vpd data to a file!\n");
+				}
+				fclose(fp_log);
+				fileOpened = false;
+				ret = SUCCESS;
+			}
+			else
+			{
+				ret = ERROR_WRITING_FILE;
+			}
+		}
+		else
+		{
+			//file opened successfully but ATA_Read_Log_Ext_Cmd fails
+			if (fileOpened)
+			{
+				fileOpened = false;
+			}
+		}
+	}
+	else
+	{
+		ret = NOT_SUPPORTED;
+	}
 
-    return SUCCESS;
+	safe_Free_aligned(logBuffer);
+    return ret;
 }
 
 int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode)
