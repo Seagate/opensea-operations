@@ -3167,7 +3167,7 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 	if (device->drive_info.drive_type == ATA_DRIVE)
 	{
 		const char logType[OPENSEA_PATH_MAX];
-		sprintf(logType, "FARM_FACTORY_PAGE_%d", logPage);
+		sprintf(logType, "FARM_PAGE_%d", logPage);
 
 		if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logType, "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
 		{
