@@ -547,7 +547,7 @@ extern "C" {
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, uint32_t delayTime);
 
     OPENSEA_OPERATIONS_API int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
-        uint32_t logPage, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode); 
+        uint16_t logPage, uint8_t logAddress, uint32_t delayTime); 
 
     //-----------------------------------------------------------------------------
     //
