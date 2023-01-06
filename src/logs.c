@@ -892,7 +892,7 @@ int get_DST_Log(tDevice *device, const char * const filePath)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        return pull_Supported_NVMe_Logs(device, 6, PULL_LOG_BIN_FILE_MODE);
+        return pull_Supported_NVMe_Logs(device, 6, PULL_LOG_BIN_FILE_MODE, 0);
     }
     else
     {
@@ -2808,14 +2808,16 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
     return retStatus;
 }
 
-int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
+//This function needs a proper rewrite to allow pulling with offsets, other log sizes, pulling to a buffer, and more like the SCSI and ATA functions.
+int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes)
 {
     //Since 0 is reserved log
     int retStatus = 0;
-    uint64_t size = 0;
+    uint64_t size = nvmeLogSizeBytes;//set this for now
     uint8_t * logBuffer = NULL;
     nvmeGetLogPageCmdOpts cmdOpts;
-    if ((nvme_Get_Log_Size(logNum, &size) == SUCCESS) && size) {
+    if (nvmeLogSizeBytes > 0 || ((nvme_Get_Log_Size(logNum, &size) == SUCCESS) && size))
+    {
         memset(&cmdOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
         if (NVME_LOG_ERROR_ID == logNum)
         {
@@ -3002,7 +3004,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     return ret;
 }
 
-int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime)
+int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime, uint32_t logLengthOverride)
 {
     int retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
@@ -3103,7 +3105,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
         }
         break;
     case NVME_DRIVE:
-        retStatus = pull_Supported_NVMe_Logs(device, logNum, mode);
+        retStatus = pull_Supported_NVMe_Logs(device, logNum, mode, logLengthOverride);
         break;
     default:
         break;
