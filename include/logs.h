@@ -545,7 +545,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
+    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16,\
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, uint32_t delayTime);
 
