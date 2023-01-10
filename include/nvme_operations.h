@@ -143,10 +143,10 @@ extern "C"
     //  nvme_Get_Log_Size
     //
     //! \brief   Description:  Function to get the size for GetLog Page command by a utility. 
-    //!                        Currently it only supports the 3 mandatory logs, to expand later. 
-    //!                        Note: For Error log a single entry size is returned. 
+    //!                        NOTE: Some variable length logs will not return a size at this time. Vendor unique logs are not supported i nthis function
     //                         
     //  Entry:
+    //!   \param[in] device = pointer to the device structure. This is needed in order to calculate some log sizes that are not fixed
     //!   \param[in] logPageId = Log Page Identifier. 
     //!   \param[out] logSize = size of the Log to return 
     //!
@@ -154,7 +154,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Get_Log_Size(uint8_t logPageId, uint64_t * logSize);
+    OPENSEA_OPERATIONS_API int nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t * logSize);
 
 #if defined (__cplusplus)
 }

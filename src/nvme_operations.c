@@ -136,9 +136,9 @@ static int nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeatures
             printf("Temperature Sensor %d  : \t0x%04X\tOver  Temp. Threshold\n", \
                 TMPSEL, (featureCmd.featSetGetValue & 0x000000FF));
         }
-        //Not get Under Temprature 
+        //Not get Under Temperature 
         // BIT20 = THSEL 0=Over Temperature Thresh. 1=Under Temperature Thresh. 
-        featureCmd.featSetGetValue = C_CAST(uint32_t, (BIT20 | (C_CAST(uint32_t, TMPSEL) << 16)));
+        featureCmd.featSetGetValue = C_CAST(uint32_t, (C_CAST(uint32_t, BIT20) | (C_CAST(uint32_t, TMPSEL) << UINT32_C(16))));
         ret = nvme_Get_Features(device, &featureCmd);
         if (ret == SUCCESS)
         {
@@ -412,28 +412,159 @@ int nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeatures
     return ret;
 }
 
-int nvme_Get_Log_Size(uint8_t logPageId, uint64_t * logSize)
+//TODO: This function just returns maximum sizes as best it can
+//      It needs to also check if a given page is supported as well, which is....complicated
+//      Older devices won't have the supported pages LID, but newer will
+//      Additionally we may need to check for specific features or other bits to determine what is or is not supported.
+int nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * logSize)
 {
-    switch (logPageId)
+    int ret = SUCCESS;
+    if (logSize)
     {
-    case NVME_LOG_ERROR_ID:
-        *logSize = sizeof(nvmeErrLogEntry);
-        break;
-    case NVME_LOG_SMART_ID:
-    case NVME_LOG_FW_SLOT_ID: //Same size as Health
-        *logSize = NVME_SMART_HEALTH_LOG_LEN;
-        break;
-    case NVME_LOG_CMD_SPT_EFET_ID:
-        *logSize = sizeof(nvmeEffectsLog);
-        break;
-    case NVME_LOG_DEV_SELF_TEST_ID:
-        *logSize = sizeof(nvmeSelfTestLog);
-        break;
-    default:
-        *logSize = 0;
-        break;
+        uint8_t logPageHeader[UINT32_C(16)] = { 0 };
+        nvmeGetLogPageCmdOpts getLogHeader;
+        memset(&getLogHeader, 0, sizeof(nvmeGetLogPageCmdOpts));
+        getLogHeader.addr = logPageHeader;
+        getLogHeader.dataLen = UINT32_C(16);
+        getLogHeader.nsid = NVME_ALL_NAMESPACES;//change this as needed when calculating sizes below
+        getLogHeader.rae = true;//do not clear any asynchronous events
+        *logSize = UINT64_C(0);//make sure this is initialized to zero as some logs below may require calculating the size by reading info from the drive
+        switch (logPageId)
+        {
+        case NVME_LOG_FETURE_IDENTIFIERS_SUPPORTED_AND_EFFECTS_ID:
+        case NVME_LOG_SUPPORTED_PAGES_ID:
+            *logSize = UINT64_C(1024);
+            break;
+        case NVME_LOG_ERROR_ID:
+            *logSize = UINT64_C(64) * C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.elpe);
+            break;
+        case NVME_LOG_SMART_ID:
+        case NVME_LOG_FW_SLOT_ID:
+        case NVME_LOG_ENDURANCE_GROUP_INFO_ID:
+        case NVME_LOG_PREDICTABLE_LATENCY_PER_NVM_SET_ID:
+        case NVME_LOG_COMMAND_AND_FEATURE_LOCKDOWN_ID:
+        case NVME_LOG_ROTATIONAL_MEDIA_INFORMATION_ID:
+        case NVME_LOG_SANITIZE_ID:
+            *logSize = UINT64_C(512);
+            break;
+        case NVME_LOG_MN_COMMANDS_SUPPORTED_AND_EFFECTS_ID:
+        case NVME_LOG_CHANGED_NAMESPACE_LIST://up to 1024 entries of namespaces...just returning the maximum size
+        case NVME_LOG_CMD_SPT_EFET_ID:
+            *logSize = UINT64_C(4096);
+            break;
+        case NVME_LOG_DEV_SELF_TEST_ID:
+            *logSize = UINT64_C(564);
+            break;
+        case NVME_LOG_TELEMETRY_HOST_ID:
+        case NVME_LOG_TELEMETRY_CTRL_ID:
+            {
+                uint8_t telemetryHeader[UINT32_C(512)] = { 0 };
+                getLogHeader.addr = telemetryHeader;
+                getLogHeader.dataLen = UINT32_C(512);
+                getLogHeader.lid = logPageId;
+                if (SUCCESS == nvme_Get_Log_Page(device, &getLogHeader))
+                {
+                    *logSize = UINT64_C(512) + (UINT64_C(512) * M_BytesTo2ByteValue(logPageHeader[13], logPageHeader[12]));
+                    //TODO: Data area 4 support. Need to check host behavior support feature as well as identify data
+                    /*if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT6)
+                    {
+                        //use data area 4
+                    }*/
+                }
+                else
+                {
+                    //requested telemetry log is likely not supported
+                    *logSize = UINT64_C(0);
+                }
+            }
+            break;
+        case NVME_LOG_PREDICTABLE_LATENCY_EVENT_AGREGATE_ID:
+            *logSize = UINT64_C(8) + (UINT64_C(2) * C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.nsetidmax));
+            break;
+        case NVME_LOG_ASYMMETRIC_NAMESPACE_ACCESS_ID:
+            //ANAGRPMAX for maximum value
+            //NANAGRPID for number of ANA groups supported by the controller
+            //16B header for the log
+            //each group descriptor is 32B + (number of NSIDs * 4) B in length
+            //So the maximum size this log could be is calculated in this section as:
+            //16 + (ANAGRPMAX * (32 + (ctrlNN * 4)))
+            getLogHeader.lid = NVME_LOG_ASYMMETRIC_NAMESPACE_ACCESS_ID;
+            if (SUCCESS == nvme_Get_Log_Page(device, &getLogHeader))
+            {
+                uint16_t numberOfANAGroupDescriptors = M_BytesTo2ByteValue(logPageHeader[9], logPageHeader[8]);
+                *logSize = UINT64_C(16) + (numberOfANAGroupDescriptors * (UINT64_C(32) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.nn) * UINT64_C(4))));
+            }
+            //old maximum size calculation:
+            //*logSize = UINT64_C(16) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.anagrpmax) * (UINT64_C(32) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.nn) * UINT64_C(4))));
+            break;
+        case NVME_LOG_PERSISTENT_EVENT_LOG_ID:
+            //512B header, each event is24B + vendor specific info (max 65535B) + event data
+            //PELS is maximum persistent events in 64KiB units
+            *logSize = C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.pels) * UINT64_C(65536);
+            break;
+        case NVME_LOG_ENDURANCE_GROUP_EVENT_AGREGATE_ID:
+            *logSize = UINT64_C(8) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.endgidmax) * UINT64_C(2));
+            break;
+        case NVME_LOG_MEDIA_UNIT_STATUS_ID:
+            //Read the first 16B to get NMU and CCHANS to figure out the total size
+            //Selected Configuration will play a part in the size calculation as well. If zero, MUCS in each descriptor will be zero
+            getLogHeader.lid = NVME_LOG_MEDIA_UNIT_STATUS_ID;
+            if (SUCCESS == nvme_Get_Log_Page(device, &getLogHeader))
+            {
+                uint16_t nmu = M_BytesTo2ByteValue(logPageHeader[1], logPageHeader[0]);
+                uint16_t cchans = M_BytesTo2ByteValue(logPageHeader[3], logPageHeader[2]);
+                uint16_t selectedConfiguration = M_BytesTo2ByteValue(logPageHeader[5], logPageHeader[4]);
+                if (selectedConfiguration)
+                {
+                    //no channels in media unit status descriptor
+                    *logSize = UINT64_C(16)/*log header*/ + (nmu * UINT64_C(16)/*descriptor header bytes*/);
+                }
+                else
+                {
+                    //This assumes channel 0 will start at offset 16...this is not required by the spec, just that it's a multiple of 16
+                    *logSize = UINT64_C(16)/*log header*/ + (nmu * (UINT64_C(16)/*descriptor header bytes*/ + (cchans * UINT64_C(2)/*bytes per channel identifier*/)));
+                }
+            }
+            break;
+        case NVME_LOG_SUPPORTED_CAPACITY_CONFIGURATION_LIST_ID:
+            //TODO: read 16B header to get SCCN. NOTE: configuration descriptors can be different lengths...this is due to number of endurance groups accessible by the controller.
+            //Each is variable by number of endurance groups, number NVM sets, number of channels and number of media units. Talk about complicated.
+            *logSize = UINT64_C(0);
+            break;
+        case NVME_LOG_BOOT_PARTITION_ID:
+            //read 16B header to get boot partition data size and calculate this
+            getLogHeader.lid = NVME_LOG_BOOT_PARTITION_ID;
+            if (SUCCESS == nvme_Get_Log_Page(device, &getLogHeader))
+            {
+                uint32_t bootPartitionInfo = M_BytesTo4ByteValue(logPageHeader[7], logPageHeader[6], logPageHeader[5], logPageHeader[4]);
+                *logSize = UINT64_C(16) + (UINT64_C(131072)/*128KiB units*/ * M_GETBITRANGE(bootPartitionInfo, 14, 0)/*boot partition count*/);
+            }
+            break;
+        case NVME_LOG_DISCOVERY_ID:
+            //NOTE: Using first 16B for now. Change if record format ever changes to read more info to properly determine the size
+            getLogHeader.lid = NVME_LOG_DISCOVERY_ID;
+            if (SUCCESS == nvme_Get_Log_Page(device, &getLogHeader))
+            {
+                uint64_t numberOfRecords = M_BytesTo8ByteValue(logPageHeader[15], logPageHeader[14], logPageHeader[13], logPageHeader[12], logPageHeader[11], logPageHeader[10], logPageHeader[9], logPageHeader[8]);
+                *logSize = UINT64_C(1024) + (numberOfRecords * UINT64_C(1024));
+            }
+            break;
+        case NVME_LOG_RESERVATION_ID:
+            *logSize = UINT64_C(64);
+            break;
+        case NVME_LOG_COMMAND_SET_SPECIFIC_ID:
+        default:
+            //Unknown log ID
+            //TODO: Set ret to something else for unknown size???
+            *logSize = UINT64_C(0);
+            break;
+        }
     }
-    return SUCCESS; // Can be used later to tell if the log is unavailable or we can't get size. 
+    else
+    {
+        ret = BAD_PARAMETER;
+    }
+    return ret;
 }
 
 int nvme_Print_FWSLOTS_Log_Page(tDevice *device)
