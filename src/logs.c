@@ -3166,6 +3166,7 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 	uint16_t currentPage = 0;
 	uint16_t numberOfLogPages = C_CAST(uint16_t, FARM_SUBLOGPAGE_LEN / LEGACY_DRIVE_SEC_SIZE);
 	uint8_t *logBuffer = C_CAST(uint8_t *, calloc_aligned((32 * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t), device->os_info.minimumAlignment));
+	char logType[OPENSEA_PATH_MAX] = { 0 };
 
 	if (device->drive_info.drive_type == ATA_DRIVE)
 	{
@@ -3178,8 +3179,7 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 			
 		case PULL_LOG_BIN_FILE_MODE:
 		default:
-			char logType[OPENSEA_PATH_MAX] = { 0 };
-
+			sprintf(logType, "FARM_PAGE_%d", logPage);
 			if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
 			{
 				pagesToReadAtATime = 32;
@@ -3203,7 +3203,7 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 			for (currentPage = 0; currentPage < numberOfLogPages; currentPage += pagesToReadAtATime)
 			{
 				pagesToReadNow = M_Min(numberOfLogPages - currentPage, pagesToReadAtATime);
-				if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage * 32) + currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, (uint16_t)issueFactory))
+				if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage * TOTAL_CONSTITUENT_PAGES) + currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, (uint16_t)issueFactory))
 				{
 					if (!fileOpened)
 					{

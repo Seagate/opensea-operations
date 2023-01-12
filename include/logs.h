@@ -38,6 +38,9 @@ extern "C" {
         PULL_LOG_PIPE_MODE,         // Dump it to stdout and send the result to openSeaChest_LogParser
     } eLogPullMode;
 
+	#define FARM_SUBLOGPAGE_LEN			  16384
+	#define TOTAL_CONSTITUENT_PAGES		  32
+
     OPENSEA_OPERATIONS_API int generate_Logfile_Name(tDevice *device,\
                                                   const char * const logName,\
                                                   const char * const logExtension,\
