@@ -3215,7 +3215,7 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 					if (fileOpened)
 					{
 						//write the page to a file
-						if ((fwrite(logBuffer, sizeof(uint8_t), (pagesToReadNow * LEGACY_DRIVE_SEC_SIZE), fp_log) != (size_t)(pagesToReadNow * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
+						if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), (pagesToReadNow * LEGACY_DRIVE_SEC_SIZE), fp_log) != (size_t)(pagesToReadNow * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
 						{
 							if (VERBOSITY_QUIET < device->deviceVerbosity)
 							{
