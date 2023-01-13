@@ -3228,16 +3228,17 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 						}
 						ret = SUCCESS;
 					}
-					if (delayTime)
-					{
-						delay_Milliseconds(delayTime);
-					}
 				}
 				else
 				{
 					ret = FAILURE;
 					break;
 				}
+			}
+
+			if (delayTime)
+			{
+				delay_Milliseconds(delayTime);
 			}
 
 			break;
