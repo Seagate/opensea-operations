@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -474,12 +474,15 @@ extern "C" {
     //!   \param subpage - subpage of the log # to pull (for SCSI)
     //!   \param mode   - what mode to pull the log
     //!   \param filePath   - path for log file creation (if needed, otherwise set to NULL)
+    //!   \param transferSizeBytes - number of bytes to use with each read through a loop. For example: can be used to do 64k instead of a default amount
+    //!   \param delayTime - time to delay between each log read
+    //!   \param logLengthOverride - NVME only. Used to specify the total length of a log when known since the generic lookup may not get this correct or may not know the actual length
     //  Exit:
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, \
-        eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
+        eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime, uint32_t logLengthOverride);
 
     OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
 
@@ -545,7 +548,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
+    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16,\
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, uint32_t delayTime);
 
@@ -649,7 +652,9 @@ extern "C" {
 
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
 
-    OPENSEA_OPERATIONS_API int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode);
+    //This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes should be passed as 0 unless you know the length you want to pull.
+    // nvmeLogSizeBytes is used since there is not a way to look up the length of most NVMe logs like you can with ATA and SCSI
+    OPENSEA_OPERATIONS_API int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes);
 
 #if defined(__cplusplus)
 }

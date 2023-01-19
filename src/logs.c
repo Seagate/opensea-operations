@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -892,7 +892,7 @@ int get_DST_Log(tDevice *device, const char * const filePath)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        return pull_Supported_NVMe_Logs(device, 6, PULL_LOG_BIN_FILE_MODE);
+        return pull_Supported_NVMe_Logs(device, 6, PULL_LOG_BIN_FILE_MODE, 0);
     }
     else
     {
@@ -1147,7 +1147,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     if (fileOpened)
                     {
                         //write out to a file
-                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, fp_log) != (size_t)(pagesToReadNow * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
+                        if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE, fp_log) != (C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
@@ -1164,7 +1164,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     {
                         if (bufSize >= logSize)
                         {
-                            memcpy(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE);
+                            memcpy(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE);
                         }
                         else
                         {
@@ -2112,7 +2112,7 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     }
                     //read each remaining chunk with the trigger bit set to 0
                     telemOpts.lsp = 0;
-                    telemOpts.offset = pageNumber * 512;
+                    telemOpts.offset = C_CAST(uint64_t, pageNumber) * UINT64_C(512);
                     telemOpts.dataLen = pullChunkSize;
                     if (SUCCESS == nvme_Get_Log_Page(device, &telemOpts))
                     {
@@ -2808,26 +2808,26 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
     return retStatus;
 }
 
-int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
+//This function needs a proper rewrite to allow pulling with offsets, other log sizes, pulling to a buffer, and more like the SCSI and ATA functions.
+int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes)
 {
     //Since 0 is reserved log
     int retStatus = 0;
-    uint64_t size = 0;
+    uint64_t size = nvmeLogSizeBytes;//set this for now
     uint8_t * logBuffer = NULL;
     nvmeGetLogPageCmdOpts cmdOpts;
-    if ((nvme_Get_Log_Size(logNum, &size) == SUCCESS) && size) {
+    if (nvmeLogSizeBytes > 0 || ((nvme_Get_Log_Size(device, logNum, &size) == SUCCESS) && size))
+    {
         memset(&cmdOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-        if (NVME_LOG_ERROR_ID == logNum)
-        {
-            size = 32 * size; //Get first 32 entries.
-        }
         logBuffer = C_CAST(uint8_t *, calloc(C_CAST(size_t, size), sizeof(uint8_t)));
-        if (logBuffer != NULL) {
+        if (logBuffer != NULL) 
+        {
             cmdOpts.nsid = NVME_ALL_NAMESPACES;
             cmdOpts.addr = logBuffer;
             cmdOpts.dataLen = C_CAST(uint32_t, size);
             cmdOpts.lid = logNum;
-            if (nvme_Get_Log_Page(device, &cmdOpts) == SUCCESS) {
+            if (nvme_Get_Log_Page(device, &cmdOpts) == SUCCESS) 
+            {
                 if (mode == PULL_LOG_RAW_MODE)
                 {
                     printf("Log Page %d Buffer:\n", logNum);
@@ -2835,7 +2835,8 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
                     print_Data_Buffer(C_CAST(uint8_t *, logBuffer), C_CAST(uint32_t, size), true);
                     printf("================================\n");
                 }
-                else if (mode == PULL_LOG_BIN_FILE_MODE) {
+                else if (mode == PULL_LOG_BIN_FILE_MODE) 
+                {
                     FILE * pLogFile = NULL;
                     char identifyFileName[OPENSEA_PATH_MAX] = { 0 };
                     char * fileNameUsed = &identifyFileName[0];
@@ -2843,7 +2844,8 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
                     char logName[NVME_LOG_NAME_SIZE];
                     snprintf(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum);
                     if (SUCCESS == create_And_Open_Log_File(device, &pLogFile, NULL, \
-                        logName, "bin", 1, &fileNameUsed)) {
+                        logName, "bin", 1, &fileNameUsed)) 
+                    {
                         fwrite(logBuffer, sizeof(uint8_t), C_CAST(size_t, size), pLogFile);
                         fflush(pLogFile);
                         fclose(pLogFile);
@@ -2852,24 +2854,29 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode)
                             printf("Created %s with Log Page %" PRId32 " Information\n", fileNameUsed, logNum);
                         }
                     }
-                    else {
+                    else 
+                    {
                         retStatus = 3;
                     }
                 }
-                else {
+                else 
+                {
                     retStatus = 3;
                 }
             }
-            else {
+            else 
+            {
                 retStatus = 3;
             }
             safe_Free(logBuffer)
         }
-        else {
+        else 
+        {
             retStatus = 3;
         }
     }
-    else {
+    else 
+    {
         retStatus = 4;
     }
     /*switch (logNum) {
@@ -3002,7 +3009,7 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     return ret;
 }
 
-int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime)
+int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime, uint32_t logLengthOverride)
 {
     int retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
@@ -3103,7 +3110,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
         }
         break;
     case NVME_DRIVE:
-        retStatus = pull_Supported_NVMe_Logs(device, logNum, mode);
+        retStatus = pull_Supported_NVMe_Logs(device, logNum, mode, logLengthOverride);
         break;
     default:
         break;
