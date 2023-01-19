@@ -38,6 +38,9 @@ extern "C" {
         PULL_LOG_PIPE_MODE,         // Dump it to stdout and send the result to openSeaChest_LogParser
     } eLogPullMode;
 
+	#define FARM_SUBLOGPAGE_LEN			  16384
+	#define TOTAL_CONSTITUENT_PAGES		  32
+
     OPENSEA_OPERATIONS_API int generate_Logfile_Name(tDevice *device,\
                                                   const char * const logName,\
                                                   const char * const logExtension,\
@@ -548,6 +551,9 @@ extern "C" {
     OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16,\
         char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
         const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, uint32_t delayTime);
+
+    OPENSEA_OPERATIONS_API int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
+        uint16_t logPage, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode); 
 
     //-----------------------------------------------------------------------------
     //

@@ -3162,6 +3162,112 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     return retStatus;
 }
 
+int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint16_t logPage, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode)
+{
+    bool fileOpened = false;
+    FILE *fp_log = NULL;
+    int ret = UNKNOWN;
+    char *fileNameUsed = NULL;
+	uint16_t pagesToReadAtATime = 1;
+	uint16_t pagesToReadNow = 1;
+	uint16_t currentPage = 0;
+	uint16_t numberOfLogPages = C_CAST(uint16_t, FARM_SUBLOGPAGE_LEN / LEGACY_DRIVE_SEC_SIZE);
+	uint8_t *logBuffer = C_CAST(uint8_t *, calloc_aligned((32 * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t), device->os_info.minimumAlignment));
+	char logType[OPENSEA_PATH_MAX] = { 0 };
+
+	if (device->drive_info.drive_type == ATA_DRIVE)
+	{
+		switch (mode)
+		{
+		case PULL_LOG_RAW_MODE:
+		case PULL_LOG_PIPE_MODE:
+		case PULL_LOG_ANALYZE_MODE:
+			safe_Free_aligned(logBuffer);
+			return NOT_SUPPORTED;
+			
+		case PULL_LOG_BIN_FILE_MODE:
+		default:
+			sprintf(logType, "FARM_PAGE_%d", logPage);
+			if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
+			{
+				pagesToReadAtATime = 32;
+			}
+			else
+			{
+				//USB and IEEE 1394 should only ever be read 1 page at a time since these interfaces use cheap bridge chips that typically don't allow larger transfers.
+				pagesToReadAtATime = 1;
+			}
+
+			if (transferSizeBytes)
+			{
+				if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
+				{
+					safe_Free_aligned(logBuffer);
+					return BAD_PARAMETER;
+				}
+				//caller is telling us how much to read at a time
+				pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / LEGACY_DRIVE_SEC_SIZE));
+			}
+
+			for (currentPage = 0; currentPage < numberOfLogPages; currentPage += pagesToReadAtATime)
+			{
+				pagesToReadNow = M_Min(numberOfLogPages - currentPage, pagesToReadAtATime);
+				if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage * TOTAL_CONSTITUENT_PAGES) + currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, (uint16_t)issueFactory))
+				{
+					if (!fileOpened)
+					{
+						if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logType, "bin", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+						{
+							fileOpened = true;
+						}
+					}
+					if (fileOpened)
+					{
+						//write the page to a file
+						if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), (pagesToReadNow * LEGACY_DRIVE_SEC_SIZE), fp_log) != (size_t)(pagesToReadNow * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
+						{
+							if (VERBOSITY_QUIET < device->deviceVerbosity)
+							{
+								perror("Error writing vpd data to a file!\n");
+							}
+							fclose(fp_log);
+							fileOpened = false;
+							safe_Free_aligned(logBuffer);
+							return ERROR_WRITING_FILE;
+						}
+						ret = SUCCESS;
+					}
+				}
+				else
+				{
+					ret = FAILURE;
+					break;
+				}
+			}
+
+			if (delayTime)
+			{
+				delay_Milliseconds(delayTime);
+			}
+
+			break;
+		}
+	}
+	else
+	{
+		ret = NOT_SUPPORTED;
+	}
+
+	if (fileOpened)
+	{
+		fclose(fp_log);
+		fileOpened = false;
+	}
+
+	safe_Free_aligned(logBuffer);
+    return ret;
+}
+
 int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode)
 {
     int ret = UNKNOWN;
