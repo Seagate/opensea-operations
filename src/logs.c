@@ -3175,6 +3175,7 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 		case PULL_LOG_RAW_MODE:
 		case PULL_LOG_PIPE_MODE:
 		case PULL_LOG_ANALYZE_MODE:
+			safe_Free_aligned(logBuffer);
 			return NOT_SUPPORTED;
 			
 		case PULL_LOG_BIN_FILE_MODE:
@@ -3194,6 +3195,7 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 			{
 				if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
 				{
+					safe_Free_aligned(logBuffer);
 					return BAD_PARAMETER;
 				}
 				//caller is telling us how much to read at a time
