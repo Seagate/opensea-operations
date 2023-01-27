@@ -87,7 +87,7 @@ static void updateDataSetEntryOffset(uint8_t *dataSetHeader, uint32_t dataSetOff
     memcpy(dataSetHeader + 8, &dataSetOffset, sizeof(uint32_t));
 }
 
-static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint32_t delayTime, int sataFarmCopyType, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
+static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, int sataFarmCopyType, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSavedHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmLongSavedHeader, uint8_t *farmStickyHeader, uint8_t *farmWorkLoadTraceHeader,
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmSavedLog, uint8_t *farmTimeSeriesLog, uint8_t *farmLongSavedLog, uint8_t *farmStickyLog, uint8_t *farmWorkLoadTraceLog)
 {
@@ -102,7 +102,7 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint
         {
             //FARM current logpage - (0xA6 - 0x00)
             startTimeInMilliSecs = time(NULL) * 1000;
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmCurrentLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_CURRENT, delayTime))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmCurrentLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_CURRENT))
             {
                 endTimeInMilliSecs = time(NULL) * 1000;
                 addDataSetEntry(SUBPAGE_TYPE_FARM_CURRENT, farmCurrentHeader, &numberOfDataSets, &headerLength, &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
@@ -131,7 +131,7 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint
 
             //FARM factory logpage - (0xA6 - 0x03)
             startTimeInMilliSecs = time(NULL) * 1000;
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmFactoryLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA, delayTime))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmFactoryLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA))
             {
                 endTimeInMilliSecs = time(NULL) * 1000;
                 addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, &numberOfDataSets, &headerLength, &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
@@ -160,7 +160,7 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint
 
             //FARM saved logpage - (0xA6 - 0x02)
             startTimeInMilliSecs = time(NULL) * 1000;
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmSavedLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_REPORT_SAVED, delayTime))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmSavedLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_REPORT_SAVED))
             {
                 endTimeInMilliSecs = time(NULL) * 1000;
                 addDataSetEntry(SUBPAGE_TYPE_FARM_SAVE, farmSavedHeader, &numberOfDataSets, &headerLength, &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
@@ -186,14 +186,14 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint
                     printf("Error pulling Farm Saved log\n");
                 }
             }
-            }
+        }
 
         if (is_FARM_Time_Series_Log_Supported(device))
         {
             //FARM Time series logpage 0xC6 - feature 0x00
             uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = time(NULL) * 1000;
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC, delayTime))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC))
             {
                 endTimeInMilliSecs = time(NULL) * 1000;
 
@@ -266,7 +266,7 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint
             //FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = time(NULL) * 1000;
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR, delayTime))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
             {
                 endTimeInMilliSecs = time(NULL) * 1000;
 
@@ -306,7 +306,7 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint
             //FARM Time series logpage 0xC6 - feature 0x01
             uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = time(NULL) * 1000;
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH, delayTime))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH))
             {
                 endTimeInMilliSecs = time(NULL) * 1000;
 
@@ -436,7 +436,7 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, uint
             //FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = time(NULL) * 1000;
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR, delayTime))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
             {
                 endTimeInMilliSecs = time(NULL) * 1000;
 
@@ -866,7 +866,7 @@ static int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPaddingBu
     return SUCCESS;
 }
 
-int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime, int sataFarmCopyType)
+int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType)
 {
     int32_t returnValue = NOT_SUPPORTED;
 
@@ -1030,7 +1030,7 @@ int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_
                 }
                 return MEMORY_FAILURE;
             }
-            returnValue = pullATAFarmLogs(device, transferSizeBytes, delayTime, sataFarmCopyType, header, &zeroPaddingBufferSize,
+            returnValue = pullATAFarmLogs(device, transferSizeBytes, sataFarmCopyType, header, &zeroPaddingBufferSize,
                 farmCurrentHeader, farmFactoryHeader, farmSavedHeader, farmTimeSeriesHeader, farmLongSavedHeader, farmStickyHeader, farmWorkLoadTraceHeader,
                 farmCurrentLog, farmFactoryLog, farmSavedLog, farmTimeSeriesLog, farmLongSavedLog, farmStickyLog, farmWorkLoadTraceLog);
             if (returnValue != SUCCESS)

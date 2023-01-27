@@ -38,14 +38,14 @@ extern "C" {
         PULL_LOG_PIPE_MODE,         // Dump it to stdout and send the result to openSeaChest_LogParser
     } eLogPullMode;
 
-	#define FARM_SUBLOGPAGE_LEN			  16384
-	#define TOTAL_CONSTITUENT_PAGES		  32
+    #define FARM_SUBLOGPAGE_LEN             16384
+    #define TOTAL_CONSTITUENT_PAGES         32
 
-    OPENSEA_OPERATIONS_API int generate_Logfile_Name(tDevice *device,\
-                                                  const char * const logName,\
-                                                  const char * const logExtension,\
-                                                  eLogFileNamingConvention logFileNamingConvention,\
-                                                  char **logFileNameUsed);
+    OPENSEA_OPERATIONS_API int generate_Logfile_Name(tDevice *device, \
+                                                    const char * const logName, \
+                                                    const char * const logExtension, \
+                                                    eLogFileNamingConvention logFileNamingConvention, \
+                                                    char **logFileNameUsed);
 
     //-----------------------------------------------------------------------------
     //
@@ -66,12 +66,12 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_And_Open_Log_File(tDevice *device,\
-                                                    FILE **filePtr,\
-                                                    const char * const logPath,\
-                                                    const char * const logName,\
-                                                    const char * const logExtension,\
-                                                    eLogFileNamingConvention logFileNamingConvention,\
+    OPENSEA_OPERATIONS_API int create_And_Open_Log_File(tDevice *device, \
+                                                    FILE **filePtr, \
+                                                    const char * const logPath, \
+                                                    const char * const logName, \
+                                                    const char * const logExtension, \
+                                                    eLogFileNamingConvention logFileNamingConvention, \
                                                     char **logFileNameUsed);
 
     //-----------------------------------------------------------------------------
@@ -155,12 +155,12 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Log(tDevice *device, uint8_t logAddress,\
-                                        char *logName, char *fileExtension,\
-                                        bool GPL, bool SMART, bool toBuffer,\
-                                        uint8_t *myBuf, uint32_t bufSize,\
+    OPENSEA_OPERATIONS_API int get_ATA_Log(tDevice *device, uint8_t logAddress, \
+                                        char *logName, char *fileExtension, \
+                                        bool GPL, bool SMART, bool toBuffer, \
+                                        uint8_t *myBuf, uint32_t bufSize, \
                                         const char * const filePath, \
-                                        uint32_t transferSizeBytes, uint16_t featureRegister, uint32_t delayTime);
+                                        uint32_t transferSizeBytes, uint16_t featureRegister);
 
     //-----------------------------------------------------------------------------
     //
@@ -183,9 +183,9 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,\
-                                        char *logName, char *fileExtension, bool toBuffer,\
-                                        uint8_t *myBuf, uint32_t bufSize,\
+    OPENSEA_OPERATIONS_API int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, \
+                                        char *logName, char *fileExtension, bool toBuffer, \
+                                        uint8_t *myBuf, uint32_t bufSize, \
                                         const char * const filePath);
 
     //-----------------------------------------------------------------------------
@@ -208,8 +208,8 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName,\
-                                        char *fileExtension, bool toBuffer, uint8_t *myBuf,\
+    OPENSEA_OPERATIONS_API int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, \
+                                        char *fileExtension, bool toBuffer, uint8_t *myBuf, \
                                         uint32_t bufSize, const char * const filePath);
 
     //-----------------------------------------------------------------------------
@@ -264,13 +264,13 @@ extern "C" {
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Telemetry_Log(tDevice *device,\
-                                                bool currentOrSaved,\
-                                                uint8_t islDataSet,\
-                                                bool saveToFile,\
-                                                uint8_t* ptrData,\
-                                                uint32_t dataSize,\
-                                                const char * const filePath,\
+    OPENSEA_OPERATIONS_API int pull_Telemetry_Log(tDevice *device, \
+                                                bool currentOrSaved, \
+                                                uint8_t islDataSet, \
+                                                bool saveToFile, \
+                                                uint8_t* ptrData, \
+                                                uint32_t dataSize, \
+                                                const char * const filePath, \
                                                 uint32_t transferSizeBytes);
 
     //-----------------------------------------------------------------------------
@@ -475,16 +475,16 @@ extern "C" {
     //!   \param mode   - what mode to pull the log
     //!   \param filePath   - path for log file creation (if needed, otherwise set to NULL)
     //!   \param transferSizeBytes - number of bytes to use with each read through a loop. For example: can be used to do 64k instead of a default amount
-    //!   \param delayTime - time to delay between each log read
     //!   \param logLengthOverride - NVME only. Used to specify the total length of a log when known since the generic lookup may not get this correct or may not know the actual length
     //  Exit:
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, \
-        eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime, uint32_t logLengthOverride);
+                                            eLogPullMode mode, const char * const filePath, \
+                                            uint32_t transferSizeBytes, uint32_t logLengthOverride);
 
-    OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t delayTime);
+    OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -548,12 +548,12 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16,\
-        char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
-        const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, uint32_t delayTime);
-
+    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
+                                                    char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
+                                                    const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
+    
     OPENSEA_OPERATIONS_API int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
-        uint16_t logPage, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode); 
+                                                uint16_t logPage, uint8_t logAddress, eLogPullMode mode);
 
     //-----------------------------------------------------------------------------
     //
@@ -576,7 +576,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, uint32_t delayTime, eLogPullMode mode);
+    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode);
 
     //-----------------------------------------------------------------------------
     //

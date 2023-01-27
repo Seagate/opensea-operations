@@ -2414,7 +2414,7 @@ int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges range
                 {
                     return MEMORY_FAILURE;
                 }
-                if (SUCCESS == get_ATA_Log(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, NULL, NULL, true, false, true, concurrentRangeLog, concurrentLogSizeBytes, NULL, 0, 0, 0))
+                if (SUCCESS == get_ATA_Log(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, NULL, NULL, true, false, true, concurrentRangeLog, concurrentLogSizeBytes, NULL, 0, 0))
                 {
                     ret = SUCCESS;
                     //header is first 64bytes
