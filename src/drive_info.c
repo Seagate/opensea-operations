@@ -2119,13 +2119,13 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                         }
                     }
                 }
-                safe_Free_aligned(farmData);
+                safe_Free_aligned(farmData)
             }
         }
     }
     safe_Free_aligned(logBuffer)
 
-        uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
     {
         //get long DST time
@@ -2606,7 +2606,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(unitSerialNumber)
-                    break;
+                break;
             }
             case DEVICE_IDENTIFICATION:
             {
@@ -2702,7 +2702,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(deviceIdentification)
-                    break;
+                break;
             }
             case EXTENDED_INQUIRY_DATA:
             {
@@ -2792,7 +2792,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(extendedInquiryData)
-                    break;
+                break;
             }
             case BLOCK_DEVICE_CHARACTERISTICS:
             {
@@ -2810,7 +2810,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
                 }
                 safe_Free_aligned(blockDeviceCharacteristics)
-                    break;
+                break;
             }
             case POWER_CONDITION:
                 //reading this information has been moved to the mode pages below. - TJE
@@ -2838,7 +2838,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(logicalBlockProvisioning)
-                    break;
+                break;
             }
             case BLOCK_LIMITS:
             {
@@ -2858,7 +2858,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(blockLimits)
-                    break;
+                break;
             }
             case ATA_INFORMATION:
             {
@@ -2877,7 +2877,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     driveInfo->numberOfFeaturesSupported++;
                 }
                 safe_Free_aligned(ataInformation)
-                    break;
+                break;
             }
             case CONCURRENT_POSITIONING_RANGES:
             {
@@ -2914,7 +2914,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
     if (!readCapBuf)
     {
         safe_Free_aligned(tempBuf)
-            return MEMORY_FAILURE;
+        return MEMORY_FAILURE;
     }
     switch (peripheralDeviceType)
     {
@@ -2932,8 +2932,8 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                 if (!temp)
                 {
                     safe_Free_aligned(tempBuf)
-                        safe_Free_aligned(readCapBuf)
-                        return MEMORY_FAILURE;
+                    safe_Free_aligned(readCapBuf)
+                    return MEMORY_FAILURE;
                 }
                 readCapBuf = temp;
                 memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
@@ -3004,8 +3004,8 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             if (temp == NULL)
             {
                 safe_Free_aligned(tempBuf)
-                    safe_Free_aligned(readCapBuf)
-                    return MEMORY_FAILURE;
+                safe_Free_aligned(readCapBuf)
+                return MEMORY_FAILURE;
             }
             readCapBuf = temp;
             memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
@@ -3051,48 +3051,50 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
         break;
     }
     safe_Free_aligned(readCapBuf)
-        if (protectionSupported)
+    if (protectionSupported)
+    {
+        //set protection types supported up here.
+        if (protectionType1Supported)
         {
-            //set protection types supported up here.
-            if (protectionType1Supported)
+            if (protectionTypeEnabled == 1)
             {
-                if (protectionTypeEnabled == 1)
-                {
-                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1 [Enabled]");
-                }
-                else
-                {
-                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1");
-                }
-                driveInfo->numberOfFeaturesSupported++;
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1 [Enabled]");
             }
-            if (protectionType2Supported)
+            else
             {
-                if (protectionTypeEnabled == 2)
-                {
-                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2 [Enabled]");
-                }
-                else
-                {
-                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2");
-                }
-                driveInfo->numberOfFeaturesSupported++;
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1");
             }
-            if (protectionType3Supported)
-            {
-                if (protectionTypeEnabled == 3)
-                {
-                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3 [Enabled]");
-                }
-                else
-                {
-                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3");
-                }
-                driveInfo->numberOfFeaturesSupported++;
-            }
+            driveInfo->numberOfFeaturesSupported++;
         }
+        if (protectionType2Supported)
+        {
+            if (protectionTypeEnabled == 2)
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2 [Enabled]");
+            }
+            else
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2");
+            }
+            driveInfo->numberOfFeaturesSupported++;
+        }
+        if (protectionType3Supported)
+        {
+            if (protectionTypeEnabled == 3)
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3 [Enabled]");
+            }
+            else
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3");
+            }
+            driveInfo->numberOfFeaturesSupported++;
+        }
+    }
+    bool securityProtocolInSuccess = false;
     if (version >= 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
     {
+        securityProtocolInSuccess = true;
         //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
         memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 512, tempBuf))
@@ -3506,7 +3508,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                 {
                 case 0x00://start-stop cycle count
                 {
-                    uint8_t *startStopCounterLog = C_CAST(uint8_t*, calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    uint8_t* startStopCounterLog = C_CAST(uint8_t*, calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
                     if (!startStopCounterLog)
                     {
                         break;
@@ -3958,7 +3960,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                         driveInfo->numberOfFeaturesSupported++;
                     }
                     safe_Free(awreString)
-                        safe_Free(arreString)
+                    safe_Free(arreString)
                 }
                 break;
                 default:
@@ -5298,7 +5300,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             case 1://not supported
                 break;
             case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
+            case 5://supported in vendor specific manor in same format as case 3
                 sanitizeSupported = true;
                 break;
             default:
@@ -5313,7 +5315,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             case 1://not supported
                 break;
             case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
+            case 5://supported in vendor specific manor in same format as case 3
                 sanitizeSupported = true;
                 break;
             default:
@@ -5328,7 +5330,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             case 1://not supported
                 break;
             case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
+            case 5://supported in vendor specific manor in same format as case 3
                 sanitizeSupported = true;
                 break;
             default:
@@ -5343,7 +5345,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             case 1://not supported
                 break;
             case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
+            case 5://supported in vendor specific manor in same format as case 3
                 sanitizeSupported = true;
                 break;
             default:
@@ -5367,7 +5369,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             case 1://not supported
                 break;
             case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
+            case 5://supported in vendor specific manor in same format as case 3
                 getElementStatusSupported = true;
                 break;
             default:
@@ -5382,7 +5384,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             case 1://not supported
                 break;
             case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
+            case 5://supported in vendor specific manor in same format as case 3
                 removeAndTruncateSupported = true;
                 break;
             default:
@@ -5397,7 +5399,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             case 1://not supported
                 break;
             case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
+            case 5://supported in vendor specific manor in same format as case 3
                 restoreElementsSupported = true;
                 break;
             default:
@@ -5417,7 +5419,25 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                 driveInfo->numberOfFeaturesSupported++;
             }
         }
-
+        if (!securityProtocolInSuccess)
+        {
+            //Check security protocol in case the earlier attempt did not work to detect when the OS/driver/HBA are blocking these commands
+            if (version >= 6 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, 0xA2, 0, 16, supportedCommands))
+            {
+                switch (supportedCommands[1] & 0x07)
+                {
+                case 0: //not available right now...so not supported
+                case 1://not supported
+                    break;
+                case 3://supported according to spec
+                case 5://supported in vendor specific manor in same format as case 3
+                    driveInfo->trustedCommandsBeingBlocked = true;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
 
         //check write buffer (firmware download) call info firmware download.h for this information.
         supportedDLModes supportedDLModes;
@@ -5756,6 +5776,13 @@ int get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInf
                         break;
                     }
                 }
+            }
+            else
+            {
+                //TODO: For whatever reason the security commands did not complete despite the drive supporting them to read the list of supported protocols
+                //set the "blocked commaands" flag
+                // This is not currently enabled as it has not been observed in any system yet like it has for ATA and SCSI
+                //driveInfo->trustedCommandsBeingBlocked = true;
             }
         }
         if (nvmeIdentifyData[256] & BIT1)
@@ -6856,10 +6883,6 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
     case ENCRYPTION_SELF_ENCRYPTING:
         printf("Self Encrypting\n");
-        if (driveInfo->trustedCommandsBeingBlocked)
-        {
-            printf("\t\tWARNING: OS is blocking TCG commands over passthrough. Please enable it before running any TCG commands\n");
-        }
         break;
     case ENCRYPTION_FULL_DISK:
         printf("Full Disk Encryption\n");
@@ -6868,6 +6891,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     default:
         printf("Not Supported\n");
         break;
+    }
+    if (driveInfo->trustedCommandsBeingBlocked)
+    {
+        printf("\t\tWARNING: OS/driver/HBA is blocking TCG commands over passthrough. Please enable it before running any TCG commands\n");
     }
     //Cache Size -- convert to MB
     if (driveInfo->cacheSize > 0)
@@ -7430,10 +7457,10 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
         }
     }
     safe_Free(ataDriveInfo)
-        safe_Free(scsiDriveInfo)
-        safe_Free(usbDriveInfo)
-        safe_Free(nvmeDriveInfo)
-        return ret;
+    safe_Free(scsiDriveInfo)
+    safe_Free(usbDriveInfo)
+    safe_Free(nvmeDriveInfo)
+    return ret;
 }
 
 char* print_drive_type(tDevice* device)
