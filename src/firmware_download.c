@@ -187,6 +187,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             case DL_FW_DEFERRED_SELECT_ACTIVATE:
                 options->dlMode = FWDL_UPDATE_MODE_DEFERRED_SELECT_ACTIVATE;
                 break;
+            case FWDL_UPDATE_MODE_AUTOMATIC:
             case DL_FW_UNKNOWN: //no direct translation, but call it automatic mode
                 options->dlMode = FWDL_UPDATE_MODE_AUTOMATIC;
                 break;
