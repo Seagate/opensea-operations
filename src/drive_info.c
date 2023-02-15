@@ -7313,6 +7313,12 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
         memcpy(&externalDriveInfo->dstInfo, &nvmeDriveInfo->dstInfo, sizeof(lastDSTInformation));
         externalDriveInfo->longDSTTimeMinutes = nvmeDriveInfo->controllerData.longDSTTimeMinutes;
 
+        if (!externalDriveInfo->writeCacheSupported)
+        {
+            externalDriveInfo->writeCacheSupported = nvmeDriveInfo->controllerData.volatileWriteCacheSupported;
+            externalDriveInfo->writeCacheEnabled = nvmeDriveInfo->controllerData.volatileWriteCacheEnabled;
+        }
+
         //copy specifications supported into the external drive info.
         uint16_t extSpecNumber = externalDriveInfo->numberOfSpecificationsSupported;
         if (nvmeDriveInfo->controllerData.majorVersion > 0 || nvmeDriveInfo->controllerData.minorVersion > 0 || nvmeDriveInfo->controllerData.tertiaryVersion > 0)
@@ -7333,6 +7339,12 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
         for (; extFeatNumber < MAX_FEATURES && nvmeFeatNumber < nvmeDriveInfo->controllerData.numberOfControllerFeatures; ++extFeatNumber, ++nvmeFeatNumber)
         {
             memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], &nvmeDriveInfo->controllerData.controllerFeaturesSupported[nvmeFeatNumber], MAX_FEATURE_LENGTH);
+            if (strcmp(nvmeDriveInfo->controllerData.controllerFeaturesSupported[nvmeFeatNumber], "Firmware Update") == 0)
+            {
+                //this is not the best way to handle this, but will keep capabilities listed more consistent with NVMe
+                externalDriveInfo->fwdlSupport.downloadSupported = true;
+                externalDriveInfo->fwdlSupport.deferredSupported = true;
+            }
             ++(externalDriveInfo->numberOfFeaturesSupported);
         }
         if (nvmeDriveInfo->namespaceData.valid)
