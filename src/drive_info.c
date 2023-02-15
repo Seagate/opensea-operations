@@ -5620,17 +5620,13 @@ int get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInf
             if (SUCCESS == nvme_Get_Log_Page(device, &dstLogOpts))
             {
                 driveInfo->dstInfo.informationValid = true;
-                if (nvmeDSTLog[0] == 0)
+                //Bytes 31:4 hold the latest DST run information
+                uint32_t latestDSTOffset = 4;
+                uint8_t status = M_Nibble0(nvmeDSTLog[latestDSTOffset + 0]);
+                if (status != 0x0F)//a status of F means this is an unused entry
                 {
-                    //DST has never been run
-                    //TODO: debug if we need to set fields to a different value
-                }
-                else
-                {
-                    //Bytes 31:4 hold the latest DST run information
-                    uint32_t latestDSTOffset = 4;
+                    driveInfo->dstInfo.resultOrStatus = status;
                     driveInfo->dstInfo.testNumber = M_Nibble1(nvmeDSTLog[latestDSTOffset + 0]);
-                    driveInfo->dstInfo.resultOrStatus = M_Nibble0(nvmeDSTLog[latestDSTOffset + 0]);
                     driveInfo->dstInfo.powerOnHours = M_BytesTo8ByteValue(nvmeDSTLog[latestDSTOffset + 11], nvmeDSTLog[latestDSTOffset + 10], nvmeDSTLog[latestDSTOffset + 9], nvmeDSTLog[latestDSTOffset + 8], nvmeDSTLog[latestDSTOffset + 7], nvmeDSTLog[latestDSTOffset + 6], nvmeDSTLog[latestDSTOffset + 5], nvmeDSTLog[latestDSTOffset + 4]);
                     if (nvmeDSTLog[latestDSTOffset + 2] & BIT1)
                     {
@@ -6130,7 +6126,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
             {
                 double timeSinceLastDST = C_CAST(double, driveInfo->smartData.powerOnHoursD) - C_CAST(double, driveInfo->dstInfo.powerOnHours);
                 printf("\t\tTime since last DST (hours): ");
-                if (timeSinceLastDST > 0)
+                if (timeSinceLastDST >= 0)
                 {
                     printf("%0.02f\n", timeSinceLastDST);
                 }
@@ -6595,7 +6591,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         {
             double timeSinceLastDST = (C_CAST(double, driveInfo->powerOnMinutes) / 60.0) - C_CAST(double, driveInfo->dstInfo.powerOnHours);
             printf("\t\tTime since last DST (hours): ");
-            if (timeSinceLastDST > 0)
+            if (timeSinceLastDST >= 0)
             {
                 printf("%0.02f\n", timeSinceLastDST);
             }
