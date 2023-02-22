@@ -408,10 +408,29 @@ bool is_Self_Test_Supported(tDevice *device)
         if (is_SMART_Enabled(device))
         {
             //also check that self test is supported by the drive
-            if((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT1)
+            if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT1)
                 || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT1))
             {
-                supported = true;
+                //NOTE: Also need to check the SMART read data as it also contains a bit to indicate if DST is supported or not!
+                //      That field also indicates whether Short, extended, or conveyance tests are supported!
+                //      Since the SAMART read data has been made obsolete on newer standards, we may need a version check or something to keep proper behavior
+                //      as new devices show up without support for this information.
+                //SMART read data is listed as optional in ata/atapi-7
+                uint8_t smartData[512] = { 0 };
+                if (SUCCESS == ata_SMART_Read_Data(device, smartData, 512))
+                {
+                    //check the pff-line data collection capability field
+                    //assume this is more accurate since this seems to be the case with some older products
+                    if ((smartData[367] & BIT0) && (smartData[367] & BIT4))//bit0 = the subcommand, bit4 = self-test routine implemented (short and extended)
+                    {
+                        supported = true;
+                    }
+                }
+                else
+                {
+                    //assume that the identify bits were accurate for this command.
+                    supported = true;
+                }
             }
         }
         break;
@@ -429,7 +448,7 @@ bool is_Conveyence_Self_Test_Supported(tDevice *device)
         uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
-            if (smartReadData[367] & BIT5)
+            if ((smartReadData[367] & BIT0) && (smartReadData[367] & BIT5))
             {
                 supported = true;
             }
@@ -446,7 +465,7 @@ bool is_Selective_Self_Test_Supported(tDevice* device)
         uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
-            if (smartReadData[367] & BIT6)
+            if ((smartReadData[367] & BIT0) && (smartReadData[367] & BIT6))
             {
                 supported = true;
             }
