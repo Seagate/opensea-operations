@@ -722,9 +722,9 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 242: //Lifetime Reads from Host
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
             break;
-		case 246: //Write Protect Detail 
-			snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
-			break;
+        case 246: //Write Protect Detail 
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
+            break;
         default:
             break;
         }
@@ -1939,59 +1939,29 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     int ret = NOT_SUPPORTED; //command return value
     if (is_SMART_Enabled(device))
     {
-        bool attemptCheckWithAttributes = false;
-        //if (supports_ATA_Return_SMART_Status_Command(device))//USB hack. Will return true on IDE/SCSI interface. May return true or false otherwise depending on what device we detect
+        //NOTE: ATA-3 and up all report the return status as mandatory when smart is supported and enabled
+        //      HOWEVER: SFF-8035i lists this as an optional command.
+        //      Always attempt a SMART return status command, then perform workarounds to get the status if it fails.
+        ret = ata_SMART_Return_Status(device);
+        if (ret == SUCCESS && device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
         {
-            ret = ata_SMART_Return_Status(device);
-            if (device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
-            {
-                ret = SUCCESS;
-            }
-            else if (device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_BAD_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_BAD_SIG_HI)
-            {
-                //SMART is tripped
-                ret = FAILURE;
-            }
-            else
-            {
-                //try SCT status log first...
-                ret = get_ATA_SMART_Status_From_SCT_Log(device);
-                if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
-                {
-                    //try use SAT translation instead
-                    ret = scsi_SMART_Check(device, tripInfo);
-                    if (ret == UNKNOWN)
-                    {
-                        attemptCheckWithAttributes = true;
-                    }
-                }
-                else
-                {
-                    attemptCheckWithAttributes = true;
-                }
-            }
+            ret = SUCCESS;
         }
-//      else
-//      {
-//          //this device doesn't support getting SMART status from return status command (translator bug)
-//          //try other methods.
-//          ret = get_ATA_SMART_Status_From_SCT_Log(device);
-//          if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
-//          {
-//              //try use SAT translation instead
-//              ret = scsi_SMART_Check(device, tripInfo);
-//              if (ret == UNKNOWN)
-//              {
-//                  attemptCheckWithAttributes = true;
-//              }
-//          }
-//          else
-//          {
-//              attemptCheckWithAttributes = true;
-//          }
-//      }
+        else if (ret == SUCCESS && device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_BAD_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_BAD_SIG_HI)
+        {
+            //SMART is tripped
+            ret = FAILURE;
+        }
+        else
+        {
+            //try SCT status log first...
+            //SCT status log added a copy of the SMART status to it in ACS-4
+            //this MIGHT be available earlier than that in ACS-3 compliant drives, but it is not super likely.
+            //this will be attempted, but may need to do a attributes to thresholds comparison to know for sure.
+            ret = get_ATA_SMART_Status_From_SCT_Log(device);
+        }
         
-        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED || attemptCheckWithAttributes)
+        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED)
         {
             smartLogData attributes;
             memset(&attributes, 0, sizeof(smartLogData));
@@ -2004,6 +1974,10 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     {
                         if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdDataValid)
                         {
+                            if (ret != FAILURE)
+                            {
+                                ret = SUCCESS;//need to set this to "pass" since we will otherwise keep a unknown status or not supported status
+                            }
                             if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0)
                             {
                                 //skip, this is an always passing attribute
@@ -2066,6 +2040,13 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     }
                 }
             }
+        }
+
+        //last resort, try a SCSI style SMART check if the translator supports it.
+        if ((ret == UNKNOWN || ret == NOT_SUPPORTED) && device->drive_info.interface_type != IDE_INTERFACE)
+        {
+            //try use SAT translation instead
+            ret = scsi_SMART_Check(device, tripInfo);
         }
     }
     return ret;
@@ -2296,7 +2277,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     bool temporarilyEnableMRIEMode6 = false;//This will hold if we are changing the mode from a value of 1-5 to 6. DO NOT CHANGE IT IF IT IS ZERO! We should return NOT_SUPPORTED in this case. - TJE
     uint32_t delayTimeMilliseconds = 0;//This will be used to make a delay only if the interval is a value less than 1000milliseconds, otherwise we'll change the mode page.
     //get informational exceptions data from the drive first
-    if(SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &infoExceptionsControl, &infoExceptionsLog) || infoExceptionsLog.isValid)
+    if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &infoExceptionsControl, &infoExceptionsLog) || infoExceptionsLog.isValid)
     {
         if (infoExceptionsLog.isValid)
         {
