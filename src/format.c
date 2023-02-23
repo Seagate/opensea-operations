@@ -1672,6 +1672,44 @@ static uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSiz
     return fmtNum;
 }
 
+int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == NVME_DRIVE && formatSupport)
+    {
+        ret = SUCCESS;
+        //check FNA field for support
+        //bit 0 = format applies to all namespaces. If zero, applies only to the specified namespace
+        //bit 1 = secure erase applies to all namespaces. if zero, applies only to the specified namespace
+        //bit 2 = cryptographic erase is supported
+        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT1)
+        {
+            formatSupport->formatCommandSupported = true;
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT0)
+            {
+                formatSupport->formatAppliesToAllNamespaces = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT1)
+            {
+                formatSupport->secureEraseAppliesToAllNamespaces = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT2)
+            {
+                formatSupport->cryptographicEraseSupported = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT3)//new in 2.0
+            {
+                formatSupport->formatNSIDAllNSSupport = false;
+            }
+            else
+            {
+                formatSupport->formatNSIDAllNSSupport = true;
+            }
+        }
+    }
+    return ret;
+}
+
 int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
 {
     int ret = SUCCESS;
