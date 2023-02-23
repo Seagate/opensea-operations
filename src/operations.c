@@ -811,7 +811,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     if (device->drive_info.drive_type == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported && !nvmFormatAdded)
     {
         currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
-        snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format - User Secure Erase");
+        snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
         currentErase->eraseWeight = 8;//assuming that this will do a full drive overwrite format which will be slow
         //NOTE: If crypto is supported, a request for user secure erase may run a crypto erase, but no way to know for sure-TJE
         currentErase->warningValid = false;
