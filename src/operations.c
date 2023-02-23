@@ -923,6 +923,7 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
         case ERASE_SANITIZE_CRYPTO:
         case ERASE_TCG_REVERT_SP:
         case ERASE_TCG_REVERT:
+        case ERASE_NVM_FORMAT_CRYPTO_SECURE_ERASE:
             cryptoSupported = true;
             break;
         case ERASE_SANITIZE_BLOCK:
