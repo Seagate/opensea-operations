@@ -187,7 +187,10 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             case DL_FW_DEFERRED_SELECT_ACTIVATE:
                 options->dlMode = FWDL_UPDATE_MODE_DEFERRED_SELECT_ACTIVATE;
                 break;
+#if defined (_MSC_VER)
+            //visual studio complains about this NOT being here and GCC does the opposite...so only add this case for visual studio.
             case FWDL_UPDATE_MODE_AUTOMATIC:
+#endif //_MSC_VER
             case DL_FW_UNKNOWN: //no direct translation, but call it automatic mode
                 options->dlMode = FWDL_UPDATE_MODE_AUTOMATIC;
                 break;
@@ -259,7 +262,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
         }
         else
         {
-            eDownloadMode downloadMode = FWDL_UPDATE_MODE_SEGMENTED;
+            eDownloadMode downloadMode = DL_FW_SEGMENTED;
             uint32_t downloadSize = 0;
             uint32_t downloadBlocks = 0;
             uint32_t downloadRemainder = 0;
@@ -1252,14 +1255,14 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             if (supportedModes->version < SUPPORTED_FWDL_MODES_VERSION_V2)
             {
                 //start low and work up to most recommended
-                supportedModes->recommendedDownloadMode = DL_FW_FULL;
+                supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_FULL);
                 if (supportedModes->segmented)
                 {
-                    supportedModes->recommendedDownloadMode = DL_FW_SEGMENTED;
+                    supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_SEGMENTED);
                 }
                 if (supportedModes->deferred)
                 {
-                    supportedModes->recommendedDownloadMode = DL_FW_DEFERRED;
+                    supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_DEFERRED);
                 }
             }
             else
