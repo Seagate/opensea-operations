@@ -16,6 +16,7 @@
 #include "logs.h"
 #include "nvme_helper_func.h"
 #include "platform_helper.h"
+#include "seagate_operations.h"
 
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
@@ -1568,6 +1569,50 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             if (SUCCESS == ret)
             {
                 ret = ata_Set_Sector_Configuration_Ext(device, descriptorCheck, descriptorIndex);
+            }
+            delay_Seconds(1);
+            //need to call the fill_drive_info again to update device information
+            fill_Drive_Info_Data(device);
+            if (!is_Set_Sector_Configuration_Supported(device))
+            {
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                {
+                    printf("ERROR: The device was reset during sector size change. Device may not be usable!\n");
+                }
+                if (is_Seagate_Family(device) == SEAGATE && !is_SSD(device))//HDDs only
+                {
+                    if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                    {
+                        printf("Attempting Seagate quick format to recover the device.\n");
+                    }
+                    if (SUCCESS != seagate_Quick_Format(device))
+                    {
+                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                        {
+                            printf("WARNING: Seagate quick format did not complete successfully!\n");
+                        }
+                    }
+                    //try refreshing the device one more time incase the status was just not right.
+                    fill_Drive_Info_Data(device);
+                    if (!is_Set_Sector_Configuration_Supported(device))
+                    {
+                        //nothing else we can do at this point.
+                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                        {
+                            printf("ERROR: Quick format did not recover the device. The device may not be usable!\n");
+                        }
+                    }
+                    else
+                    {
+                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                        {
+                            printf("Seagate quick format successfully recovered the device!\n");
+                            printf("If sector size change is attempted again, format only single disks at a time,\n");
+                            printf("disable all background software, disable any management hardware or software, and then\n");
+                            printf("try again if the sector size is not correct.\n");
+                        }
+                    }
+                }
             }
         }
         else //Assume SCSI
