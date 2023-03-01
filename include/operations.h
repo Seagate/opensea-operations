@@ -311,6 +311,8 @@ extern "C"
         ERASE_TCG_REVERT_SP, //will be use in tcg operations lib, not operations lib
         ERASE_TCG_REVERT, //will be use in tcg operations lib, not operations lib
         ERASE_FORMAT_UNIT,
+        ERASE_NVM_FORMAT_USER_SECURE_ERASE,
+        ERASE_NVM_FORMAT_CRYPTO_SECURE_ERASE,
         ERASE_MAX_VALUE = -1
     }eEraseMethod;
 

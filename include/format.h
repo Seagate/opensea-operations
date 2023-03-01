@@ -364,6 +364,31 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex);
 
+    typedef struct _nvmeFormatSupport
+    {
+        bool formatCommandSupported;//oacs bit. If this is not set, remaining fields are invalid.
+        bool formatAppliesToAllNamespaces;//if false, only to specified namespace
+        bool secureEraseAppliesToAllNamespaces;//if false, only to specified namespace
+        bool cryptographicEraseSupported;
+        bool formatNSIDAllNSSupport;//2.0 this. Should be true for all earlier devices
+    }nvmeFormatSupport, * ptrNvmeFormatSupport;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
+    //
+    //! \brief   Description:  Returns information about whether an NVMe device supports the format command and other format related options/capabilities
+    //
+    //  Entry:
+    //!   \param[in] device = pointer to tDevice structure
+    //!   \param[out] formatSupport = structure holding variables to describe format support on NVMe devices
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport);
+
     typedef enum _nvmFmtSecureErase
     {
         NVM_FMT_SE_NO_SECURE_ERASE_REQUESTED,
