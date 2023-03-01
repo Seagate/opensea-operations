@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -69,7 +69,7 @@ int enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, 0, lba_field, 0,0);
+        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, 0, lba_field, 0, 0);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -183,8 +183,8 @@ int print_Current_Power_Mode(tDevice *device)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         /*
-        NOTE: Removed the code which was checking to see if the power mode is supported 
-              mainly because it was changing the power state of the drive. -MA 
+        NOTE: Removed the code which was checking to see if the power mode is supported
+              mainly because it was changing the power state of the drive. -MA
         */
         uint8_t *senseData = C_CAST(uint8_t*, calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!senseData)
@@ -260,13 +260,13 @@ int print_Current_Power_Mode(tDevice *device)
         }
         safe_Free_aligned(senseData)
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE) 
+    else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint32_t powerMode = 0;
-        ret = get_Power_State(device, &powerMode, CURRENT_VALUE );
-        if (ret==SUCCESS)
+        ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
+        if (ret == SUCCESS)
         {
-            printf("Device is in Power State %d\n",powerMode);
+            printf("Device is in Power State %d\n", powerMode);
         }
         else
         {
@@ -275,7 +275,7 @@ int print_Current_Power_Mode(tDevice *device)
                 printf("Unable to retrive current power state!\n");
             }
         }
-    } 
+    }
     else
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -289,30 +289,30 @@ int print_Current_Power_Mode(tDevice *device)
 
 int transition_Power_State(tDevice *device, ePowerConditionID newState)
 {
-    int ret = NOT_SUPPORTED; 
+    int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         switch (newState)
         {
         case PWR_CND_STANDBY_Z:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_STANDBY_Z,\
-                                   EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_STANDBY_Z, \
+                                    EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
         case PWR_CND_STANDBY_Y:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_STANDBY_Y,\
-                                   EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_STANDBY_Y, \
+                                    EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
         case PWR_CND_IDLE_A:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_A,\
-                                   EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_A, \
+                                    EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
         case PWR_CND_IDLE_B:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_B,\
-                                   EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_B, \
+                                    EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
         case PWR_CND_IDLE_C:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_C,\
-                                   EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_C, \
+                                    EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
         case PWR_CND_ACTIVE: //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly
             seed_64(time(NULL));
@@ -1156,7 +1156,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
 }
 
 //enableDisable = true means enable, false means disable
-int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable,\
+int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
     ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid)
 {
     int ret = UNKNOWN;
@@ -1180,22 +1180,22 @@ int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisa
     return ret;
 }
 
-int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue )
+int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue)
 {
     int ret = UNKNOWN;
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
         memset(&cmdOpts, 0, sizeof(nvmeFeaturesCmdOpt));
-        switch (selectValue) 
+        switch (selectValue)
         {
         case CURRENT_VALUE:
             cmdOpts.fid = NVME_FEAT_POWER_MGMT_;
             cmdOpts.sel = NVME_CURRENT_FEAT_SEL;
-            ret = nvme_Get_Features(device,&cmdOpts);
-            if (ret == SUCCESS) 
+            ret = nvme_Get_Features(device, &cmdOpts);
+            if (ret == SUCCESS)
             {
-                * powerState = cmdOpts.featSetGetValue;
+                *powerState = cmdOpts.featSetGetValue;
             }
             break;
         case DEFAULT_VALUE:
@@ -1205,7 +1205,7 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
         default:
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Power State=0x%x is currently not supported on this device.\n",selectValue);
+                printf("Power State=0x%x is currently not supported on this device.\n", selectValue);
             }
             ret = NOT_SUPPORTED;
             break;
@@ -1239,13 +1239,13 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             }
             if (SUCCESS == scsi_Inquiry(device, powerConsumptionPage, powerConsumptionLength, POWER_CONSUMPTION, true, false))
             {
-                    ret = SUCCESS;
+                ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
                 identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
                 uint32_t pcIter = 4, counter = 0;
-//ctc changed the "<" conditions to "<=" so all the identifiers get parsed (was an "off-by-1" problem")
+                //ctc changed the "<" conditions to "<=" so all the identifiers get parsed (was an "off-by-1" problem")
                 for (; pcIter <= powerConsumptionLength && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
-                    {
+                {
                     identifiers->identifiers[counter].identifierValue = powerConsumptionPage[pcIter];
                     identifiers->identifiers[counter].units = powerConsumptionPage[pcIter + 1] & 0x07;
                     identifiers->identifiers[counter].value = M_BytesTo2ByteValue(powerConsumptionPage[pcIter + 2], powerConsumptionPage[pcIter + 3]);
@@ -1285,8 +1285,8 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
                 if (identifiers->activeLevel == 0)
                 {
                     identifiers->currentIdentifierValid = true;
-//ctc 10 lines of code after the comments are necessary because the pcIdentifier and the identfiers->identifiers[] are NOT necessarily in order
-//ctc need to step through the indentifiers to find the correct one
+                    //ctc 10 lines of code after the comments are necessary because the pcIdentifier and the identfiers->identifiers[] are NOT necessarily in order
+                    //ctc need to step through the indentifiers to find the correct one
                     uint8_t pcIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
                     uint8_t counter = 0;
                     for (; counter < C_CAST(uint32_t, identifiers->numberOfPCIdentifiers); counter++)
@@ -1314,12 +1314,12 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
     {
         if (identifiers->numberOfPCIdentifiers > 0)
         {
-                //show the current value
+            //show the current value
             if (identifiers->currentIdentifierValid)
             {
                 double currentConsumption = identifiers->identifiers[identifiers->currentIdentifier].value;
                 uint8_t currentUnit = identifiers->identifiers[identifiers->currentIdentifier].units;
-                #define POWER_CONSUMPTION_UNIT_BUFFER_LENGTH 25
+#define POWER_CONSUMPTION_UNIT_BUFFER_LENGTH 25
                 char unitBuff[POWER_CONSUMPTION_UNIT_BUFFER_LENGTH] = { 0 };
                 char* currentUnits = &unitBuff[0];
                 //convert this to a smaller value that can be reprsented with minimal floating point (13500mw->13.5w)
@@ -1328,7 +1328,7 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                     currentConsumption /= 1000.0;
                     --currentUnit;//change the unit
                 }
-                
+
                 //now print the units
                 switch (currentUnit)
                 {
@@ -1507,7 +1507,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
     memset(&identifiers, 0, sizeof(powerConsumptionIdentifiers));
     *pcIdentifier = 0xFF;//invalid
 //ctc one line code change follows
-    uint64_t roundedWatts = C_CAST(uint64_t, watts+0.5);
+    uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
     //*/
     ret = get_Power_Consumption_Identifiers(device, &identifiers);
     /*/
@@ -1538,12 +1538,12 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
         uint64_t watts1 = 0, watts2 = 0;
 
         ret = NOT_SUPPORTED;
-//ctc changed to nested for loops here... not sure it's needed, but it's clearer
-//        for (; iter1 < identifiers.numberOfPCIdentifiers /* && iter2 >= 0*/; iter1++, iter2--)
+        //ctc changed to nested for loops here... not sure it's needed, but it's clearer
+        //        for (; iter1 < identifiers.numberOfPCIdentifiers /* && iter2 >= 0*/; iter1++, iter2--)
         for (; iter1 < identifiers.numberOfPCIdentifiers; iter1++)
         {
-//ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code doesn't follow convention
-//ctc and use for(initializer, condition, increment), but whatever.  Nonstandard and goofy coding sytle, I guess
+            //ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code doesn't follow convention
+            //ctc and use for(initializer, condition, increment), but whatever.  Nonstandard and goofy coding sytle, I guess
             iter2 = 0;
             for (; iter2 < identifiers.numberOfPCIdentifiers; iter2++)
             {
@@ -1575,7 +1575,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
                     ret = NOT_SUPPORTED;
                     break;
                 }
-//ctc change code line below to switch on [iter2] instead of [iter1]
+                //ctc change code line below to switch on [iter2] instead of [iter1]
                 switch (identifiers.identifiers[iter2].units)
                 {
                 case 0://gigawatts
@@ -1637,7 +1637,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
         {
             //now compare the best results between the two iterators to see which is closer to the best match, or is the best match
             //need to check which one is closer and select it
-        
+
             if (watts - watts1 >= watts - watts2)
             {
                 ret = SUCCESS;
@@ -1656,12 +1656,12 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
 int enable_Disable_APM_Feature(tDevice *device, bool enable)
 {
     int ret = NOT_SUPPORTED;
-    if(device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if(device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT3)
         {
-            if(enable)
+            if (enable)
             {
                 //subcommand 05..set value to 0x7F when requesting an enable operation so that it's a good mix of performance and power savings.
                 ret = ata_Set_Features(device, SF_ENABLE_APM_FEATURE, 0x7F, 0, 0, 0);
@@ -1670,7 +1670,7 @@ int enable_Disable_APM_Feature(tDevice *device, bool enable)
             {
                 //subcommand 85
                 ret = ata_Set_Features(device, SF_DISABLE_APM_FEATURE, 0, 0, 0, 0);
-                if(ret != SUCCESS)
+                if (ret != SUCCESS)
                 {
                     //the disable APM feature is not available on all devices according to ATA spec.
                     ret = NOT_SUPPORTED;
@@ -1690,10 +1690,10 @@ int enable_Disable_APM_Feature(tDevice *device, bool enable)
 int set_APM_Level(tDevice *device, uint8_t apmLevel)
 {
     int ret = NOT_SUPPORTED;
-    if(device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if(device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT3)
         {
             //subcommand 05 with the apmLevel in the count field
             ret = ata_Set_Features(device, SF_ENABLE_APM_FEATURE, apmLevel, 0, 0, 0);
@@ -1705,10 +1705,10 @@ int set_APM_Level(tDevice *device, uint8_t apmLevel)
 int get_APM_Level(tDevice *device, uint8_t *apmLevel)
 {
     int ret = NOT_SUPPORTED;
-    if(device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if(device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT3)
         {
             //get it from identify device word 91
             ret = SUCCESS;
@@ -1732,7 +1732,7 @@ static int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     {
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, NULL, NULL, true, false, true, epcLog, epcLogSize, NULL, epcLogSize,0))
+    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, NULL, NULL, true, false, true, epcLog, epcLogSize, NULL, epcLogSize, 0))
     {
         ret = SUCCESS;
         for (uint32_t offset = 0; offset < (LEGACY_DRIVE_SEC_SIZE * 2); offset += 64)
@@ -2648,7 +2648,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
                             enhPhyControlData[phyIdentifier].enablePartial = enhSasPhyControl[phyDescriptorOffset + 19] & BIT1;
                             enhPhyControlData[phyIdentifier].enableSlumber = enhSasPhyControl[phyDescriptorOffset + 19] & BIT2;
                         }
-                        else if(phyNumber == phyIdentifier)
+                        else if (phyNumber == phyIdentifier)
                         {
                             enhPhyControlData->phyIdentifier = phyIdentifier;
                             enhPhyControlData->enablePartial = enhSasPhyControl[phyDescriptorOffset + 19] & BIT1;

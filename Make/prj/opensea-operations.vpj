@@ -107,6 +107,7 @@
             <F N="../../include/trim_unmap.h"/>
             <F N="../../include/writesame.h"/>
             <F N="../../include/zoned_operations.h"/>
+			<F N="../../include/farm_log.h"/>
         </Folder>
         <Folder Name="../../src">
             <F N="../../src/ata_Security.c"/>
@@ -133,6 +134,7 @@
             <F N="../../src/trim_unmap.c"/>
             <F N="../../src/writesame.c"/>
             <F N="../../src/zoned_operations.c"/>
+			<F N="../../src/farm_log.c"/>
         </Folder>
         <Folder Name="../UEFI">
             <F N="../UEFI/opensea-operations.dec"/>

@@ -95,14 +95,21 @@ else
 			-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
 	endif
 endif
-
-LFLAGS ?= -Wl,-Map,output.map -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a
+UNAME := $(shell uname -s)
+#removed this linker option for now: -Wl,-Map,output.map
+#This was incompatible with AIX's linker and seems more related to debugging a memory problem.
+LFLAGS ?= -Wall ../../../opensea-common/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-common.a ../../../opensea-transport/Make/gcc/$(FILE_OUTPUT_DIR)/libopensea-transport.a -lm
+#AIX wants all linker libraries for the .so. Need libodm and libcfg in addition to the above to resolve all symbols
+ifeq ($(UNAME),AIX)
+	LFLAGS += -lodm -lcfg
+endif
 LIB_SRC_FILES = \
 	$(SRC_DIR)ata_Security.c \
 	$(SRC_DIR)dst.c \
 	$(SRC_DIR)firmware_download.c \
 	$(SRC_DIR)host_erase.c \
 	$(SRC_DIR)logs.c \
+	$(SRC_DIR)farm_log.c \
 	$(SRC_DIR)operations.c \
 	$(SRC_DIR)power_control.c \
 	$(SRC_DIR)sanitize.c \
@@ -151,7 +158,7 @@ $(LIBS): $(LIB_OBJ_FILES) opensea-libs
 	rm -f $(FILE_OUTPUT_DIR)/$@
 	$(AR) cq $(FILE_OUTPUT_DIR)/$@ $(LIB_OBJ_FILES)
 	$(CC) -shared $(LIB_OBJ_FILES) $(LFLAGS) -o $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION)
-	cd $(FILE_OUTPUT_DIR) && ln -s lib$(NAME).so* lib$(NAME).so
+	cd $(FILE_OUTPUT_DIR) && ln -sf lib$(NAME).so.$(VERSION) lib$(NAME).so
 
 clean:
 	rm -f $(FILE_OUTPUT_DIR)/lib$(NAME).a $(FILE_OUTPUT_DIR)/lib$(NAME).so.$(VERSION) lib$(NAME).so *.o ../../src/*.o

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,12 +22,27 @@ extern "C"
 {
 #endif
 
-#define FIRMWARE_UPDATE_DATA_VERSION 1
+    //NOTE: This is not exactly the same as the previous structure in cmds.h!
+    //      it is recommended you use these value for these functions instead for the operation and it will translate them to a mode for you!
+    typedef enum _eFirmwareUpdateMode
+    {
+        FWDL_UPDATE_MODE_ACTIVATE,
+        FWDL_UPDATE_MODE_FULL,
+        FWDL_UPDATE_MODE_TEMP,//obsolete in modern standards. Not recommended for use
+        FWDL_UPDATE_MODE_SEGMENTED,
+        FWDL_UPDATE_MODE_DEFERRED,
+        FWDL_UPDATE_MODE_DEFERRED_SELECT_ACTIVATE,//SAS Only! If this is used on ATA, the activation event can only be a power cycle. This is treated exactly the same as above on ATA.
+        FWDL_UPDATE_MODE_DEFERRED_PLUS_ACTIVATE, //not exactly the same as "segmented" but similar behavior. More appropriate for Win10+ updates
+        /* new modes here before automatic! */
+        FWDL_UPDATE_MODE_AUTOMATIC = 0xFF //This will look up the best possible mode for you!
+    }eFirmwareUpdateMode;
+
+    #define FIRMWARE_UPDATE_DATA_VERSION 3
 
     typedef struct _firmwareUpdateData {
         size_t size; //set to sizeof(firmwareUpdateData)
         uint32_t version; //set to FIRMWARE_UPDATE_DATA_VERSION
-        eDownloadMode   dlMode; //how to do the download. Full, Segmented, Deferred, etc
+        eFirmwareUpdateMode   dlMode; //Use mode in new enum above. Should be backwards compatible, but recommend migrating to this new one instead!
         uint16_t        segmentSize; //size of segments to use when doing segmented. If 0, will use 64.
         uint8_t         *firmwareFileMem; //pointer to the firmware file read into memory to send to the drive.
         uint32_t        firmwareMemoryLength; //length of the memory the firmware file was read into. This should be a multiple of 512B sizes...
@@ -40,6 +55,9 @@ extern "C"
         };
         bool existingFirmwareImage;//set to true means you are activiting an existing firmware image in the specified slot. - NVMe only
         bool ignoreStatusOfFinalSegment;//This is a legacy compatibility option. Some old drives do not return status on the last segment, but the download is successful and this ignores the failing status from the OS and reports SUCCESS when set to true.
+        bool forceCommitActionValid;//NVMe only.
+        uint8_t forceCommitAction;//NVMe only. forceCommitActionValid must be true to use this.
+        bool disableResetAfterCommit;//NVMe only.
     } firmwareUpdateData;
     //-----------------------------------------------------------------------------
     //
@@ -83,7 +101,7 @@ extern "C"
     }firmwareSlotInfo;
     //NOTE: If firmware slot info changes, the supported modes data structure below must change version and size since this is only used in there right now-TJE
 
-    #define SUPPORTED_FWDL_MODES_VERSION 1
+    #define SUPPORTED_FWDL_MODES_VERSION 2
 
     typedef struct _supportedDLModes
     {
@@ -105,7 +123,7 @@ extern "C"
         uint16_t recommendedSegmentSize;//in 512B blocks...check SAS
         uint8_t driveOffsetBoundary;//this is 2^<value>
         uint32_t driveOffsetBoundaryInBytes;//This is the bytes value from the PO2 calculation in the comment above.
-        eDownloadMode recommendedDownloadMode;
+        eFirmwareUpdateMode recommendedDownloadMode;
         SCSIMicrocodeActivation codeActivation;//SAS Only
         eMLU multipleLogicalUnitsAffected;//This will only be set for multi-lun devices. NVMe will set this since firmware affects all namespaces on the controller
         firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE

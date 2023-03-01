@@ -303,6 +303,7 @@
     <ClInclude Include="..\..\..\..\include\device_statistics.h" />
     <ClInclude Include="..\..\..\..\include\drive_info.h" />
     <ClInclude Include="..\..\..\..\include\dst.h" />
+    <ClInclude Include="..\..\..\..\include\farm_log.h" />
     <ClInclude Include="..\..\..\..\include\firmware_download.h" />
     <ClInclude Include="..\..\..\..\include\format.h" />
     <ClInclude Include="..\..\..\..\include\generic_tests.h" />
@@ -331,6 +332,7 @@
     <ClCompile Include="..\..\..\..\src\device_statistics.c" />
     <ClCompile Include="..\..\..\..\src\drive_info.c" />
     <ClCompile Include="..\..\..\..\src\dst.c" />
+    <ClCompile Include="..\..\..\..\src\farm_log.c" />
     <ClCompile Include="..\..\..\..\src\firmware_download.c" />
     <ClCompile Include="..\..\..\..\src\format.c" />
     <ClCompile Include="..\..\..\..\src\generic_tests.c" />

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -629,7 +629,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
             }
         }
     }
-    else if(device->drive_info.drive_type == SCSI_DRIVE)
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //NOTE: this uses the standard spec power consumption mode page.
         //      This feature conflicts with use other use of this page, at least on old drives.
@@ -659,7 +659,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                 //This is as close as I can figure the best way to check for power balance support - TJE
                 ///Active mode cannot be changable, then the power consumption VPD page must also not be supported.
                 //The above comment was true for OLD drives. New ones now use the active power mode field to enable/disable this feature
-                if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7]  == 0xFF && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6],2, 0) == 0))
+                if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0xFF && (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
                 {
                     //If in here, this is an old drive since it doesn't allow setting the active power mode.
                     if (supported)
@@ -679,7 +679,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                         ret = SUCCESS;
                     }
                 }
-                else if(M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0)
+                else if (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0)
                 {
                     //if in here, this is a new drive which only allows this change via the active mode field.
                     //On these drives, we can check to make sure the changable fields apply to the active mode field, but NOT the power condition identifier.
@@ -701,7 +701,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
                         {
                             *enabled = false;
                         }
-                        else if(enabled)
+                        else if (enabled)
                         {
                             //I guess say it's off???
                             *enabled = false;
@@ -721,20 +721,20 @@ int seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode)
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-		switch (powerMode)
-		{
-		case POWER_BAL_ENABLE:
-			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
-			break;
-		case POWER_BAL_DISABLE:
-			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
-			break;
-		case POWER_BAL_LIMITED:
-			ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_LIMITED, 0, 0);
-			break;
-		default:
-			break;
-		}
+        switch (powerMode)
+        {
+        case POWER_BAL_ENABLE:
+            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_ENABLE, 0, 0);
+            break;
+        case POWER_BAL_DISABLE:
+            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_DISABLE, 0, 0);
+            break;
+        case POWER_BAL_LIMITED:
+            ret = ata_Set_Features(device, SEAGATE_FEATURE_POWER_BALANCE, 0, POWER_BALANCE_LBA_LOW_LIMITED, 0, 0);
+            break;
+        default:
+            break;
+        }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -1498,7 +1498,7 @@ int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
         memcpy(pwrTelData->serialNumber, &powerTelemetryLog[0], 8);
         pwrTelData->powerCycleCount = M_BytesTo2ByteValue(powerTelemetryLog[9], powerTelemetryLog[8]);
         //drive timestamps will be reported as uint64 in this structure so that they can be converted to whatever is easy by other users
-        pwrTelData->driveTimeStampForHostRequestedMeasurement = M_BytesTo8ByteValue(0,0, powerTelemetryLog[15], powerTelemetryLog[14], powerTelemetryLog[13], powerTelemetryLog[12], powerTelemetryLog[11], powerTelemetryLog[10]);
+        pwrTelData->driveTimeStampForHostRequestedMeasurement = M_BytesTo8ByteValue(0, 0, powerTelemetryLog[15], powerTelemetryLog[14], powerTelemetryLog[13], powerTelemetryLog[12], powerTelemetryLog[11], powerTelemetryLog[10]);
         pwrTelData->driveTimeStampWhenTheLogWasRetrieved = M_BytesTo8ByteValue(0, 0, powerTelemetryLog[21], powerTelemetryLog[20], powerTelemetryLog[19], powerTelemetryLog[18], powerTelemetryLog[17], powerTelemetryLog[16]);
         pwrTelData->majorRevision = powerTelemetryLog[22];
         pwrTelData->minorRevision = powerTelemetryLog[23];

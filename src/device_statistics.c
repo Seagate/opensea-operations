@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -51,7 +51,7 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
             uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0,0))
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0, 0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
                 //increment by 2 qwords and go through each statistic and it's condition individually
@@ -579,7 +579,7 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
             }
             safe_Free_aligned(devStatsNotificationsLog)
         }
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0,0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0, 0))
         {
             ret = SUCCESS;
             uint32_t offset = 0;//start offset 1 sector to get to the general statistics
@@ -602,8 +602,8 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
                 qwordPtrDeviceStatsLog = (uint64_t*)&deviceStatsLog[offset];
 #if defined (__BIG_ENDIAN__)
                 //TODO: Find a better way to change this code, but for now, on big endian systems, we need to byte swap all qwords of the buffer to make the code below work properly
-               for(uint8_t qwordBSwapIter = 0; qwordBSwapIter < 64; ++qwordBSwapIter)
-               {
+                for (uint8_t qwordBSwapIter = 0; qwordBSwapIter < 64; ++qwordBSwapIter)
+                {
                     byte_Swap_64(&qwordPtrDeviceStatsLog[qwordBSwapIter]);
                 }
 #endif
@@ -3639,28 +3639,28 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = tempLogBuf[iter + 4];
-                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT8_MAX)
+                                if (deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT8_MAX)
                                 {
                                     deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
                                 }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
-                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT16_MAX)
+                                if (deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT16_MAX)
                                 {
                                     deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
                                 }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT32_MAX)
+                                if (deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT32_MAX)
                                 {
                                     deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
                                 }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-                                if(deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT64_MAX)
+                                if (deviceStats->sasStatistics.grownDefectsDuringCertification.statisticValue == UINT64_MAX)
                                 {
                                     deviceStats->sasStatistics.grownDefectsDuringCertification.isValueValid = false;
                                 }
@@ -3698,28 +3698,28 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = tempLogBuf[iter + 4];
-                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT8_MAX)
+                                if (deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT8_MAX)
                                 {
                                     deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
                                 }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
-                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT16_MAX)
+                                if (deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT16_MAX)
                                 {
                                     deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
                                 }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT32_MAX)
+                                if (deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT32_MAX)
                                 {
                                     deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
                                 }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-                                if(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT64_MAX)
+                                if (deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.statisticValue == UINT64_MAX)
                                 {
                                     deviceStats->sasStatistics.totalBlocksReassignedDuringFormat.isValueValid = false;
                                 }
@@ -3757,28 +3757,28 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = tempLogBuf[iter + 4];
-                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT8_MAX)
+                                if (deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT8_MAX)
                                 {
                                     deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
                                 }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
-                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT16_MAX)
+                                if (deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT16_MAX)
                                 {
                                     deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
                                 }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT32_MAX)
+                                if (deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT32_MAX)
                                 {
                                     deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
                                 }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-                                if(deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT64_MAX)
+                                if (deviceStats->sasStatistics.totalNewBlocksReassigned.statisticValue == UINT64_MAX)
                                 {
                                     deviceStats->sasStatistics.totalNewBlocksReassigned.isValueValid = false;
                                 }
@@ -3816,28 +3816,28 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                             {
                             case 1://single byte
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = tempLogBuf[iter + 4];
-                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT8_MAX)
+                                if (deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT8_MAX)
                                 {
                                     deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
                                 }
                                 break;
                             case 2://word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
-                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT16_MAX)
+                                if (deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT16_MAX)
                                 {
                                     deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
                                 }
                                 break;
                             case 4://double word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT32_MAX)
+                                if (deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT32_MAX)
                                 {
                                     deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
                                 }
                                 break;
                             case 8://quad word
                                 deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue = M_BytesTo8ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7], tempLogBuf[iter + 8], tempLogBuf[iter + 9], tempLogBuf[iter + 10], tempLogBuf[iter + 11]);
-                                if(deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT64_MAX)
+                                if (deviceStats->sasStatistics.powerOnMinutesSinceFormat.statisticValue == UINT64_MAX)
                                 {
                                     deviceStats->sasStatistics.powerOnMinutesSinceFormat.isValueValid = false;
                                 }
@@ -6333,281 +6333,281 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                 }
                 //Thresholds are not defined/obsolete so no need to read them or attempt to read them.
             }
+            break;
+            default:
+                break;
+            }
+            break;
+        case LP_POWER_CONDITIONS_TRANSITIONS:
+            switch (subpageCode)
+            {
+            case 0:
+                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    deviceStats->sasStatistics.powerConditionTransitionsSupported = true;
+                    uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
+                    uint8_t parameterLength = 0;
+                    //loop through the data and gather the data from each parameter we care about getting.
+                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    {
+                        uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
+                        parameterLength = tempLogBuf[iter + 3];
+                        switch (parameterCode)
+                        {
+                        case 1://transitions to active
+                            deviceStats->sasStatistics.transitionsToActive.isSupported = true;
+                            deviceStats->sasStatistics.transitionsToActive.isValueValid = true;
+                            deviceStats->sasStatistics.transitionsToActive.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            if (tempLogBuf[iter + 2] & BIT4)
+                            {
+                                switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                {
+                                case 3:
+                                    deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    break;
+                                case 2:
+                                    deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    break;
+                                case 1:
+                                    deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    break;
+                                case 0:
+                                default:
+                                    deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    break;
+                                }
+                            }
+                            deviceStats->sasStatistics.transitionsToActive.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 2://transitions to idle a
+                            deviceStats->sasStatistics.transitionsToIdleA.isSupported = true;
+                            deviceStats->sasStatistics.transitionsToIdleA.isValueValid = true;
+                            deviceStats->sasStatistics.transitionsToIdleA.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            if (tempLogBuf[iter + 2] & BIT4)
+                            {
+                                switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                {
+                                case 3:
+                                    deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    break;
+                                case 2:
+                                    deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    break;
+                                case 1:
+                                    deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    break;
+                                case 0:
+                                default:
+                                    deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    break;
+                                }
+                            }
+                            deviceStats->sasStatistics.transitionsToIdleA.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 3://transitions to idle b
+                            deviceStats->sasStatistics.transitionsToIdleB.isSupported = true;
+                            deviceStats->sasStatistics.transitionsToIdleB.isValueValid = true;
+                            deviceStats->sasStatistics.transitionsToIdleB.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            if (tempLogBuf[iter + 2] & BIT4)
+                            {
+                                switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                {
+                                case 3:
+                                    deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    break;
+                                case 2:
+                                    deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    break;
+                                case 1:
+                                    deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    break;
+                                case 0:
+                                default:
+                                    deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    break;
+                                }
+                            }
+                            deviceStats->sasStatistics.transitionsToIdleB.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 4://transitions to idle c
+                            deviceStats->sasStatistics.transitionsToIdleC.isSupported = true;
+                            deviceStats->sasStatistics.transitionsToIdleC.isValueValid = true;
+                            deviceStats->sasStatistics.transitionsToIdleC.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            if (tempLogBuf[iter + 2] & BIT4)
+                            {
+                                switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                {
+                                case 3:
+                                    deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    break;
+                                case 2:
+                                    deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    break;
+                                case 1:
+                                    deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    break;
+                                case 0:
+                                default:
+                                    deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    break;
+                                }
+                            }
+                            deviceStats->sasStatistics.transitionsToIdleC.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 8://transitions to standby z
+                            deviceStats->sasStatistics.transitionsToStandbyZ.isSupported = true;
+                            deviceStats->sasStatistics.transitionsToStandbyZ.isValueValid = true;
+                            deviceStats->sasStatistics.transitionsToStandbyZ.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            if (tempLogBuf[iter + 2] & BIT4)
+                            {
+                                switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                {
+                                case 3:
+                                    deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    break;
+                                case 2:
+                                    deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    break;
+                                case 1:
+                                    deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    break;
+                                case 0:
+                                default:
+                                    deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    break;
+                                }
+                            }
+                            deviceStats->sasStatistics.transitionsToStandbyZ.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        case 9://transitions to standby y
+                            deviceStats->sasStatistics.transitionsToStandbyY.isSupported = true;
+                            deviceStats->sasStatistics.transitionsToStandbyY.isValueValid = true;
+                            deviceStats->sasStatistics.transitionsToStandbyY.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
+                            if (tempLogBuf[iter + 2] & BIT4)
+                            {
+                                switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                {
+                                case 3:
+                                    deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
+                                    break;
+                                case 2:
+                                    deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
+                                    break;
+                                case 1:
+                                    deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
+                                    break;
+                                case 0:
+                                default:
+                                    deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
+                                    break;
+                                }
+                            }
+                            deviceStats->sasStatistics.transitionsToStandbyY.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
+                            ++deviceStats->sasStatistics.statisticsPopulated;
+                            break;
+                        default:
+                            break;
+                        }
+                        if (parameterLength == 0)
+                        {
+                            break;
+                        }
+                    }
+                }
                 break;
             default:
                 break;
             }
-                break;
-            case LP_POWER_CONDITIONS_TRANSITIONS:
-                switch (subpageCode)
+            break;
+        case LP_PROTOCOL_SPECIFIC_PORT:
+            switch (subpageCode)
+            {
+            case 0:
+                //NOTE: This page is currently setup for SAS SSP
+                //      I am not aware of other transports implementing this page at this time - TJE
+                //This page is read in a 64k size to make sure we get as much as possible in a single command.
+            {
+                uint16_t protocolSpecificDataLength = UINT16_MAX;
+                uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (protSpData)
                 {
-                case 0:
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
+                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
                     {
-                        deviceStats->sasStatistics.powerConditionTransitionsSupported = true;
-                        uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
-                        uint8_t parameterLength = 0;
-                        //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        //mimimum page length for a SAS drive assuming only 1 port and 1 phy is 64B. Each additional port adds a minimum of another 60 bytes
+                        uint32_t pageLength = M_BytesTo2ByteValue(protSpData[2], protSpData[3]) + LOG_PAGE_HEADER_LENGTH;
+                        uint16_t parameterLength = 4;
+                        uint16_t portCounter = 0;
+                        for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS && offset < protocolSpecificDataLength; offset += parameterLength + 4, ++portCounter)
                         {
-                            uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
-                            parameterLength = tempLogBuf[iter + 3];
-                            switch (parameterCode)
+                            uint16_t parameterCode = M_BytesTo2ByteValue(protSpData[offset + 0], protSpData[offset + 1]);
+                            parameterLength = protSpData[offset + 3];//4 bytes for the length of the header for the parameter code
+                            if (parameterLength > 0)
                             {
-                            case 1://transitions to active
-                                deviceStats->sasStatistics.transitionsToActive.isSupported = true;
-                                deviceStats->sasStatistics.transitionsToActive.isValueValid = true;
-                                deviceStats->sasStatistics.transitionsToActive.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
-                                if (tempLogBuf[iter + 2] & BIT4)
+                                uint8_t protocolIdentifier = M_Nibble0(protSpData[offset + 4]);
+                                if (protocolIdentifier == SCSI_PROTOCOL_ID_SAS)
                                 {
-                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
+                                    uint8_t numberOfPhys = protSpData[offset + 7];
+                                    uint32_t phyOffset = offset + 8;
+                                    uint8_t phyDescriptorLength = 0;
+                                    uint8_t phyCounter = 0;
+                                    deviceStats->sasStatistics.protocolSpecificStatisticsSupported = true;
+                                    deviceStats->sasStatistics.protocolStatisticsType = STAT_PROT_SAS;
+                                    deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].portID = parameterCode;
+                                    deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].sasProtStatsValid = true;
+                                    for (uint8_t phyIter = 0; phyIter < numberOfPhys && phyOffset < pageLength && phyCounter < SAS_STATISTICS_MAX_PHYS; ++phyIter, phyOffset += phyDescriptorLength + 4, ++phyCounter)
                                     {
-                                    case 3:
-                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
-                                        break;
-                                    case 2:
-                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
-                                        break;
-                                    case 1:
-                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
-                                        break;
-                                    case 0:
-                                    default:
-                                        deviceStats->sasStatistics.transitionsToActive.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
-                                        break;
-                                    }
-                                }
-                                deviceStats->sasStatistics.transitionsToActive.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                break;
-                            case 2://transitions to idle a
-                                deviceStats->sasStatistics.transitionsToIdleA.isSupported = true;
-                                deviceStats->sasStatistics.transitionsToIdleA.isValueValid = true;
-                                deviceStats->sasStatistics.transitionsToIdleA.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
-                                if (tempLogBuf[iter + 2] & BIT4)
-                                {
-                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
-                                    {
-                                    case 3:
-                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
-                                        break;
-                                    case 2:
-                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
-                                        break;
-                                    case 1:
-                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
-                                        break;
-                                    case 0:
-                                    default:
-                                        deviceStats->sasStatistics.transitionsToIdleA.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
-                                        break;
-                                    }
-                                }
-                                deviceStats->sasStatistics.transitionsToIdleA.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                break;
-                            case 3://transitions to idle b
-                                deviceStats->sasStatistics.transitionsToIdleB.isSupported = true;
-                                deviceStats->sasStatistics.transitionsToIdleB.isValueValid = true;
-                                deviceStats->sasStatistics.transitionsToIdleB.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
-                                if (tempLogBuf[iter + 2] & BIT4)
-                                {
-                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
-                                    {
-                                    case 3:
-                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
-                                        break;
-                                    case 2:
-                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
-                                        break;
-                                    case 1:
-                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
-                                        break;
-                                    case 0:
-                                    default:
-                                        deviceStats->sasStatistics.transitionsToIdleB.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
-                                        break;
-                                    }
-                                }
-                                deviceStats->sasStatistics.transitionsToIdleB.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                break;
-                            case 4://transitions to idle c
-                                deviceStats->sasStatistics.transitionsToIdleC.isSupported = true;
-                                deviceStats->sasStatistics.transitionsToIdleC.isValueValid = true;
-                                deviceStats->sasStatistics.transitionsToIdleC.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
-                                if (tempLogBuf[iter + 2] & BIT4)
-                                {
-                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
-                                    {
-                                    case 3:
-                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
-                                        break;
-                                    case 2:
-                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
-                                        break;
-                                    case 1:
-                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
-                                        break;
-                                    case 0:
-                                    default:
-                                        deviceStats->sasStatistics.transitionsToIdleC.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
-                                        break;
-                                    }
-                                }
-                                deviceStats->sasStatistics.transitionsToIdleC.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                break;
-                            case 8://transitions to standby z
-                                deviceStats->sasStatistics.transitionsToStandbyZ.isSupported = true;
-                                deviceStats->sasStatistics.transitionsToStandbyZ.isValueValid = true;
-                                deviceStats->sasStatistics.transitionsToStandbyZ.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
-                                if (tempLogBuf[iter + 2] & BIT4)
-                                {
-                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
-                                    {
-                                    case 3:
-                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
-                                        break;
-                                    case 2:
-                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
-                                        break;
-                                    case 1:
-                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
-                                        break;
-                                    case 0:
-                                    default:
-                                        deviceStats->sasStatistics.transitionsToStandbyZ.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
-                                        break;
-                                    }
-                                }
-                                deviceStats->sasStatistics.transitionsToStandbyZ.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                break;
-                            case 9://transitions to standby y
-                                deviceStats->sasStatistics.transitionsToStandbyY.isSupported = true;
-                                deviceStats->sasStatistics.transitionsToStandbyY.isValueValid = true;
-                                deviceStats->sasStatistics.transitionsToStandbyY.thresholdNotificationEnabled = tempLogBuf[iter + 2] & BIT4;//ETC bit
-                                if (tempLogBuf[iter + 2] & BIT4)
-                                {
-                                    switch ((tempLogBuf[iter + 2] & (BIT2 | BIT3)) >> 2)
-                                    {
-                                    case 3:
-                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_GREATER;
-                                        break;
-                                    case 2:
-                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL;
-                                        break;
-                                    case 1:
-                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL;
-                                        break;
-                                    case 0:
-                                    default:
-                                        deviceStats->sasStatistics.transitionsToStandbyY.threshType = THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE;
-                                        break;
-                                    }
-                                }
-                                deviceStats->sasStatistics.transitionsToStandbyY.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                break;
-                            default:
-                                break;
-                            }
-                            if (parameterLength == 0)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                default:
-                    break;
-                }
-                break;
-            case LP_PROTOCOL_SPECIFIC_PORT:
-                switch (subpageCode)
-                {
-                case 0:
-                    //NOTE: This page is currently setup for SAS SSP
-                    //      I am not aware of other transports implementing this page at this time - TJE
-                    //This page is read in a 64k size to make sure we get as much as possible in a single command.
-                {
-                    uint16_t protocolSpecificDataLength = UINT16_MAX;
-                    uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (protSpData)
-                    {
-                        if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
-                        {
-                            //mimimum page length for a SAS drive assuming only 1 port and 1 phy is 64B. Each additional port adds a minimum of another 60 bytes
-                            uint32_t pageLength = M_BytesTo2ByteValue(protSpData[2], protSpData[3]) + LOG_PAGE_HEADER_LENGTH;
-                            uint16_t parameterLength = 4;
-                            uint16_t portCounter = 0;
-                            for (uint32_t offset = 4; offset < pageLength && portCounter < SAS_STATISTICS_MAX_PORTS && offset < protocolSpecificDataLength; offset += parameterLength + 4, ++portCounter)
-                            {
-                                uint16_t parameterCode = M_BytesTo2ByteValue(protSpData[offset + 0], protSpData[offset + 1]);
-                                parameterLength = protSpData[offset + 3];//4 bytes for the length of the header for the parameter code
-                                if (parameterLength > 0)
-                                {
-                                    uint8_t protocolIdentifier = M_Nibble0(protSpData[offset + 4]);
-                                    if (protocolIdentifier == SCSI_PROTOCOL_ID_SAS)
-                                    {
-                                        uint8_t numberOfPhys = protSpData[offset + 7];
-                                        uint32_t phyOffset = offset + 8;
-                                        uint8_t phyDescriptorLength = 0;
-                                        uint8_t phyCounter = 0;
-                                        deviceStats->sasStatistics.protocolSpecificStatisticsSupported = true;
-                                        deviceStats->sasStatistics.protocolStatisticsType = STAT_PROT_SAS;
-                                        deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].portID = parameterCode;
-                                        deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].sasProtStatsValid = true;
-                                        for (uint8_t phyIter = 0; phyIter < numberOfPhys && phyOffset < pageLength && phyCounter < SAS_STATISTICS_MAX_PHYS; ++phyIter, phyOffset += phyDescriptorLength + 4, ++phyCounter)
+                                        //now at the actual phy data, so we can read what we want to report
+                                        phyDescriptorLength = protSpData[phyOffset + 3];
+                                        if (phyDescriptorLength > 0)
                                         {
-                                            //now at the actual phy data, so we can read what we want to report
-                                            phyDescriptorLength = protSpData[phyOffset + 3];
-                                            if (phyDescriptorLength > 0)
-                                            {
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].sasPhyStatsValid = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyID = protSpData[phyOffset + 1];
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isSupported = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isValueValid = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 32], protSpData[phyOffset + 33], protSpData[phyOffset + 34], protSpData[phyOffset + 35]);
-                                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isSupported = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isValueValid = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 36], protSpData[phyOffset + 37], protSpData[phyOffset + 38], protSpData[phyOffset + 39]);
-                                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isSupported = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isValueValid = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 40], protSpData[phyOffset + 41], protSpData[phyOffset + 42], protSpData[phyOffset + 43]);
-                                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isSupported = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isValueValid = true;
-                                                deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 44], protSpData[phyOffset + 45], protSpData[phyOffset + 46], protSpData[phyOffset + 47]);
-                                                ++deviceStats->sasStatistics.statisticsPopulated;
-                                                ++deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount;
-                                                //TODO: Phy event descriptors? Not sure this is needed right now -TJE
-                                                //      Events would be yet another loop depending on how many are reported.
-                                            }
-                                            else
-                                            {
-                                                continue;
-                                            }
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].sasPhyStatsValid = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyID = protSpData[phyOffset + 1];
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isSupported = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.isValueValid = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].invalidDWORDCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 32], protSpData[phyOffset + 33], protSpData[phyOffset + 34], protSpData[phyOffset + 35]);
+                                            ++deviceStats->sasStatistics.statisticsPopulated;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isSupported = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.isValueValid = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].runningDisparityErrorCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 36], protSpData[phyOffset + 37], protSpData[phyOffset + 38], protSpData[phyOffset + 39]);
+                                            ++deviceStats->sasStatistics.statisticsPopulated;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isSupported = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.isValueValid = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].lossOfDWORDSynchronizationCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 40], protSpData[phyOffset + 41], protSpData[phyOffset + 42], protSpData[phyOffset + 43]);
+                                            ++deviceStats->sasStatistics.statisticsPopulated;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isSupported = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.isValueValid = true;
+                                            deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 44], protSpData[phyOffset + 45], protSpData[phyOffset + 46], protSpData[phyOffset + 47]);
+                                            ++deviceStats->sasStatistics.statisticsPopulated;
+                                            ++deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount;
+                                            //TODO: Phy event descriptors? Not sure this is needed right now -TJE
+                                            //      Events would be yet another loop depending on how many are reported.
                                         }
-                                        ++deviceStats->sasStatistics.sasProtStats.portCount;
+                                        else
+                                        {
+                                            continue;
+                                        }
                                     }
-                                    //TODO: If other protocols report data here, we will need to add it. So far no other protocol spec lists a log page - TJE
+                                    ++deviceStats->sasStatistics.sasProtStats.portCount;
                                 }
-                                else
-                                {
-                                    //parameters without a length mean move on to the next one since no additional data was provided.
-                                    continue;
-                                }
+                                //TODO: If other protocols report data here, we will need to add it. So far no other protocol spec lists a log page - TJE
+                            }
+                            else
+                            {
+                                //parameters without a length mean move on to the next one since no additional data was provided.
+                                continue;
                             }
                         }
-                        safe_Free_aligned(protSpData)
                     }
+                    safe_Free_aligned(protSpData)
                 }
-                break;
+            }
+            break;
             default:
                 break;
             }
@@ -6633,6 +6633,11 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     {
         defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
     }
+    if (!is_SSD(device))
+    {
+        //this should work on just about any HDD
+        defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+    }
     while (!gotGrownDefectCount)
     {
         //This loop is so that we can retry with different formats if it does not work the first time - TJE
@@ -6657,23 +6662,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
         }
         if (defectRet != SUCCESS && !gotGrownDefectCount)
         {
-            if (defectFormat == AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
-            {
-                defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
-            }
-            else if (defectFormat == AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
-            {
-                defectFormat = AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
-            }
-            else if (defectFormat == AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR)
-            {
-                //special case to restart the loop again with long address types in case short are not supported, but it isn't a high capacity devices
-                defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
-            }
-            else
-            {
-                break;
-            }
+            break;
         }
         else
         {
@@ -6856,29 +6845,29 @@ static void print_Count_Statistic(statistic theStatistic, char *statisticName, c
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6924,29 +6913,29 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, char *s
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -6997,29 +6986,29 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7101,29 +7090,29 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, char *
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7166,29 +7155,29 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7238,29 +7227,29 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7316,29 +7305,29 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7380,29 +7369,29 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7448,29 +7437,29 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7524,29 +7513,29 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7605,29 +7594,29 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7784,29 +7773,29 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"!=%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,">%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"<%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%"PRIu64, theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"%"PRIu64, theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64, theStatistic.threshold);
                 break;
             }
         }
         else
         {
-            snprintf(displayThreshold,  DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,"N/A");
+            snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -7845,7 +7834,7 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
     if (!deviceStats)
     {
         return MEMORY_FAILURE;
-    }    
+    }
     printf("===Device Statistics===\n");
     printf("\t* = condition monitored with threshold (DSN Feature)\n");
     printf("\t! = monitored condition met\n");
@@ -7948,7 +7937,7 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
         }
         for (uint8_t vendorSpecificIter = 0, statisticsFound = 0; vendorSpecificIter < 64 && statisticsFound < deviceStats->sataStatistics.vendorSpecificStatisticsPopulated; ++vendorSpecificIter)
         {
-            #define VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH 64
+#define VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH 64
             char statisticName[VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH] = { 0 };
             if (SEAGATE == is_Seagate_Family(device))
             {

@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -974,7 +974,9 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
     {        
         uint16_t eraseTimeMinutes = 0;
         ataSecurityStatus securityStatus;
+        ataSecurityStatus finalSecurityStatus;
         memset(&securityStatus, 0, sizeof(ataSecurityStatus));
+        memset(&finalSecurityStatus, 0, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -1218,10 +1220,9 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             }
         }
         //issue an identify device command before we read the ATA security bits to make sure the data isn't stale in our structure.
-        ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
-        memset(&securityStatus, 0, sizeof(ataSecurityStatus));
-        get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
-        if (SUCCESS == ataEraseResult && !securityStatus.securityEnabled && !securityStatus.securityLocked)
+        ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
+        get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
+        if (SUCCESS == ataEraseResult && !finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
@@ -1248,42 +1249,47 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
             printf("\n\n");
         }
-        if (result == FAILURE || hostResetDuringErase)
+        if ((result == FAILURE || hostResetDuringErase))
         {
-            //disable the password if it's enabled
-            if (securityStatus.securityLocked)
+            //check the initial state to see if security was already enabled. If it was, do not try to clear the password.
+            if (!securityStatus.securityEnabled)
             {
-                unlock_ATA_Security(device, ataPassword, satATASecuritySupported);
-                memset(&securityStatus, 0, sizeof(ataSecurityStatus));
-                get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
-            }
-            if (securityStatus.securityEnabled && !securityStatus.securityLocked)
-            {
-                if (SUCCESS == disable_ATA_Security_Password(device, ataPassword, satATASecuritySupported))
+                //disable the password if it's enabled
+                if (finalSecurityStatus.securityLocked)
                 {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    unlock_ATA_Security(device, ataPassword, satATASecuritySupported);
+                    memset(&finalSecurityStatus, 0, sizeof(ataSecurityStatus));
+                    ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
+                    get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
+                }
+                if (finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
+                {
+                    if (SUCCESS == disable_ATA_Security_Password(device, ataPassword, satATASecuritySupported))
                     {
-                        printf("\tThe ATA Security password used during erase has been cleared.\n\n");
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        {
+                            printf("\tThe ATA Security password used during erase has been cleared.\n\n");
+                        }
+                    }
+                    else
+                    {
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        {
+                            printf("\tWARNING!!! Unable to remove the ATA security password used during erase!!\n");
+                            printf("\tErase password that was used was: ");
+                            print_ATA_Security_Password(&ataPassword);
+                            printf("\n");
+                        }
                     }
                 }
-                else
+                else if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
-                    {
-                        printf("\tWARNING!!! Unable to remove the ATA security password used during erase!!\n");
-                        printf("\tErase password that was used was: ");
-                        print_ATA_Security_Password(&ataPassword);
-                        printf("\n");
-                    }
+                    printf("\tWARNING!!! The drive is in a security state where clearing the password is not possible!\n");
+                    printf("\tPlease power cycle the drive and try clearing the password upon powerup.\n");
+                    printf("\tErase password that was used was: ");
+                    print_ATA_Security_Password(&ataPassword);
+                    printf("\n");
                 }
-            }
-            else if(VERBOSITY_QUIET < device->deviceVerbosity)
-            {
-                printf("\tWARNING!!! The drive is in a security state where clearing the password is not possible!\n");
-                printf("\tPlease power cycle the drive and try clearing the password upon powerup.\n");
-                printf("\tErase password that was used was: ");
-                print_ATA_Security_Password(&ataPassword);
-                printf("\n");
             }
             if (hostResetDuringErase)
             {

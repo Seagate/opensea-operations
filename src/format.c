@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@
 #include "logs.h"
 #include "nvme_helper_func.h"
 #include "platform_helper.h"
+#include "seagate_operations.h"
 
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
@@ -1569,6 +1570,50 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             {
                 ret = ata_Set_Sector_Configuration_Ext(device, descriptorCheck, descriptorIndex);
             }
+            delay_Seconds(1);
+            //need to call the fill_drive_info again to update device information
+            fill_Drive_Info_Data(device);
+            if (!is_Set_Sector_Configuration_Supported(device))
+            {
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                {
+                    printf("ERROR: The device was reset during sector size change. Device may not be usable!\n");
+                }
+                if (is_Seagate_Family(device) == SEAGATE && !is_SSD(device))//HDDs only
+                {
+                    if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                    {
+                        printf("Attempting Seagate quick format to recover the device.\n");
+                    }
+                    if (SUCCESS != seagate_Quick_Format(device))
+                    {
+                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                        {
+                            printf("WARNING: Seagate quick format did not complete successfully!\n");
+                        }
+                    }
+                    //try refreshing the device one more time incase the status was just not right.
+                    fill_Drive_Info_Data(device);
+                    if (!is_Set_Sector_Configuration_Supported(device))
+                    {
+                        //nothing else we can do at this point.
+                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                        {
+                            printf("ERROR: Quick format did not recover the device. The device may not be usable!\n");
+                        }
+                    }
+                    else
+                    {
+                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                        {
+                            printf("Seagate quick format successfully recovered the device!\n");
+                            printf("If sector size change is attempted again, format only single disks at a time,\n");
+                            printf("disable all background software, disable any management hardware or software, and then\n");
+                            printf("try again if the sector size is not correct.\n");
+                        }
+                    }
+                }
+            }
         }
         else //Assume SCSI
         {
@@ -1670,6 +1715,44 @@ static uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSiz
         }
     }
     return fmtNum;
+}
+
+int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == NVME_DRIVE && formatSupport)
+    {
+        ret = SUCCESS;
+        //check FNA field for support
+        //bit 0 = format applies to all namespaces. If zero, applies only to the specified namespace
+        //bit 1 = secure erase applies to all namespaces. if zero, applies only to the specified namespace
+        //bit 2 = cryptographic erase is supported
+        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT1)
+        {
+            formatSupport->formatCommandSupported = true;
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT0)
+            {
+                formatSupport->formatAppliesToAllNamespaces = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT1)
+            {
+                formatSupport->secureEraseAppliesToAllNamespaces = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT2)
+            {
+                formatSupport->cryptographicEraseSupported = true;
+            }
+            if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT3)//new in 2.0
+            {
+                formatSupport->formatNSIDAllNSSupport = false;
+            }
+            else
+            {
+                formatSupport->formatNSIDAllNSSupport = true;
+            }
+        }
+    }
+    return ret;
 }
 
 int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)

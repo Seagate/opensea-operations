@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -1483,7 +1483,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1542,7 +1542,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1602,7 +1602,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1668,7 +1668,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:
@@ -1707,7 +1707,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         {
         case SUCCESS:
             break;
-        case COMMAND_TIMEOUT:
+        case OS_COMMAND_TIMEOUT:
             (*numberOfCommandTimeouts)++;
             break;
         default:

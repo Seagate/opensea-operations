@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -682,8 +682,10 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     int ret = SUCCESS;
     ataSecurityStatus ataSecurityInfo;
     sanitizeFeaturesSupported sanitizeInfo;
+    nvmeFormatSupport nvmeFormatInfo;
     uint64_t maxNumberOfLogicalBlocksPerCommand = 0;
     bool formatUnitAdded = false;
+    bool nvmFormatAdded = false;
     bool isWriteSameSupported = is_Write_Same_Supported(device, 0, C_CAST(uint32_t, device->drive_info.deviceMaxLba), &maxNumberOfLogicalBlocksPerCommand);
     bool isFormatUnitSupported = is_Format_Unit_Supported(device, NULL);
     eraseMethod * currentErase = C_CAST(eraseMethod*, eraseMethodList);
@@ -697,12 +699,15 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     }
     memset(&sanitizeInfo, 0, sizeof(sanitizeFeaturesSupported));
     memset(&ataSecurityInfo, 0, sizeof(ataSecurityStatus));
+    memset(&nvmeFormatInfo, 0, sizeof(nvmeFormatSupport));
     //first make sure the list is initialized to all 1's (to help sorting later)
     memset(currentErase, 0xFF, sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS);
 
     get_Sanitize_Device_Features(device, &sanitizeInfo);
 
     get_ATA_Security_Info(device, &ataSecurityInfo, sat_ATA_Security_Protocol_Supported(device));
+
+    get_NVMe_Format_Support(device, &nvmeFormatInfo);
 
     //fastest will be sanitize crypto
     if (sanitizeInfo.crypto)
@@ -736,6 +741,29 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         currentErase->eraseWeight = 2;
         ++currentErase;
         formatUnitAdded = true;
+    }
+
+    if (device->drive_info.drive_type == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported)
+    {
+        //next up for NVMe is to list the format with user and crypto erase support.
+        if (nvmeFormatInfo.cryptographicEraseSupported)
+        {
+            currentErase->eraseIdentifier = ERASE_NVM_FORMAT_CRYPTO_SECURE_ERASE;
+            snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: Crypto Erase");
+            currentErase->eraseWeight = 0;
+            currentErase->warningValid = false;
+            ++currentErase;
+        }
+        //if NOT an NVM HDD, user erase should be next since it will most likely be as fast as a sanitize block erase
+        if (is_SSD(device))
+        {
+            currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
+            snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
+            currentErase->eraseWeight = 1;
+            currentErase->warningValid = false;
+            ++currentErase;
+            nvmFormatAdded = true;
+        }
     }
 
     //trim/unmap/deallocate are not allowed since they are "hints" rather than guaranteed erasure.
@@ -778,6 +806,17 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         currentErase->eraseWeight = 8;
         ++currentErase;
         formatUnitAdded = true;
+    }
+
+    if (device->drive_info.drive_type == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported && !nvmFormatAdded)
+    {
+        currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
+        snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
+        currentErase->eraseWeight = 8;//assuming that this will do a full drive overwrite format which will be slow
+        //NOTE: If crypto is supported, a request for user secure erase may run a crypto erase, but no way to know for sure-TJE
+        currentErase->warningValid = false;
+        ++currentErase;
+        nvmFormatAdded = true;
     }
 
     //write same
@@ -884,6 +923,7 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
         case ERASE_SANITIZE_CRYPTO:
         case ERASE_TCG_REVERT_SP:
         case ERASE_TCG_REVERT:
+        case ERASE_NVM_FORMAT_CRYPTO_SECURE_ERASE:
             cryptoSupported = true;
             break;
         case ERASE_SANITIZE_BLOCK:

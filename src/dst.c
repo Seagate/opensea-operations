@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -408,10 +408,29 @@ bool is_Self_Test_Supported(tDevice *device)
         if (is_SMART_Enabled(device))
         {
             //also check that self test is supported by the drive
-            if((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT1)
+            if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT1)
                 || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT1))
             {
-                supported = true;
+                //NOTE: Also need to check the SMART read data as it also contains a bit to indicate if DST is supported or not!
+                //      That field also indicates whether Short, extended, or conveyance tests are supported!
+                //      Since the SAMART read data has been made obsolete on newer standards, we may need a version check or something to keep proper behavior
+                //      as new devices show up without support for this information.
+                //SMART read data is listed as optional in ata/atapi-7
+                uint8_t smartData[512] = { 0 };
+                if (SUCCESS == ata_SMART_Read_Data(device, smartData, 512))
+                {
+                    //check the pff-line data collection capability field
+                    //assume this is more accurate since this seems to be the case with some older products
+                    if ((smartData[367] & BIT0) && (smartData[367] & BIT4))//bit0 = the subcommand, bit4 = self-test routine implemented (short and extended)
+                    {
+                        supported = true;
+                    }
+                }
+                else
+                {
+                    //assume that the identify bits were accurate for this command.
+                    supported = true;
+                }
             }
         }
         break;
@@ -429,7 +448,7 @@ bool is_Conveyence_Self_Test_Supported(tDevice *device)
         uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
-            if (smartReadData[367] & BIT5)
+            if ((smartReadData[367] & BIT0) && (smartReadData[367] & BIT5))
             {
                 supported = true;
             }
@@ -446,7 +465,7 @@ bool is_Selective_Self_Test_Supported(tDevice* device)
         uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
-            if (smartReadData[367] & BIT6)
+            if ((smartReadData[367] & BIT0) && (smartReadData[367] & BIT6))
             {
                 supported = true;
             }
@@ -958,166 +977,21 @@ int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
     return ret;
 }
 
-bool get_Error_LBA_From_ATA_DST_Log(tDevice *device, uint64_t *lba)
-{
-    bool isValidLBA = false;
-    uint32_t logSize = 0;
-    uint8_t *selfTestResults = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!selfTestResults)
-    {
-        return false;
-    }
-    if (device->drive_info.ata_Options.generalPurposeLoggingSupported && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
-    {
-        //read the extended self test results log with read log ext
-        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
-        {
-            uint16_t selfTestIndex = M_BytesTo2ByteValue(selfTestResults[3], selfTestResults[2]);
-            if (selfTestIndex > 0) 
-            {
-                uint8_t descriptorLength = 26;
-
-                //To calculate page number:
-                //   There are 19 descriptors in 512 bytes.
-                //   There are 4 reserved bytes in each sector + 18 at the end
-                //   26 * 19 + 18 = 512;
-
-                uint16_t zeroBasedIndex = selfTestIndex - 1;
-                uint16_t pageNumber = (zeroBasedIndex) / 19;
-                uint16_t entryWithinPage = (zeroBasedIndex) % 19;
-                uint16_t descriptorOffset = (entryWithinPage * descriptorLength) + 4;
-
-
-                if (VERBOSITY_BUFFERS == device->deviceVerbosity)
-                {
-                   printf("Page Number: %d\n",pageNumber);
-                   printf("Entry within page: %d\n",entryWithinPage);
-                   printf("Descriptor Offset:  %d\n",descriptorOffset);
-                }
-
-                if (pageNumber > 0)
-                {
-                    if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, selfTestResults, LEGACY_DRIVE_SEC_SIZE, 0))
-                    {
-                        //this SHOULDN'T happen, but in case it does, we need to fail gracefully
-                        safe_Free_aligned(selfTestResults)
-                        return false;
-                    }
-                }
-                //if we made it to here, our data buffer now has the log page that contains the descriptor we are looking for
-                if (M_Nibble1(selfTestResults[descriptorOffset + 1]) == 0x07)
-                {
-                    //LBA is a valid entry
-                    isValidLBA = true;
-                    *lba = M_BytesTo8ByteValue(0, 0, \
-                        selfTestResults[descriptorOffset + 10], selfTestResults[descriptorOffset + 9], \
-                        selfTestResults[descriptorOffset + 8], selfTestResults[descriptorOffset + 7], \
-                        selfTestResults[descriptorOffset + 6], selfTestResults[descriptorOffset + 5]);
-                }
-            }
-        }
-    }
-    else if(is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
-    {
-        //read the self tests results log with SMART read log
-        if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_SMART_SELF_TEST_LOG, selfTestResults, LEGACY_DRIVE_SEC_SIZE))
-        {
-            uint8_t selfTestIndex = selfTestResults[508];
-            if (selfTestIndex > 0)
-            {
-                uint8_t descriptorLength = 24;
-                uint8_t descriptorOffset = ((selfTestIndex * descriptorLength) - descriptorLength) + 2;
-                uint8_t executionStatusByte = selfTestResults[descriptorOffset + 1];
-                if (M_Nibble1(executionStatusByte) == 0x07)
-                {
-                    //LBA is a valid entry
-                    isValidLBA = true;
-                    *lba = C_CAST(uint64_t, M_BytesTo4ByteValue(selfTestResults[descriptorOffset + 8], selfTestResults[descriptorOffset + 7], \
-                        selfTestResults[descriptorOffset + 6], selfTestResults[descriptorOffset + 5]));
-                }
-            }
-        }
-    }
-    safe_Free_aligned(selfTestResults)
-    return isValidLBA;
-}
-
-bool get_Error_LBA_From_SCSI_DST_Log(tDevice *device, uint64_t *lba)
-{
-    bool isValidLBA = false;
-    uint8_t *selfTestResultsLog = C_CAST(uint8_t*, calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!selfTestResultsLog)
-    {
-        return false;
-    }
-    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SELF_TEST_RESULTS, 0, 0, selfTestResultsLog, LP_SELF_TEST_RESULTS_LEN))
-    {
-        uint8_t parameterOffset = 4;
-        //most recent result is always at the top of the log
-        uint8_t selfTestResult = M_Nibble0(selfTestResultsLog[parameterOffset + 4]);
-        //TODO: If we ever find another scsi device type where this is not true, we should keep this as a special case for ATA drives or block devices since they seem to report the failure this way.
-        if (selfTestResult == 0x07/*read element failure*/)
-        {
-            
-            *lba = M_BytesTo8ByteValue(selfTestResultsLog[parameterOffset + 8], selfTestResultsLog[parameterOffset + 9], \
-                selfTestResultsLog[parameterOffset + 10], selfTestResultsLog[parameterOffset + 11], \
-                selfTestResultsLog[parameterOffset + 12], selfTestResultsLog[parameterOffset + 13], \
-                selfTestResultsLog[parameterOffset + 14], selfTestResultsLog[parameterOffset + 15]);
-            //SCSI spec says that is the error is associated with an LBA, then it will have an LBA valud, otherwise it will be all F's
-            if (*lba != UINT64_MAX)
-            {
-                isValidLBA = true;
-            }
-        }
-    }
-    safe_Free_aligned(selfTestResultsLog)
-    return isValidLBA;
-}
-
-bool get_Error_LBA_From_NVMe_DST_Log(tDevice *device, uint64_t *lba)
-{
-    bool isValidLBA = false;
-    nvmeGetLogPageCmdOpts dstLogParms;
-    memset(&dstLogParms, 0, sizeof(nvmeGetLogPageCmdOpts));
-    uint8_t nvmeDSTLog[564] = { 0 };
-    dstLogParms.addr = nvmeDSTLog;
-    dstLogParms.dataLen = 564;
-    dstLogParms.lid = 0x06;
-    dstLogParms.nsid = UINT32_MAX;
-    if (SUCCESS == nvme_Get_Log_Page(device, &dstLogParms))
-    {
-        //first entry is most recent and starts at offset of 4
-        if (nvmeDSTLog[4 + 2] & BIT1)//check if flba is set
-        {
-            isValidLBA = true;
-            *lba = M_BytesTo8ByteValue(nvmeDSTLog[4 + 23], nvmeDSTLog[4 + 22], nvmeDSTLog[4 + 21], nvmeDSTLog[4 + 20], nvmeDSTLog[4 + 19], nvmeDSTLog[4 + 18], nvmeDSTLog[4 + 17], nvmeDSTLog[4 + 16]);
-        }
-    }
-    return isValidLBA;
-}
-
 bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
 {
     bool isValidLBA = false;
     *lba = UINT64_MAX;//set to something crazy in case caller ignores return type
-    switch (device->drive_info.drive_type)
+    dstLogEntries dstEntries;
+    memset(&dstEntries, 0, sizeof(dstLogEntries));
+    if (get_DST_Log_Entries(device, &dstEntries) == SUCCESS)
     {
-    case ATA_DRIVE:
-        isValidLBA = get_Error_LBA_From_ATA_DST_Log(device, lba);
-        if (!isValidLBA && device->drive_info.interface_type != IDE_INTERFACE)
+        if (dstEntries.numberOfEntries > 0
+            && dstEntries.dstEntry[0].descriptorValid
+            && M_Nibble1(dstEntries.dstEntry[0].selfTestExecutionStatus) == 0x07)
         {
-            //try reading the scsi DST log since we didn't successfully retrieve it from the ATA log with passthrough commands
-            isValidLBA = get_Error_LBA_From_SCSI_DST_Log(device, lba);
+            isValidLBA = true;
+            *lba = dstEntries.dstEntry[0].lbaOfFailure;
         }
-        break;
-    case NVME_DRIVE:
-        isValidLBA = get_Error_LBA_From_NVMe_DST_Log(device, lba);
-        break;
-    case SCSI_DRIVE:
-        isValidLBA = get_Error_LBA_From_SCSI_DST_Log(device, lba);
-        break;
-    default:
-        break;
     }
     return isValidLBA;
 }
@@ -1126,7 +1000,6 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
 {
     int ret = SUCCESS;//assume this works successfully
     errorLBA *errorList = NULL;
-    bool localErrorList = false;
     uint64_t *errorIndex = NULL;
     uint64_t localErrorIndex = 0;
     uint64_t totalErrors = 0;
@@ -1155,8 +1028,6 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
             perror("calloc failure\n");
             return MEMORY_FAILURE;
         }
-        errorList[0].errorAddress = UINT64_MAX;
-        localErrorList = true;
         errorIndex = &localErrorIndex;
     }
     else
@@ -1180,7 +1051,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
             printf("Running DST.\n");
         }
 
-        if (SUCCESS == run_DST(device, 1, false, false, true))
+        if (SUCCESS == run_DST(device, DST_TYPE_SHORT, false, false, true))
         {
             //poll until it finished
             delay_Seconds(1);
@@ -1325,9 +1196,9 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                                     printf("Reparing LBA %"PRIu64"\n", iter);
                                 }
                                 //add the LBA to the error list we have going, then repair it
-                                errorList[totalErrors].repairStatus = NOT_REPAIRED;
-                                errorList[totalErrors].errorAddress = iter;
-                                repairRet = repair_LBA(device, &errorList[totalErrors], passthroughWrite, autoWriteReassign, autoReadReassign);
+                                errorList[*errorIndex].repairStatus = NOT_REPAIRED;
+                                errorList[*errorIndex].errorAddress = iter;
+                                repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
                                 ++totalErrors;
                                 ++(*errorIndex);
                                 if (FAILURE == repairRet)
@@ -1373,23 +1244,26 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
     {
         ret = FAILURE;
     }
-    if (device->deviceVerbosity > VERBOSITY_QUIET && localErrorList)
+    if (!externalErrorList)
     {
-        if (errorList[0].errorAddress != UINT64_MAX)
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            print_LBA_Error_List(errorList, C_CAST(uint16_t, *errorIndex));
-            if (unableToRepair)
+            if (totalErrors > 0)
             {
-                printf("Other errors were found during DST, but were unable to be repaired.\n");
+                print_LBA_Error_List(errorList, C_CAST(uint16_t, *errorIndex));
+                if (unableToRepair)
+                {
+                    printf("Other errors were found during DST, but were unable to be repaired.\n");
+                }
             }
-        }
-        else if (unableToRepair)
-        {
-            printf("An error was detected during DST but it is unable to be repaired.\n");
-        }
-        else
-        {
-            printf("No bad LBAs detected during DST and Clean.\n");
+            else if (unableToRepair)
+            {
+                printf("An error was detected during DST but it is unable to be repaired.\n");
+            }
+            else
+            {
+                printf("No bad LBAs detected during DST and Clean.\n");
+            }
         }
         safe_Free_aligned(errorList)
     }
@@ -1417,7 +1291,7 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             return MEMORY_FAILURE;
         }
         //read the extended self test results log with read log ext
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, NULL, NULL, true, false, true, selfTestResults, extLogSize, NULL, 0,0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, NULL, NULL, true, false, true, selfTestResults, extLogSize, NULL, 0, 0))
         //if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
         {
             ret = SUCCESS;
@@ -1465,15 +1339,23 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         entries->dstEntry[entries->numberOfEntries].lifetimeTimestamp = M_BytesTo2ByteValue(selfTestResults[offset + 3], selfTestResults[offset + 2]);
                         entries->dstEntry[entries->numberOfEntries].checkPointByte = selfTestResults[offset + 4];
                         entries->dstEntry[entries->numberOfEntries].lbaOfFailure = M_BytesTo8ByteValue(0, 0, selfTestResults[offset + 10], selfTestResults[offset + 9], selfTestResults[offset + 8], selfTestResults[offset + 7], selfTestResults[offset + 6], selfTestResults[offset + 5]);
+                        //if LBA field is all F's, this is meant to signify an invalid value like T10 specs say to do - TJE
+                        if (entries->dstEntry[entries->numberOfEntries].lbaOfFailure == MAX_48_BIT_LBA)
+                        {
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
+                        }
+
                         memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], &selfTestResults[offset + 11], 15);
                         //dummy up sense data...
-                        switch (entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus)
+                        switch (M_Nibble1(entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus))
                         {
                         case 0:
                         case 15:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_NO_ERROR;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCode = 0;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCodeQualifier = 0;
+                            //NOTE: This is a workaround to clear out the LBA on success:
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
                             break;
                         case 1:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_ABORTED_COMMAND;
@@ -1599,14 +1481,23 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         entries->dstEntry[entries->numberOfEntries].checkPointByte = selfTestResults[offset + 4];
                         entries->dstEntry[entries->numberOfEntries].lbaOfFailure = M_BytesTo4ByteValue(selfTestResults[offset + 8], selfTestResults[offset + 7], selfTestResults[offset + 6], selfTestResults[offset + 5]);
                         memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], &selfTestResults[offset + 9], 15);
+                        //if LBA field is all F's, this is meant to signify an invalid value like T10 specs say to do - TJE
+                        //filtering 28bit all F's and 32bit all F's since it is not clear exactly how many drives will report this invalid value -TJE
+                        if (entries->dstEntry[entries->numberOfEntries].lbaOfFailure == MAX_28_BIT_LBA || entries->dstEntry[entries->numberOfEntries].lbaOfFailure == UINT32_MAX)
+                        {
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
+                        }
+
                         //dummy up sense data...
-                        switch (entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus)
+                        switch (M_Nibble1(entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus))
                         {
                         case 0:
                         case 15:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_NO_ERROR;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCode = 0;
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.additionalSenseCodeQualifier = 0;
+                            //NOTE: This is a workaround to clear out the LBA on success:
+                            entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
                             break;
                         case 1:
                             entries->dstEntry[entries->numberOfEntries].scsiSenseCode.senseKey = SENSE_KEY_ABORTED_COMMAND;

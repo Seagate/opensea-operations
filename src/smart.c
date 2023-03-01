@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -722,9 +722,9 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 242: //Lifetime Reads from Host
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
             break;
-		case 246: //Write Protect Detail 
-			snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
-			break;
+        case 246: //Write Protect Detail 
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
+            break;
         default:
             break;
         }
@@ -1939,59 +1939,29 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     int ret = NOT_SUPPORTED; //command return value
     if (is_SMART_Enabled(device))
     {
-        bool attemptCheckWithAttributes = false;
-        //if (supports_ATA_Return_SMART_Status_Command(device))//USB hack. Will return true on IDE/SCSI interface. May return true or false otherwise depending on what device we detect
+        //NOTE: ATA-3 and up all report the return status as mandatory when smart is supported and enabled
+        //      HOWEVER: SFF-8035i lists this as an optional command.
+        //      Always attempt a SMART return status command, then perform workarounds to get the status if it fails.
+        ret = ata_SMART_Return_Status(device);
+        if (ret == SUCCESS && device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
         {
-            ret = ata_SMART_Return_Status(device);
-            if (device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
-            {
-                ret = SUCCESS;
-            }
-            else if (device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_BAD_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_BAD_SIG_HI)
-            {
-                //SMART is tripped
-                ret = FAILURE;
-            }
-            else
-            {
-                //try SCT status log first...
-                ret = get_ATA_SMART_Status_From_SCT_Log(device);
-                if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
-                {
-                    //try use SAT translation instead
-                    ret = scsi_SMART_Check(device, tripInfo);
-                    if (ret == UNKNOWN)
-                    {
-                        attemptCheckWithAttributes = true;
-                    }
-                }
-                else
-                {
-                    attemptCheckWithAttributes = true;
-                }
-            }
+            ret = SUCCESS;
         }
-//      else
-//      {
-//          //this device doesn't support getting SMART status from return status command (translator bug)
-//          //try other methods.
-//          ret = get_ATA_SMART_Status_From_SCT_Log(device);
-//          if (ret == UNKNOWN && device->drive_info.interface_type != IDE_INTERFACE)
-//          {
-//              //try use SAT translation instead
-//              ret = scsi_SMART_Check(device, tripInfo);
-//              if (ret == UNKNOWN)
-//              {
-//                  attemptCheckWithAttributes = true;
-//              }
-//          }
-//          else
-//          {
-//              attemptCheckWithAttributes = true;
-//          }
-//      }
+        else if (ret == SUCCESS && device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_BAD_SIG_MID && device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_BAD_SIG_HI)
+        {
+            //SMART is tripped
+            ret = FAILURE;
+        }
+        else
+        {
+            //try SCT status log first...
+            //SCT status log added a copy of the SMART status to it in ACS-4
+            //this MIGHT be available earlier than that in ACS-3 compliant drives, but it is not super likely.
+            //this will be attempted, but may need to do a attributes to thresholds comparison to know for sure.
+            ret = get_ATA_SMART_Status_From_SCT_Log(device);
+        }
         
-        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED || attemptCheckWithAttributes)
+        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED)
         {
             smartLogData attributes;
             memset(&attributes, 0, sizeof(smartLogData));
@@ -2004,6 +1974,10 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     {
                         if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdDataValid)
                         {
+                            if (ret != FAILURE)
+                            {
+                                ret = SUCCESS;//need to set this to "pass" since we will otherwise keep a unknown status or not supported status
+                            }
                             if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0)
                             {
                                 //skip, this is an always passing attribute
@@ -2066,6 +2040,13 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                     }
                 }
             }
+        }
+
+        //last resort, try a SCSI style SMART check if the translator supports it.
+        if ((ret == UNKNOWN || ret == NOT_SUPPORTED) && device->drive_info.interface_type != IDE_INTERFACE)
+        {
+            //try use SAT translation instead
+            ret = scsi_SMART_Check(device, tripInfo);
         }
     }
     return ret;
@@ -2296,7 +2277,7 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     bool temporarilyEnableMRIEMode6 = false;//This will hold if we are changing the mode from a value of 1-5 to 6. DO NOT CHANGE IT IF IT IS ZERO! We should return NOT_SUPPORTED in this case. - TJE
     uint32_t delayTimeMilliseconds = 0;//This will be used to make a delay only if the interval is a value less than 1000milliseconds, otherwise we'll change the mode page.
     //get informational exceptions data from the drive first
-    if(SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &infoExceptionsControl, &infoExceptionsLog) || infoExceptionsLog.isValid)
+    if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &infoExceptionsControl, &infoExceptionsLog) || infoExceptionsLog.isValid)
     {
         if (infoExceptionsLog.isValid)
         {
@@ -2756,13 +2737,27 @@ int get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
     {
         uint8_t defectData[8] = { 0 };
         //get by reading the grown list since it contains a number of entries at the beggining
-        if (SUCCESS == scsi_Read_Defect_Data_12(device, false, true, AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR, 0, 8, defectData))//physical chs
+        uint8_t defectListFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+        uint32_t listSizeDivisor = UINT32_C(8);
+        if (is_SSD(device))
         {
-            *grownCount = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) / 8;
+            if (device->drive_info.deviceMaxLba > UINT32_MAX)
+            {
+                defectListFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else
+            {
+                defectListFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+                listSizeDivisor = UINT32_C(4);
+            }
         }
-        else if (SUCCESS == scsi_Read_Defect_Data_10(device, false, true, AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR, 8, defectData))
+        if (SUCCESS == scsi_Read_Defect_Data_12(device, false, true, defectListFormat, 0, 8, defectData))
         {
-            *grownCount = M_BytesTo2ByteValue(defectData[2], defectData[3]) / 8;
+            *grownCount = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) / listSizeDivisor;
+        }
+        else if (SUCCESS == scsi_Read_Defect_Data_10(device, false, true, defectListFormat, 8, defectData))
+        {
+            *grownCount = M_BytesTo2ByteValue(defectData[2], defectData[3]) / listSizeDivisor;
         }
         else
         {
@@ -4162,8 +4157,8 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
     case ATA_WRITE_LONG_NORETRY:
     case ATA_READ_LONG_NORETRY:
         //noRetries = true;
-    case ATA_READ_LONG_RETRY:
-    case ATA_WRITE_LONG_RETRY:
+    case ATA_READ_LONG_RETRY_CMD:
+    case ATA_WRITE_LONG_RETRY_CMD:
         //longCmd = true;
         break;
     case ATA_READ_SECT_NORETRY:
@@ -4174,10 +4169,10 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
     case ATA_READ_SECT:
     case ATA_WRITE_SECT:
     case ATA_WRITE_SECTV_RETRY:
-    case ATA_READ_MULTIPLE:
-    case ATA_WRITE_MULTIPLE:
-    case ATA_READ_DMA_RETRY:
-    case ATA_WRITE_DMA_RETRY:
+    case ATA_READ_MULTIPLE_CMD:
+    case ATA_WRITE_MULTIPLE_CMD:
+    case ATA_READ_DMA_RETRY_CMD:
+    case ATA_WRITE_DMA_RETRY_CMD:
         break;
     case ATA_READ_SECT_EXT:
     case ATA_READ_DMA_EXT:
@@ -6197,7 +6192,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_REQUEST_SENSE_DATA:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Request Sense Data");
         break;
-    case ATA_RECALIBRATE://this can have various values for the lower nibble which conflict with new command standards
+    case ATA_RECALIBRATE_CMD://this can have various values for the lower nibble which conflict with new command standards
     case 0x11:
     //case ATA_GET_PHYSICAL_ELEMENT_STATUS://or recalibrate? check the count register...it should be non-zero
     case 0x12:
@@ -6236,7 +6231,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_READ_SECT_NORETRY:
         get_Read_Write_Command_Info("Read Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_READ_LONG_RETRY:
+    case ATA_READ_LONG_RETRY_CMD:
         get_Read_Write_Command_Info("Read Long", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_LONG_NORETRY:
@@ -6272,7 +6267,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_WRITE_SECT_NORETRY:
         get_Read_Write_Command_Info("Write Sectors (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_WRITE_LONG_RETRY:
+    case ATA_WRITE_LONG_RETRY_CMD:
         get_Read_Write_Command_Info("Write Long", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_WRITE_LONG_NORETRY:
@@ -6358,7 +6353,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_ZONE_MANAGEMENT_IN:
         get_ZAC_Management_In_Command_Info("ZAC Management In", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_FORMAT_TRACK:
+    case ATA_FORMAT_TRACK_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
         break;
     case ATA_CONFIGURE_STREAM:
@@ -6523,7 +6518,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters. Logical Sectors Per Track: %" PRIu8 "  Max Head: %" PRIu8 "", sectorsPerTrack, maxHead);
     }
         break;
-    case ATA_DOWNLOAD_MICROCODE:
+    case ATA_DOWNLOAD_MICROCODE_CMD:
         get_Download_Command_Info("Download Microcode", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_DOWNLOAD_MICROCODE_DMA:
@@ -6556,7 +6551,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATAPI_IDENTIFY:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
         break;
-    case ATA_SMART:
+    case ATA_SMART_CMD:
         get_SMART_Command_Info("SMART", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_DCO:
@@ -6574,10 +6569,10 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_NV_CACHE:
         get_NV_Cache_Command_Info("NV Cache", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_READ_MULTIPLE:
+    case ATA_READ_MULTIPLE_CMD:
         get_Read_Write_Command_Info("Read Multiple", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_WRITE_MULTIPLE:
+    case ATA_WRITE_MULTIPLE_CMD:
         get_Read_Write_Command_Info("Write Multiple", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_SET_MULTIPLE:
@@ -6586,13 +6581,13 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_READ_DMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Read DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_READ_DMA_RETRY:
+    case ATA_READ_DMA_RETRY_CMD:
         get_Read_Write_Command_Info("Read DMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_DMA_NORETRY:
         get_Read_Write_Command_Info("Read DMA (No Retry)", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_WRITE_DMA_RETRY:
+    case ATA_WRITE_DMA_RETRY_CMD:
         get_Read_Write_Command_Info("Write DMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_WRITE_DMA_NORETRY:
@@ -6616,10 +6611,10 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_PRE_BOOT:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Pre Boot");
         break;
-    case ATA_DOOR_LOCK:
+    case ATA_DOOR_LOCK_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Lock");
         break;
-    case ATA_DOOR_UNLOCK:
+    case ATA_DOOR_UNLOCK_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Unlock");
         break;
     case ATA_STANDBY_IMMD:
@@ -6643,22 +6638,22 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
         }
         break;
-    case ATA_STANDBY:
+    case ATA_STANDBY_CMD:
         get_Idle_Or_Standby_Command_Info("Standby", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_IDLE:
+    case ATA_IDLE_CMD:
         get_Idle_Or_Standby_Command_Info("Idle", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_BUF:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
         break;
-    case ATA_CHECK_POWER_MODE:
+    case ATA_CHECK_POWER_MODE_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Check Power Mode");
         break;
     case ATA_SLEEP_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sleep");
         break;
-    case ATA_FLUSH_CACHE:
+    case ATA_FLUSH_CACHE_CMD:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache");
         break;
     case ATA_WRITE_BUF:
@@ -6778,8 +6773,8 @@ static bool is_Read_Write_Command(uint8_t commandOpCode)
     {
     case ATA_WRITE_LONG_NORETRY:
     case ATA_READ_LONG_NORETRY:
-    case ATA_READ_LONG_RETRY:
-    case ATA_WRITE_LONG_RETRY:
+    case ATA_READ_LONG_RETRY_CMD:
+    case ATA_WRITE_LONG_RETRY_CMD:
     case ATA_READ_SECT_NORETRY:
     case ATA_WRITE_SECT_NORETRY:
     case ATA_READ_DMA_NORETRY:
@@ -6787,10 +6782,10 @@ static bool is_Read_Write_Command(uint8_t commandOpCode)
     case ATA_READ_SECT:
     case ATA_WRITE_SECT:
     case ATA_WRITE_SECTV_RETRY:
-    case ATA_READ_MULTIPLE:
-    case ATA_WRITE_MULTIPLE:
-    case ATA_READ_DMA_RETRY:
-    case ATA_WRITE_DMA_RETRY:
+    case ATA_READ_MULTIPLE_CMD:
+    case ATA_WRITE_MULTIPLE_CMD:
+    case ATA_READ_DMA_RETRY_CMD:
+    case ATA_WRITE_DMA_RETRY_CMD:
     case ATA_READ_SECT_EXT:
     case ATA_READ_DMA_EXT:
     case ATA_READ_READ_MULTIPLE_EXT:
@@ -6902,7 +6897,7 @@ static bool is_Possible_Recalibrate_Command(uint8_t commandOpCodeThatCausedError
 
 static bool is_Recalibrate_Command(uint8_t commandOpCodeThatCausedError)
 {
-    if (commandOpCodeThatCausedError == ATA_RECALIBRATE)
+    if (commandOpCodeThatCausedError == ATA_RECALIBRATE_CMD)
     {
         return true;
     }

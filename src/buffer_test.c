@@ -1,7 +1,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -252,7 +252,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -281,7 +281,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -359,7 +359,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -388,7 +388,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -438,7 +438,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:
@@ -467,7 +467,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             case NOT_SUPPORTED:
                 breakFromLoop = true;
                 break;
-            case COMMAND_TIMEOUT:
+            case OS_COMMAND_TIMEOUT:
                 ++(testResults->totalCommandTimeouts);
                 break;
             case SUCCESS:

@@ -69,6 +69,7 @@
   src/writesame.c
   src/zoned_operations.c
   src/reservations.c
+  src/farm_log.c
 
 [Packages]
   StdLib/StdLib.dec
