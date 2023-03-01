@@ -2737,13 +2737,27 @@ int get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
     {
         uint8_t defectData[8] = { 0 };
         //get by reading the grown list since it contains a number of entries at the beggining
-        if (SUCCESS == scsi_Read_Defect_Data_12(device, false, true, AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR, 0, 8, defectData))//physical chs
+        uint8_t defectListFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+        uint32_t listSizeDivisor = UINT32_C(8);
+        if (is_SSD(device))
         {
-            *grownCount = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) / 8;
+            if (device->drive_info.deviceMaxLba > UINT32_MAX)
+            {
+                defectListFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+            }
+            else
+            {
+                defectListFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+                listSizeDivisor = UINT32_C(4);
+            }
         }
-        else if (SUCCESS == scsi_Read_Defect_Data_10(device, false, true, AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR, 8, defectData))
+        if (SUCCESS == scsi_Read_Defect_Data_12(device, false, true, defectListFormat, 0, 8, defectData))
         {
-            *grownCount = M_BytesTo2ByteValue(defectData[2], defectData[3]) / 8;
+            *grownCount = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) / listSizeDivisor;
+        }
+        else if (SUCCESS == scsi_Read_Defect_Data_10(device, false, true, defectListFormat, 8, defectData))
+        {
+            *grownCount = M_BytesTo2ByteValue(defectData[2], defectData[3]) / listSizeDivisor;
         }
         else
         {

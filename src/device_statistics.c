@@ -6633,6 +6633,11 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     {
         defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
     }
+    if (!is_SSD(device))
+    {
+        //this should work on just about any HDD
+        defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
+    }
     while (!gotGrownDefectCount)
     {
         //This loop is so that we can retry with different formats if it does not work the first time - TJE
@@ -6657,23 +6662,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
         }
         if (defectRet != SUCCESS && !gotGrownDefectCount)
         {
-            if (defectFormat == AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
-            {
-                defectFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
-            }
-            else if (defectFormat == AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR)
-            {
-                defectFormat = AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
-            }
-            else if (defectFormat == AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR)
-            {
-                //special case to restart the loop again with long address types in case short are not supported, but it isn't a high capacity devices
-                defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
-            }
-            else
-            {
-                break;
-            }
+            break;
         }
         else
         {
