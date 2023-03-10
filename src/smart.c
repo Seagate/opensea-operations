@@ -181,6 +181,9 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 197: //Pending-Sparing Count
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
             break;
+        case 198: //offline Uncorrectable Sector Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sector Count");
+            break;
         case 199: //Ultra DMA CRC Error
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
             break;
@@ -940,16 +943,21 @@ static uint64_t ata_SMART_Raw_Bytes_To_Int(ataSMARTValue* currentAttribute, uint
     }
     if (rawCounterLSB <= rawCounterMSB)//allowing equals for single bytes
     {
-        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter > 0 && iter >= rawCounterLSB; --iter, ++counter)
+        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter >= rawCounterLSB; --iter, ++counter)
         {
             decimalValue <<= 8;
             decimalValue |= currentAttribute->data.rawData[iter];
+            if (iter == 0)
+            {
+                //exit the loop to make sure there is no undefined behavior
+                break;
+            }
         }
     }
     else
     {
         //opposite byte ordering from above
-        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter > 0 && iter <= rawCounterLSB; ++iter, ++counter)
+        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter <= rawCounterLSB; ++iter, ++counter)
         {
             decimalValue <<= 8;
             decimalValue |= currentAttribute->data.rawData[iter];
@@ -1208,7 +1216,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 case 197: //Pending-Sparing Count
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
-                case 198://offlince uncorrectable sectors
+                case 198://offline uncorrectable sectors
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
                 case 199: //Ultra DMA CRC Error
