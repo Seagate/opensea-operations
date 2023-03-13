@@ -2099,6 +2099,7 @@ static int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondInc
     if (device->drive_info.IdentifyData.ata.Word049 & BIT13)//this is the only bit across all ATA standards that will most likely work. Prior to ATA3, there was no other support bit for the power management feature set.
     {
         uint8_t standbyTimer = 0;
+        uint8_t currentPowerMode = 0;
         if (hundredMillisecondIncrements == 0)
         {
             //send standby immediate and return immediately
@@ -2128,8 +2129,20 @@ static int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondInc
         {
             standbyTimer = 0xFD;
         }
-        //if we made it here, send a standby command with the count field set from above. Standby immediate case will already have returned.
-        ret = ata_Standby(device, standbyTimer);
+        //if we made it here, set the timer.
+        //Check the current power mode. If the drive is in standby already, use standby, otherwise use idle to set the timer.
+        //NOTE: Previously only the standby command was used like in SAT-5 for non-EPC. Changed to checking states, but only non-EPC behavior
+        ata_Check_Power_Mode(device, &currentPowerMode);
+        if (currentPowerMode == 0)
+        {
+            ret = ata_Standby(device, standbyTimer);
+        }
+        else
+        {
+            //not in standby mode, so use idle. NOTE: This does not take into account EPC, but this is meant for legacy drives anyways, so this does not need to be complicated.
+            //This may affect standby_y, but users should be using EPC instead if they want better, more granular timers anyways. -TJE
+            ret = ata_Idle(device, standbyTimer);
+        }
     }
     return ret;
 }
