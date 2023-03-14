@@ -152,36 +152,45 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         {
             newMaxLBA = nativeMaxLBA;
         }
-        if (device->drive_info.IdentifyData.ata.Word119 & BIT8)
+        if ((reset && (newMaxLBA - 1) == device->drive_info.deviceMaxLba) || (newMaxLBA == device->drive_info.deviceMaxLba))//The -1 is due to how maxlba is read and saved in the tDevice struct.
         {
-            //accessible Max Address Configuration feature set supported
-            ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA);
+            //already at maxLBA. Do not make a change.
+            //Both HPA and AMAC will require a power cycle between calls to setting the maxLBA, so no need to use that up if this has already been set.
+            ret = SUCCESS;
         }
-        else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
+        else
         {
-            if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
+            if (device->drive_info.IdentifyData.ata.Word119 & BIT8)
             {
-                ret = ata_Set_Max_Address_Ext(device, newMaxLBA, true); //this is a non-volitile command
+                //accessible Max Address Configuration feature set supported
+                ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA);
             }
-            else
+            else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
             {
-                if (newMaxLBA <= MAX_28BIT)
+                if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
                 {
-                    ret = ata_Set_Max_Address(device, C_CAST(uint32_t, newMaxLBA), true); //this is a non-volitile command
+                    ret = ata_Set_Max_Address_Ext(device, newMaxLBA, true); //this is a non-volitile command
                 }
                 else
                 {
-                    ret = NOT_SUPPORTED;
+                    if (newMaxLBA <= MAX_28BIT)
+                    {
+                        ret = ata_Set_Max_Address(device, C_CAST(uint32_t, newMaxLBA), true); //this is a non-volitile command
+                    }
+                    else
+                    {
+                        ret = NOT_SUPPORTED;
+                    }
                 }
             }
-        }
-        else //shouldn't even get here right now...
-        {
-            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            else //shouldn't even get here right now...
             {
-                printf("Setting max LBA is not supported on this device\n");
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("Setting max LBA is not supported on this device\n");
+                }
+                ret = NOT_SUPPORTED;
             }
-            ret = NOT_SUPPORTED;
         }
     }
     if (ret == SUCCESS)
