@@ -92,7 +92,7 @@ static int check_For_Power_Cycle_Required(int ret, tDevice *device)
 {
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
     //Check if the device needs a power cycle to complete the update...This has been necessary in Windows with the Intel NVMe driver in some cases
-    if (ret == SUCCESS)
+    if (ret == SUCCESS && device->drive_info.drive_type == NVME_DRIVE)
     {
         //we do not already have a "Power cycle is requied" return code, so need to check the firmware log for the NVMe device to see if the "next active" slot value is non-zero.
         //If it is non-zero then the low-level driver did not issue the necessary reset for activation.
