@@ -197,6 +197,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
         }
 
+        bool automaticModeDetection = false;
         supportedDLModes fwdlSupport;
         memset(&fwdlSupport, 0, sizeof(supportedDLModes));
         fwdlSupport.version = SUPPORTED_FWDL_MODES_VERSION;
@@ -205,6 +206,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
 
         if (options->dlMode == FWDL_UPDATE_MODE_AUTOMATIC)
         {
+            automaticModeDetection = true;
             options->dlMode = fwdlSupport.recommendedDownloadMode;
         }
 
@@ -355,11 +357,12 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                     device->os_info.fwdlIOsupport.fwdlIOSupported = false;
                 }
             }
-#endif
-#endif
+#endif //WINVER >= WIN10
+#endif //_WIN32 && WINVER
             os_Lock_Device(device);
             //start the download
-            for (currentDownloadBlock = 0; currentDownloadBlock < downloadBlocks; currentDownloadBlock++, downloadOffset += downloadSize)
+            currentDownloadBlock = 0;
+            while (currentDownloadBlock < downloadBlocks)
             {
                 bool lastSegment = false;
                 bool firstSegment = false;
@@ -386,8 +389,62 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 }
                 if (ret != SUCCESS)
                 {
-                    break;
+                    if (automaticModeDetection && (downloadMode == DL_FW_DEFERRED || downloadMode == DL_FW_DEFERRED_SELECT_ACTIVATE) && downloadOffset == 0 && device->drive_info.drive_type != NVME_DRIVE)
+                    {
+                        //possible drive bug where it reported an unsupported mode
+                        //try changing to a segmented mode
+                        //This retry is only when not forcing a specific mode and when the very first segment fails.
+                        //2 more conditions for this. 
+                        // 1. For SCSI/SAS, need to look for invalid field in CDB. An invalid firmware returns invalid field in parameter list, so if you get invalid field in parameter, do NOT retry.
+                        // 2. For ATA/SATA, need to look for a command abort in the rtfrs. There is no other way for SATA to specify things, so it is a less robust check
+                        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status & ATA_STATUS_BIT_ERROR && device->drive_info.lastCommandRTFRs.error & ATA_ERROR_BIT_ABORT)
+                        {
+                            options->dlMode = FWDL_UPDATE_MODE_SEGMENTED;
+                            downloadMode = DL_FW_SEGMENTED;
+                            if (device->deviceVerbosity > VERBOSITY_QUIET)
+                            {
+                                printf("\nAutomatic deferred download failed even though drive said it supports deferred download.\n");
+                                printf("Retrying the download with segmented download mode instead.\n");
+                                fflush(stdout);
+                            }
+                            continue;
+                        }
+                        else if (device->drive_info.drive_type == SCSI_DRIVE)
+                        {
+                            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
+                            {
+                                options->dlMode = FWDL_UPDATE_MODE_SEGMENTED;
+                                downloadMode = DL_FW_SEGMENTED;
+                                if (device->deviceVerbosity > VERBOSITY_QUIET)
+                                {
+                                    printf("\nAutomatic deferred download failed even though drive said it supports deferred download.\n");
+                                    printf("Retrying the download with segmented download mode instead.\n");
+                                    fflush(stdout);
+                                }
+                                continue;
+                            }
+                            else
+                            {
+                                //this is not a case to issue a retry as it looks like the drive rejected the command for another reason
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            //this is not a case to issue a retry as it looks like the drive rejected the command for another reason
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        //error occured for a specific mode rather than automatic mode for deferred download, so exit and do not continue trying the download.
+                        break;
+                    }
                 }
+                currentDownloadBlock++;
+                downloadOffset += downloadSize;
             }
 
             if (!downloadRemainder)
@@ -509,8 +566,8 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 ret = POWER_CYCLE_REQUIRED;
             }
-#endif
-#endif
+#endif //WINVER >= WIN10
+#endif //_WIN32 && WINVER
         }
     }
     else //invalid or incompatible update structure.
