@@ -40,6 +40,17 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     {
         //only unmount when we are touching boot sectors!
         os_Unmount_File_Systems_On_Device(device);
+        if ((eraseRangeStart + eraseRangeEnd) >= device->drive_info.deviceMaxLba)
+        {
+            //At least in WIndows, you MIGHT get a permissions issue trying to write LBA 0 and maxlba.
+            //So if this erase is erasing the whole drive, do this first to make sure we use a low-level
+            //IOCTL to do this. Once that completes it should be possible to erase the drive without an error.
+            if (SUCCESS == os_Erase_Boot_Sectors(device))
+            {
+                flush_Cache(device);//in case the OS call didn't flush the writes, make sure we flush them
+                os_Update_File_System_Cache(device);//tell the OS to update what it knows about the disk (that the partition table is gone now basically)
+            }
+        }
     }
     if (eraseRangeStart != alignedLBA)
     {
@@ -249,6 +260,57 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
             iter = 0;
             sectors = get_Sector_Count_For_Read_Write(device);
         }
+    }
+    flush_Cache(device);
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
+    {
+        printf("\n");
+    }
+    safe_Free_aligned(writeBuffer)
+    os_Unlock_Device(device);
+    os_Update_File_System_Cache(device);
+    return ret;
+}
+
+//This erases the first 32KiB and last 32 KiB of the drive.
+int erase_Boot_Sectors(tDevice* device)
+{
+    int ret = SUCCESS;
+    uint32_t sectors = get_Sector_Count_For_Read_Write(device);
+    uint64_t iter = 0;
+    uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
+    uint8_t* writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (writeBuffer == NULL)
+    {
+        perror("calloc failure! Write Buffer - erase range");
+        return MEMORY_FAILURE;
+    }
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
+    {
+        printf("\n");
+    }
+    os_Lock_Device(device);
+    os_Unmount_File_Systems_On_Device(device);
+
+    //Try this first. Currently in Windows this is needed for some devices as raw writes return permision denied
+    ret = os_Erase_Boot_Sectors(device);
+    if (ret == SUCCESS)
+    {
+        os_Update_File_System_Cache(device);
+    }
+    //even if the OS erase boot sectors succeeds, issue the following writes anyways to make sure it really did erase everything.
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
+    {
+        printf("\rWriting LBA: %-40"PRIu64"", iter);
+        fflush(stdout);
+    }
+    //NOTE: this currently only issues 2 writes counting on the sector count being either enough for 32KiB or 64KiB. This is far from perfect, but will work for now.-TJE
+    //write sector zero
+    ret = write_LBA(device, iter, false, writeBuffer, dataLength);
+    if (ret == SUCCESS)
+    {
+        //write max LBA only if LBA 0 wrote successfully
+        ret = write_LBA(device, device->drive_info.deviceMaxLba - iter, false, writeBuffer, dataLength);
     }
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
