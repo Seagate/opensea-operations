@@ -403,8 +403,9 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                             downloadMode = DL_FW_SEGMENTED;
                             if (device->deviceVerbosity > VERBOSITY_QUIET)
                             {
-                                printf("\nAutomatic deferred download failed even though drive said it supports deferred download.\n");
-                                printf("Retrying the download with segmented download mode instead.\n");
+                                printf("\nAutomatic deferred download failed. Either the drive does not support this mode\n");
+                                printf("or this is an invalid firmware image for this device.\n");
+                                printf("Retrying the download with segmented download mode to verify.\n");
                                 fflush(stdout);
                             }
                             continue;
@@ -419,8 +420,9 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                                 downloadMode = DL_FW_SEGMENTED;
                                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                                 {
-                                    printf("\nAutomatic deferred download failed even though drive said it supports deferred download.\n");
-                                    printf("Retrying the download with segmented download mode instead.\n");
+                                    printf("\nAutomatic deferred download failed. Either the drive does not support this mode\n");
+                                    printf("or this is an invalid firmware image for this device.\n");
+                                    printf("Retrying the download with segmented download mode to verify.\n");
                                     fflush(stdout);
                                 }
                                 continue;
@@ -439,7 +441,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                     }
                     else
                     {
-                        //error occured for a specific mode rather than automatic mode for deferred download, so exit and do not continue trying the download.
+                        //error occurred for a specific mode rather than automatic mode for deferred download, so exit and do not continue trying the download.
                         break;
                     }
                 }
