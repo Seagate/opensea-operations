@@ -61,6 +61,21 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  erase_Boot_Sectors( tDevice * device )
+    //
+    //! \brief   Erase the boot sector(s). This will overwrite LBA 0 for 32KiB/64KiB and maxlba - 32Kib or 64 Kib
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int erase_Boot_Sectors(tDevice* device);
+
 #if defined (__cplusplus)
 }
 #endif
