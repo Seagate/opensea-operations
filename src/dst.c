@@ -1978,6 +1978,8 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             printf("%-9s\n", senseInfoString);
             ++counter;
         }
+        printf("NOTE: DST Log entries are printed out in order from newest to oldest based ATA/SCSI/NVMe\n");
+        printf("      specifications on where to find the latest entry.\n\n");
     }
     return SUCCESS;
 }
