@@ -399,58 +399,6 @@ extern "C"
 
 #define GPT_PARTITION_NAME_LENGTH_BYTES (72)
 
-    //8-4-4-4-12 in characters
-    //NOTE: This struct will be byte swapped as needed to host endianness so it can be easier to print/compare/etc
-    typedef struct _gptGUID
-    {
-        uint32_t part1;//source is le
-        uint16_t part2;//source is le
-        uint16_t part3;//source is le
-        uint16_t part4;//source is be
-        uint8_t part5[6];//source is be
-    }gptGUID;
-
-    typedef struct _gptPartitionEntry
-    {
-        gptGUID partitionTypeGUID;
-        gptGUID uniquePartitionGUID;
-        uint64_t startingLBA;
-        uint64_t endingLBA;//inclusive
-        uint64_t attributeFlags;//some flags depend on partition type! bits48-63 are type specific
-        uint16_t partitionName[GPT_PARTITION_NAME_LENGTH_BYTES / 2];//NOTE: This is described as a null-terminated string. Unclear if ascii or utf-16, but assuming utf-16 for now-TJE
-    }gptPartitionEntry;
-
-    typedef struct _gptData
-    {
-        bool mbrValid;
-        mbrData protectiveMBR;
-        uint32_t revision;
-        bool crc32HeaderValid;//if this is false, then something is wrong and the data may be invalid
-        uint64_t currentLBA;
-        uint64_t backupLBA;
-        uint64_t firstUsableLBA;
-        uint64_t lastUsableLBA;
-        gptGUID diskGUID;
-        uint32_t numberOfPartitionEntries;//reported in GPT header. may be greater than number read depending on how many empty entries are in the list
-        bool crc32PartitionEntriesValid;
-        bool validBackupGPT; //TODO: gpt was able to read from last LBA
-        uint32_t partitionDataAvailable;//number of partitions that were successfully read into the following partition entires
-        gptPartitionEntry partition[1];//NOTE: This must be allocated based on how many partitions are actually available! ex: malloc(sizeof(gptData) + (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
-    }gptData, * ptrGPTData;
-
-    //Ideas when reading this info. Note whether the partitions are aligned per the drive's requirements (physical sector size for SAS/SATA, nvme alignment???)
-
-    typedef struct _partitionInfo
-    {
-        ePartTableType partitionDataType;
-        uint32_t diskBlockSize;//In bytes. 512B, 4096B, etc
-        union {
-            ptrMBRData mbrTable;
-            ptrAPMData apmTable;
-            ptrGPTData gptTable;
-        };
-    }partitionInfo, * ptrPartitionInfo;
-
     typedef enum _eGPTPartitionType
     {
         GPT_PART_TYPE_UNKNOWN = 0,//unknown what the GUID means in the lookup table.
@@ -541,6 +489,67 @@ extern "C"
         GPT_PART_TYPE_HP_UX_DATA,
         GPT_PART_TYPE_HP_UX_SERVICE
     }eGPTPartitionType;
+
+    //8-4-4-4-12 in characters
+    //NOTE: This struct will be byte swapped as needed to host endianness so it can be easier to print/compare/etc
+    typedef struct _gptGUID
+    {
+        uint32_t part1;//source is le
+        uint16_t part2;//source is le
+        uint16_t part3;//source is le
+        uint16_t part4;//source is be
+        uint8_t part5[6];//source is be
+    }gptGUID;
+
+    typedef struct _gptPartitionTypeName
+    {
+        gptGUID guid;
+        eGPTPartitionType partition;
+        const char* name;
+    }gptPartitionTypeName;
+
+    typedef struct _gptPartitionEntry
+    {
+        gptPartitionTypeName partitionTypeGUID;//NOTE: This will use an internal lookup when populating to set name and enum type. Be aware not all types are known, so it may be set to unknown!
+        gptGUID uniquePartitionGUID;
+        uint64_t startingLBA;
+        uint64_t endingLBA;//inclusive
+        uint64_t attributeFlags;//some flags depend on partition type! bits48-63 are type specific
+        uint16_t partitionName[GPT_PARTITION_NAME_LENGTH_BYTES / 2];//NOTE: This is described as a null-terminated string. Unclear if ascii or utf-16, but assuming utf-16 for now-TJE
+    }gptPartitionEntry;
+
+    typedef struct _gptData
+    {
+        bool mbrValid;
+        mbrData protectiveMBR;
+        uint32_t revision;
+        bool crc32HeaderValid;//if this is false, then something is wrong and the data may be invalid
+        uint64_t currentLBA;
+        uint64_t backupLBA;
+        uint64_t firstUsableLBA;
+        uint64_t lastUsableLBA;
+        gptGUID diskGUID;
+        uint32_t numberOfPartitionEntries;//reported in GPT header. may be greater than number read depending on how many empty entries are in the list
+        bool crc32PartitionEntriesValid;
+        bool validBackupGPT; //TODO: gpt was able to read from last LBA
+        uint32_t partitionDataAvailable;//number of partitions that were successfully read into the following partition entires
+        gptPartitionEntry partition[1];//NOTE: This must be allocated based on how many partitions are actually available! ex: malloc(sizeof(gptData) + (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
+    }gptData, * ptrGPTData;
+
+    //Ideas when reading this info. Note whether the partitions are aligned per the drive's requirements (physical sector size for SAS/SATA, nvme alignment???)
+
+    typedef struct _partitionInfo
+    {
+        ePartTableType partitionDataType;
+        uint32_t diskBlockSize;//In bytes. 512B, 4096B, etc
+        union {
+            ptrMBRData mbrTable;
+            ptrAPMData apmTable;
+            ptrGPTData gptTable;
+        };
+    }partitionInfo, * ptrPartitionInfo;
+
+    
 
     OPENSEA_OPERATIONS_API partitionInfo get_Partition_Info(tDevice* device);
 

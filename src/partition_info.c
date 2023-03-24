@@ -285,6 +285,109 @@ static uint32_t gpt_CRC_32(uint8_t* dataBuf, uint32_t dataLength)
     return crc32;
 }
 
+//This will work, but the crappy thing is they need to be in ORDER for best performance.
+//Rather than ordering this ourselves, put these in a list that is manageable and trackable ourselves, then sort it before using it.-TJE
+//TODO: Expand list of "known" partition GUIDs
+//https://en.m.wikipedia.org/wiki/GUID_Partition_Table#Partition_type_GUIDs
+bool gptGUIDsSorted = false;
+gptPartitionTypeName gptGUIDNameLookup[] = {
+    //not specific to an OS or software
+    {{0x00000000, 0x0000, 0x0000, 0x0000, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}, GPT_PART_TYPE_UNUSED, "Unused"},
+    {{0xC12A7328, 0xF81F, 0x11D2, 0xBA4B, {0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B}}, GPT_PART_TYPE_EFI_SYSTEM, "EFI System"},
+    {{0x024DEE41, 0x33E7, 0x11DE, 0x9D69, {0x00, 0x08, 0xC7, 0x81, 0xF3, 0x9F}}, GPT_PART_TYPE_LEGACY_MBR, "Legacy MBR"},
+    {{0x21686148, 0x6449, 0x6E6F, 0x744E, {0x65, 0x65, 0x64, 0x45, 0x46, 0x49}}, GPT_PART_TYPE_GRUB_BIOS_BOOT, "GRUB BIOS Boot"},
+    //Windows
+    {{0xE3C9E316, 0x0B5C, 0x4DB8, 0x817D, {0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE}}, GPT_PART_TYPE_MICROSOFT_RESERVED, "Microsoft Reserved"},
+    {{0xEBD0A0A2, 0xB9E5, 0x4433, 0x87C0, {0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7}}, GPT_PART_TYPE_MICROSOFT_BASIC_DATA, "Microsoft Basic Data"},
+    {{0x5808C8AA, 0x7E8F, 0x42E0, 0x85D2, {0xE1, 0xE9, 0x04, 0x34, 0xCF, 0xB3}}, GPT_PART_TYPE_MICROSOFT_LOGICAL_DISK_MANAGER_METADATA, "Microsoft Logical Disk Manager Metadata"},
+    {{0xAF9B60A0, 0x1431, 0x4F62, 0xBC68, {0x33, 0x11, 0x71, 0x4A, 0x69, 0xAD}}, GPT_PART_TYPE_MICROSOFT_LOGICAL_DISK_MANAGER_DATA, "Microsoft Logical Disk Manager Data"},
+    {{0xDE94BBA4, 0x06D1, 0x4D40, 0xA16A, {0xBF, 0xD5, 0x01, 0x79, 0xD6, 0xAC}}, GPT_PART_TYPE_WINDOWS_RECOVERY_ENVIRONMENT, "Windows Recovery Environment"},
+    {{0x37AFFC90, 0xEF7D, 0x4E96, 0x91C3, {0x2D, 0x7A, 0xE0, 0x55, 0xB1, 0x74}}, GPT_PART_TYPE_IBM_GPFS, "IBM GPFS"},
+    {{0xE75CAF8F, 0xF680, 0x4CEE, 0xAFA3, {0xB0, 0x01, 0xE5, 0x6E, 0xFC, 0x2D}}, GPT_PART_TYPE_STORAGE_SPACES, "Storage Spaces"},
+    {{0x558D43C5, 0xA1AC, 0x43C0, 0xAAC8, {0xD1, 0x47, 0x2B, 0x29, 0x23, 0xD1}}, GPT_PART_TYPE_STORAGE_REPLICA, "Storage Replica"},
+    //Linux
+    {{0x0FC63DAF, 0x8483, 0x4772, 0x8E79, {0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4}}, GPT_PART_TYPE_LINUX_FS_DATA, "Linux Filesystem Data"},
+    {{0xA19D880F, 0x05FC, 0x4D3B, 0xA006, {0x74, 0x3F, 0x0F, 0x84, 0x91, 0x1E}}, GPT_PART_TYPE_LINUX_RAID, "Linux RAID Partition"},
+    {{0x44479540, 0xF297, 0x41B2, 0x9AF7, {0xD1, 0x31, 0xD5, 0xF0, 0x45, 0x8A}}, GPT_PART_TYPE_LINUX_ROOT_X86, "Linux Root (x86)"},
+    {{0x4F68BCE3, 0xE8CD, 0x4DB1, 0x96E7, {0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09}}, GPT_PART_TYPE_LINUX_ROOT_X86_64, "Linux Root (x86_64)"},
+    {{0x69DAD710, 0x2CE4, 0x4E3C, 0xB16C, {0x21, 0xA1, 0xD4, 0x9A, 0xBE, 0xD3}}, GPT_PART_TYPE_LINUX_ROOT_ARM32, "Linux Root (32bit ARM)"},
+    {{0xB921B045, 0x1DF0, 0x41C3, 0xAF44, {0x4C, 0x6F, 0x28, 0x0D, 0x3F, 0xAE}}, GPT_PART_TYPE_LINUX_ROOT_AARCH64, "Linux Root (64bit ARM/AArch64)"},
+    {{0xBC13C2FF, 0x59E6, 0x4262, 0xA352, {0xB2, 0x75, 0xFD, 0x6F, 0x71, 0x72}}, GPT_PART_TYPE_LINUX_BOOT, "Linux /boot"},
+    {{0x0657FD6D, 0xA4AB, 0x43C4, 0x84E5, {0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F}}, GPT_PART_TYPE_LINUX_SWAP, "Linux Swap"},
+    {{0xE6D6D379, 0xF507, 0x44C2, 0xA23C, {0x23, 0x8F, 0x2A, 0x3D, 0xF9, 0x28}}, GPT_PART_TYPE_LINUX_LVM, "Linux Logical Volume Manager"},
+    {{0x933AC7E1, 0x2EB4, 0x4F13, 0xB844, {0x0E, 0x14, 0xE2, 0xAE, 0xF9, 0x15}}, GPT_PART_TYPE_LINUX_HOME, "Linux /home"},
+    {{0x3B8F8425, 0x20E0, 0x4F3B, 0x907F, {0xA1, 0x25, 0xA7, 0x6F, 0x98, 0xE8}}, GPT_PART_TYPE_LINUX_SRV, "Linux /srv"},
+    {{0x7FFEC5C9, 0x2D00, 0x49B7, 0x8941, {0x3E, 0xA1, 0x0A, 0x55, 0x86, 0xB7}}, GPT_PART_TYPE_LINUX_PLAIN_DM_CRYPT, "Linux Plain dm-crypt"},
+    {{0xCA7D7CCB, 0x63ED, 0x4C53, 0x861C, {0x17, 0x42, 0x53, 0x60, 0x59, 0xCC}}, GPT_PART_TYPE_LINUX_LUKS, "Linux LUKS"},
+    {{0x8DA63339, 0x0007, 0x60C0, 0xC436, {0x08, 0x3A, 0xC8, 0x23, 0x09, 0x08}}, GPT_PART_TYPE_LINUX_RESERVED, "Linux Reserved"},
+    //Mac OSX
+    {{0x48465300, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_HFS_PLUS, "Mac OS HFS+"},
+    {{0x7C3457EF, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_APFS_CONTAINER, "Mac OS APFS Container"},
+    {{0x55465300, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_UFS_CONTAINER, "Mac OS UFS Container"},
+    {{0x6A898CC3, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_MACOS_ZFS, "Mac OS ZFS"},
+    {{0x52414944, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_RAID, "Mac OS RAID"},
+    {{0x52414944, 0x5F4F, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_RAID_OFFLINE, "Mac OS RAID (offline)"},
+    {{0x426F6F74, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_BOOT_RECOVERY_HD, "Mac OS Boot (Recovery HD)"},
+    {{0x4C616265, 0x6C00, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_LABEL, "Mac OS Label"},
+    {{0x5265636F, 0x7665, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_TV_RECOVERY, "Mac OS TV Recovery"},
+    {{0x53746F72, 0x6167, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_CORE_STORAGE_CONTAINER, "Mac OS Core Storage Container"},
+    {{0x69646961, 0x6700, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_APFS_PREBOOT, "Mac OS APFS Preboot"},
+    {{0x52637672, 0x7900, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_APFS_RECOVERY, "Mac OS APFS Recovery"},
+    //FreeBSD
+    {{0x83BD6B9D, 0x7F41, 0x11DC, 0xBE0B, {0x00, 0x15, 0x60, 0xB8, 0x4F, 0x0F}}, GPT_PART_TYPE_FREEBSD_BOOT, "FreeBSD Boot"},
+    {{0x516E7CB4, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_BSD_DISKLABEL, "FreeBSD BSD Disklabel"},
+    {{0x516E7CB5, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_SWAP, "FreeBSD Swap"},
+    {{0x516E7CB6, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_UFS, "FreeBSD UFS"},
+    {{0x516E7CB8, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_VINUM_VOLUME_MANAGER, "FreeBSD Vinum Volume Manage"},
+    {{0x516E7CBA, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_ZFS, "FreeBSD ZFS"},
+    {{0x74BA7DD9, 0xA689, 0x11E1, 0xBD04, {0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F}}, GPT_PART_TYPE_FREEBSD_NANDFS, "FreeBSD nandfs"},
+    //Solaris/illumos
+    {{0x6A82CB45, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_BOOT, "Solaris/Illumos Boot"},
+    {{0x6A85CF4D, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_ROOT, "Solaris/Illumos Root"},
+    {{0x6A87C46F, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_SWAP, "Solaris/Illumos Swap"},
+    {{0x6A8B642B, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_BACKUP, "Solaris/Illumos Backup"},
+    {{0x6A898CC3, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_USR, "Solaris/Illumos /usr"},
+    {{0x6A8EF2E9, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_VAR, "Solaris/Illumos /var"},
+    {{0x6A90BA39, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_HOME, "Solaris/Illumos /home"},
+    {{0x6A9283A5, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_ALTERNATE_SECTOR, "Solaris/Illumos Alternate sector"},
+    {{0x6A945A3B, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_1, "Solaris/Illumos Reserved 1"},
+    {{0x6A9630D1, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_2, "Solaris/Illumos Reserved 2"},
+    {{0x6A980767, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_3, "Solaris/Illumos Reserved 3"},
+    {{0x6A96237F, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_4, "Solaris/Illumos Reserved 4"},
+    {{0x6A8D2AC7, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_5, "Solaris/Illumos Reserved 5"},
+    //NetBSD
+    {{0x49F48D32, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_SWAP, "NetBSD swap"},
+    {{0x49F48D5A, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_FFS, "NetBSD FFS"},
+    {{0x49F48D82, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_LFS, "NetBSD LFS"},
+    {{0x49F48DAA, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_RAID, "NetBSD RAID"},
+    {{0x2DB519C4, 0xB10F, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_CONCATENATED, "NetBSD Concatenated"},
+    {{0x2DB519EC, 0xB10F, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_ENCRYPTED, "NetBSD Encrypted"},
+    //OpenBSD
+    {{0x824CC7A0, 0x36A8, 0x11E3, 0x890A, {0x95, 0x25, 0x19, 0xAD, 0x3F, 0x61}}, GPT_PART_TYPE_OPENBSD_DATA, "OpenBSD data"},
+    //VMWare ESXI
+    {{0x9D275380, 0x40AD, 0x11DB, 0xBF97, {0x00, 0x0C, 0x29, 0x11, 0xD1, 0xB8}}, GPT_PART_TYPE_VMWARE_ESXI_VMKCORE, "VMWare ESXi vmkcore"},
+    {{0xAA31E02A, 0x400F, 0x11DB, 0x9590, {0x00, 0x0C, 0x29, 0x11, 0xD1, 0xB8}}, GPT_PART_TYPE_VMWARE_ESXI_VMFS, "VMWare ESXi VMFS"},
+    {{0x9198EFFC, 0x31C0, 0x11DB, 0x8F78, {0x00, 0x0C, 0x29, 0x11, 0xD1, 0xB8}}, GPT_PART_TYPE_VMWARE_ESXI_RESERVED, "VMWare ESXi Reserved"},
+    //Midnight BSD
+    {{0x85D5E45E, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_BOOT, "Midnight BSD boot"},
+    {{0x85D5E45A, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_DATA, "Midnight BSD data"},
+    {{0x85D5E45B, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_SWAP, "Midnight BSD swap"},
+    {{0x0394EF8B, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_UFS, "Midnight BSD UFS"},
+    {{0x85D5E45C, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_VINUM_VOLUME_MANAGER, "Midnight BSD Vinum volume manager"},
+    {{0x85D5E45D, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_ZFS, "Midnight BSD ZFS"},
+    //HP UX
+    {{0x75894C1E, 0x3AEB, 0x11D3, 0xB7C1, {0x7B, 0x03, 0xA0, 0x00, 0x00, 0x00}}, GPT_PART_TYPE_HP_UX_DATA, "HP UX Data"},
+    {{0xE2A1E728, 0x32E3, 0x11D6, 0xA682, {0x7B, 0x03, 0xA0, 0x00, 0x00, 0x00}}, GPT_PART_TYPE_HP_UX_SERVICE, "HP UX Service"}
+};
+
+//used with bsearch to locate the name quicker
+//TODO: check if memcmp of whole GUID is faster
+static int cmp_GPT_Part_GUID(const gptPartitionTypeName* a, const gptPartitionTypeName* b)
+{
+    // compare ASC, if they are same, compare ASCQ
+    return memcmp(&a->guid, &b->guid, sizeof(gptGUID));
+}
+
 //This copies the mixed endianness GUID from the dataBuf into a format that can easily be output with a for-loop into the GUID variable
 static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
 {
@@ -385,7 +488,25 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                     gpt->crc32PartitionEntriesValid = true;
                     for (uint64_t partIter = 0, dataOffset = 0; partIter < gpt->numberOfPartitionEntries && partIter < gptStructPartitionEntriesAvailable; ++partIter, dataOffset += sizeOfPartitionEntry)
                     {
-                        copy_GPT_GUID(&gptPartitionArray[dataOffset + 0], &gpt->partition[partIter].partitionTypeGUID);
+                        gptPartitionTypeName* gptName = NULL;
+                        copy_GPT_GUID(&gptPartitionArray[dataOffset + 0], &gpt->partition[partIter].partitionTypeGUID.guid);
+                        if (!gptGUIDsSorted)
+                        {
+                            qsort(gptGUIDNameLookup, sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]), sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID);
+                            gptGUIDsSorted = true;
+                        }
+
+                        gptName = C_CAST(gptPartitionTypeName*, bsearch(
+                            &gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
+                            sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]), sizeof(gptGUIDNameLookup[0]),
+                            (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
+
+                        if (gptName)
+                        {
+                            //found a match, so set the partition info in the structure to the matched data
+                            memcpy(&gpt->partition[partIter].partitionTypeGUID, gptName, sizeof(gptPartitionTypeName));
+                        }
+
                         copy_GPT_GUID(&gptPartitionArray[dataOffset + GPT_GUID_LEN_BYTES], &gpt->partition[partIter].uniquePartitionGUID);
                         gpt->partition[partIter].startingLBA = M_BytesTo8ByteValue(gptPartitionArray[dataOffset + 39], gptPartitionArray[dataOffset + 38], gptPartitionArray[dataOffset + 37], gptPartitionArray[dataOffset + 36], gptPartitionArray[dataOffset + 35], gptPartitionArray[dataOffset + 34], gptPartitionArray[dataOffset + 33], gptPartitionArray[dataOffset + 32]);
                         gpt->partition[partIter].endingLBA = M_BytesTo8ByteValue(gptPartitionArray[dataOffset + 47], gptPartitionArray[dataOffset + 46], gptPartitionArray[dataOffset + 45], gptPartitionArray[dataOffset + 44], gptPartitionArray[dataOffset + 43], gptPartitionArray[dataOffset + 42], gptPartitionArray[dataOffset + 41], gptPartitionArray[dataOffset + 40]);
@@ -610,116 +731,6 @@ static void print_GPT_GUID(gptGUID guid)
     return;
 }
 
-typedef struct _gptPartitionTypeName
-{
-    gptGUID guid;
-    eGPTPartitionType partition;
-    const char* name;
-}gptPartitionTypeName;
-
-//used with bsearch to locate the name quicker
-//TODO: check if memcmp of whole GUID is faster
-static int cmp_GPT_Part_GUID(gptPartitionTypeName* a, gptPartitionTypeName* b)
-{
-    // compare ASC, if they are same, compare ASCQ
-    return memcmp(&a->guid, &b->guid, sizeof(gptGUID));
-}
-
-//This will work, but the crappy thing is they need to be in ORDER for best performance.
-//Rather than ordering this ourselves, put these in a list that is manageable and trackable ourselves, then sort it before using it.-TJE
-//TODO: Expand list of "known" partition GUIDs
-//https://en.m.wikipedia.org/wiki/GUID_Partition_Table#Partition_type_GUIDs
-bool gptGUIDsSorted = false;
-gptPartitionTypeName gptGUIDNameLookup[] = {
-    //not specific to an OS or software
-    {{0x00000000, 0x0000, 0x0000, 0x0000, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}}, GPT_PART_TYPE_UNUSED, "Unused"},
-    {{0xC12A7328, 0xF81F, 0x11D2, 0xBA4B, {0x00, 0xA0, 0xC9, 0x3E, 0xC9, 0x3B}}, GPT_PART_TYPE_EFI_SYSTEM, "EFI System"},
-    {{0x024DEE41, 0x33E7, 0x11DE, 0x9D69, {0x00, 0x08, 0xC7, 0x81, 0xF3, 0x9F}}, GPT_PART_TYPE_LEGACY_MBR, "Legacy MBR"},
-    {{0x21686148, 0x6449, 0x6E6F, 0x744E, {0x65, 0x65, 0x64, 0x45, 0x46, 0x49}}, GPT_PART_TYPE_GRUB_BIOS_BOOT, "GRUB BIOS Boot"},
-    //Windows
-    {{0xE3C9E316, 0x0B5C, 0x4DB8, 0x817D, {0xF9, 0x2D, 0xF0, 0x02, 0x15, 0xAE}}, GPT_PART_TYPE_MICROSOFT_RESERVED, "Microsoft Reserved"},
-    {{0xEBD0A0A2, 0xB9E5, 0x4433, 0x87C0, {0x68, 0xB6, 0xB7, 0x26, 0x99, 0xC7}}, GPT_PART_TYPE_MICROSOFT_BASIC_DATA, "Microsoft Basic Data"},
-    {{0x5808C8AA, 0x7E8F, 0x42E0, 0x85D2, {0xE1, 0xE9, 0x04, 0x34, 0xCF, 0xB3}}, GPT_PART_TYPE_MICROSOFT_LOGICAL_DISK_MANAGER_METADATA, "Microsoft Logical Disk Manager Metadata"},
-    {{0xAF9B60A0, 0x1431, 0x4F62, 0xBC68, {0x33, 0x11, 0x71, 0x4A, 0x69, 0xAD}}, GPT_PART_TYPE_MICROSOFT_LOGICAL_DISK_MANAGER_DATA, "Microsoft Logical Disk Manager Data"},
-    {{0xDE94BBA4, 0x06D1, 0x4D40, 0xA16A, {0xBF, 0xD5, 0x01, 0x79, 0xD6, 0xAC}}, GPT_PART_TYPE_WINDOWS_RECOVERY_ENVIRONMENT, "Windows Recovery Environment"},
-    {{0x37AFFC90, 0xEF7D, 0x4E96, 0x91C3, {0x2D, 0x7A, 0xE0, 0x55, 0xB1, 0x74}}, GPT_PART_TYPE_IBM_GPFS, "IBM GPFS"},
-    {{0xE75CAF8F, 0xF680, 0x4CEE, 0xAFA3, {0xB0, 0x01, 0xE5, 0x6E, 0xFC, 0x2D}}, GPT_PART_TYPE_STORAGE_SPACES, "Storage Spaces"},
-    {{0x558D43C5, 0xA1AC, 0x43C0, 0xAAC8, {0xD1, 0x47, 0x2B, 0x29, 0x23, 0xD1}}, GPT_PART_TYPE_STORAGE_REPLICA, "Storage Replica"},
-    //Linux
-    {{0x0FC63DAF, 0x8483, 0x4772, 0x8E79, {0x3D, 0x69, 0xD8, 0x47, 0x7D, 0xE4}}, GPT_PART_TYPE_LINUX_FS_DATA, "Linux Filesystem Data"},
-    {{0xA19D880F, 0x05FC, 0x4D3B, 0xA006, {0x74, 0x3F, 0x0F, 0x84, 0x91, 0x1E}}, GPT_PART_TYPE_LINUX_RAID, "Linux RAID Partition"},
-    {{0x44479540, 0xF297, 0x41B2, 0x9AF7, {0xD1, 0x31, 0xD5, 0xF0, 0x45, 0x8A}}, GPT_PART_TYPE_LINUX_ROOT_X86, "Linux Root (x86)"},
-    {{0x4F68BCE3, 0xE8CD, 0x4DB1, 0x96E7, {0xFB, 0xCA, 0xF9, 0x84, 0xB7, 0x09}}, GPT_PART_TYPE_LINUX_ROOT_X86_64, "Linux Root (x86_64)"},
-    {{0x69DAD710, 0x2CE4, 0x4E3C, 0xB16C, {0x21, 0xA1, 0xD4, 0x9A, 0xBE, 0xD3}}, GPT_PART_TYPE_LINUX_ROOT_ARM32, "Linux Root (32bit ARM)"},
-    {{0xB921B045, 0x1DF0, 0x41C3, 0xAF44, {0x4C, 0x6F, 0x28, 0x0D, 0x3F, 0xAE}}, GPT_PART_TYPE_LINUX_ROOT_AARCH64, "Linux Root (64bit ARM/AArch64)"},
-    {{0xBC13C2FF, 0x59E6, 0x4262, 0xA352, {0xB2, 0x75, 0xFD, 0x6F, 0x71, 0x72}}, GPT_PART_TYPE_LINUX_BOOT, "Linux /boot"},
-    {{0x0657FD6D, 0xA4AB, 0x43C4, 0x84E5, {0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F}}, GPT_PART_TYPE_LINUX_SWAP, "Linux Swap"},
-    {{0xE6D6D379, 0xF507, 0x44C2, 0xA23C, {0x23, 0x8F, 0x2A, 0x3D, 0xF9, 0x28}}, GPT_PART_TYPE_LINUX_LVM, "Linux Logical Volume Manager"},
-    {{0x933AC7E1, 0x2EB4, 0x4F13, 0xB844, {0x0E, 0x14, 0xE2, 0xAE, 0xF9, 0x15}}, GPT_PART_TYPE_LINUX_HOME, "Linux /home"},
-    {{0x3B8F8425, 0x20E0, 0x4F3B, 0x907F, {0xA1, 0x25, 0xA7, 0x6F, 0x98, 0xE8}}, GPT_PART_TYPE_LINUX_SRV, "Linux /srv"},
-    {{0x7FFEC5C9, 0x2D00, 0x49B7, 0x8941, {0x3E, 0xA1, 0x0A, 0x55, 0x86, 0xB7}}, GPT_PART_TYPE_LINUX_PLAIN_DM_CRYPT, "Linux Plain dm-crypt"},
-    {{0xCA7D7CCB, 0x63ED, 0x4C53, 0x861C, {0x17, 0x42, 0x53, 0x60, 0x59, 0xCC}}, GPT_PART_TYPE_LINUX_LUKS, "Linux LUKS"},
-    {{0x8DA63339, 0x0007, 0x60C0, 0xC436, {0x08, 0x3A, 0xC8, 0x23, 0x09, 0x08}}, GPT_PART_TYPE_LINUX_RESERVED, "Linux Reserved"},
-    //Mac OSX
-    {{0x48465300, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_HFS_PLUS, "Mac OS HFS+"},
-    {{0x7C3457EF, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_APFS_CONTAINER, "Mac OS APFS Container"},
-    {{0x55465300, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_UFS_CONTAINER, "Mac OS UFS Container"},
-    {{0x6A898CC3, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_MACOS_ZFS, "Mac OS ZFS"},
-    {{0x52414944, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_RAID, "Mac OS RAID"},
-    {{0x52414944, 0x5F4F, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_RAID_OFFLINE, "Mac OS RAID (offline)"},
-    {{0x426F6F74, 0x0000, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_BOOT_RECOVERY_HD, "Mac OS Boot (Recovery HD)"},
-    {{0x4C616265, 0x6C00, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_LABEL, "Mac OS Label"},
-    {{0x5265636F, 0x7665, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_TV_RECOVERY, "Mac OS TV Recovery"},
-    {{0x53746F72, 0x6167, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_CORE_STORAGE_CONTAINER, "Mac OS Core Storage Container"},
-    {{0x69646961, 0x6700, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_APFS_PREBOOT, "Mac OS APFS Preboot"},
-    {{0x52637672, 0x7900, 0x11AA, 0xAA11, {0x00, 0x30, 0x65, 0x43, 0xEC, 0xAC}}, GPT_PART_TYPE_MACOS_APFS_RECOVERY, "Mac OS APFS Recovery"},
-    //FreeBSD
-    {{0x83BD6B9D, 0x7F41, 0x11DC, 0xBE0B, {0x00, 0x15, 0x60, 0xB8, 0x4F, 0x0F}}, GPT_PART_TYPE_FREEBSD_BOOT, "FreeBSD Boot"},
-    {{0x516E7CB4, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_BSD_DISKLABEL, "FreeBSD BSD Disklabel"},
-    {{0x516E7CB5, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_SWAP, "FreeBSD Swap"},
-    {{0x516E7CB6, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_UFS, "FreeBSD UFS"},
-    {{0x516E7CB8, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_VINUM_VOLUME_MANAGER, "FreeBSD Vinum Volume Manage"},
-    {{0x516E7CBA, 0x6ECF, 0x11D6, 0x8FF8, {0x00, 0x02, 0x2D, 0x09, 0x71, 0x2B}}, GPT_PART_TYPE_FREEBSD_ZFS, "FreeBSD ZFS"},
-    {{0x74BA7DD9, 0xA689, 0x11E1, 0xBD04, {0x09, 0x33, 0xC8, 0x4B, 0x4F, 0x4F}}, GPT_PART_TYPE_FREEBSD_NANDFS, "FreeBSD nandfs"},
-    //Solaris/illumos
-    {{0x6A82CB45, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_BOOT, "Solaris/Illumos Boot"},
-    {{0x6A85CF4D, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_ROOT, "Solaris/Illumos Root"},
-    {{0x6A87C46F, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_SWAP, "Solaris/Illumos Swap"},
-    {{0x6A8B642B, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_BACKUP, "Solaris/Illumos Backup"},
-    {{0x6A898CC3, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_USR, "Solaris/Illumos /usr"},
-    {{0x6A8EF2E9, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_VAR, "Solaris/Illumos /var"},
-    {{0x6A90BA39, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_HOME, "Solaris/Illumos /home"},
-    {{0x6A9283A5, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_ALTERNATE_SECTOR, "Solaris/Illumos Alternate sector"},
-    {{0x6A945A3B, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_1, "Solaris/Illumos Reserved 1"},
-    {{0x6A9630D1, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_2, "Solaris/Illumos Reserved 2"},
-    {{0x6A980767, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_3, "Solaris/Illumos Reserved 3"},
-    {{0x6A96237F, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_4, "Solaris/Illumos Reserved 4"},
-    {{0x6A8D2AC7, 0x1DD2, 0x11B2, 0x99A6, {0x08, 0x00, 0x20, 0x73, 0x66, 0x31}}, GPT_PART_TYPE_SOLARIS_RESERVED_5, "Solaris/Illumos Reserved 5"},
-    //NetBSD
-    {{0x49F48D32, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_SWAP, "NetBSD swap"},
-    {{0x49F48D5A, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_FFS, "NetBSD FFS"},
-    {{0x49F48D82, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_LFS, "NetBSD LFS"},
-    {{0x49F48DAA, 0xB10E, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_RAID, "NetBSD RAID"},
-    {{0x2DB519C4, 0xB10F, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_CONCATENATED, "NetBSD Concatenated"},
-    {{0x2DB519EC, 0xB10F, 0x11DC, 0xB99B, {0x00, 0x19, 0xD1, 0x87, 0x96, 0x48}}, GPT_PART_TYPE_NETBSD_ENCRYPTED, "NetBSD Encrypted"},
-    //OpenBSD
-    {{0x824CC7A0, 0x36A8, 0x11E3, 0x890A, {0x95, 0x25, 0x19, 0xAD, 0x3F, 0x61}}, GPT_PART_TYPE_OPENBSD_DATA, "OpenBSD data"},
-    //VMWare ESXI
-    {{0x9D275380, 0x40AD, 0x11DB, 0xBF97, {0x00, 0x0C, 0x29, 0x11, 0xD1, 0xB8}}, GPT_PART_TYPE_VMWARE_ESXI_VMKCORE, "VMWare ESXi vmkcore"},
-    {{0xAA31E02A, 0x400F, 0x11DB, 0x9590, {0x00, 0x0C, 0x29, 0x11, 0xD1, 0xB8}}, GPT_PART_TYPE_VMWARE_ESXI_VMFS, "VMWare ESXi VMFS"},
-    {{0x9198EFFC, 0x31C0, 0x11DB, 0x8F78, {0x00, 0x0C, 0x29, 0x11, 0xD1, 0xB8}}, GPT_PART_TYPE_VMWARE_ESXI_RESERVED, "VMWare ESXi Reserved"},
-    //Midnight BSD
-    {{0x85D5E45E, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_BOOT, "Midnight BSD boot"},
-    {{0x85D5E45A, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_DATA, "Midnight BSD data"},
-    {{0x85D5E45B, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_SWAP, "Midnight BSD swap"},
-    {{0x0394EF8B, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_UFS, "Midnight BSD UFS"},
-    {{0x85D5E45C, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_VINUM_VOLUME_MANAGER, "Midnight BSD Vinum volume manager"},
-    {{0x85D5E45D, 0x237C, 0x11E1, 0xB4B3, {0xE8, 0x9A, 0x8F, 0x7F, 0xC3, 0xA7}}, GPT_PART_TYPE_MIDNIGHT_BSD_ZFS, "Midnight BSD ZFS"},
-    //HP UX
-    {{0x75894C1E, 0x3AEB, 0x11D3, 0xB7C1, {0x7B, 0x03, 0xA0, 0x00, 0x00, 0x00}}, GPT_PART_TYPE_HP_UX_DATA, "HP UX Data"},
-    {{0xE2A1E728, 0x32E3, 0x11D6, 0xA682, {0x7B, 0x03, 0xA0, 0x00, 0x00, 0x00}}, GPT_PART_TYPE_HP_UX_SERVICE, "HP UX Service"}
-};
-
 static void print_GPT_Info(ptrGPTData gptTable)
 {
     if (gptTable)
@@ -768,24 +779,11 @@ static void print_GPT_Info(ptrGPTData gptTable)
         {
             printf("\n\t---GPT Partition %" PRIu64 "---\n", partIter);
             printf("\tPartition Type GUID: ");
-            print_GPT_GUID(gptTable->partition[partIter].partitionTypeGUID);
+            print_GPT_GUID(gptTable->partition[partIter].partitionTypeGUID.guid);
             printf("\n\tPartition Type: ");
-            gptPartitionTypeName* gptName = NULL;
-            gptPartitionTypeName gptNameKey = { gptTable->partition[partIter].partitionTypeGUID, GPT_PART_TYPE_UNKNOWN, NULL };
-
-            if (!gptGUIDsSorted)
+            if (gptTable->partition[partIter].partitionTypeGUID.name)
             {
-                qsort(gptGUIDNameLookup, sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]), sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID);
-                gptGUIDsSorted = true;
-            }
-
-            gptName = C_CAST(gptPartitionTypeName*, bsearch(
-                &gptNameKey, gptGUIDNameLookup,
-                sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]), sizeof(gptGUIDNameLookup[0]),
-                (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
-            if (gptName)
-            {
-                printf("%s\n", gptName->name);
+                printf("%s\n", gptTable->partition[partIter].partitionTypeGUID.name);
             }
             else
             {
@@ -797,9 +795,59 @@ static void print_GPT_Info(ptrGPTData gptTable)
             printf("\tEnding LBA: %" PRIu64 "\n", gptTable->partition[partIter].endingLBA);
             //TODO: Calculate partition size in bytes from starting/ending LBAs
             printf("\tAttributes: %016" PRIX64 "\n", gptTable->partition[partIter].attributeFlags);
-            //TODO: Output attributes from UEFI spec
-            //TODO: Eventually output filesystem specific attributes based on GUID
-            //TODO: Convert the partition name string into something that can be printed. This is likely UTF-16, so there are possible cross-platform challenges here -TJE
+            //Output attributes from UEFI spec
+            if (gptTable->partition[partIter].attributeFlags & GPT_PARTITION_ATTR_PLATFORM_REQUIRED)
+            {
+                printf("\t\tPlatform Required Partition\n");
+            }
+            if (gptTable->partition[partIter].attributeFlags & GPT_PARTITION_ATTR_EFI_FW_IGNORE)
+            {
+                printf("\t\tEFI Ignore\n");
+            }
+            if (gptTable->partition[partIter].attributeFlags & GPT_PARTITION_ATTR_LEGACY_BIOS_BOOTABLE)
+            {
+                printf("\t\tLegacy BIOS Bootable\n");
+            }
+            //FS specific attributes. Must be matched to a known GUID
+            switch (gptTable->partition[partIter].partitionTypeGUID.partition)
+            {
+            case GPT_PART_TYPE_MICROSOFT_RESERVED:
+            case GPT_PART_TYPE_MICROSOFT_BASIC_DATA:
+            case GPT_PART_TYPE_WINDOWS_RECOVERY_ENVIRONMENT:
+            case GPT_PART_TYPE_MICROSOFT_LOGICAL_DISK_MANAGER_METADATA:
+            case GPT_PART_TYPE_MICROSOFT_LOGICAL_DISK_MANAGER_DATA:
+                //https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/cc753455(v=ws.11)?redirectedfrom=MSDN#Anchor_1
+                //https://learn.microsoft.com/en-us/windows/win32/api/vds/ns-vds-create_partition_parameters?redirectedfrom=MSDN
+                //NOTE: it is unclear which other partitions may set this in Windows
+                if (gptTable->partition[partIter].attributeFlags & BIT63)
+                {
+                    printf("\t\tDo not assign drive letter\n");
+                }
+                if (gptTable->partition[partIter].attributeFlags & BIT62)
+                {
+                    printf("\t\tHide volume from mount manager\n");
+                }
+                if (gptTable->partition[partIter].attributeFlags & BIT61)
+                {
+                    printf("\t\tShadow copy\n");
+                }
+                if (gptTable->partition[partIter].attributeFlags & BIT60)
+                {
+                    printf("\t\tRead-only\n");
+                }
+                break;
+            case GPT_PART_TYPE_EFI_SYSTEM:
+                if (gptTable->partition[partIter].attributeFlags & BIT63)
+                {
+                    //this may be a microsoft unique special case to not assign a drive letter.
+                    //UEFI spec does not mention this at all, but in Windows the EFI system partition will not be assigned a volume letter unless you use diskpart CLI to assign and mount it -TJE
+                    printf("\t\tMSFT - Do not assign drive letter\n");
+                }
+                break;
+            default:
+                break;
+            }
+            //TODO: Convert the partition name string into something that can be printed. This is UTF-16, so there are possible cross-platform challenges here -TJE
         }
     }
     return;
