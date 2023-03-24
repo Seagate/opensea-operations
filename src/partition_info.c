@@ -147,7 +147,7 @@ static int fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData m
             memcpy(&mbr->partition[2], &temp, sizeof(mbrPartitionEntry));
             //now fill in the remaining entries
             uint32_t partitionTableOffset = UINT32_C(430);
-            uint8_t partitionOffset = mbr->numberOfPartitions;
+            uint16_t partitionOffset = mbr->numberOfPartitions;
             for (; partitionTableOffset < UINT32_C(512) && partitionOffset < MBR_MAX_PARTITIONS && partitionOffset >= 380; partitionTableOffset -= UINT32_C(16))
             {
                 mbr->partition[partitionOffset].status = mbrDataBuf[partitionTableOffset + 0];
@@ -382,10 +382,10 @@ gptPartitionTypeName gptGUIDNameLookup[] = {
 
 //used with bsearch to locate the name quicker
 //TODO: check if memcmp of whole GUID is faster
-static int cmp_GPT_Part_GUID(const gptPartitionTypeName* a, const gptPartitionTypeName* b)
+static int cmp_GPT_Part_GUID(const void* a, const void* b)
 {
     // compare ASC, if they are same, compare ASCQ
-    return memcmp(&a->guid, &b->guid, sizeof(gptGUID));
+    return memcmp(&(C_CAST(gptPartitionTypeName*, a))->guid, &(C_CAST(gptPartitionTypeName *, b))->guid, sizeof(gptGUID));
 }
 
 //This copies the mixed endianness GUID from the dataBuf into a format that can easily be output with a for-loop into the GUID variable
@@ -640,8 +640,8 @@ static void print_MBR_Info(ptrMBRData mbrTable)
     if (mbrTable)
     {
         printf("---MBR info---\n");
-        bool checkForAAP = false;
-        bool checkForNEWWLDR = false;
+        //bool checkForAAP = false;
+        //bool checkForNEWWLDR = false;
         switch (mbrTable->mbrType)
         {
         case MBR_TYPE_NONE:
@@ -658,12 +658,12 @@ static void print_MBR_Info(ptrMBRData mbrTable)
             break;
         case MBR_TYPE_AAP:     //advanced active partitions. AAP is always at 5 if available. Check partition type for this offset
             printf("Detected a AAP MBR\n");
-            checkForAAP = true;
+            //checkForAAP = true;
             break;
         case MBR_TYPE_NEWLDR:  //4 records + newldr and aap. newldr always at 4, aap at 5 if available (check partition type)
             printf("Detected a NEWLDR MBR\n");
-            checkForAAP = true;
-            checkForNEWWLDR = true;
+            //checkForAAP = true;
+            //checkForNEWWLDR = true;
             break;
         case MBR_TYPE_AST_NEC_SPEEDSTOR: //up to 8 records
             printf("Detected a AST/NEC or Speedstor MBR\n");
@@ -763,7 +763,7 @@ static void print_GPT_Info(ptrGPTData gptTable)
         }
         //current LBA read and location of backup
         printf("\tGPT LBA: %" PRIu64 "\n", gptTable->currentLBA);
-        printf("\tGPT BAckup LBA: %" PRIu64 "\n", gptTable->backupLBA);
+        printf("\tGPT Backup LBA: %" PRIu64 "\n", gptTable->backupLBA);
         //first usable LBA
         printf("\tFirst Usable LBA: %" PRIu64 "\n", gptTable->firstUsableLBA);
         //last usable LBA
