@@ -529,11 +529,10 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
     return ret;
 }
 
-partitionInfo get_Partition_Info(tDevice* device)
+ptrPartitionInfo get_Partition_Info(tDevice* device)
 {
-    partitionInfo partitionData;
-    memset(&partitionData, 0, sizeof(partitionInfo));
-    partitionData.diskBlockSize = device->drive_info.deviceBlockSize;
+    ptrPartitionInfo partitionData = C_CAST(ptrPartitionInfo, calloc(1, sizeof(partitionInfo)));
+    partitionData->diskBlockSize = device->drive_info.deviceBlockSize;
     //This function will read LBA 0 for 32KiB first, enough to handle most situations
     //It will check for MBR, APM, and GPT (not necessarily in that order), then fill in proper structures.
     //If everything is zeros, it will read the last 32KiB of the drive to see if a backup of the boot sector is available.
@@ -555,22 +554,22 @@ partitionInfo get_Partition_Info(tDevice* device)
                 {
                     //A MBR is detected!
                     //check if there is possibly a GPT partition or not
-                    partitionData.partitionDataType = PARTITION_TABLE_MRB;
+                    partitionData->partitionDataType = PARTITION_TABLE_MRB;
                     //Easy way is to check for EFI part signature
                     if (strcmp(gptSignature, "EFI PART") == 0)
                     {
-                        partitionData.partitionDataType = PARTITION_TABLE_GPT;
+                        partitionData->partitionDataType = PARTITION_TABLE_GPT;
                     }
                     else
                     {
                         checkForGPT = false;
                         //call functino to fill MBR data
-                        partitionData.mbrTable = C_CAST(ptrMBRData, calloc(1, sizeof(mbrData)));
-                        if (partitionData.mbrTable)
+                        partitionData->mbrTable = C_CAST(ptrMBRData, calloc(1, sizeof(mbrData)));
+                        if (partitionData->mbrTable)
                         {
                             if (lba == 0)
                             {
-                                fill_MBR_Data(dataBuffer, dataSize, partitionData.mbrTable);
+                                fill_MBR_Data(dataBuffer, dataSize, partitionData->mbrTable);
                             }
                             //todo: backup mbr?
                         }
@@ -580,33 +579,33 @@ partitionInfo get_Partition_Info(tDevice* device)
                 {
                     //APM detected!
                     checkForGPT = false;//GPT will not exist here since these start in the same sector offset
-                    partitionData.partitionDataType = PARTITION_TABLE_APM;
+                    partitionData->partitionDataType = PARTITION_TABLE_APM;
                     //call function to fill APM data
                 }
                 if (checkForGPT && strcmp(gptSignature, "EFI PART") == 0)
                 {
                     //GPT table detected!
-                    partitionData.partitionDataType = PARTITION_TABLE_GPT;
+                    partitionData->partitionDataType = PARTITION_TABLE_GPT;
                 }
-                if (lba == 0 && partitionData.partitionDataType == PARTITION_TABLE_NOT_FOUND)
+                if (lba == 0 && partitionData->partitionDataType == PARTITION_TABLE_NOT_FOUND)
                 {
                     memset(dataBuffer, 0, dataSize);//clear out any old data in case something weird happens
                     //change the LBA to read from to maxLBA - 32KiB
                     lba = device->drive_info.deviceMaxLba - (dataSize / device->drive_info.deviceBlockSize);
                 }
-                else if (lba == 0 && partitionData.partitionDataType == PARTITION_TABLE_GPT)
+                else if (lba == 0 && partitionData->partitionDataType == PARTITION_TABLE_GPT)
                 {
                     uint32_t partitionCount = number_Of_GPT_Partitions(dataBuffer, dataSize, device->drive_info.deviceBlockSize);
                     uint32_t gptStructSize = (sizeof(gptData) - sizeof(gptPartitionEntry)) + (sizeof(gptPartitionEntry) * partitionCount);
-                    partitionData.gptTable = C_CAST(ptrGPTData, calloc(gptStructSize, sizeof(uint8_t)));
-                    if (partitionData.gptTable)
+                    partitionData->gptTable = C_CAST(ptrGPTData, calloc(gptStructSize, sizeof(uint8_t)));
+                    if (partitionData->gptTable)
                     {
-                        partitionData.partitionDataType = PARTITION_TABLE_GPT;
-                        fill_GPT_Data(device, dataBuffer, dataSize, partitionData.gptTable, gptStructSize);
+                        partitionData->partitionDataType = PARTITION_TABLE_GPT;
+                        fill_GPT_Data(device, dataBuffer, dataSize, partitionData->gptTable, gptStructSize);
                     }
                     else
                     {
-                        partitionData.partitionDataType = PARTITION_TABLE_NOT_FOUND;
+                        partitionData->partitionDataType = PARTITION_TABLE_NOT_FOUND;
                     }
                 }
                 else
@@ -620,7 +619,7 @@ partitionInfo get_Partition_Info(tDevice* device)
                 printf("Unable to read 32KiB starting at LBA %" PRIu64 "\n", lba);
                 break;
             }
-        } while (partitionData.partitionDataType == PARTITION_TABLE_NOT_FOUND);
+        } while (partitionData->partitionDataType == PARTITION_TABLE_NOT_FOUND);
     }
     else
     {

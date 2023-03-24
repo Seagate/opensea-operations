@@ -110,7 +110,7 @@ extern "C"
         MBR_PART_TYPE_COHERENT_SWAP                                         = 0x0A,
         MBR_PART_TYPE_OPUS_0A                                               = 0x0A,
         MBR_PART_TYPE_WIN95_OSR2_FAT32                                      = 0x0B,
-        MBR_PART_TYPE_WIN95_OSR2_FAR32_LBA                                  = 0x0C,
+        MBR_PART_TYPE_WIN95_OSR2_FAT32_LBA                                  = 0x0C,
         MBR_PART_TYPE_SILICON_SAFE                                          = 0x0D,
         MBR_PART_TYPE_WIN95_DOS_FAT_16_LBA                                  = 0x0E,
         MBR_PART_TYPE_WIN95_EXTENDED_PARTITION_LBA                          = 0x0F,
@@ -551,7 +551,7 @@ extern "C"
 
     
 
-    OPENSEA_OPERATIONS_API partitionInfo get_Partition_Info(tDevice* device);
+    OPENSEA_OPERATIONS_API ptrPartitionInfo get_Partition_Info(tDevice* device);
 
     OPENSEA_OPERATIONS_API void print_Partition_Info(ptrPartitionInfo partitionTable);
 
