@@ -217,12 +217,17 @@ static int fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData m
 }
 
 //This requires pointing data to lba 0 (to keep consistent with other functions)
-static uint32_t number_Of_GPT_Partitions(uint8_t* gptDataBuf, uint32_t gptDataSize, uint32_t deviceLogicalBlockSize)
+static uint32_t number_Of_GPT_Partitions(uint8_t* gptDataBuf, uint32_t gptDataSize, uint32_t deviceLogicalBlockSize, uint64_t lba)
 {
     uint32_t count = 0;
     if (gptDataBuf && gptDataSize >= (2 * deviceLogicalBlockSize))
     {
         uint32_t gptOffset = deviceLogicalBlockSize;//offset to LBA 1
+        if (lba != 0)
+        {
+            //assuming backup at the end of the device, so need to change the offset!
+            gptOffset = gptDataSize - deviceLogicalBlockSize;
+        }
         //TODO: validate header is present???
         count = M_BytesTo4ByteValue(gptDataBuf[gptOffset + 83], gptDataBuf[gptOffset + 82], gptDataBuf[gptOffset + 81], gptDataBuf[gptOffset + 80]);
     }
@@ -417,70 +422,89 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
 
 //This is currently written expecting the primary copy.
 //TODO: Add validating the secondary copy and error checking between the copies!
-static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct)
+//TODO: Handle parsing from the backup LBA
+static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
     int ret = NOT_SUPPORTED;
     if (gptDataBuf && gpt && gptDataSize >= 32768 && gptDataSize >= (2 * device->drive_info.deviceBlockSize))
     {
+        //In order to "easily" adapt this code for GPT backup, it will move the buffer data around since at the beginning the header is before the partitions, but for the backup
+        //the partitions come before the header.
+        uint32_t gptHeaderOffset = device->drive_info.deviceBlockSize;
+        if (lba != 0)
+        {
+            gptHeaderOffset = gptDataSize - device->drive_info.deviceBlockSize;
+        }
+
         char gptSignature[9] = { 0 };
-        memcpy(gptSignature, &gptDataBuf[device->drive_info.deviceBlockSize], 8);
+        memcpy(gptSignature, &gptDataBuf[gptHeaderOffset], 8);
         if (strcmp(gptSignature, "EFI PART") == 0)
         {
-            uint32_t deviceLogicalBlockSize = device->drive_info.deviceBlockSize;
             ret = SUCCESS;
             //fill in the MBR first
-            if (SUCCESS == fill_MBR_Data(gptDataBuf, 512, &gpt->protectiveMBR))
+            if (lba == 0 && SUCCESS == fill_MBR_Data(gptDataBuf, 512, &gpt->protectiveMBR))
             {
                 gpt->mbrValid = true;
                 //TODO: Check partitions in MBR to see if protective or hybrid style
                 //TODO: Make sure only one partition is listed.
             }
-            gpt->revision = M_BytesTo4ByteValue(gptDataBuf[deviceLogicalBlockSize + 11], gptDataBuf[deviceLogicalBlockSize + 10], gptDataBuf[deviceLogicalBlockSize + 9], gptDataBuf[deviceLogicalBlockSize + 8]);
-            uint32_t gptHeaderSize = M_BytesTo4ByteValue(gptDataBuf[deviceLogicalBlockSize + 15], gptDataBuf[deviceLogicalBlockSize + 14], gptDataBuf[deviceLogicalBlockSize + 13], gptDataBuf[deviceLogicalBlockSize + 12]);
+            gpt->revision = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 11], gptDataBuf[gptHeaderOffset + 10], gptDataBuf[gptHeaderOffset + 9], gptDataBuf[gptHeaderOffset + 8]);
+            uint32_t gptHeaderSize = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 15], gptDataBuf[gptHeaderOffset + 14], gptDataBuf[gptHeaderOffset + 13], gptDataBuf[gptHeaderOffset + 12]);
             //save current header value.
             //to calculate the header value, we need the header size (at least 92) and to zero out the crc32 in the data before recalculating it
-            uint32_t crc32HeaderValue = M_BytesTo4ByteValue(gptDataBuf[deviceLogicalBlockSize + 19], gptDataBuf[deviceLogicalBlockSize + 18], gptDataBuf[deviceLogicalBlockSize + 17], gptDataBuf[deviceLogicalBlockSize + 16]);
-            gpt->currentLBA = M_BytesTo8ByteValue(gptDataBuf[deviceLogicalBlockSize + 31], gptDataBuf[deviceLogicalBlockSize + 30], gptDataBuf[deviceLogicalBlockSize + 29], gptDataBuf[deviceLogicalBlockSize + 28], gptDataBuf[deviceLogicalBlockSize + 27], gptDataBuf[deviceLogicalBlockSize + 26], gptDataBuf[deviceLogicalBlockSize + 25], gptDataBuf[deviceLogicalBlockSize + 24]);
-            gpt->backupLBA = M_BytesTo8ByteValue(gptDataBuf[deviceLogicalBlockSize + 39], gptDataBuf[deviceLogicalBlockSize + 38], gptDataBuf[deviceLogicalBlockSize + 37], gptDataBuf[deviceLogicalBlockSize + 36], gptDataBuf[deviceLogicalBlockSize + 35], gptDataBuf[deviceLogicalBlockSize + 34], gptDataBuf[deviceLogicalBlockSize + 33], gptDataBuf[deviceLogicalBlockSize + 32]);
-            gpt->firstUsableLBA = M_BytesTo8ByteValue(gptDataBuf[deviceLogicalBlockSize + 47], gptDataBuf[deviceLogicalBlockSize + 46], gptDataBuf[deviceLogicalBlockSize + 45], gptDataBuf[deviceLogicalBlockSize + 44], gptDataBuf[deviceLogicalBlockSize + 43], gptDataBuf[deviceLogicalBlockSize + 42], gptDataBuf[deviceLogicalBlockSize + 41], gptDataBuf[deviceLogicalBlockSize + 40]);
-            gpt->lastUsableLBA = M_BytesTo8ByteValue(gptDataBuf[deviceLogicalBlockSize + 55], gptDataBuf[deviceLogicalBlockSize + 54], gptDataBuf[deviceLogicalBlockSize + 53], gptDataBuf[deviceLogicalBlockSize + 52], gptDataBuf[deviceLogicalBlockSize + 51], gptDataBuf[deviceLogicalBlockSize + 50], gptDataBuf[deviceLogicalBlockSize + 49], gptDataBuf[deviceLogicalBlockSize + 48]);
-            copy_GPT_GUID(&gptDataBuf[deviceLogicalBlockSize + 56], &gpt->diskGUID);
-            gpt->numberOfPartitionEntries = M_BytesTo4ByteValue(gptDataBuf[deviceLogicalBlockSize + 83], gptDataBuf[deviceLogicalBlockSize + 82], gptDataBuf[deviceLogicalBlockSize + 81], gptDataBuf[deviceLogicalBlockSize + 80]);
+            uint32_t crc32HeaderValue = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 19], gptDataBuf[gptHeaderOffset + 18], gptDataBuf[gptHeaderOffset + 17], gptDataBuf[gptHeaderOffset + 16]);
+            gpt->currentLBA = M_BytesTo8ByteValue(gptDataBuf[gptHeaderOffset + 31], gptDataBuf[gptHeaderOffset + 30], gptDataBuf[gptHeaderOffset + 29], gptDataBuf[gptHeaderOffset + 28], gptDataBuf[gptHeaderOffset + 27], gptDataBuf[gptHeaderOffset + 26], gptDataBuf[gptHeaderOffset + 25], gptDataBuf[gptHeaderOffset + 24]);
+            gpt->backupLBA = M_BytesTo8ByteValue(gptDataBuf[gptHeaderOffset + 39], gptDataBuf[gptHeaderOffset + 38], gptDataBuf[gptHeaderOffset + 37], gptDataBuf[gptHeaderOffset + 36], gptDataBuf[gptHeaderOffset + 35], gptDataBuf[gptHeaderOffset + 34], gptDataBuf[gptHeaderOffset + 33], gptDataBuf[gptHeaderOffset + 32]);
+            gpt->firstUsableLBA = M_BytesTo8ByteValue(gptDataBuf[gptHeaderOffset + 47], gptDataBuf[gptHeaderOffset + 46], gptDataBuf[gptHeaderOffset + 45], gptDataBuf[gptHeaderOffset + 44], gptDataBuf[gptHeaderOffset + 43], gptDataBuf[gptHeaderOffset + 42], gptDataBuf[gptHeaderOffset + 41], gptDataBuf[gptHeaderOffset + 40]);
+            gpt->lastUsableLBA = M_BytesTo8ByteValue(gptDataBuf[gptHeaderOffset + 55], gptDataBuf[gptHeaderOffset + 54], gptDataBuf[gptHeaderOffset + 53], gptDataBuf[gptHeaderOffset + 52], gptDataBuf[gptHeaderOffset + 51], gptDataBuf[gptHeaderOffset + 50], gptDataBuf[gptHeaderOffset + 49], gptDataBuf[gptHeaderOffset + 48]);
+            copy_GPT_GUID(&gptDataBuf[gptHeaderOffset + 56], &gpt->diskGUID);
+            gpt->numberOfPartitionEntries = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 83], gptDataBuf[gptHeaderOffset + 82], gptDataBuf[gptHeaderOffset + 81], gptDataBuf[gptHeaderOffset + 80]);
             //before going any further, validate the CRC
             //first zero out the CRC as specified in UEFI spec
-            memset(&gptDataBuf[deviceLogicalBlockSize + 16], 0, 4);
+            memset(&gptDataBuf[gptHeaderOffset + 16], 0, 4);
             //now calculate the CRC for the length (gpt header size)
-            if (crc32HeaderValue == gpt_CRC_32(&gptDataBuf[deviceLogicalBlockSize], gptHeaderSize))
+            if (crc32HeaderValue == gpt_CRC_32(&gptDataBuf[gptHeaderOffset], gptHeaderSize))
             {
                 bool usedLocalPartitionBuf = false;
-                uint8_t* gptPartitionArray = &gptDataBuf[deviceLogicalBlockSize * 2];//offset to the beginning of the partition array
-                uint32_t gptPartitionArrayDataLength = gptDataSize - (2 * deviceLogicalBlockSize);
+                uint8_t* gptPartitionArray = &gptDataBuf[gptHeaderOffset + device->drive_info.deviceBlockSize];//offset to the beginning of the partition array
+                uint32_t gptPartitionArrayDataLength = gptDataSize - (2 * device->drive_info.deviceBlockSize);
+                uint32_t sizeOfPartitionEntry = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 87], gptDataBuf[gptHeaderOffset + 86], gptDataBuf[gptHeaderOffset + 85], gptDataBuf[gptHeaderOffset + 84]);
+                if (lba != 0)
+                {
+                    //gpt->numberOfPartitionEntries //TODO: does this need to be taken into account to find the "beginning" of the backup partitions??? -TJE
+                    gptPartitionArray = &gptDataBuf[gptDataSize - device->drive_info.deviceBlockSize - (gpt->numberOfPartitionEntries * sizeOfPartitionEntry)];//for backup this will point to the beginning of the partition array
+                }
                 gpt->crc32HeaderValid = true;
                 uint32_t gptStructPartitionEntriesAvailable = (sizeOfGPTDataStruct - (sizeof(gptData) - sizeof(gptPartitionEntry))) / sizeof(gptPartitionEntry);
                 //the header passed, so time to validate the CRC of the partition data!
                 //need to know how many partition structs we have available to read into before beginning to read
                 //need to make sure we have all the databuffer necessary to read all partitions...it is possible that there are more than is in the passed in data pointer
-                uint32_t sizeOfPartitionEntry = M_BytesTo4ByteValue(gptDataBuf[deviceLogicalBlockSize + 87], gptDataBuf[deviceLogicalBlockSize + 86], gptDataBuf[deviceLogicalBlockSize + 85], gptDataBuf[deviceLogicalBlockSize + 84]);
                 if (gptPartitionArrayDataLength < (sizeOfPartitionEntry * gpt->numberOfPartitionEntries))
                 {
+                    uint64_t partitionArrayLBA = UINT64_C(2);//point to beginning of the partition data. This is assuming reading at primary GPT!
                     //reread partition entries
                     usedLocalPartitionBuf = true;
                     //allocate a new buffer to read this in and read only the partition array
                     //calculate the data length and round up to the nearest full logical block
-                    gptPartitionArrayDataLength = (((sizeOfPartitionEntry * gpt->numberOfPartitionEntries) + (device->drive_info.deviceBlockSize - 1)) / device->drive_info.deviceBlockSize) * device->drive_info.deviceBlockSize;
+                    gptPartitionArrayDataLength = (((sizeOfPartitionEntry * gpt->numberOfPartitionEntries) + (device->drive_info.deviceBlockSize - UINT64_C(1))) / device->drive_info.deviceBlockSize) * device->drive_info.deviceBlockSize;
+                    if (lba != 0)
+                    {
+                        //calculate the LBA to read the beginning of the partition array!
+                        partitionArrayLBA = device->drive_info.deviceMaxLba - (gptPartitionArrayDataLength / device->drive_info.deviceBlockSize) + UINT64_C(1);
+                    }
                     gptPartitionArray = C_CAST(uint8_t*, calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
                     if (!gptPartitionArray)
                     {
                         return MEMORY_FAILURE;
                     }
-                    ret = read_LBA(device, 1, false, gptPartitionArray, gptPartitionArrayDataLength);
+                    ret = read_LBA(device, partitionArrayLBA, false, gptPartitionArray, gptPartitionArrayDataLength);
                     if (ret != SUCCESS)
                     {
                         safe_Free(gptPartitionArray);
                         return FAILURE;
                     }
                 }
-                uint32_t partitionArrayCRC32 = M_BytesTo4ByteValue(gptDataBuf[deviceLogicalBlockSize + 91], gptDataBuf[deviceLogicalBlockSize + 90], gptDataBuf[deviceLogicalBlockSize + 89], gptDataBuf[deviceLogicalBlockSize + 88]);
+                uint32_t partitionArrayCRC32 = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 91], gptDataBuf[gptHeaderOffset + 90], gptDataBuf[gptHeaderOffset + 89], gptDataBuf[gptHeaderOffset + 88]);
                 //at this point we should have all information we need to start by running a CRC for validation
                 if (partitionArrayCRC32 == gpt_CRC_32(gptPartitionArray, (sizeOfPartitionEntry * gpt->numberOfPartitionEntries)))
                 {
@@ -545,12 +569,20 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
         {
             if (SUCCESS == read_LBA(device, lba, false, dataBuffer, dataSize))//using fua to make sure we are reading from the media, not cache
             {
-                bool checkForGPT = true;
                 char gptSignature[9] = { 0 };
-                memcpy(gptSignature, &dataBuffer[device->drive_info.deviceBlockSize], 8);
+                if (lba == 0)
+                {
+                    memcpy(gptSignature, &dataBuffer[device->drive_info.deviceBlockSize], 8);
+                }
+                else
+                {
+                    //check for backup GPT
+                    memcpy(gptSignature, &dataBuffer[dataSize - device->drive_info.deviceBlockSize], 8);
+                }
                 //First check for an MBR. This is most common to find, then check if APM is in sector 1. If neither are found, check if a GPT table exists even without a protective MBR
                 //First check the signature bytes
-                if (dataBuffer[510] == MBR_SIGNATURE_LO && dataBuffer[511] == MBR_SIGNATURE_HI)
+                //NOTE: all documentation I have does not show any backups of the MBR. If a backup is available, this needs to change to support it.-TJE
+                if (lba == 0 && dataBuffer[510] == MBR_SIGNATURE_LO && dataBuffer[511] == MBR_SIGNATURE_HI)
                 {
                     //A MBR is detected!
                     //check if there is possibly a GPT partition or not
@@ -562,7 +594,6 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                     }
                     else
                     {
-                        checkForGPT = false;
                         //call functino to fill MBR data
                         partitionData->mbrTable = C_CAST(ptrMBRData, calloc(1, sizeof(mbrData)));
                         if (partitionData->mbrTable)
@@ -571,18 +602,16 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                             {
                                 fill_MBR_Data(dataBuffer, dataSize, partitionData->mbrTable);
                             }
-                            //todo: backup mbr?
                         }
                     }
                 }
                 else if (lba == 0 && dataBuffer[device->drive_info.deviceBlockSize + 0] == APM_SIG_0 && dataBuffer[device->drive_info.deviceBlockSize + 1] == APM_SIG_1)
                 {
                     //APM detected!
-                    checkForGPT = false;//GPT will not exist here since these start in the same sector offset
                     partitionData->partitionDataType = PARTITION_TABLE_APM;
                     //call function to fill APM data
                 }
-                if (checkForGPT && strcmp(gptSignature, "EFI PART") == 0)
+                if (partitionData->partitionDataType == PARTITION_TABLE_NOT_FOUND && strcmp(gptSignature, "EFI PART") == 0)
                 {
                     //GPT table detected!
                     partitionData->partitionDataType = PARTITION_TABLE_GPT;
@@ -591,17 +620,18 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                 {
                     memset(dataBuffer, 0, dataSize);//clear out any old data in case something weird happens
                     //change the LBA to read from to maxLBA - 32KiB
-                    lba = device->drive_info.deviceMaxLba - (dataSize / device->drive_info.deviceBlockSize);
+                    lba = device->drive_info.deviceMaxLba - (dataSize / device->drive_info.deviceBlockSize) + 1;//1 corrects the LBA offset to be able to find the backup GPT partition -TJE
                 }
-                else if (lba == 0 && partitionData->partitionDataType == PARTITION_TABLE_GPT)
+                else if (partitionData->partitionDataType == PARTITION_TABLE_GPT)
                 {
-                    uint32_t partitionCount = number_Of_GPT_Partitions(dataBuffer, dataSize, device->drive_info.deviceBlockSize);
+                    //TODO: These functions expect LBA 0 right now. Need to pass the LBA in so they can adjust where to look.-TJE
+                    uint32_t partitionCount = number_Of_GPT_Partitions(dataBuffer, dataSize, device->drive_info.deviceBlockSize, lba);
                     uint32_t gptStructSize = (sizeof(gptData) - sizeof(gptPartitionEntry)) + (sizeof(gptPartitionEntry) * partitionCount);
                     partitionData->gptTable = C_CAST(ptrGPTData, calloc(gptStructSize, sizeof(uint8_t)));
                     if (partitionData->gptTable)
                     {
                         partitionData->partitionDataType = PARTITION_TABLE_GPT;
-                        fill_GPT_Data(device, dataBuffer, dataSize, partitionData->gptTable, gptStructSize);
+                        fill_GPT_Data(device, dataBuffer, dataSize, partitionData->gptTable, gptStructSize, lba);
                     }
                     else
                     {

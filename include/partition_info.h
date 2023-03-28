@@ -524,14 +524,14 @@ extern "C"
         mbrData protectiveMBR;
         uint32_t revision;
         bool crc32HeaderValid;//if this is false, then something is wrong and the data may be invalid
-        uint64_t currentLBA;
+        uint64_t currentLBA;//This will be "1" for primary copy. If this was read from the backup, this will be maxlba (or close to it)
         uint64_t backupLBA;
         uint64_t firstUsableLBA;
         uint64_t lastUsableLBA;
         gptGUID diskGUID;
         uint32_t numberOfPartitionEntries;//reported in GPT header. may be greater than number read depending on how many empty entries are in the list
         bool crc32PartitionEntriesValid;
-        bool validBackupGPT; //TODO: gpt was able to read from last LBA
+        bool validBackupGPT; //TODO: gpt was able to read from last LBA. If reading from the backup, this bool means the primary copy...which will likely be false since the primary was not the data source
         uint32_t partitionDataAvailable;//number of partitions that were successfully read into the following partition entires
         gptPartitionEntry partition[1];//NOTE: This must be allocated based on how many partitions are actually available! ex: malloc(sizeof(gptData) + (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
     }gptData, * ptrGPTData;
