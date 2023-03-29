@@ -423,6 +423,7 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
 //This is currently written expecting the primary copy.
 //TODO: Add validating the secondary copy and error checking between the copies!
 //TODO: Handle parsing from the backup LBA
+//TODO: When a CRC is invalid, compare to the backup and use that data instead
 static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
     int ret = NOT_SUPPORTED;
@@ -490,7 +491,7 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                     if (lba != 0)
                     {
                         //calculate the LBA to read the beginning of the partition array!
-                        partitionArrayLBA = device->drive_info.deviceMaxLba - (gptPartitionArrayDataLength / device->drive_info.deviceBlockSize) + UINT64_C(1);
+                        partitionArrayLBA = device->drive_info.deviceMaxLba - (gptPartitionArrayDataLength / device->drive_info.deviceBlockSize);
                     }
                     gptPartitionArray = C_CAST(uint8_t*, calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
                     if (!gptPartitionArray)
@@ -542,6 +543,8 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                             ++gpt->partitionDataAvailable;
                         }
                     }
+                    //Now that the entire array has been read and all CRCs have been validated, we need to compare to the backup location.
+                    //NOTE: If the code populated from the backup LBA already, this verifies the primary LBA...which is expected to be empty otherwise the backup would not have been used.
                 }
                 if (usedLocalPartitionBuf)
                 {
