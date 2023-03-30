@@ -90,6 +90,7 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
         *status &= 0x0F;
         //check the progress since the test is still running
         memset(temp_buf, 0, LEGACY_DRIVE_SEC_SIZE);
+        *(volatile uint8_t*)temp_buf = *(volatile uint8_t*)temp_buf;//force GCC not to optimize this out...it makes the output confusing.
         scsi_Request_Sense_Cmd(device, false, temp_buf, LEGACY_DRIVE_SEC_SIZE);
         *percentComplete = M_BytesTo2ByteValue(temp_buf[16], temp_buf[17]);
         *percentComplete *= 100;
@@ -1073,7 +1074,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     delayTime *= 2;
                     ++timeExtensionCount;
                     dstProgressTimer = time(NULL);//reset this beginning timer since we changed the polling time
-                    if (timeExtensionCount > 2)
+                    if (timeExtensionCount > 3)
                     {
                         //we've extended the polling time too much. Something else is wrong in the drive. Just abort it and exit.
                         ret = abort_DST(device);
