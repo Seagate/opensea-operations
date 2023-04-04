@@ -95,11 +95,44 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int transition_NVM_Power_State(tDevice *device, uint8_t newState);
 
+#define MAXIMUM_NVME_POWER_STATES UINT16_C(32)//the npss can technically report up to 256 since it is a 8bit field, but spec only defines 32 (0 to 31)
+
+    //note: this does not exactly match the NVMe identify data. It takes that and converts it to this "friendly" structure that is a little easier to parse
+    typedef struct _nvmePowerState
+    {
+        uint16_t powerStateNumber;//from 0 - 31
+        bool maxPowerValid;//may not be valid for some states
+        uint32_t maxPowerMilliWatts;
+        bool isNonOperationalPS;//if true, commands are not processed in this state
+        uint32_t entryLatency;
+        uint32_t exitLatency;
+        uint8_t relativeReadThroughput;
+        uint8_t relativeReadLatency;
+        uint8_t relativeWriteThroughput;
+        uint8_t relativeWriteLatency;
+        bool idlePowerValid;
+        uint32_t idlePowerMilliWatts;
+        bool activePowerValid;
+        uint32_t activePowerMilliWatts;
+        uint8_t activePowerWorkload;
+    }nvmePowerState;
+
+    typedef struct _nvmeSupportedPowerStates
+    {
+        uint16_t numberOfPowerStates;//how many were filled into the following array
+        uint32_t activePowerState;// which state is active. 0 - 31
+        nvmePowerState powerState[MAXIMUM_NVME_POWER_STATES];
+    }nvmeSupportedPowerStates, * ptrNVMeSupportedPowerStates;
+
+    OPENSEA_OPERATIONS_API int get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps);
+
+    OPENSEA_OPERATIONS_API void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps);
+
     //-----------------------------------------------------------------------------
     //
-    //  transition_Power_State( tDevice * device, ePowerConditionID newState); )
+    //  get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue )
     //
-    //! \brief  Transition the device from one power state to another. 
+    //! \brief  Get the current NVMe power state 
     //
     //  Entry:
     //!   \param [in] device - file descriptor
