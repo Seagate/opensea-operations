@@ -559,15 +559,15 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
 ptrPartitionInfo get_Partition_Info(tDevice* device)
 {
     ptrPartitionInfo partitionData = C_CAST(ptrPartitionInfo, calloc(1, sizeof(partitionInfo)));
-    partitionData->diskBlockSize = device->drive_info.deviceBlockSize;
     //This function will read LBA 0 for 32KiB first, enough to handle most situations
     //It will check for MBR, APM, and GPT (not necessarily in that order), then fill in proper structures.
     //If everything is zeros, it will read the last 32KiB of the drive to see if a backup of the boot sector is available.
     uint32_t dataSize = UINT32_C(32768);
     uint8_t* dataBuffer = C_CAST(uint8_t*, calloc(dataSize, sizeof(uint8_t)));
-    if (dataBuffer)
+    if (dataBuffer && partitionData)
     {
         uint64_t lba = 0;
+        partitionData->diskBlockSize = device->drive_info.deviceBlockSize;
         do 
         {
             if (SUCCESS == read_LBA(device, lba, false, dataBuffer, dataSize))//using fua to make sure we are reading from the media, not cache
