@@ -187,9 +187,8 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             case DL_FW_DEFERRED_SELECT_ACTIVATE:
                 options->dlMode = FWDL_UPDATE_MODE_DEFERRED_SELECT_ACTIVATE;
                 break;
-#if defined (_WIN32) && (defined (_MSC_VER) || defined (__clang__))
+#if defined (_WIN32) && defined (_MSC_VER) && !defined (__clang__)
             //visual studio complains about this NOT being here and GCC does the opposite...so only add this case for visual studio.
-            //clang for Windows also seems to warn about this.
             case FWDL_UPDATE_MODE_AUTOMATIC:
 #endif //_MSC_VER
             case DL_FW_UNKNOWN: //no direct translation, but call it automatic mode

@@ -68,6 +68,29 @@ extern "C"
         //other values are reserved or vendor specific
     }eFormatPattern;
 
+    typedef struct _runFormatUnitParameters
+    {
+        eFormatType formatType;
+        bool defaultFormat;//default device format. FOV = 0. If combined with disableImmediat, then no data sent to the device. AKA fmtdata bit is zero. Only defect list format, cmplst, and format type will be used.
+        bool currentBlockSize;
+        uint16_t newBlockSize;
+        uint64_t newMaxLBA;//will be ignored if this is set to zero
+        uint8_t* gList;
+        uint32_t glistSize;
+        bool completeList;
+        uint8_t defectListFormat;//set to 0 if you don't know or are not sending a list
+        bool disablePrimaryList;
+        bool disableCertification;
+        uint8_t* pattern;
+        uint32_t patternLength;
+        bool securityInitialize;//Not supported on Seagate products. Recommended to use sanitize instead. This ignores a lot of other fields to perform a secure overwrite of all sectors including reallocated sectors
+        bool stopOnListError;//Only used if cmplst is zero and dpry is zero. If the previous condition is met and this is true, the device will stop the format if it cannot access a list, otherwise it will continue processing the command. If unsure, leave false
+        bool disableImmediate;//Only set this is you want to wait for the device to completely format itself before returning status! You cannot poll while this is happening. It is recommended that this is left false!
+        bool changeProtectionType;//When this is set to true, the protection type below will be used to set parameters going to the drive, otherwise the current settings in the device structure will be used.
+        uint8_t protectionType;//if unsure, use 0. This will set the proper bit combinations for each protection type
+        uint8_t protectionIntervalExponent;//Only used on protection types 2 or 3. Ignored and unused otherwise since other types require this to be zero. If unsure, leave as zero
+    }runFormatUnitParameters;
+
     //-----------------------------------------------------------------------------
     //
     //  int run_Format_Unit(tDevice *device, eFormatType formatType, bool currentBlockSize, uint16_t newBlockSize, uint8_t *gList, uint32_t glistSize, bool completeList, bool disablePrimaryList, bool disableCertification, uint8_t *pattern, uint32_t patternLength, bool securityInitialize, bool pollForProgress)
@@ -93,29 +116,6 @@ extern "C"
     //!   \return SUCCESS = format unit successfull or successfully started, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    typedef struct _runFormatUnitParameters
-    {
-        eFormatType formatType;
-        bool defaultFormat;//default device format. FOV = 0. If combined with disableImmediat, then no data sent to the device. AKA fmtdata bit is zero. Only defect list format, cmplst, and format type will be used.
-        bool currentBlockSize;
-        uint16_t newBlockSize;
-        uint64_t newMaxLBA;//will be ignored if this is set to zero
-        uint8_t *gList;
-        uint32_t glistSize;
-        bool completeList;
-        uint8_t defectListFormat;//set to 0 if you don't know or are not sending a list
-        bool disablePrimaryList;
-        bool disableCertification;
-        uint8_t *pattern;
-        uint32_t patternLength;
-        bool securityInitialize;//Not supported on Seagate products. Recommended to use sanitize instead. This ignores a lot of other fields to perform a secure overwrite of all sectors including reallocated sectors
-        bool stopOnListError;//Only used if cmplst is zero and dpry is zero. If the previous condition is met and this is true, the device will stop the format if it cannot access a list, otherwise it will continue processing the command. If unsure, leave false
-        bool disableImmediate;//Only set this is you want to wait for the device to completely format itself before returning status! You cannot poll while this is happening. It is recommended that this is left false!
-        bool changeProtectionType;//When this is set to true, the protection type below will be used to set parameters going to the drive, otherwise the current settings in the device structure will be used.
-        uint8_t protectionType;//if unsure, use 0. This will set the proper bit combinations for each protection type
-        uint8_t protectionIntervalExponent;//Only used on protection types 2 or 3. Ignored and unused otherwise since other types require this to be zero. If unsure, leave as zero
-    }runFormatUnitParameters;
-
     OPENSEA_OPERATIONS_API int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress);
 
     //-----------------------------------------------------------------------------

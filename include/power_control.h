@@ -188,7 +188,6 @@ extern "C"
     //!   \param [in] identifiers - pointer to a struct containing the power consumption identifier information
     //!
     //  Exit:
-    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers);
