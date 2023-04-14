@@ -1735,7 +1735,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
         {
             printf(" # %-21s  %-9s  %-26s  %-14s  %-10s  %-9s\n", "Test", "Timestamp", "Execution Status", "Error LBA", "Checkpoint", "Sense Info");
         }
-        for (uint8_t iter = 0, counter = 0; iter < entries->numberOfEntries; ++iter)
+        for (uint8_t iter = 0; iter < entries->numberOfEntries; ++iter)
         {
             if (!entries->dstEntry[iter].descriptorValid)
             {
@@ -1951,23 +1951,24 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             if (entries->logType == DST_LOG_TYPE_NVME)
             {
                 //SCT - SC
-                char sctVal[10] = { 0 };
-                char scVal[10] = { 0 };
+#define NVM_STATUS_CODE_STR_LEN 10
+                char sctVal[NVM_STATUS_CODE_STR_LEN] = { 0 };
+                char scVal[NVM_STATUS_CODE_STR_LEN] = { 0 };
                 if (entries->dstEntry[iter].nvmeStatus.statusCodeTypeValid)
                 {
-                    snprintf(sctVal, 10, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCodeType);
+                    snprintf(sctVal, NVM_STATUS_CODE_STR_LEN, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCodeType);
                 }
                 else
                 {
-                    snprintf(sctVal, 10, "NA");
+                    snprintf(sctVal, NVM_STATUS_CODE_STR_LEN, "NA");
                 }
                 if (entries->dstEntry[iter].nvmeStatus.statusCodeValid)
                 {
-                    snprintf(sctVal, 10, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCode);
+                    snprintf(sctVal, NVM_STATUS_CODE_STR_LEN, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCode);
                 }
                 else
                 {
-                    snprintf(scVal, 10, "NA");
+                    snprintf(scVal, NVM_STATUS_CODE_STR_LEN, "NA");
                 }
                 snprintf(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH, "%s/%s", sctVal, scVal);
             }
@@ -1976,7 +1977,6 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
                 snprintf(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH, "%02"PRIX8"/%02"PRIX8"/%02"PRIX8, entries->dstEntry[iter].scsiSenseCode.senseKey, entries->dstEntry[iter].scsiSenseCode.additionalSenseCode, entries->dstEntry[iter].scsiSenseCode.additionalSenseCodeQualifier);
             }
             printf("%-9s\n", senseInfoString);
-            ++counter;
         }
         printf("NOTE: DST Log entries are printed out in order from newest to oldest based ATA/SCSI/NVMe\n");
         printf("      specifications on where to find the latest entry.\n\n");
