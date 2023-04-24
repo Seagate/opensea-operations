@@ -364,6 +364,43 @@ static int nvme_Print_Async_Config_Feature_Details(tDevice *device, eNvmeFeature
     return ret;
 }
 
+int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue selectType)
+{
+    int ret = UNKNOWN;
+    uint8_t hmbData[4096] = { 0 };
+    nvmeFeaturesCmdOpt featureCmd;
+#ifdef _DEBUG
+    printf("-->%s\n", __FUNCTION__);
+#endif
+    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    featureCmd.fid = NVME_FEAT_HOST_MEMORY_BUFFER_;
+    featureCmd.sel = selectType;
+    featureCmd.dataPtr = hmbData;
+    featureCmd.dataLength = 4096;
+    ret = nvme_Get_Features(device, &featureCmd);
+    if (ret == SUCCESS)
+    {
+        printf("\n\tHost Memory Buffer Info\n");
+        printf("=============================================\n");
+        //these two are from identify
+        printf("HMB Recommended Size: \n");
+        printf("HMD Minumum Size: \n");
+        //remaining come from cmd results or output data
+        printf("Enable Host Memory     :\t%s\n", (featureCmd.featSetGetValue & BIT0) ? "Enabled" : "Disabled");
+        printf("\tHMB Attributes:\n");
+        uint32_t hsize = M_BytesTo4ByteValue(hmbData[3], hmbData[2], hmbData[1], hmbData[0]);
+        uint64_t hmbDLA = M_BytesTo8ByteValue(hmbData[11], hmbData[10], hmbData[9], hmbData[8], hmbData[7], hmbData[6], hmbData[5], hmbData[4]);
+        uint32_t hmdlec = M_BytesTo4ByteValue(hmbData[15], hmbData[14], hmbData[13], hmbData[12]);
+        printf("\t\tBuffer size (memory page size units): %" PRIu32 "\n", hsize);
+        printf("\t\tHost Memory Descriptor List Address: %" PRIX64 "h\n", hmbDLA);
+        printf("\t\tMemory descriptor list count: %" PRIu32 "\n", hmdlec);
+    }
+#ifdef _DEBUG
+    printf("<--%s (%d)\n", __FUNCTION__, ret);
+#endif
+    return ret;
+}
+
 int nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeaturesSelectValue selectType)
 {
     int ret = UNKNOWN;
@@ -401,6 +438,9 @@ int nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeatures
         break;
     case NVME_FEAT_ASYNC_EVENT_:
         ret = nvme_Print_Async_Config_Feature_Details(device, selectType);
+        break;
+    case NVME_FEAT_HOST_MEMORY_BUFFER_:
+        ret = nvme_Print_HMB_Feature_Info(device, selectType);
         break;
     default:
         ret = NOT_SUPPORTED;
