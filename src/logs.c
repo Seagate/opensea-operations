@@ -2103,8 +2103,8 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     {
                         pullChunkSize = (islPullingSize - pageNumber) * LEGACY_DRIVE_SEC_SIZE;
                     }
-                    //read each remaining chunk with the trigger bit set to 0
-                    telemOpts.lsp = 0;
+                    //read each remaining chunk with the trigger bit set to 1 as thats what nvme-cli is doing - Deb
+                    telemOpts.lsp = 1;
                     telemOpts.offset = C_CAST(uint64_t, pageNumber) * UINT64_C(512);
                     telemOpts.dataLen = pullChunkSize;
                     if (SUCCESS == nvme_Get_Log_Page(device, &telemOpts))
