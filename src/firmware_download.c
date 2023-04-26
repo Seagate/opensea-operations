@@ -545,7 +545,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
                 options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
             }
-            if (options->dlMode == FWDL_UPDATE_MODE_DEFERRED_PLUS_ACTIVATE)
+            if (options->dlMode == FWDL_UPDATE_MODE_DEFERRED_PLUS_ACTIVATE && ret == SUCCESS)
             {
                 delay_Milliseconds(100);//This is here because there seems to be a need for a delay. If activating too quickly after the Firmware is downloaded, it seems to fail. This works - TJE
                 //send an activate command (not an existing slot, this is a new image activation)
@@ -1011,6 +1011,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         return MEMORY_FAILURE;
                     }
                     writeBufferSupportData = temp;
+                    memset(writeBufferSupportData, 0, 16);
                     //if that still doesn't work, we can try the obsolete method using the inquiry command
                     if (SUCCESS == scsi_Inquiry(device, writeBufferSupportData, 16, WRITE_BUFFER_CMD, false, true))
                     {
