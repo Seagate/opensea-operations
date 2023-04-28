@@ -380,18 +380,38 @@ int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue select
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
+        double hmbRec = device->drive_info.IdentifyData.nvme.ctrl.hmpre * UINT32_C(4096);
+        double hmbMin = device->drive_info.IdentifyData.nvme.ctrl.hmmin * UINT32_C(4096);
+        char hmbRecUnits[UNIT_STRING_LENGTH] = { 0 };
+        char hmbMinUnits[UNIT_STRING_LENGTH] = { 0 };
+        char* hmbRecUnit = &hmbRecUnits[0];
+        char *hmbMinUnit = &hmbMinUnits[0];
+        capacity_Unit_Convert(&hmbRec, &hmbRecUnit);
+        capacity_Unit_Convert(&hmbMin, &hmbMinUnit);
         printf("\n\tHost Memory Buffer Info\n");
         printf("=============================================\n");
         //these two are from identify
-        printf("HMB Recommended Size: \n");
-        printf("HMD Minumum Size: \n");
+        printf("HMB Recommended Size: %0.2f %s\n", hmbRec, hmbRecUnit);
+        printf("HMB Minimum Size: %0.2f %s\n", hmbMin, hmbMinUnit);
         //remaining come from cmd results or output data
         printf("Enable Host Memory     :\t%s\n", (featureCmd.featSetGetValue & BIT0) ? "Enabled" : "Disabled");
         printf("\tHMB Attributes:\n");
         uint32_t hsize = M_BytesTo4ByteValue(hmbData[3], hmbData[2], hmbData[1], hmbData[0]);
         uint64_t hmbDLA = M_BytesTo8ByteValue(hmbData[11], hmbData[10], hmbData[9], hmbData[8], hmbData[7], hmbData[6], hmbData[5], hmbData[4]);
         uint32_t hmdlec = M_BytesTo4ByteValue(hmbData[15], hmbData[14], hmbData[13], hmbData[12]);
-        printf("\t\tBuffer size (memory page size units): %" PRIu32 "\n", hsize);
+        size_t pageSize = get_System_Pagesize();
+        if (pageSize > 0)
+        {
+            double hmbAllocedSize = C_CAST(double, hsize * pageSize);
+            char hmbAllocedUnits[UNIT_STRING_LENGTH] = { 0 };
+            char* hmbAllocedUnit = &hmbAllocedUnits[0];
+            capacity_Unit_Convert(&hmbAllocedSize, &hmbAllocedUnit);
+            printf("\t\tBuffer size: %0.02f %s\n", hmbAllocedSize, hmbAllocedUnit);
+        }
+        else
+        {
+            printf("\t\tBuffer size (memory page size units): %" PRIu32 "\n", hsize);
+        }
         printf("\t\tHost Memory Descriptor List Address: %" PRIX64 "h\n", hmbDLA);
         printf("\t\tMemory descriptor list count: %" PRIu32 "\n", hmdlec);
     }
