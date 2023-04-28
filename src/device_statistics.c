@@ -599,7 +599,7 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
                     //this exists for the hack loop above
                     break;
                 }
-                qwordPtrDeviceStatsLog = (uint64_t*)&deviceStatsLog[offset];
+                qwordPtrDeviceStatsLog = C_CAST(uint64_t*, &deviceStatsLog[offset]);
 #if defined (__BIG_ENDIAN__)
                 //TODO: Find a better way to change this code, but for now, on big endian systems, we need to byte swap all qwords of the buffer to make the code below work properly
                 for (uint8_t qwordBSwapIter = 0; qwordBSwapIter < 64; ++qwordBSwapIter)
