@@ -40,24 +40,9 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
     {
         uint8_t* bytePtr = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
         uint16_t* wordPtr = &device->drive_info.IdentifyData.ata.Word000;
-        //MN
-        memcpy(driveInfo->modelNumber, device->drive_info.IdentifyData.ata.ModelNum, MODEL_NUM_LEN);
-#if !defined (__BIG_ENDIAN__)
-        byte_Swap_String(driveInfo->modelNumber);
-#endif
-        remove_Leading_And_Trailing_Whitespace(driveInfo->modelNumber);
-        //SN
-        memcpy(driveInfo->serialNumber, device->drive_info.IdentifyData.ata.SerNum, SERIAL_NUM_LEN);
-#if !defined (__BIG_ENDIAN__)
-        byte_Swap_String(driveInfo->serialNumber);
-#endif
-        remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-        //FWRev
-        memcpy(driveInfo->firmwareRevision, device->drive_info.IdentifyData.ata.FirmVer, FW_REV_LEN);
-#if !defined (__BIG_ENDIAN__)
-        byte_Swap_String(driveInfo->firmwareRevision);
-#endif
-        remove_Leading_And_Trailing_Whitespace(driveInfo->firmwareRevision);
+
+        fill_ATA_Strings_From_Identify_Data(bytePtr, driveInfo->modelNumber, driveInfo->serialNumber, driveInfo->firmwareRevision);
+
         //WWN
         if (device->drive_info.IdentifyData.ata.Word084 & BIT8 || device->drive_info.IdentifyData.ata.Word087 & BIT8)
         {
