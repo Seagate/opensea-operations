@@ -79,7 +79,7 @@ static int fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData m
     {
         fill_OG_MBR_Partitions(mbrDataBuf, mbrDataSize, mbr);//fill in the original 4 records first since these are in the same place for any format
         //While all MBR's have 4 partitions, some variants may have more. Check for their signtures first to get the subtype first
-        if (mbrDataBuf[2] == 'N' && mbrDataBuf[428] == 'E' && mbrDataBuf[428] == 'W' && mbrDataBuf[428] == 'L' && mbrDataBuf[428] == 'D' && mbrDataBuf[428] == 'R')
+        if (mbrDataBuf[2] == 'N' && mbrDataBuf[3] == 'E' && mbrDataBuf[4] == 'W' && mbrDataBuf[5] == 'L' && mbrDataBuf[6] == 'D' && mbrDataBuf[7] == 'R')
         {
             mbr->mbrType = MBR_TYPE_NEWLDR;
             //newldr format. Partition offset 4 in the array will always grab this data
@@ -148,7 +148,7 @@ static int fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData m
             //now fill in the remaining entries
             uint32_t partitionTableOffset = UINT32_C(430);
             uint16_t partitionOffset = mbr->numberOfPartitions;
-            for (; partitionTableOffset < UINT32_C(512) && partitionOffset < MBR_MAX_PARTITIONS && partitionOffset >= 380; partitionTableOffset -= UINT32_C(16))
+            for (; partitionTableOffset < UINT32_C(512) && partitionOffset < MBR_MAX_PARTITIONS && partitionTableOffset >= 380; partitionTableOffset -= UINT32_C(16))
             {
                 mbr->partition[partitionOffset].status = mbrDataBuf[partitionTableOffset + 0];
                 mbr->partition[partitionOffset].startingAddress.head = mbrDataBuf[partitionTableOffset + 1];
@@ -601,10 +601,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                         partitionData->mbrTable = C_CAST(ptrMBRData, calloc(1, sizeof(mbrData)));
                         if (partitionData->mbrTable)
                         {
-                            if (lba == 0)
-                            {
-                                fill_MBR_Data(dataBuffer, dataSize, partitionData->mbrTable);
-                            }
+                            fill_MBR_Data(dataBuffer, dataSize, partitionData->mbrTable);
                         }
                     }
                 }
