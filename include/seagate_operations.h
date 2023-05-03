@@ -137,7 +137,7 @@ extern "C"
     //!   \return SUCCESS = successfully enabled low current spin up, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state);
+    OPENSEA_OPERATIONS_API int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, eSeagateLCSpinLevel state);
 
     //-----------------------------------------------------------------------------
     //

@@ -295,28 +295,24 @@ int seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLe
     return ret;
 }
 
-int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, uint8_t state)
+int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, eSeagateLCSpinLevel state)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
     {
         if (state == 0)
         {
-            return NOT_SUPPORTED;
+            return BAD_PARAMETER;
         }
         if (useSCTCommand)
         {
-            if (state == 0)
-            {
-                state = SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT;
-            }
             ret = seagate_SCT_Low_Current_Spinup(device, state);
         }
         else
         {
             //use set features command for 2.5" products
             uint8_t secCnt = SEAGATE_SF_LCS_ENABLE;
-            if (state == 2)//0 means disable, 2 is here for compatibility with SCT command inputs
+            if (state == SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT)//0 means disable, 2 is here for compatibility with SCT command inputs
             {
                 secCnt = SEAGATE_SF_LCS_DISABLE;
             }
