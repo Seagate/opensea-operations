@@ -266,7 +266,7 @@ int print_Current_Power_Mode(tDevice *device)
         ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
         if (ret == SUCCESS)
         {
-            printf("Device is in Power State %d\n", powerMode);
+            printf("Device is in Power State %" PRIu32 "\n", powerMode);
         }
         else
         {

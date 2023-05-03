@@ -264,7 +264,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
     printf("\n====ATA Security Information====\n");
     if (securityStatus->securitySupported)
     {
-        printf("Security State: %u\n", securityStatus->securityState);
+        printf("Security State: %d\n", securityStatus->securityState);
         //Now print out the other bits
         printf("\tEnabled: ");
         if (securityStatus->securityEnabled)
