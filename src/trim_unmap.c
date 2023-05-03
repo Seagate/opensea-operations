@@ -100,7 +100,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
             if (maxTrimOrUnmapBlockDescriptors && maxLBACount)
             {
 #if defined (_WIN32)
-                if (!nvmeIoCtx->device->os_info.openFabricsNVMePassthroughSupported && !nvmeIoCtx->device->os_info.intelNVMePassthroughSupported)
+                if (!device->os_info.openFabricsNVMePassthroughSupported && !device->os_info.intelNVMePassthroughSupported)
                 {
                     //in Windows passthrough we rely on translation through SCSI unmap, so we need to meet the limitations we're given in it...-TJE
                     //For other drivers/interfaces we will assume that it is possible to issue this for now-TJE
