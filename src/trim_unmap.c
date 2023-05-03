@@ -99,14 +99,12 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
 
             if (maxTrimOrUnmapBlockDescriptors && maxLBACount)
             {
-                //Max of 256, 16byte ranges specified in a single command
-                *maxTrimOrUnmapBlockDescriptors = 256;
-                *maxLBACount = UINT32_MAX;
 #if defined (_WIN32)
-                //in Windows we rely on translation through SCSI unmap, so we need to meet the limitations we're given in it...-TJE
-                //TODO: If we find other OS's with limitations we may need to change the #if or use some other kind of check instead.
-                if (NULL != maxTrimOrUnmapBlockDescriptors && NULL != maxLBACount)
+                if (!nvmeIoCtx->device->os_info.openFabricsNVMePassthroughSupported && !nvmeIoCtx->device->os_info.intelNVMePassthroughSupported)
                 {
+                    //in Windows passthrough we rely on translation through SCSI unmap, so we need to meet the limitations we're given in it...-TJE
+                    //For other drivers/interfaces we will assume that it is possible to issue this for now-TJE
+                    //TODO: If we find other OS's with limitations we may need to change the #if or use some other kind of check instead.
                     uint8_t *blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
                     if (!blockLimits)
                     {
@@ -120,6 +118,16 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                     }
                     safe_Free_aligned(blockLimits)
                 }
+                else
+                {
+                    //Max of 256, 16byte ranges specified in a single command
+                    *maxTrimOrUnmapBlockDescriptors = 256;
+                    *maxLBACount = UINT32_MAX;
+                }
+#else
+                //Max of 256, 16byte ranges specified in a single command
+                *maxTrimOrUnmapBlockDescriptors = 256;
+                *maxLBACount = UINT32_MAX;
 #endif
             }
         }
