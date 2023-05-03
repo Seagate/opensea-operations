@@ -102,8 +102,7 @@ int create_And_Open_Log_File(tDevice *device,\
     {
         return ret;
     }
-
-    if (SUCCESS == ret)
+    else
     {
 #ifdef _DEBUG
         printf("\tfilename %s\n", filename);
