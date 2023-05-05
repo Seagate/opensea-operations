@@ -641,6 +641,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\ata_device_config_overlay.h" />
     <ClInclude Include="..\..\..\..\include\ata_Security.h" />
     <ClInclude Include="..\..\..\..\include\buffer_test.h" />
     <ClInclude Include="..\..\..\..\include\defect.h" />
@@ -671,6 +672,7 @@
     <ClInclude Include="..\..\..\..\include\zoned_operations.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\ata_device_config_overlay.c" />
     <ClCompile Include="..\..\..\..\src\ata_Security.c" />
     <ClCompile Include="..\..\..\..\src\buffer_test.c" />
     <ClCompile Include="..\..\..\..\src\defect.c" />
