@@ -50,9 +50,13 @@ int dco_Restore(tDevice* device)
         ret = ata_DCO_Restore(device);
         if (ret == ABORTED)
         {
-            //TODO: Check if HPA configured. HPA must be removed/reset prior to DCO restore
-            //if the command aborted, then device is in the frozen state so return this instead.-TJE
-            ret = FROZEN;
+            //check if frozen or not using a DCO identify
+            dcoData dcoDataForTestingFrozen;
+            memset(&dcoDataForTestingFrozen, 0, sizeof(dcoData));
+            if (SUCCESS != dco_Identify(device, &dcoDataForTestingFrozen))
+            {
+                ret = FROZEN;
+            }
         }
     }
     return ret;
@@ -64,6 +68,10 @@ int dco_Freeze_Lock(tDevice* device)
     if (is_DCO_Supported(device, NULL))
     {
         ret = ata_DCO_Freeze_Lock(device);
+        if (ret == ABORTED)
+        {
+            ret = FROZEN;//device is already in a frozen state, so return this instead of aborted.
+        }
     }
     return ret;
 }
@@ -249,7 +257,7 @@ void show_DCO_Identify_Data(ptrDcoData data)
         }
         if (data->feat1.readWriteDMAQueued)
         {
-            printf("\tRead/Write DMA Queued\n");
+            printf("\tRead/Write DMA Queued (TCQ)\n");
         }
         if (data->feat1.powerUpInStandby)
         {
