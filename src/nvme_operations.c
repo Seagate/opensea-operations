@@ -364,7 +364,7 @@ static int nvme_Print_Async_Config_Feature_Details(tDevice *device, eNvmeFeature
     return ret;
 }
 
-int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue selectType)
+static int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue selectType)
 {
     int ret = UNKNOWN;
     uint8_t hmbData[4096] = { 0 };
