@@ -33,34 +33,69 @@ void nvme_Print_Feature_Identifiers_Help(void)
     printf("0Bh       \t M \t   NO       \tAsynchronous Event Configuration\n");
     printf("0Ch       \t O \t   NO       \tAutonomous Power State Transition\n");
     printf("0Dh       \t O \t   NO       \tHost Memory Buffer\n");
-    printf("0Eh-77h   \t   \t            \tReserved          \n");
+    printf("0Eh       \t O \t   NO       \tTimestamp\n");
+    printf("0Fh       \t M \t   NO       \tKeep Alive Timer\n");
+    printf("10h       \t O \t   YES      \tHost Controlled Thermal Management\n");
+    printf("11h       \t O \t   NO       \tNon-Operational Power State Config\n");
+    printf("12h       \t M \t   YES      \tRead Recovery Level Config\n");
+    printf("13h       \t M \t   NO       \tPredicatable Latency Mode Config\n");
+    printf("14h       \t M \t   NO       \tPredicatable Latency Mode Window\n");
+    printf("15h       \t M \t   NO       \tLBA Status Information Report Interval\n");
+    printf("16h       \t M \t   NO       \tHost Behavior Support\n");
+    printf("17h       \t O \t   YES      \tSanitize Config\n");
+    printf("18h       \t O \t   NO       \tEndurance Group Event Configuration\n");
+    printf("19h-77h   \t   \t            \tReserved          \n");
     printf("78h-7Fh   \t   \t            \tRefer to NVMe Management Spec\n");
     printf("80h-BFh   \t   \t            \tCommand Set Specific (Reserved)\n");
+    printf("80h       \t O \t   NO       \tSoftware Progress Marker (NVM)\n");
+    printf("81h       \t O \t   NO       \tHost Identifier (NVM)\n");
+    printf("82h       \t O \t   NO       \tReservation Notification Mask (NVM)\n");
+    printf("83h       \t O \t   NO       \tReservation Persistence (NVM)\n");
+    printf("84h       \t O \t   NO       \tNamespace Write Protection Config (NVM)\n");
     printf("C0h-FFh   \t   \t            \tVendor Specific\n");
     printf("====================================================\n");
+    printf("NOTE: Some \"Mandatory\" features may not be supported by some drives due to\n");
+    printf("      conforming to older specifications from before these features were\n");
+    printf("      standardized.\n");
+    printf("NOTE: This list is not exhaustive and not an indication of what is supported\n");
+    printf("      by a given device. It is simply a list of known feature IDs as of NVMe 1.4\n");
 }
 
+//TODO: This is far from perfect. Not all features will be supported, so would be better to have something check if
+//      a feature is supported in the identify data then request information about it as needed.
+//      it would also be helpful to have the name of the feature output as well.-TJE
 int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, M_ATTR_UNUSED bool listOnlySupportedFeatures)
 {
     int ret = UNKNOWN;
-    uint8_t featureID;
+    uint16_t featureID;
     nvmeFeaturesCmdOpt featureCmd;
+    bool vendorUniqueLinePrinted = false;
+    bool commandSetSpecificLinePrinted = false;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    printf(" Feature ID\tRaw Value\n");
+    printf(" Feature ID\tRaw Value (DWORD 0)\n");
     printf("===============================\n");
-    for (featureID = 1; featureID < 0x0C; featureID++)
+    for (featureID = 1; featureID <= 0xFF; featureID++)
     {
-        if (featureID == NVME_FEAT_LBA_RANGE_)
-        {
-            continue;
-        }
+        uint8_t featData[4096] = { 0 };
         memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
-        featureCmd.fid = featureID;
+        featureCmd.fid = C_CAST(uint8_t, featureID);
         featureCmd.sel = selectType;
+        featureCmd.dataLength = 4096;
+        featureCmd.dataPtr = featData;
         if (nvme_Get_Features(device, &featureCmd) == SUCCESS)
         {
+            if (!vendorUniqueLinePrinted && featureID >= 0xC0)
+            {
+                printf("---------Vendor Unique---------\n");
+                vendorUniqueLinePrinted = true;
+            }
+            else if (!commandSetSpecificLinePrinted && featureID >= 0x80)
+            {
+                printf("------Command Set Specific-----\n");
+                commandSetSpecificLinePrinted = true;
+            }
             printf("    %02Xh    \t0x%08X\n", featureID, featureCmd.featSetGetValue);
         }
     }
