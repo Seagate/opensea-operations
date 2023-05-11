@@ -415,8 +415,8 @@ static int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        double hmbRec = device->drive_info.IdentifyData.nvme.ctrl.hmpre * UINT32_C(4096);
-        double hmbMin = device->drive_info.IdentifyData.nvme.ctrl.hmmin * UINT32_C(4096);
+        double hmbRec = C_CAST(double, device->drive_info.IdentifyData.nvme.ctrl.hmpre) * 4096.0;
+        double hmbMin = C_CAST(double, device->drive_info.IdentifyData.nvme.ctrl.hmmin) * 4096.0;
         char hmbRecUnits[UNIT_STRING_LENGTH] = { 0 };
         char hmbMinUnits[UNIT_STRING_LENGTH] = { 0 };
         char* hmbRecUnit = &hmbRecUnits[0];
