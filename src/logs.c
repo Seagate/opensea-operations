@@ -102,8 +102,7 @@ int create_And_Open_Log_File(tDevice *device,\
     {
         return ret;
     }
-
-    if (SUCCESS == ret)
+    else
     {
 #ifdef _DEBUG
         printf("\tfilename %s\n", filename);
@@ -313,16 +312,30 @@ int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint
     //first check that the logpage is supported
     if (logSubPage != 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, 255))
     {
-        uint16_t pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH;
-        uint16_t pageLen = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
-        //search the buffer for the page we want
-        for (pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH; pageSupportIter < pageLen; pageSupportIter += 2)
+        //validate the page code and subpage code
+        uint8_t pageCode = M_GETBITRANGE(logBuffer[0], 5, 0);
+        uint8_t subpageCode = logBuffer[1];
+        bool spf = M_ToBool(logBuffer[0] & BIT6);
+        if (spf && pageCode == LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES && subpageCode == 0xFF)
         {
-            if (logBuffer[pageSupportIter] == logPage && logBuffer[pageSupportIter + 1] == logSubPage)
+            uint16_t pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH;
+            uint16_t pageLen = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+            //search the buffer for the page we want
+            for (pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH; pageSupportIter < pageLen; pageSupportIter += 2)
             {
-                ret = SUCCESS;
-                break;
+                if (logBuffer[pageSupportIter] == logPage && logBuffer[pageSupportIter + 1] == logSubPage)
+                {
+                    ret = SUCCESS;
+                    break;
+                }
             }
+        }
+        else
+        {
+            //the device did not return the data that is was asked to, so it does not appear subpages are supported at all
+            //since this is only looking on this page for subpages, call this page not supported since the returned list was not as expected
+            ret = NOT_SUPPORTED;
+            *logFileSize = 0;
         }
     }
     else if (logSubPage == 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, 255))
@@ -2103,8 +2116,8 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     {
                         pullChunkSize = (islPullingSize - pageNumber) * LEGACY_DRIVE_SEC_SIZE;
                     }
-                    //read each remaining chunk with the trigger bit set to 0
-                    telemOpts.lsp = 0;
+                    //read each remaining chunk with the trigger bit set to 1 as thats what nvme-cli is doing - Deb
+                    telemOpts.lsp = 1;
                     telemOpts.offset = C_CAST(uint64_t, pageNumber) * UINT64_C(512);
                     telemOpts.dataLen = pullChunkSize;
                     if (SUCCESS == nvme_Get_Log_Page(device, &telemOpts))

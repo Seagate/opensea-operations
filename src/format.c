@@ -1761,8 +1761,8 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
     nvmeFormatCmdOpts formatCmdOptions;
     memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
     //Set metadata, PI, PIL settings to current device settings to start
-    formatCmdOptions.ms = device->drive_info.IdentifyData.nvme.ns.mc & BIT0 ? 1 : 0;
-    formatCmdOptions.pil = device->drive_info.IdentifyData.nvme.ns.dps & BIT3 ? 1 : 0;
+    formatCmdOptions.ms = (device->drive_info.IdentifyData.nvme.ns.mc & BIT0) ? 1 : 0;
+    formatCmdOptions.pil = (device->drive_info.IdentifyData.nvme.ns.dps & BIT3) ? 1 : 0;
     formatCmdOptions.pi = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
 
     if (nvmParams.metadataSettings.valid)

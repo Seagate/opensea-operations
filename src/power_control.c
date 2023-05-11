@@ -266,7 +266,7 @@ int print_Current_Power_Mode(tDevice *device)
         ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
         if (ret == SUCCESS)
         {
-            printf("Device is in Power State %d\n", powerMode);
+            printf("Device is in Power State %" PRIu32 "\n", powerMode);
         }
         else
         {
@@ -2094,35 +2094,56 @@ static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     uint8_t epcVPDPage[VPD_POWER_CONDITION_LEN] = { 0 };
     if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, NULL, NULL, true, epcVPDPage, VPD_POWER_CONDITION_LEN, NULL))
     {
+        //NOTE: Recovery times are in milliseconds, not 100 milliseconds like other timers, so need to convert to 100 millisecond units for now-TJE
         //idle a
         if (epcVPDPage[5] & BIT0)
         {
             epcSettings->idle_a.powerConditionSupported = true;
             epcSettings->idle_a.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[12], epcVPDPage[13]);
+            if (epcSettings->idle_a.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->idle_a.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->idle_a.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //idle b
         if (epcVPDPage[5] & BIT1)
         {
             epcSettings->idle_b.powerConditionSupported = true;
             epcSettings->idle_b.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[14], epcVPDPage[15]);
+            if (epcSettings->idle_b.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->idle_b.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->idle_b.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //idle c
         if (epcVPDPage[5] & BIT2)
         {
             epcSettings->idle_c.powerConditionSupported = true;
             epcSettings->idle_c.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[16], epcVPDPage[17]);
+            if (epcSettings->idle_c.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->idle_c.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->idle_c.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //standby y
         if (epcVPDPage[4] & BIT0)
         {
             epcSettings->standby_y.powerConditionSupported = true;
             epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[10], epcVPDPage[11]);
+            if (epcSettings->standby_y.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->standby_y.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //standby z
         if (epcVPDPage[4] & BIT1)
         {
             epcSettings->standby_z.powerConditionSupported = true;
             epcSettings->standby_z.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[8], epcVPDPage[9]);
+            if (epcSettings->standby_z.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->standby_z.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->standby_z.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
         //now time to read the mode pages for the other information (start with current, then saved, then default)
@@ -2166,6 +2187,15 @@ static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
                     standbyYtimerSetting = &epcSettings->standby_y.currentTimerSetting;
                     standbyZenabledBit = &epcSettings->standby_z.currentTimerEnabled;
                     standbyZtimerSetting = &epcSettings->standby_z.currentTimerSetting;
+                    //special case. If reading the current values, check the page for the PS bit (parameters savable) to note this for all power conditions.
+                    if (epcModePage[headerLength + 0] & BIT7)
+                    {
+                        epcSettings->idle_a.powerConditionSaveable = true;
+                        epcSettings->idle_b.powerConditionSaveable = true;
+                        epcSettings->idle_c.powerConditionSaveable = true;
+                        epcSettings->standby_y.powerConditionSaveable = true;
+                        epcSettings->standby_z.powerConditionSaveable = true;
+                    }
                     break;
                 case MPC_CHANGABLE_VALUES:
                     idleAenabledBit = &epcSettings->idle_a.powerConditionChangeable;

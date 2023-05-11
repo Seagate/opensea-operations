@@ -264,7 +264,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
     printf("\n====ATA Security Information====\n");
     if (securityStatus->securitySupported)
     {
-        printf("Security State: %u\n", securityStatus->securityState);
+        printf("Security State: %d\n", securityStatus->securityState);
         //Now print out the other bits
         printf("\tEnabled: ");
         if (securityStatus->securityEnabled)
@@ -585,6 +585,7 @@ int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, 
     {
         ret = ata_Security_Set_Password(device, securityPassword);
     }
+    explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
     safe_Free_aligned(securityPassword)
     return ret;
 }
@@ -606,6 +607,7 @@ int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     {
         ret = ata_Security_Disable_Password(device, securityPassword);
     }
+    explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
     safe_Free_aligned(securityPassword)
     return ret;
 }
@@ -627,6 +629,7 @@ int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool u
     {
         ret = ata_Security_Unlock(device, securityPassword);
     }
+    explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
     safe_Free_aligned(securityPassword)
     return ret;
 }
@@ -662,6 +665,7 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
             ret = ata_Security_Erase_Unit(device, securityErase, timeout);
         }
     }
+    explicit_zeroes(securityErase, LEGACY_DRIVE_SEC_SIZE);
     safe_Free_aligned(securityErase)
     return ret;
 }

@@ -1357,9 +1357,9 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
             printf("%16" PRIX64 "h  %c        %c      %7s  %23s  %08" PRIX16 "h ", fullReservation->reservationKey[keyIter].key, atp, resHolder, scope, type, fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier);
             if (fullReservation->reservationKey[keyIter].transportIDLength > 0)
             {
-                for (uint32_t transportIDoffset = 0; transportIDoffset <= 24 && transportIDoffset <= fullReservation->reservationKey[keyIter].transportIDLength; ++transportIDoffset)
+                for (uint32_t transportIDoffset = 0; transportIDoffset < 24 && transportIDoffset <= fullReservation->reservationKey[keyIter].transportIDLength; ++transportIDoffset)
                 {
-                printf("%02" PRIX8, fullReservation->reservationKey[keyIter].transportID[transportIDoffset]);
+                    printf("%02" PRIX8, fullReservation->reservationKey[keyIter].transportID[transportIDoffset]);
                 }
                 if (fullReservation->reservationKey[keyIter].transportIDLength > 24)
                 {

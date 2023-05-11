@@ -99,8 +99,9 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         {
             bool errorFound = false;
             uint64_t maxSingleLoopLBA = lbaIter + sectorCount;//limits the loop to trying to only a certain number of sectors without getting stuck at single LBA reads.
+            uint32_t logicalPerPhysical = device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize;
             //read command failure...so we need to read until we find the exact failing lba
-            for (; lbaIter <= maxSingleLoopLBA; lbaIter += 1)
+            for (; lbaIter <= maxSingleLoopLBA; lbaIter += logicalPerPhysical)
             {
                 //print out the current LBA we are rwving
                 if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)

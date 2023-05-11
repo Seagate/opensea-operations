@@ -1183,6 +1183,12 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 case 18://Head health self-assessment
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_RAW_HEX, 6, 0, false);
                     break;
+                case 174://Unexpected power loss
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
+                    break;
+                case 183://Phy event counters
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 1, 0, false);
+                    break;
                 case 184://IOEDC Count
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
@@ -1497,6 +1503,21 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                                 printf("\t\tNo Failed Heads\n");
                             }
                         }
+                        break;
+                    case 174: //Unexpected power loss
+                        printf("\tUnexpected Power Loss Count: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\t\tStandby received before power off: ");
+                        if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4])
+                        {
+                            printf("true\n");
+                        }
+                        else
+                        {
+                            printf("false\n");
+                        }
+                        break;
+                    case 183: //Reported Phy Event Counter
+                        printf("\tPhy Event Count: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 184://IOEDC Count
                         printf("\tLifetime IOEDC Count: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
