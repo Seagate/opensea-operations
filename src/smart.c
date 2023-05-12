@@ -53,7 +53,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                     smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].valid = true;
                     memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].data, &currentAttribute, sizeof(ataSMARTAttribute));
                     //check if it's warrantied (This should work on Seagate drives at least)
-                    if (currentAttribute.status & BIT0)
+                    if (currentAttribute.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
                     {
                         smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].isWarrantied = true;
                     }
@@ -874,20 +874,35 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue *currentAttribute, char 
     uint8_t rawIter = 0;
     if (currentAttribute->data.attributeNumber != 0)
     {
-        char flags[5] = { 0 };
+#define ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN (5)
+        char flags[ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN] = { 0 };
         if (currentAttribute->isWarrantied)
         {
-            common_String_Concat(flags, 5, "*");
+            common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*");
         }
         if (currentAttribute->thresholdDataValid)
         {
             if (currentAttribute->data.nominal <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(flags, 5, "!");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
+                }
+                else
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
+                }
             }
             if (currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(flags, 5, "^");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
+                }
+                else
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
+                }
             }
             printf("%-5s%3"PRIu8" %-35s  %04"PRIX16"h    %02"PRIX8"h     %02"PRIX8"h     %02"PRIX8"h   ", flags, currentAttribute->data.attributeNumber, attributeName, currentAttribute->data.status, currentAttribute->data.nominal, currentAttribute->data.worstEver, currentAttribute->thresholdData.thresholdValue);
         }
@@ -915,7 +930,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
         perror("Calloc Failure!\n");
         return;
     }
-    printf("     # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
+    printf("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
     for (uint8_t iter = 0; iter < 255; ++iter)
     {
         if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -926,8 +941,10 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
         }
     }
     printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
-    printf("! - attribute is currently failing (thresholds required)\n");
-    printf("^ - attribute has previously failed (thresholds required)\n");
+    printf("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
+    printf("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
+    printf("%% - attribute is currently issuing a warning (thresholds required)\n");
+    printf("~ - attribute has previously warned about its condition (thresholds required)\n");
     printf("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
     safe_Free(attributeName)
 }
@@ -995,11 +1012,11 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         //setup threshold output
         if (currentAttribute->thresholdDataValid)
         {
-            if (currentAttribute->thresholdData.thresholdValue == 0)
+            if (currentAttribute->thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
             {
                 snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
             }
-            else if (currentAttribute->thresholdData.thresholdValue == 0xFF)
+            else if (currentAttribute->thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
             {
                 snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
             }
@@ -1009,11 +1026,25 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             }
             if (currentAttribute->data.nominal <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+                }
+                else
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
+                }
             }
             if (currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+                }
+                else
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
+                }
             }
         }
         else
@@ -1028,7 +1059,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         }
 
         //setup status flags
-        if (currentAttribute->data.status & BIT0)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "P");
         }
@@ -1036,7 +1067,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT1)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_ONLINE_DATA_COLLECTION)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "O");
         }
@@ -1044,7 +1075,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT2)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_PERFORMANCE)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "S");
         }
@@ -1052,7 +1083,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT3)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_ERROR_RATE)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "R");
         }
@@ -1060,7 +1091,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT4)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_EVENT_COUNT)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "C");
         }
@@ -1068,7 +1099,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT5)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_SELF_PRESERVING)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "K");
         }
@@ -1131,6 +1162,8 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     printf("\t  ? - See analyzed output for more information on an attribute's raw data\n");
     printf("\t  ! - attribute is currently failing\n");
     printf("\t  ^ - attribute has previously failed\n");
+    printf("\t  %% - attribute is currently issuing a warning\n");
+    printf("\t  ~ - attribute has previously warned about its condition\n");
     printf("\tTemperature:\n");
     printf("\t  m = minimum\n");
     printf("\t  M = maximum\n");
@@ -1155,7 +1188,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                 {
                 case 1://read error rate
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
                     break;
                 case 3://spin up time
                     //raw unused
@@ -1168,7 +1201,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
                 case 7://seek error rate
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
                     break;
                 case 9://power on hours
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
@@ -1217,7 +1250,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW, 3, 0, true);
                     break;
                 case 195: //ECC On the Fly Count
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
                     break;
                 case 197: //Pending-Sparing Count
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
@@ -1968,6 +2001,8 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     int ret = NOT_SUPPORTED; //command return value
     if (is_SMART_Enabled(device))
     {
+        smartLogData attributes;
+        memset(&attributes, 0, sizeof(smartLogData));
         //NOTE: ATA-3 and up all report the return status as mandatory when smart is supported and enabled
         //      HOWEVER: SFF-8035i lists this as an optional command.
         //      Always attempt a SMART return status command, then perform workarounds to get the status if it fails.
@@ -1989,56 +2024,55 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             //this will be attempted, but may need to do a attributes to thresholds comparison to know for sure.
             ret = get_ATA_SMART_Status_From_SCT_Log(device);
         }
-        
-        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED)
+        //Even though we may have already determined pass/fail, attempt to read the attributes and thresholds for more comparison and detail
+        //It is possible for some drives to give "warnings" for attributes that are not warrantied, which would be useful to report when possible.
+        if (SUCCESS == get_SMART_Attributes(device, &attributes))
         {
-            smartLogData attributes;
-            memset(&attributes, 0, sizeof(smartLogData));
-            if (SUCCESS == get_SMART_Attributes(device, &attributes))
+            //go through and compare attirbutes to thresholds (as long as the thresholds were able to be read!!!)
+            for (uint16_t counter = 0; counter < 256; ++counter)
             {
-                //go through and compare attirbutes to thresholds (as long as the thresholds were able to be read!!!)
-                for (uint16_t counter = 0; counter < 256; ++counter)
+                if (attributes.attributes.ataSMARTAttr.attributes[counter].valid)
                 {
-                    if (attributes.attributes.ataSMARTAttr.attributes[counter].valid)
+                    if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdDataValid)
                     {
-                        if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdDataValid)
+                        if (ret != FAILURE)
                         {
-                            if (ret != FAILURE)
+                            ret = SUCCESS;//need to set this to "pass" since we will otherwise keep a unknown status or not supported status
+                        }
+                        if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0)
+                        {
+                            //skip, this is an always passing attribute
+                        }
+                        else if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0xFF)
+                        {
+                            //This is an always failing attribute! (make note on the screen)
+                            ret = FAILURE;//this should override the "unknown" return value if it was set
+                            if (tripInfo)
                             {
-                                ret = SUCCESS;//need to set this to "pass" since we will otherwise keep a unknown status or not supported status
-                            }
-                            if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0)
-                            {
-                                //skip, this is an always passing attribute
-                            }
-                            else if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0xFF)
-                            {
-                                //This is an always failing attribute! (make note on the screen)
-                                ret = FAILURE;//this should override the "unknown" return value if it was set
-                                if (tripInfo)
+                                tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
+                                tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
+                                tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
+                                tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
+                                char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
+                                get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
+                                if (strlen(attributeName))
                                 {
-                                    tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
-                                    tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
-                                    tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
-                                    tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
-                                    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-                                    get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
-                                    if (strlen(attributeName))
-                                    {
-                                        //use the name in the error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] set to test trip!", attributeName, tripInfo->ataAttribute.attributeNumber);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
-                                    }
-                                    else
-                                    {
-                                        //Couldn't look up the name, so set a generic error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " set to test trip!", tripInfo->ataAttribute.attributeNumber);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
-                                    }
+                                    //use the name in the error reason
+                                    snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] set to test trip!", attributeName, tripInfo->ataAttribute.attributeNumber);
+                                    tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                 }
-                                break;
+                                else
+                                {
+                                    //Couldn't look up the name, so set a generic error reason
+                                    snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " set to test trip!", tripInfo->ataAttribute.attributeNumber);
+                                    tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                }
                             }
-                            else if (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                            break;
+                        }
+                        else if (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                        {
+                            if (attributes.attributes.ataSMARTAttr.attributes[counter].isWarrantied)
                             {
                                 //found the attribute causing the problem!!!
                                 ret = FAILURE;//this should override the "unknown" return value if it was set
@@ -2048,9 +2082,12 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                     tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
                                     tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
                                     tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
-                                    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-                                    get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
-                                    if (strlen(attributeName))
+                                    char* attributeName = C_CAST(char*, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
+                                    if (attributeName)
+                                    {
+                                        get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
+                                    }
+                                    if (attributeName && strlen(attributeName) > 0)
                                     {
                                         //use the name in the error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
@@ -2062,8 +2099,42 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
+                                    safe_Free(attributeName)
                                 }
                                 break;
+                            }
+                            else
+                            {
+                                //This attribute is not a warrantied failure, but it is generating a warning that could be helpful to report -TJE
+                                //Using IN_PROGRESS for warning like SCSI code uses.
+                                //Do not break if this is found because it is possible for warnings and failure to exist on different attributes.
+                                //So store this until more detail is uncovered.
+                                ret = IN_PROGRESS;
+                                if (tripInfo)
+                                {
+                                    tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
+                                    tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
+                                    tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
+                                    tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
+                                    char* attributeName = C_CAST(char*, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
+                                    if (attributeName)
+                                    {
+                                        get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
+                                    }
+                                    if (attributeName && strlen(attributeName) > 0)
+                                    {
+                                        //use the name in the error reason
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] is warning! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                    }
+                                    else
+                                    {
+                                        //Couldn't look up the name, so set a generic error reason
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " is warning! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                    }
+                                    safe_Free(attributeName)
+                                }
                             }
                         }
                     }
@@ -2110,75 +2181,77 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char
         {
             bool impendingFailureMissing = false;
             bool failureReasonMissing = false;
-            char impendingFailure[40] = { 0 };
+#define SCSI_IMPENDING_FAILURE_STRING_LENGTH 40
+            char impendingFailure[SCSI_IMPENDING_FAILURE_STRING_LENGTH] = { 0 };
             switch (ascq >> 4)
             {
             case 1:
-                snprintf(impendingFailure, 40, "Hardware Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Hardware Impending Failure");
                 break;
             case 2:
-                snprintf(impendingFailure, 40, "Controller Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Controller Impending Failure");
                 break;
             case 3:
-                snprintf(impendingFailure, 40, "Data Channel Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Data Channel Impending Failure");
                 break;
             case 4:
-                snprintf(impendingFailure, 40, "Servo Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Servo Impending Failure");
                 break;
             case 5:
-                snprintf(impendingFailure, 40, "Spindle Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Spindle Impending Failure");
                 break;
             case 6:
-                snprintf(impendingFailure, 40, "Firmware Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Firmware Impending Failure");
                 break;
             default:
                 impendingFailureMissing = true;
                 break;
             }
-            char failureReason[40] = { 0 };
+#define SCSI_FAILURE_REASON_STRING_LENGTH 40
+            char failureReason[SCSI_FAILURE_REASON_STRING_LENGTH] = { 0 };
             switch (ascq & 0x0F)
             {
             case 0x00:
-                snprintf(impendingFailure, 40, "General Hard Drive Failure");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "General Hard Drive Failure");
                 break;
             case 0x01:
-                snprintf(impendingFailure, 40, "Drive Error Rate Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Error Rate Too High");
                 break;
             case 0x02:
-                snprintf(impendingFailure, 40, "Data Error Rate Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Data Error Rate Too High");
                 break;
             case 0x03:
-                snprintf(impendingFailure, 40, "Seek Error Rate Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Error Rate Too High");
                 break;
             case 0x04:
-                snprintf(impendingFailure, 40, "Too Many Block Reassigns");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Too Many Block Reassigns");
                 break;
             case 0x05:
-                snprintf(impendingFailure, 40, "Access Times Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Access Times Too High");
                 break;
             case 0x06:
-                snprintf(impendingFailure, 40, "Start Unit Times Too high");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Start Unit Times Too high");
                 break;
             case 0x07:
-                snprintf(impendingFailure, 40, "Channel Parametrics");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Channel Parametrics");
                 break;
             case 0x08:
-                snprintf(impendingFailure, 40, "Controller Detected");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Controller Detected");
                 break;
             case 0x09:
-                snprintf(impendingFailure, 40, "Throughput Performance");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Throughput Performance");
                 break;
             case 0x0A:
-                snprintf(impendingFailure, 40, "Seek Time Performance");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Time Performance");
                 break;
             case 0x0B:
-                snprintf(impendingFailure, 40, "Spin-up Retry Count");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Spin-up Retry Count");
                 break;
             case 0x0C:
-                snprintf(impendingFailure, 40, "Drive Calibration Retry Count");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Calibration Retry Count");
                 break;
             case 0x0D:
-                snprintf(impendingFailure, 40, "Power Loss Protection Circuit");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Power Loss Protection Circuit");
                 break;
             default:
                 failureReasonMissing = true;

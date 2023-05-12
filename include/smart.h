@@ -148,7 +148,7 @@ extern "C"
     //!   \param[in] tripInfo = OPTIONAL pointer to a struct to get why a drive has been tripped (if available).
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected (from SCSI SMART check), all others - unknown status or error occured
+    //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected, all others - unknown status or error occured
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
