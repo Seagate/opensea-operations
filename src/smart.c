@@ -2070,14 +2070,30 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                             }
                             break;
                         }
-                        else if (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                        else if (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue
+                            || attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
                         {
+                            bool fromWorst = false;
+                            if (attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                            {
+                                fromWorst = true;
+                            }
+#define ATA_SMART_WHEN_FAILED_MAX_STR_LEN (12)
                             if (attributes.attributes.ataSMARTAttr.attributes[counter].isWarrantied)
                             {
                                 //found the attribute causing the problem!!!
                                 ret = FAILURE;//this should override the "unknown" return value if it was set
                                 if (tripInfo)
                                 {
+                                    char whenFailedStr[ATA_SMART_WHEN_FAILED_MAX_STR_LEN] = { 0 };
+                                    if (fromWorst)
+                                    {
+                                        snprintf(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Worst Ever");
+                                    }
+                                    else
+                                    {
+                                        snprintf(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Current");
+                                    }
                                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
                                     tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
                                     tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
@@ -2090,13 +2106,13 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                     if (attributeName && strlen(attributeName) > 0)
                                     {
                                         //use the name in the error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, whenFailedStr, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         //Couldn't look up the name, so set a generic error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenFailedStr, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                     safe_Free(attributeName)
@@ -2112,6 +2128,15 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                 ret = IN_PROGRESS;
                                 if (tripInfo)
                                 {
+                                    char whenWarnedStr[ATA_SMART_WHEN_FAILED_MAX_STR_LEN] = { 0 };
+                                    if (fromWorst)
+                                    {
+                                        snprintf(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Worst Ever");
+                                    }
+                                    else
+                                    {
+                                        snprintf(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Current");
+                                    }
                                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
                                     tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
                                     tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
@@ -2124,13 +2149,13 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                     if (attributeName && strlen(attributeName) > 0)
                                     {
                                         //use the name in the error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] is warning! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] is warning! %s Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, whenWarnedStr, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         //Couldn't look up the name, so set a generic error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " is warning! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " is warning! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenWarnedStr, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                     safe_Free(attributeName)
