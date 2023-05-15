@@ -7354,7 +7354,7 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
     scsiDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe)
     {
         //allocate ataDriveInfo since this is an ATA drive
         ataDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));
@@ -7384,9 +7384,9 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
     if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
     {
         //call the print functions appropriately
-        if (showChildInformation && device->drive_info.drive_type != SCSI_DRIVE && scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
+        if (showChildInformation && (device->drive_info.drive_type != SCSI_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) && scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
         {
-            if (device->drive_info.drive_type == ATA_DRIVE && ataDriveInfo)
+            if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe )&& ataDriveInfo)
             {
                 print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
             }
