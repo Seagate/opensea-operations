@@ -112,9 +112,9 @@ int show_Format_Unit_Progress(tDevice *device)
     if (ret == IN_PROGRESS)
     {
         printf("\tFormat Unit Progress = %3.2f%% \n", percentComplete);
-	//add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
-	//we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
-	//with the format
+    //add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
+    //we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
+    //with the format
         if (percentComplete + 0.005 >= 100.0)
         {
             printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
@@ -307,7 +307,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, true, MPC_CURRENT_VALUES, modeParameterData))
         {
             //try mode sense 10 without the longLBA bit now
-            if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, false, MPC_CURRENT_VALUES, modeParameterData))
+            if (SUCCESS != scsi_Mode_Sense_10(device, 0, 16, 0, false, false, MPC_CURRENT_VALUES, modeParameterData))
             {
                 modeSelect10 = false;
                 //all else fails, try mode sense 6
@@ -326,11 +326,20 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         {
             blockDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN;
             blockDescriptorLength = M_BytesTo2ByteValue(modeParameterData[6], modeParameterData[7]);
+            //zero out the mode data length since we will not actually send it the mode page, just header and block descriptor
+            modeParameterData[0] = 0;
+            modeParameterData[1] = 0;
+            //zero out device specific parameter since those bits are mostly reserved in this case and don't really matter for a reformat.
+            modeParameterData[3] = 0;
         }
         else //mode sense 6
         {
             blockDescriptorOffset = MODE_PARAMETER_HEADER_6_LEN;
             blockDescriptorLength = modeParameterData[3];
+            //zero out the mode data length since we will not actually send it the mode page, just header and block descriptor
+            modeParameterData[0] = 0;
+            //zero out device specific parameter since those bits are mostly reserved in this case and don't really matter for a reformat.
+            modeParameterData[2] = 0;
         }
         if (blockDescriptorLength == 8)
         {
@@ -406,11 +415,11 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         //now send a mode select command
         if (modeSelect10)
         {
-            ret = scsi_Mode_Select_10(device, 24, false, true, false, modeParameterData, 24); //turning off page format bit due to reading page 0 above
+            ret = scsi_Mode_Select_10(device, (blockDescriptorLength + blockDescriptorOffset), false, true, false, modeParameterData, (blockDescriptorLength + blockDescriptorOffset)); //turning off page format bit due to reading page 0 above
         }
         else
         {
-            ret = scsi_Mode_Select_6(device, 12, false, true, false, modeParameterData, 12); //turning off page format bit due to reading page 0 above
+            ret = scsi_Mode_Select_6(device, C_CAST(uint8_t, (blockDescriptorLength + blockDescriptorOffset)), false, true, false, modeParameterData, (blockDescriptorLength + blockDescriptorOffset)); //turning off page format bit due to reading page 0 above
         }
     }
     if (ret == SUCCESS)
