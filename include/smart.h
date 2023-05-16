@@ -122,6 +122,7 @@ extern "C"
                 uint8_t attributeNumber;//NOTE: This may not be available since the threshold sector has been obsolete for a long time. If this is zero, it is an invalid attribute number
                 uint8_t thresholdValue;
                 uint8_t nominalValue;
+                uint8_t worstValue;
             }ataAttribute;
             struct
             {
