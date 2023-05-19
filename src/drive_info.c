@@ -3657,6 +3657,13 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                         {
                             driveInfo->smartStatus = 1;
                         }
+                        if (!driveInfo->temperatureData.temperatureDataValid && informationExceptions[10] > 0)
+                        {
+                            //temperature log page was not read, neither was environmental reporting, but we do have
+                            //a current temperature reading here, so use it
+                            driveInfo->temperatureData.temperatureDataValid = true;
+                            driveInfo->temperatureData.currentTemperature = informationExceptions[10];
+                        }
                     }
                     else
                     {
