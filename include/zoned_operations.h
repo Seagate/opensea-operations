@@ -30,6 +30,8 @@ extern "C"
         ZONE_TYPE_CONVENTIONAL = 1,
         ZONE_TYPE_SEQUENTIAL_WRITE_REQUIRED = 2,
         ZONE_TYPE_SEQUENTIAL_WRITE_PREFERRED = 3,
+        ZONE_TYPE_SEQUENTIAL_OR_BEFORE_REQUIRED = 4,
+        ZONE_TYPE_GAP = 5,
     }eZoneType;
 
     typedef enum _eZoneCondition
@@ -39,6 +41,7 @@ extern "C"
         ZONE_CONDITION_IMLICITLY_OPENED = 2,
         ZONE_CONDITION_EXPLICITYLE_OPENED = 3,
         ZONE_CONDITION_CLOSED = 4,
+        ZONE_CONDITION_INACTIVE = 5,
         ZONE_CONDITION_READ_ONLY = 0xD,
         ZONE_CONDITION_FULL = 0xE,
         ZONE_CONDITION_OFFLINE = 0xF
@@ -49,6 +52,7 @@ extern "C"
         bool descriptorValid;
         eZoneType zoneType;
         eZoneCondition zoneCondition;
+        bool predictedUnRecErrBit;
         bool nonseqBit;
         bool resetBit;
         uint64_t zoneLength;
