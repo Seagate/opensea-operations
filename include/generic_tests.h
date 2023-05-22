@@ -623,6 +623,23 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  sweep_Test()
+    //
+    //! \brief   Description:  This function performs a sweep read, write, or verify test for the number of times specified. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] rwvcommand = enum value specifying which command type to issue
+    //!   \param[in] sweepCount = number of times the operation will run on drive
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t sweepCount);
+
     //will do a read, write, or verify timed test. Each test runs at OD, ID, random, and butterfly for the time specified
     OPENSEA_OPERATIONS_API int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, custom_Update updateFunction, void *updateData);
 

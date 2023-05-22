@@ -1410,6 +1410,52 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     return ret;
 }
 
+int sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t sweepCount)
+{
+    int ret = SUCCESS;
+    uint32_t sectorCount = 1;
+    uint8_t *dataBuf = NULL;
+    if (rwvcommand != RWV_COMMAND_VERIFY)
+    {
+        dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
+        if (!dataBuf)
+        {
+            return MEMORY_FAILURE;
+        }
+    }
+
+    for (uint32_t testCount = 0; testCount < sweepCount; testCount++)
+    {
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            printf("\rSweep Test count %"PRIu32"", (testCount + 1));
+            fflush(stdout);
+        }
+        //seek to OD
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, 0, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
+        {
+            ret = FAILURE;
+            //error occured, time to exit the loop
+            break;
+        }
+
+        //seek to ID
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, device->drive_info.deviceMaxLba, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize)))
+        {
+            ret = FAILURE;
+            //error occured, time to exit the loop
+            break;
+        }
+    }
+
+    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    {
+        printf("\n");
+    }
+
+    return ret;
+}
+
 int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     uint8_t *dataBuf = NULL;
