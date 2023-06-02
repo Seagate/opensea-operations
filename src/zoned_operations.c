@@ -48,7 +48,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
     int ret = SUCCESS;
     uint8_t *reportZones = NULL;
     uint32_t sectorCount = get_Sector_Count_For_512B_Based_XFers(device);
-    uint32_t dataBytesToRequest = (((numberOfZoneDescriptors * 64 + 64) + 511) / LEGACY_DRIVE_SEC_SIZE) * LEGACY_DRIVE_SEC_SIZE;//rounds to nearest 512B
+    uint32_t dataBytesToRequest = numberOfZoneDescriptors * 64;
     if (!zoneDescriptors || numberOfZoneDescriptors == 0)
     {
         return BAD_PARAMETER;
@@ -62,12 +62,12 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
     uint64_t nextZoneLBA = startingLBA;
     uint64_t zoneMaxLBA = device->drive_info.deviceMaxLba;//start with this...change later.
     uint32_t zoneIter = 0;
-    for (uint32_t pullIter = 0; pullIter < dataBytesToRequest; pullIter += (LEGACY_DRIVE_SEC_SIZE * 64))
+    for (uint32_t pullIter = 0; pullIter < dataBytesToRequest; pullIter += (sectorCount * LEGACY_DRIVE_SEC_SIZE - 64))
     {
         uint32_t localListLength = 0;
         if ((pullIter + (sectorCount * LEGACY_DRIVE_SEC_SIZE)) > dataBytesToRequest)
         {
-            sectorCount = (dataBytesToRequest - pullIter) / LEGACY_DRIVE_SEC_SIZE;
+            sectorCount = (dataBytesToRequest - pullIter + 64 + (LEGACY_DRIVE_SEC_SIZE - 1)) / LEGACY_DRIVE_SEC_SIZE;//rounds to nearest 512B
         }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
@@ -91,7 +91,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
             return ret;
         }
         //fill in the returned zones.
-        for (uint32_t byteIter = 64; zoneIter < numberOfZoneDescriptors && byteIter < localListLength && byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount); ++zoneIter, byteIter += 64)
+        for (uint32_t byteIter = 64; zoneIter < numberOfZoneDescriptors && byteIter <= localListLength && byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount); ++zoneIter, byteIter += 64)
         {
             zoneDescriptors[zoneIter].descriptorValid = true;
             zoneDescriptors[zoneIter].zoneType = C_CAST(eZoneType, M_Nibble0(reportZones[byteIter + 0]));
