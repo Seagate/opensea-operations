@@ -683,9 +683,12 @@ int nvme_Print_FWSLOTS_Log_Page(tDevice *device)
 
         for (slot = 1; slot <= NVME_MAX_FW_SLOTS; slot++)
         {
-            memcpy(fwRev, (char *)&fwSlotsLogInfo.FSR[slot - 1], 8);
-            fwRev[8] = '\0';
-            printf(" Slot %d : %s\n", slot, fwRev);
+			if (fwSlotsLogInfo.FSR[slot - 1])
+			{
+				memcpy(fwRev, (char *)&fwSlotsLogInfo.FSR[slot - 1], 8);
+				fwRev[8] = '\0';
+				printf(" Slot %d : %s\n", slot, fwRev);
+			}
         }
     }
 
