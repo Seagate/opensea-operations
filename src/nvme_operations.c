@@ -678,8 +678,16 @@ int nvme_Print_FWSLOTS_Log_Page(tDevice *device)
 #ifdef _DEBUG
         printf("AFI: 0x%X\n", fwSlotsLogInfo.afi);
 #endif
-        printf("\nFirmware slot actively running firmware: %d\n", fwSlotsLogInfo.afi & 0x03);
-        printf("Firmware slot to be activated at next reset: %d\n\n", ((fwSlotsLogInfo.afi & 0x30) >> 4));
+        printf("\nFirmware slot actively running firmware: %d\n", fwSlotsLogInfo.afi & 0x07);
+
+		if (((fwSlotsLogInfo.afi & 0x70) >> 4) == 0) 
+		{
+			printf("Firmware slot to be activated at next reset: None\n\n");
+		}
+		else
+		{
+			printf("Firmware slot to be activated at next reset: %d\n\n", ((fwSlotsLogInfo.afi & 0x70) >> 4));
+		}
 
         for (slot = 1; slot <= NVME_MAX_FW_SLOTS; slot++)
         {
