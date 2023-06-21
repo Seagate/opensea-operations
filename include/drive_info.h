@@ -307,6 +307,46 @@ extern "C"
         };
     }driveInformation, *ptrDriveInformation;
 
+	typedef struct _driveCapacityModelLogHeader
+	{
+		uint8_t word0;
+		uint8_t word1;
+		uint8_t word2;
+		uint8_t reserved[5];
+	}driveCapacityModelLogHeader, *ptrDriveCapacityModelLogHeader;
+
+	typedef struct _driveCapacityModelLogDescriptor
+	{
+		uint64_t driveStatics;
+		char modelNumber[MODEL_NUM_LEN];
+	}driveCapacityModelLogDescriptor, *ptrDriveCapacityModelDescriptor;
+
+
+
+	typedef struct _driveCapacityProductInformation
+	{
+		driveCapacityModelLogHeader headerInfo;
+		driveCapacityModelLogDescriptor descriptor[10];
+		uint8_t reserved[24];
+	}driveCapacityProductInformation, *ptrDriveCapacityProductInformation;
+
+
+	//-----------------------------------------------------------------------------
+	//
+	//  get_ATA_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInfo)
+	//
+	//! \brief   Description:  This function fills in Capacity/Product Mapping 
+	//
+	//  Entry:
+	//!   \param[in] device = file descriptor
+	//!   \param driveInformation = pointer to the struct to fill in with Capacity/Product Mapping.
+	//!
+	//  Exit:
+	//!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
+	//
+	//-----------------------------------------------------------------------------
+	OPENSEA_OPERATIONS_API int get_ATA_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInformation);
+
     //-----------------------------------------------------------------------------
     //
     //  get_ATA_Drive_Information(tDevice *device, ptrDriveInformation driveInfo)
@@ -421,6 +461,21 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int print_Drive_Information(tDevice *device, bool showChildInformation);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Capacity_Product_Information()
+    //
+    //! \brief   Description:  This function prints capacity Model number mapping information
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int print_Capacity_Product_Information(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //

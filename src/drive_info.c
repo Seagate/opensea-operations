@@ -23,6 +23,18 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 
+int get_ATA_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInformation)
+{
+	if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, ATA_ID_DATA_LOG_SUPPORTED_PAGES, driveInformation, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+	{
+		return SUCCESS;
+	}
+	else
+	{
+		return FAILURE;
+	}
+}
+
 int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
     int ret = SUCCESS;
@@ -7354,6 +7366,21 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     return;
 }
 
+int print_Capacity_Product_Information(tDevice* device)
+{
+	int ret = SUCCESS;
+	ptrDriveCapacityProductInformation driveInformation;
+	if (device->drive_info.drive_type == ATA_DRIVE)
+	{
+		driveInformation = C_CAST(ptrDriveCapacityProductInformation, calloc(1, sizeof(driveCapacityProductInformation)));
+		ret = get_ATA_Capacity_Product_Information(device, driveInformation);
+	}
+	else if (device->drive_info.drive_type == SCSI_DRIVE)
+	{
+
+	}
+	return ret;
+}
 
 int print_Drive_Information(tDevice* device, bool showChildInformation)
 {
