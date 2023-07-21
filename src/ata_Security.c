@@ -554,15 +554,27 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
     }
 }
 
-void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseType eraseType)
+void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseType eraseType, bool useSAT)
 {
     if (ptrData)
     {
         if (eraseType == ATA_SECURITY_ERASE_ENHANCED_ERASE)
         {
-            //Word zero, bit 1
-            //NOTE: SAT spec has this incorrect in erase unit parameter list unless the SATL actually changes the incomming buffer before issuing the command (which seems like more work than it would actually do)
-            ptrData[1] |= BIT1;
+            if (useSAT)
+            {
+                //NOTE: SAT spec has this bit in a different place so a memcpy will NOT work on this buffer unlike all other SAT
+                //      security protocol buffers will allow.
+                //      Because of this it is possible a SATL is not implemented correctly and not setting the enhanced erase bit
+                //      correctly.
+                //      This code will set this bit per the SAT spec, however device unique workarounds may be necessary in the future.
+                //      This filtering should be based off of only known translators with errors when they are discovered.
+                ptrData[0] |= BIT0;
+            }
+            else
+            {
+                //Word zero, bit 1
+                ptrData[1] |= BIT1;
+            }
         }
     }
 }
@@ -643,7 +655,7 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
         return MEMORY_FAILURE;
     }
     set_ATA_Security_Password_In_Buffer(securityErase, &ataPassword, false, true);
-    set_ATA_Security_Erase_Type_In_Buffer(securityErase, eraseType);
+    set_ATA_Security_Erase_Type_In_Buffer(securityErase, eraseType, useSAT);
     //first send the erase prepare command
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
