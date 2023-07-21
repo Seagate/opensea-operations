@@ -1129,6 +1129,18 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             }
             driveInfo->numberOfFeaturesSupported++;
         }
+        if (wordPtr[83] & BIT8)
+        {
+            if (wordPtr[86] & BIT8)
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "HPA Security Extension [Enabled]");
+            }
+            else
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "HPA Security Extension");
+            }
+            driveInfo->numberOfFeaturesSupported++;
+        }
         if (wordPtr[83] & BIT5)
         {
             if (wordPtr[86] & BIT5)
