@@ -1552,7 +1552,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             //NOTE: last sector is sometimes used as a backup of the MBR, which is why it will also be erased
             int writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
             int writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
-            if (!writeBackupMBR || !writeMBR)
+            if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
             {
                 mbrEraseWarning = true;
             }
@@ -1562,7 +1562,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
         {
             mbrEraseWarning = true;
         }
-        if(mbrEraseWarning)
+        if (mbrEraseWarning)
         {
             if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
             {
