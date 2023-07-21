@@ -145,11 +145,12 @@ extern "C"
     //  Entry:
     //!   \param[out] ptrData = pointer to the buffer to set the password in
     //!   \param[in] eraseType = enhanced or normal ATA Security erase.
+    //!   \param[in] useSAT = set to true when using SAT security protocol to issue the erase
     //!
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseType eraseType);
+    OPENSEA_OPERATIONS_API void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseType eraseType, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
