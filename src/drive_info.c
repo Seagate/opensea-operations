@@ -3519,9 +3519,11 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                             if (M_BytesTo2ByteValue(startStopCounterLog[4], startStopCounterLog[5]) == 0x0001)
                             {
                                 //DOM found
+                                char domWeekStr[3] = { startStopCounterLog[12], startStopCounterLog[13], 0 };
+                                char domYearStr[5] = { startStopCounterLog[8], startStopCounterLog[9], startStopCounterLog[10], startStopCounterLog[11], 0 };
                                 driveInfo->dateOfManufactureValid = true;
-                                driveInfo->manufactureYear = M_BytesTo4ByteValue(startStopCounterLog[8], startStopCounterLog[9], startStopCounterLog[10], startStopCounterLog[11]);
-                                driveInfo->manufactureWeek = M_BytesTo2ByteValue(startStopCounterLog[12], startStopCounterLog[13]);
+                                driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
+                                driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10));
                             }
                         }
                     }
