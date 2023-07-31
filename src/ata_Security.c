@@ -528,24 +528,23 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
             //set master password capability
             if (ataPassword->masterCapability == ATA_MASTER_PASSWORD_MAXIMUM)
             {
-                ptrData[1] |= BIT0;//word zero bit 8
+                ptrData[0] |= BIT0;//word zero bit 8
             }
         }
         else if (eraseUnit)
         {
             if (ataPassword->zacSecurityOption == ATA_ZAC_ERASE_FULL_ZONES)
             {
-                ptrData[0] |= BIT2;//word zero bit 2
+                ptrData[1] |= BIT2;//word zero bit 2
             }
         }
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
-            ptrData[0] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
+            ptrData[1] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
             if (setPassword)//if setting the password in the set password command, we need to set a few other things up
             {
                 //set the master password identifier.
                 //Since this is ATA, this is little endian format. 
-                //TODO: verify this is set correctly on big endian
                 //Word 17
                 ptrData[34] = M_Byte1(ataPassword->masterPWIdentifier);
                 ptrData[35] = M_Byte0(ataPassword->masterPWIdentifier);
@@ -1262,7 +1261,16 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
             double ataSecureEraseTimerSeconds = get_Seconds(ataSecureEraseTimer);
             convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, ataSecureEraseTimerSeconds), &years, &days, &hours, &minutes, &seconds);
-            print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+            if (seconds > 0 || minutes > 0 || hours > 0 || days > 0 || years > 0)
+            {
+                print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+            }
+            else
+            {
+                //response was in less than a second so display the time in those much smaller units.
+                //This is uncommon unless there was an error reported from the drive or it was a crypto erase
+                print_Command_Time(get_Nano_Seconds(ataSecureEraseTimer));
+            }
             printf("\n\n");
         }
         if ((result == FAILURE || hostResetDuringErase))
