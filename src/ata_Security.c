@@ -517,7 +517,7 @@ static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
     }
 }
 
-void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPassword ataPassword, bool setPassword, bool eraseUnit)
+void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPassword ataPassword, bool setPassword, bool eraseUnit, bool useSAT)
 {
     if (ptrData && ataPassword)
     {
@@ -528,26 +528,36 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
             //set master password capability
             if (ataPassword->masterCapability == ATA_MASTER_PASSWORD_MAXIMUM)
             {
-                ptrData[0] |= BIT0;//word zero bit 8
+                ptrData[1] |= BIT0;//word zero bit 8
             }
         }
         else if (eraseUnit)
         {
             if (ataPassword->zacSecurityOption == ATA_ZAC_ERASE_FULL_ZONES)
             {
-                ptrData[1] |= BIT2;//word zero bit 2
+                ptrData[0] |= BIT2;//word zero bit 2
             }
         }
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
-            ptrData[1] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
+            ptrData[0] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
             if (setPassword)//if setting the password in the set password command, we need to set a few other things up
             {
                 //set the master password identifier.
                 //Since this is ATA, this is little endian format. 
                 //Word 17
-                ptrData[34] = M_Byte1(ataPassword->masterPWIdentifier);
-                ptrData[35] = M_Byte0(ataPassword->masterPWIdentifier);
+                //NOTE: SAT uses SCSI big endian format whereas ATA uses little endian, so need to swap this.
+                //      May need SATL specific workarounds if this is not copied and sent to the drive correctly
+                if (useSAT)
+                {
+                    ptrData[34] = M_Byte1(ataPassword->masterPWIdentifier);
+                    ptrData[35] = M_Byte0(ataPassword->masterPWIdentifier);
+                }
+                else
+                {
+                    ptrData[34] = M_Byte0(ataPassword->masterPWIdentifier);
+                    ptrData[35] = M_Byte1(ataPassword->masterPWIdentifier);
+                }
             }
         }
     }
@@ -572,7 +582,7 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseTy
             else
             {
                 //Word zero, bit 1
-                ptrData[1] |= BIT1;
+                ptrData[0] |= BIT1;
             }
         }
     }
@@ -587,7 +597,7 @@ int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, 
     {
         return MEMORY_FAILURE;
     }
-    set_ATA_Security_Password_In_Buffer(securityPassword, &ataPassword, true, false);
+    set_ATA_Security_Password_In_Buffer(securityPassword, &ataPassword, true, false, useSAT);
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
         ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_SET_PASSWORD, false, SAT_SECURITY_PASS_LEN, securityPassword, 15);
@@ -609,7 +619,7 @@ int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     {
         return MEMORY_FAILURE;
     }
-    set_ATA_Security_Password_In_Buffer(securityPassword, &ataPassword, false, false);
+    set_ATA_Security_Password_In_Buffer(securityPassword, &ataPassword, false, false, useSAT);
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
         ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_DISABLE_PASSWORD, false, SAT_SECURITY_PASS_LEN, securityPassword, 15);
@@ -631,7 +641,7 @@ int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool u
     {
         return MEMORY_FAILURE;
     }
-    set_ATA_Security_Password_In_Buffer(securityPassword, &ataPassword, false, false);
+    set_ATA_Security_Password_In_Buffer(securityPassword, &ataPassword, false, false, useSAT);
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
         ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_UNLOCK, false, SAT_SECURITY_PASS_LEN, securityPassword, 15);
@@ -653,27 +663,27 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
     {
         return MEMORY_FAILURE;
     }
-    set_ATA_Security_Password_In_Buffer(securityErase, &ataPassword, false, true);
+    set_ATA_Security_Password_In_Buffer(securityErase, &ataPassword, false, true, useSAT);
     set_ATA_Security_Erase_Type_In_Buffer(securityErase, eraseType, useSAT);
     //first send the erase prepare command
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
-        ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, NULL, 15);
+        //ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, NULL, 15);
     }
     else
     {
-        ret = ata_Security_Erase_Prepare(device);
+        //ret = ata_Security_Erase_Prepare(device);
     }
     if (SUCCESS == ret)
     {
         //now send the erase command
         if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
         {
-            ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_UNIT, false, SAT_SECURITY_PASS_LEN, securityErase, timeout);
+            //ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_UNIT, false, SAT_SECURITY_PASS_LEN, securityErase, timeout);
         }
         else
         {
-            ret = ata_Security_Erase_Unit(device, securityErase, timeout);
+            //ret = ata_Security_Erase_Unit(device, securityErase, timeout);
         }
     }
     explicit_zeroes(securityErase, LEGACY_DRIVE_SEC_SIZE);
