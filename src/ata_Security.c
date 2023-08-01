@@ -668,22 +668,22 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
     //first send the erase prepare command
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
-        //ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, NULL, 15);
+        ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, NULL, 15);
     }
     else
     {
-        //ret = ata_Security_Erase_Prepare(device);
+        ret = ata_Security_Erase_Prepare(device);
     }
     if (SUCCESS == ret)
     {
         //now send the erase command
         if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
         {
-            //ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_UNIT, false, SAT_SECURITY_PASS_LEN, securityErase, timeout);
+            ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_UNIT, false, SAT_SECURITY_PASS_LEN, securityErase, timeout);
         }
         else
         {
-            //ret = ata_Security_Erase_Unit(device, securityErase, timeout);
+            ret = ata_Security_Erase_Unit(device, securityErase, timeout);
         }
     }
     explicit_zeroes(securityErase, LEGACY_DRIVE_SEC_SIZE);
