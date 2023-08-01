@@ -105,6 +105,24 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  restore_Max_LBA_For_Erase(tDevice* device)
+    //
+    //! \brief   This function is specifically named since it has a main purpose: restoring max LBA to erase a drive as much as possible
+    //!          or to allow validation of an erase as much as possible.
+    //!          Because of this, it handles all the ATA checks to make sure all features are restored or a proper
+    //!          error code for frozen or access denied is returned (HPA/AMAC/DCO and HPA security are all handled)
+    //
+    //  Entry:
+    //!   \param[in]  device file descriptor
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, DEVICE_ACCESS_DENIED means HPA security is active and blocked the restoration of the maxLBA
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int restore_Max_LBA_For_Erase(tDevice* device);
+
 #if defined (__cplusplus)
 }
 #endif

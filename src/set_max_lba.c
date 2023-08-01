@@ -15,6 +15,7 @@
 #include "operations_Common.h"
 #include "set_max_lba.h"
 #include "scsi_helper_func.h"
+#include "ata_device_config_overlay.h"
 
 int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 {
@@ -27,7 +28,7 @@ int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
     {
         ret = ata_Read_Native_Max_Address(device, nativeMaxLBA, device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported);
     }
-    else //no other feature sets to check (Not concerned about DCO right now)
+    else //no other feature sets to check. DCO is handled in a different file since it affects more than just maxLBA
     {
         *nativeMaxLBA = UINT64_MAX;//invalid maxlba
         ret = NOT_SUPPORTED;
@@ -160,12 +161,12 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         }
         else
         {
-            if (device->drive_info.IdentifyData.ata.Word119 & BIT8)
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT8)
             {
                 //accessible Max Address Configuration feature set supported
                 ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA);
             }
-            else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
+            else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
             {
                 if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
                 {
@@ -218,6 +219,48 @@ int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
             printf("Setting the max LBA is not supported on this device type at this time\n");
         }
         ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+//This function is specifically named since it has a main purpose: restoring max LBA to erase a drive as much as possible
+//or to allow validation of an erase as much as possible.
+//Because of this, it handles all the ATA checks to make sure all features are restored or a proper
+//error code for frozen or access denied is returned (HPA/AMAC/DCO and HPA security are all handled)
+int restore_Max_LBA_For_Erase(tDevice* device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        ret = scsi_Set_Max_LBA(device, 0, true);
+    }
+    else if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //before calling the reset, check if HPA security might be active. This could block this from working
+        bool hpaSecurityEnabled = false;
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT8)
+        {
+            //HPA security is supported...check if enabled to be able to return proper error code if cannot do restoration
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT8)
+            {
+                hpaSecurityEnabled = true;
+            }
+        }
+        ret = ata_Set_Max_LBA(device, 0, true);
+        if (ret != SUCCESS && hpaSecurityEnabled)
+        {
+            //most likely command aborted because this feature is active and has locked the HPA from being changed/restored
+            return DEVICE_ACCESS_DENIED;
+        }
+        //After the restore, check if DCO feature is on the drive and if it reports a higher max LBA to restore to. HPA must be restored first which should have already happened in the previous function.
+        if (ret == SUCCESS && is_DCO_Supported(device, NULL))
+        {
+            //need to restore DCO as well.
+            //TODO: one thing we may need to consider is that DCO has disabled features or more importantly DMA modes for compatibility.
+            //      This would be especially important on PATA drives if there was a controller bug where certain DMA modes do not work properly.
+            //      So the best thing to do would be to figure out what has been disabled by DCO, save that info, restore DCO, then go and disable those features/modes but leave the maxLBA as high as it can go.
+            ret = dco_Restore(device);
+        }
     }
     return ret;
 }
