@@ -123,6 +123,24 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int restore_Max_LBA_For_Erase(tDevice* device);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device)
+    //
+    //! \brief   This function checks if the adapter and device are reporting the same maxLBA to the host.
+    //!          SATA drives behind USB adapters or SAS HBAs work through a SATL (translator) that may not be in sync after changing the maxLBA.
+    //!          This checks if these things are in sync or not and reports the status. If not in sync, a powercycle or reboot is necessary for the adapter
+    //!          to update what it knows about the attached device.
+    //
+    //  Entry:
+    //!   \param[in]  device file descriptor
+    //!
+    //  Exit:
+    //!   \return true = in sync, false = out of sync. Recommend rebooting/power cycling to resync the adapters knowledge of the device.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device);
+
 #if defined (__cplusplus)
 }
 #endif
