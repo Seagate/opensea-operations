@@ -264,3 +264,170 @@ int restore_Max_LBA_For_Erase(tDevice* device)
     }
     return ret;
 }
+
+static uint64_t get_ATA_MaxLBA(tDevice* device)
+{
+    uint64_t maxLBA = 0;
+    //read the max LBA from idenfity data.
+    //TODO: read from identify device data log???
+    //now we need to compare read capacity data and ATA identify data.
+    if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), 512))
+    {
+        uint8_t* identifyData = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT10)
+        {
+            //acs4 - word 69 bit3 means extended number of user addressable sectors word supported (words 230 - 233) (Use this to get the max LBA since words 100 - 103 may only contain a value of FFFF_FFFF)
+            if (device->drive_info.IdentifyData.ata.Word069 & BIT3)
+            {
+                maxLBA = M_BytesTo8ByteValue(identifyData[467], identifyData[466], identifyData[465], identifyData[464], identifyData[463], identifyData[462], identifyData[461], identifyData[460]);
+            }
+            else
+            {
+                maxLBA = M_BytesTo8ByteValue(identifyData[207], identifyData[206], identifyData[205], identifyData[204], identifyData[203], identifyData[202], identifyData[201], identifyData[200]);
+            }
+        }
+        else
+        {
+            maxLBA = M_BytesTo4ByteValue(identifyData[123], identifyData[122], identifyData[121], identifyData[120]);
+        }
+        //adjust to make it report more like SCSI since that is how all this library works
+        if (maxLBA > 0)
+        {
+            maxLBA -= 1;
+        }
+    }
+    return maxLBA;
+}
+
+static uint64_t get_SCSI_MaxLBA(tDevice* device)
+{
+    uint64_t maxLBA = 0;
+    uint32_t blockSize = 0, physBlockSize = 0;
+    uint16_t alignment = 0;
+    //read capacity 10 first. If that reports FFFFFFFFh then do read capacity 16.
+    //if read capacity 10 fails, retry with read capacity 16
+    uint8_t* readCapBuf = C_CAST(uint8_t*, calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (!readCapBuf)
+    {
+        return maxLBA;
+    }
+    if (SUCCESS == scsi_Read_Capacity_10(device, readCapBuf, READ_CAPACITY_10_LEN))
+    {
+        copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, false);
+        if (device->drive_info.scsiVersion > 3)//SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
+        {
+            //try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a physical sector size whereas readcap10 data will not
+            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
+            if (!temp)
+            {
+                safe_Free_aligned(readCapBuf)
+                return maxLBA;
+            }
+            readCapBuf = temp;
+            memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
+            if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
+            {
+                uint64_t tempmaxLBA = 0;
+                copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, true);
+                //some USB drives will return success and no data, so check if this local var is 0 or not...if not, we can use this data
+                if (tempmaxLBA != 0)
+                {
+                    maxLBA = maxLBA;
+                }
+            }
+        }
+    }
+    else
+    {
+        //try read capacity 16, if that fails we are done trying
+        uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
+        if (temp == NULL)
+        {
+            safe_Free_aligned(readCapBuf)
+            return maxLBA;
+        }
+        readCapBuf = temp;
+        memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
+        if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
+        {
+            copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, true);
+        }
+    }
+    safe_Free_aligned(readCapBuf)
+    return maxLBA;
+}
+
+bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device)
+{
+    bool inSync = false;
+    if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        //there is no translator present so nothing to synchronize
+        inSync = true;
+    }
+    else if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint64_t ataMaxLBA = 0;
+        uint64_t scsiMaxLBA = 0;
+        //Always assume there is a translator present because there should be.
+        //It will either be software, a driver, or hardware.
+        //opensea-transport has a software based translator present so all requests in here will be handled by it if there is not a driver or hardware translator
+        //We need to first try reading VPD page 89h. This is the SAT page and it requires pulling fresh identify data....it MIGHT update the controller, but it might not.
+        uint8_t satVPDPage89[VPD_ATA_INFORMATION_LEN] = { 0 };
+        if (SUCCESS == scsi_Inquiry(device, satVPDPage89, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
+        {
+            //TODO: Do anything with the data?
+            //      Note that the identify data in this page can be modified by the SATL in some versions of SAT, so do not trust it.
+        }
+        ataMaxLBA = get_ATA_MaxLBA(device);
+        scsiMaxLBA = get_SCSI_MaxLBA(device);
+        //before comparing, know that ATA and SCSI report max LBA slightly differently.
+        //It's an off by 1 scenario.
+        //In SCSI, max LBA is reported as last readable LBA of that value read lba <=maxLBA
+        //In ATA, maxLBA is a count of readable LBAs...so                 read lba < maxLBA
+        //The functions used to get max lba are already taking this difference into account
+        //The other special case to have in mind is USB.
+        //USB drives may report a lower value as well.
+        //USB drives may also do reverse 4k emulation which will also change how this is reported.
+        //So USB has yet another special case to handle when this happens.
+        if (is_Sector_Size_Emulation_Active(device))
+        {
+            //likely only USB drives from the Windows XP era
+            //in this case take the ata max LBA and divide it by the scsi sector size before comparing.
+            uint64_t usbAdjustedMaxLBA = ataMaxLBA / device->drive_info.bridge_info.childDeviceBlockSize;
+            if (usbAdjustedMaxLBA == scsiMaxLBA)
+            {
+                inSync = true;
+            }
+            else if ((usbAdjustedMaxLBA - 1) == scsiMaxLBA)
+            {
+                //possibly USB being off by one since it can use maxLBA to save info for the adapter.
+                //Considering this in sync because of this special case
+                inSync = true;
+            }
+        }
+        else
+        {
+            //most devices used today, USB or HBA.
+            if (ataMaxLBA == scsiMaxLBA)
+            {
+                inSync = true;
+            }
+            else if ((ataMaxLBA - 1) ==scsiMaxLBA)
+            {
+                //possibly USB being off by one since it can use maxLBA to save info for the adapter.
+                //Considering this in sync because of this special case
+                inSync = true;
+            }
+        }
+    }
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        //TODO: There are not the same style of commands on nvme to change capacity as there is with SAS and SATA
+        //      In NVMe there is the namespace management feature, but that is far more complicated than this command.
+        //      For now just returning true for NVMe since the only real encapsulated NVMe drives will be on USB
+        //      and it is extremely unlikely any namespace management commands will work over USB
+        inSync = true;
+    }
+    return inSync;
+}
