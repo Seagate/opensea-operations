@@ -16,6 +16,7 @@
 #include "set_max_lba.h"
 #include "scsi_helper_func.h"
 #include "ata_device_config_overlay.h"
+#include "platform_helper.h"
 
 int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 {
@@ -357,7 +358,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
     return maxLBA;
 }
 
-bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device)
+bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
 {
     bool inSync = false;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -378,6 +379,19 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device)
         {
             //TODO: Do anything with the data?
             //      Note that the identify data in this page can be modified by the SATL in some versions of SAT, so do not trust it.
+        }
+        if (issueReset)
+        {
+            //NOTE: This is an IOCTL implemented by the low-level system files.
+            //      There is no guarantee this is implemented or works at all. For example, in Windows the IOCTLs for this are obsolete and do not work on any modern hardware I can find.
+            //      While testing a Broadcom controller on Linux, this does seem to fix the synchronization issue with the SG reset IOCTL.
+            //      This may not work on a different controller and there is no guarantee the driver implements this IOCTL
+            if (SUCCESS == os_Device_Reset(device))
+            {
+                delay_Seconds(1);
+                //issue test unit ready after this to clear out a sense code for the device having received a bus reset
+                scsi_Test_Unit_Ready(device, NULL);
+            }
         }
         ataMaxLBA = get_ATA_MaxLBA(device);
         scsiMaxLBA = get_SCSI_MaxLBA(device);
@@ -413,12 +427,18 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device)
             {
                 inSync = true;
             }
-            else if ((ataMaxLBA - 1) ==scsiMaxLBA)
+            else if ((ataMaxLBA - 1) == scsiMaxLBA)
             {
                 //possibly USB being off by one since it can use maxLBA to save info for the adapter.
                 //Considering this in sync because of this special case
                 inSync = true;
             }
+        }
+        if (!inSync && !issueReset)
+        {
+            //reset was not issued and method(s) to sync without a reset did not work
+            //So now retry with the reset and see if that helps
+            inSync = is_Max_LBA_In_Sync_With_Adapter_Or_Driver(device, true);
         }
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)

@@ -133,13 +133,14 @@ extern "C"
     //!          to update what it knows about the attached device.
     //
     //  Entry:
-    //!   \param[in]  device file descriptor
+    //!   \param[in]  device = file descriptor
+    //!   \param[in]  issueReset = attempt to issue a low-level reset to synchronize scsi and ata reported info. This reset will not work in all scenarios. if set to false, this will be called recursively to try the reset for you as needed.
     //!
     //  Exit:
     //!   \return true = in sync, false = out of sync. Recommend rebooting/power cycling to resync the adapters knowledge of the device.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device);
+    OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset);
 
 #if defined (__cplusplus)
 }
