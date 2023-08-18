@@ -6118,7 +6118,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tComposite Temperature (K): %" PRIu16 "\n", driveInfo->smartData.compositeTemperatureKelvin);
         printf("\tPercent Used (%%): %" PRIu8 "\n", driveInfo->smartData.percentageUsed);
         printf("\tAvailable Spare (%%): %" PRIu8 "\n", driveInfo->smartData.availableSpacePercent);
-        uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
         convert_Seconds_To_Displayable_Time_Double(driveInfo->smartData.powerOnHoursD * 3600.0, &years, &days, &hours, &minutes, &seconds);
         printf("\tPower On Time: ");
         print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
@@ -6467,8 +6468,9 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     printf("\tPower On Time: ");
     if (driveInfo->powerOnMinutes > 0)
     {
-        uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
-        convert_Seconds_To_Displayable_Time(driveInfo->powerOnMinutes * 60, &years, &days, &hours, &minutes, &seconds);
+        uint16_t days = 0;
+        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+        convert_Seconds_To_Displayable_Time(driveInfo->powerOnMinutes * UINT64_C(60), &years, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
     }
     else
@@ -6628,7 +6630,8 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->longDSTTimeMinutes > 0)
     {
         //print as hours:minutes
-        uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
         convert_Seconds_To_Displayable_Time(driveInfo->longDSTTimeMinutes * 60, &years, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
     }
