@@ -1488,7 +1488,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1546,7 +1547,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     //ID
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1606,7 +1608,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     seed_64(time(NULL));//start random number generator
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1666,7 +1669,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     innerLBA -= sectorCount;// -ODEndingLBA;
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -2135,7 +2139,8 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
     errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
     uint64_t odOrMdLBAsAccessed = 0;
-    uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+    uint16_t days = 0;
+    uint8_t hours = 0, minutes = 0, seconds = 0;
     convert_Seconds_To_Displayable_Time(timeInSecondsPerDiameter, NULL, &days, &hours, &minutes, &seconds);
 
     //OD

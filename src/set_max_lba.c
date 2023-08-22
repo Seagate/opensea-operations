@@ -329,11 +329,11 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
             if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
             {
                 uint64_t tempmaxLBA = 0;
-                copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, true);
+                copy_Read_Capacity_Info(&blockSize, &physBlockSize, &tempmaxLBA, &alignment, readCapBuf, true);
                 //some USB drives will return success and no data, so check if this local var is 0 or not...if not, we can use this data
                 if (tempmaxLBA != 0)
                 {
-                    maxLBA = maxLBA;
+                    maxLBA = tempmaxLBA;
                 }
             }
         }

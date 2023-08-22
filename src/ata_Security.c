@@ -340,7 +340,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
                 else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
                 {
                     uint64_t totalSeconds = UINT64_C(65532) * UINT64_C(60);
-                    uint8_t days = 0, hours = 0, minutes = 0;
+                    uint16_t days = 0;
+                    uint8_t hours = 0, minutes = 0;
                     convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                     printf(">");
                     print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
@@ -349,7 +350,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
                 else
                 {
                     uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->enhancedSecurityEraseUnitTimeMinutes) * UINT64_C(60);
-                    uint8_t days = 0, hours = 0, minutes = 0;
+                    uint16_t days = 0;
+                    uint8_t hours = 0, minutes = 0;
                     convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                     print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
                     printf("\n");
@@ -364,7 +366,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
                 else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
                 {
                     uint64_t totalSeconds = UINT64_C(508) * UINT64_C(60);
-                    uint8_t days = 0, hours = 0, minutes = 0;
+                    uint16_t days = 0;
+                    uint8_t hours = 0, minutes = 0;
                     convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                     printf(">");
                     print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
@@ -373,7 +376,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
                 else
                 {
                     uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->enhancedSecurityEraseUnitTimeMinutes) * UINT64_C(60);
-                    uint8_t days = 0, hours = 0, minutes = 0;
+                    uint16_t days = 0;
+                    uint8_t hours = 0, minutes = 0;
                     convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                     print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
                     printf("\n");
@@ -394,7 +398,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
             else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
             {
                 uint64_t totalSeconds = UINT64_C(65532) * UINT64_C(60);
-                uint8_t days = 0, hours = 0, minutes = 0;
+                uint16_t days = 0;
+                uint8_t hours = 0, minutes = 0;
                 convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                 printf(">");
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
@@ -403,7 +408,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
             else
             {
                 uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->securityEraseUnitTimeMinutes) * UINT64_C(60);
-                uint8_t days = 0, hours = 0, minutes = 0;
+                uint16_t days = 0;
+                uint8_t hours = 0, minutes = 0;
                 convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
                 printf("\n");
@@ -418,7 +424,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
             else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
             {
                 uint64_t totalSeconds = UINT64_C(508) * UINT64_C(60);
-                uint8_t days = 0, hours = 0, minutes = 0;
+                uint16_t days = 0;
+                uint8_t hours = 0, minutes = 0;
                 convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                 printf(">");
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
@@ -427,7 +434,8 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
             else
             {
                 uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->securityEraseUnitTimeMinutes) * UINT64_C(60);
-                uint8_t days = 0, hours = 0, minutes = 0;
+                uint16_t days = 0;
+                uint8_t hours = 0, minutes = 0;
                 convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
                 printf("\n");
@@ -1140,7 +1148,8 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                 //Need to report it as a time greater than what we print to the screen to make it clear.
                 time_t currentTime = time(NULL);
                 time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
-                uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t hours = 0, minutes = 0, seconds = 0;
                 char timeFormat[TIME_STRING_LENGTH] = { 0 };
                 convert_Seconds_To_Displayable_Time(erasemaxSeconds, NULL, &days, &hours, &minutes, &seconds);
                 printf("\n\tCurrent Time: %s\tDrive reported completion time: >", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
@@ -1154,7 +1163,8 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         {
             time_t currentTime = time(NULL);
             time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
-            uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+            uint16_t days = 0;
+            uint8_t hours = 0, minutes = 0, seconds = 0;
             char timeFormat[TIME_STRING_LENGTH] = { 0 };
             convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), NULL, &days, &hours, &minutes, &seconds);
             printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
@@ -1272,7 +1282,8 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
         double ataSecureEraseTimerSeconds = get_Seconds(ataSecureEraseTimer);
         convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, ataSecureEraseTimerSeconds), &years, &days, &hours, &minutes, &seconds);
         if (seconds > 0 || minutes > 0 || hours > 0 || days > 0 || years > 0)

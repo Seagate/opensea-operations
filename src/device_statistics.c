@@ -7396,9 +7396,10 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+            uint16_t days = 0;
+            uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
             //this is reported in milliseconds...convert to other displayable.
-            uint64_t statisticSeconds = theStatistic.statisticValue / 1000;
+            uint64_t statisticSeconds = theStatistic.statisticValue / UINT64_C(1000);
             convert_Seconds_To_Displayable_Time(statisticSeconds, &years, &days, &hours, &minutes, &seconds);
             print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
         }
@@ -7465,10 +7466,11 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
         if (theStatistic.isValueValid)
         {
             //this is reported in minutes...convert to other displayable.
-            uint64_t statisticMinutes = theStatistic.statisticValue * 60;
+            uint64_t statisticMinutes = theStatistic.statisticValue * UINT64_C(60);
             if (statisticMinutes > 0)
             {
-                uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
                 convert_Seconds_To_Displayable_Time(statisticMinutes, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
             }

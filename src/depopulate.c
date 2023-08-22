@@ -215,7 +215,8 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     printf("\nApproximate time to depopulate: ");
     if (depopulateTime > 0 && depopulateTime < UINT64_MAX)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         convert_Seconds_To_Displayable_Time(depopulateTime, NULL, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
         printf("\n");
@@ -623,7 +624,8 @@ int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescrip
             }
             else
             {
-                uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t hours = 0, minutes = 0, seconds = 0;
                 convert_Seconds_To_Displayable_Time(depopTime, NULL, &days, &hours, &minutes, &seconds);
                 printf("Starting depopulation. Approximate time until completion: ");
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
@@ -940,7 +942,8 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
             }
             else
             {
-                uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t hours = 0, minutes = 0, seconds = 0;
                 convert_Seconds_To_Displayable_Time(depopTime, NULL, &days, &hours, &minutes, &seconds);
                 printf("Starting repopulation. Approximate time until completion: ");
                 print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
