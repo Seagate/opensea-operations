@@ -989,7 +989,8 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     }
     if (overwriteEraseTimeEstimateMinutes)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, *overwriteEraseTimeEstimateMinutes) * UINT64_C(60), NULL, &days, &hours, &minutes, &seconds);
         //Example output: 
         //The minimum time to overwrite erase this drive is approximately x days y hours z minutes. 

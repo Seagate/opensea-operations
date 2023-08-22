@@ -402,7 +402,14 @@ int dco_Set(tDevice* device, ptrDcoData data)
                     M_CLEAR_BIT(dcoIdentData[4], 0);
                 }
                 //maxLBA
-                data->maxLBA = M_BytesTo8ByteValue(dcoIdentData[13], dcoIdentData[12], dcoIdentData[11], dcoIdentData[10], dcoIdentData[9], dcoIdentData[8], dcoIdentData[7], dcoIdentData[6]);
+                dcoIdentData[13] = M_Byte7(data->maxLBA);
+                dcoIdentData[12] = M_Byte6(data->maxLBA);
+                dcoIdentData[11] = M_Byte5(data->maxLBA);
+                dcoIdentData[10] = M_Byte4(data->maxLBA);
+                dcoIdentData[9]  = M_Byte3(data->maxLBA);
+                dcoIdentData[8]  = M_Byte2(data->maxLBA);
+                dcoIdentData[7]  = M_Byte1(data->maxLBA);
+                dcoIdentData[6]  = M_Byte0(data->maxLBA);
                 //features 1
                 if (!data->feat1.writeReadVerify)
                 {

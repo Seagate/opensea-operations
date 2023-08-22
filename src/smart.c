@@ -7321,7 +7321,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     break;
                 }
                 printf(" Life Timestamp: ");
-                uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
                 uint64_t lifeTimeStampSeconds = 0;
                 if (errorLogData->extLog)
                 {
@@ -7592,7 +7593,8 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     break;
                 }
                 printf(" Life Timestamp: ");
-                uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
                 convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, errorLogData->smartError[iter].error.lifeTimestamp) * UINT64_C(3600), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
