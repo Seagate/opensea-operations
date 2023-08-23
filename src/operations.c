@@ -825,7 +825,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         currentErase->eraseWeight = 8;//assuming that this will do a full drive overwrite format which will be slow
         //NOTE: If crypto is supported, a request for user secure erase may run a crypto erase, but no way to know for sure-TJE
         currentErase->warningValid = false;
-        currentErase->sanitizationLevel = ERASE_SANITIZATION_POSSIBLE_PURGE;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
         //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
         ++currentErase;
         nvmFormatAdded = true;
