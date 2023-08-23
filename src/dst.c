@@ -1065,7 +1065,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
             bool dstAborted = false;
             uint32_t timeDiff = 30;
             uint32_t maxTimeIncreases = 2;
-            uint32_t timeIncreaseWarningCount = 1;
+            //uint32_t timeIncreaseWarningCount = 1;
             uint32_t totalDSTTimeSeconds = 120;
             uint32_t maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
             while (status == 0x0F && (ret == SUCCESS || ret == IN_PROGRESS))
