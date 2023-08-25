@@ -930,16 +930,21 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     bool sanitizeBlockEraseSupported = false;
     M_USE_UNUSED(device);
     printf("Data sanitization capabilities:\n");
-    printf("\tClear - All user addressable sectors will be overwritten. It is strongly\n");
-    printf("\t        recommended that Max LBA is restored (HPA/AMAC/DCO) prior to using\n");
-    printf("\t        this erase in order to make sure all possible user addressable\n");
-    printf("\t        sectors will be erased.\n");
-    printf("\tClear, Possible Purge - This erase meets clear criteria and might meet purge criteria,\n");
-    printf("\t        but this requires documentation from the device vendor and this software\n");
-    printf("\t        cannot determine if purge capability can be met. Consult the device\n");
-    printf("\t        manual or vendor to determine if purge capabilities can be met.\n");
-    printf("\tPurge - All user addressable sectors, reallocated sectors, and currently\n");
-    printf("\t        unaddressable user sectors will be overwritten/erased/crypto erased\n");
+    printf("\tRecommendation - Restore the MaxLBA of the device prior to any erase in\n");
+    printf("\t                 order to allow the drive to erase all user addressable\n");
+    printf("\t                 sectors. For ATA devices this means restoring \n");
+    printf("\t                 HPA + DCO / AMAC to restore the maxLBA.\n");
+    printf("\t                 Restoring the MaxLBA also allows full verification of\n");
+    printf("\t                 all user addressable space on the device without a\n");
+    printf("\t                 limitation from a lower maxLBA.\n");
+    printf("\tClear - Logical techniques are applied to all addressable storage\n");
+    printf("\t        locations, protecting against simple, non-invasive data\n");
+    printf("\t        recovery techniques.\n");
+    printf("\tClear, Possible Purge - Cryptographic erase is a purge if the vendor\n");
+    printf("\t        implementation meets the requirements in IEEE 2883-2022.\n");
+    printf("\tPurge - Logical techniques that target user data, overprovisioning,\n");
+    printf("\t        unused space, and bad blocks rendering data recovery infeasible\n");
+    printf("\t        even with state-of-the-art laboratory techniques.\n");
     printf("\nErase Methods supported by this drive (listed fastest to slowest):\n");
     while (counter < MAX_SUPPORTED_ERASE_METHODS)
     {
@@ -959,7 +964,15 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
         case ERASE_SANITIZE_BLOCK:
             sanitizeBlockEraseSupported = true;
             break;
-        default:
+        case ERASE_NOT_SUPPORTED:
+        case ERASE_OVERWRITE:
+        case ERASE_WRITE_SAME:
+        case ERASE_ATA_SECURITY_NORMAL:
+        case ERASE_ATA_SECURITY_ENHANCED:
+        case ERASE_OBSOLETE:
+        case ERASE_FORMAT_UNIT:
+        case ERASE_NVM_FORMAT_USER_SECURE_ERASE:
+        case ERASE_SANITIZE_OVERWRITE:
             break;
         }
         switch (eraseMethodList[counter].sanitizationLevel)
