@@ -1105,9 +1105,20 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             return MEMORY_FAILURE;
         }
 
+        char* fileNameUsed = NULL;
+        if (!toBuffer)
+        {
+            fileNameUsed = C_CAST(char*, calloc(OPENSEA_PATH_MAX + 1, sizeof(char)));
+            if (!fileNameUsed)
+            {
+                safe_Free_aligned(logBuffer)
+                perror("Calloc Failure!\n");
+                return MEMORY_FAILURE;
+            }
+        }
+
         if (GPL)
         {
-            char *fileNameUsed = NULL;
             //read each log 1 page at a time since some can get to be so large some controllers won't let you pull it.
             uint16_t pagesToReadAtATime = 1;
             uint16_t numberOfLogPages = C_CAST(uint16_t, logSize / LEGACY_DRIVE_SEC_SIZE);
@@ -1165,6 +1176,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                             fclose(fp_log);
                             fileOpened = false;
                             safe_Free_aligned(logBuffer)
+                            safe_Free(fileNameUsed)
                             return ERROR_WRITING_FILE;
                         }
                         ret = SUCCESS;
@@ -1192,6 +1204,10 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 printf("\n");
+                if (!toBuffer)
+                {
+                    printf("Binary log saved to: %s\n", fileNameUsed);
+                }
             }
         }
         //if the log wasn't found in the GPL directory, then try reading from the SMART directory
@@ -1203,7 +1219,6 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             {
                 if (!toBuffer && !fileOpened)
                 {
-                    char *fileNameUsed = NULL;
                     if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                     {
                         fileOpened = true;
@@ -1221,6 +1236,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                         fclose(fp_log);
                         fileOpened = false;
                         safe_Free_aligned(logBuffer)
+                        safe_Free(fileNameUsed)
                         return ERROR_WRITING_FILE;
                     }
                     ret = SUCCESS;
@@ -1234,6 +1250,14 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     else
                     {
                         return BAD_PARAMETER;
+                    }
+                }
+                else
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        printf("\n");
+                        printf("Binary log saved to: %s\n", fileNameUsed);
                     }
                 }
             }
@@ -1254,6 +1278,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 }
                 fclose(fp_log);
                 fileOpened = false;
+                safe_Free(fileNameUsed)
                 safe_Free_aligned(logBuffer)
                 return ERROR_WRITING_FILE;
             }
@@ -1353,6 +1378,11 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
                         return ERROR_WRITING_FILE;
                     }
                     fclose(fp_log);
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        printf("\n");
+                        printf("Binary log saved to: %s\n", fileNameUsed);
+                    }
                 }
             }
             if (toBuffer) //NOTE: the buffer size checked earlier. 
@@ -1387,12 +1417,21 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
             }
             return MEMORY_FAILURE;
         }
+        char* fileNameUsed = NULL;
+        if (!toBuffer)
+        {
+            fileNameUsed = C_CAST(char*, calloc(OPENSEA_PATH_MAX + 1, sizeof(char)));
+            if (!fileNameUsed)
+            {
+                safe_Free_aligned(vpdBuffer)
+                return MEMORY_FAILURE;
+            }
+        }
         //read the requested VPD page
         if (SUCCESS == scsi_Inquiry(device, vpdBuffer, vpdBufferLength, pageCode, true, false))
         {
             if (!toBuffer && !fileOpened && ret != FAILURE)
             {
-                char *fileNameUsed = NULL;
                 if (SUCCESS == create_And_Open_Log_File(device, &fp_vpd, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                 {
                     fileOpened = true;
@@ -1410,7 +1449,13 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
                     fclose(fp_vpd);
                     fileOpened = false;
                     safe_Free_aligned(vpdBuffer)
+                    safe_Free(fileNameUsed)
                     return ERROR_WRITING_FILE;
+                }
+                if (device->deviceVerbosity > VERBOSITY_QUIET)
+                {
+                    printf("\n");
+                    printf("Binary log saved to: %s\n", fileNameUsed);
                 }
             }
             if (toBuffer && ret != FAILURE)
@@ -1436,12 +1481,14 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
                 fclose(fp_vpd);
                 fileOpened = false;
                 safe_Free_aligned(vpdBuffer)
+                safe_Free(fileNameUsed)
                 return ERROR_WRITING_FILE;
             }
             fclose(fp_vpd);
             fileOpened = false;
         }
         safe_Free_aligned(vpdBuffer)
+        safe_Free(fileNameUsed)
     }
     return ret;
 }
@@ -1487,7 +1534,7 @@ static int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t 
                     //fileOpened = true;
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Saving telemetry log to file %s\n", fileNameUsed);
+                        printf("Saving telemetry log to file: %s\n", fileNameUsed);
                     }
                 }
                 else
@@ -1773,7 +1820,7 @@ static int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
-                            printf("Saving to file %s\n", fileNameUsed);
+                            printf("Saving to file: %s\n", fileNameUsed);
                         }
                         if ((fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl) != 1) || ferror(isl))
                         {
@@ -1995,7 +2042,7 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     //fileOpened = true;
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Saving Telemetry log to file %s\n", fileNameUsed);
+                        printf("Saving Telemetry log to file: %s\n", fileNameUsed);
                     }
                 }
                 else
