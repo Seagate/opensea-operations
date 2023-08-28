@@ -62,6 +62,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     if (dup)
     {
         snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", dup, logExtension);
+        safe_Free(dup);
     }
     else
     {
@@ -83,6 +84,7 @@ int create_And_Open_Log_File(tDevice *device,\
     char *filename = &name[0];
     char *pathAndFileName = NULL;
     bool nullLogFileNameUsed = false;
+    bool systemPathSeparatorInLogPath = false;
     struct tm logTime;
     memset(&logTime, 0, sizeof(struct tm));
 #ifdef _DEBUG
@@ -97,6 +99,15 @@ int create_And_Open_Log_File(tDevice *device,\
     printf("\t logPath=%s, logName=%s, logExtension=%s\n"\
                         ,logPath, logName, logExtension);
 #endif
+
+    if (logPath)
+    {
+        if (logPath[strlen(logPath)] == SYSTEM_PATH_SEPARATOR)
+        {
+            systemPathSeparatorInLogPath = true;
+        }
+    }
+
     ret = generate_Logfile_Name(device, logName, logExtension, logFileNamingConvention, &filename);
     if (SUCCESS != ret)
     {
@@ -119,7 +130,16 @@ int create_And_Open_Log_File(tDevice *device,\
             if (strcmp((*logFileNameUsed), "") == 0)
             {
                 //logPath has valid value and logFileNameUsed is empty. Prepend logpath to the generated filename
-                snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                if (systemPathSeparatorInLogPath)
+                {
+                    //system path separator already exists, so no need to add one
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%s", logPath, filename);
+                }
+                else
+                {
+                    //need a system path separator added
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                }
             }
             else
             {
@@ -127,10 +147,28 @@ int create_And_Open_Log_File(tDevice *device,\
                 char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
                 char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
                 snprintf(lpathNFilename, OPENSEA_PATH_MAX, "%s", *logFileNameUsed);
-                snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+
+                //check if a system path separator is already part of the path to decide if one is needed or not
+                if (systemPathSeparatorInLogPath)
+                {
+                    //separator not needed
+                    snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%s", logPath, filename);
+                }
+                else
+                {
+                    //separator needed
+                    snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                }
                 if (strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
                 {
-                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                    if (systemPathSeparatorInLogPath)
+                    {
+                        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%s", logPath, filename);
+                    }
+                    else
+                    {
+                        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                    }
                 }
                 else
                 {
@@ -151,7 +189,14 @@ int create_And_Open_Log_File(tDevice *device,\
             {
                 return MEMORY_FAILURE;
             }
-            snprintf(pathAndFileName, pathAndFileNameLength, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+            if (systemPathSeparatorInLogPath)
+            {
+                snprintf(pathAndFileName, pathAndFileNameLength, "%s%s", logPath, filename);
+            }
+            else
+            {
+                snprintf(pathAndFileName, pathAndFileNameLength, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+            }
             *logFileNameUsed = pathAndFileName;
         }
         else
