@@ -320,6 +320,15 @@ extern "C"
     #define MAX_ERASE_NAME_LENGTH 30
     #define MAX_ERASE_WARNING_LENGTH 70
 
+    //This is based on IEEE 2883 and assumes the device firmware is compliant according to the specifications
+    typedef enum _eraseSanitizationLevel
+    {
+        ERASE_SANITIZATION_UNKNOWN,
+        ERASE_SANITIZATION_CLEAR,//any erase that can go fro 0 - max user addressable sector
+        ERASE_SANITIZATION_POSSIBLE_PURGE,//special case for NVMe format since it is labelled as vendor unique if it qualifies as a purge command.
+        ERASE_SANITIZATION_PURGE //an erase that can erase 0-max user addressable sector and any reallocated/reserved sectors and erase any sectors that can be made addressable that are not currently addressable.
+    }eraseSanitizationLevel;
+
     typedef struct _eraseMethod
     {
         eEraseMethod eraseIdentifier;
@@ -327,6 +336,7 @@ extern "C"
         bool warningValid;
         char eraseWarning[MAX_ERASE_WARNING_LENGTH];//may be an empty string. May contain something like "requires password" or "cannot be stopped"
         uint8_t eraseWeight;//used to store how fast/slow it is...used for sorting from fastest to slowest
+        eraseSanitizationLevel sanitizationLevel;//What does the given erase type comply with as far as IEEE 2883 specification mentions.
     }eraseMethod;
 
     //-----------------------------------------------------------------------------
