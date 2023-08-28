@@ -102,7 +102,7 @@ int create_And_Open_Log_File(tDevice *device,\
 
     if (logPath)
     {
-        if (logPath[strlen(logPath)] == SYSTEM_PATH_SEPARATOR)
+        if (logPath[strlen(logPath) - 1] == SYSTEM_PATH_SEPARATOR)
         {
             systemPathSeparatorInLogPath = true;
         }
