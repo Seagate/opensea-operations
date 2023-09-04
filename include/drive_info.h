@@ -309,10 +309,8 @@ extern "C"
 
 	typedef struct _driveCapacityModelLogHeader
 	{
-		uint8_t word0;
-		uint8_t word1;
-		uint8_t word2;
-		uint8_t reserved[5];
+		uint32_t numberOfCapacityModelDescriptor;
+		uint8_t reserved[4];
 	}driveCapacityModelLogHeader, *ptrDriveCapacityModelLogHeader;
 
 	typedef struct _driveCapacityModelLogDescriptor
@@ -346,6 +344,22 @@ extern "C"
 	//
 	//-----------------------------------------------------------------------------
 	OPENSEA_OPERATIONS_API int get_ATA_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInformation);
+
+	//-----------------------------------------------------------------------------
+	//
+	//  get_ATA_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInfo)
+	//
+	//! \brief   Description:  This function fills in Capacity/Product Mapping 
+	//
+	//  Entry:
+	//!   \param[in] device = file descriptor
+	//!   \param driveInformation = pointer to the struct to fill in with Capacity/Product Mapping.
+	//!
+	//  Exit:
+	//!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
+	//
+	//-----------------------------------------------------------------------------
+	OPENSEA_OPERATIONS_API int get_SCSI_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInformation);
 
     //-----------------------------------------------------------------------------
     //

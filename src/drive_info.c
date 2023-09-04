@@ -25,14 +25,42 @@
 
 int get_ATA_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInformation)
 {
-	if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, ATA_ID_DATA_LOG_SUPPORTED_PAGES, driveInformation, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
-	{
-		return SUCCESS;
-	}
-	else
-	{
-		return FAILURE;
-	}
+    uint32_t logBufferSize = LEGACY_DRIVE_SEC_SIZE;
+    uint8_t* logBuffer = C_CAST(uint8_t*, calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (!logBuffer)
+    {
+        return MEMORY_FAILURE;
+    }
+    if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, ATA_ID_DATA_LOG_SUPPORTED_PAGES, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
+    {
+        uint8_t zeroVal = 0;
+        uint32_t byteCounter = 8;
+        driveInformation->headerInfo.numberOfCapacityModelDescriptor = M_BytesTo4ByteValue(zeroVal, logBuffer[2], logBuffer[1], logBuffer[0]);
+        for (uint8_t i = 0; i < driveInformation->headerInfo.numberOfCapacityModelDescriptor; i++)
+        {
+            driveInformation->descriptor[i].driveStatics = M_BytesTo8ByteValue(zeroVal, zeroVal, logBuffer[byteCounter], logBuffer[byteCounter + 1], logBuffer[byteCounter + 2], logBuffer[byteCounter + 3], logBuffer[byteCounter + 4], logBuffer[byteCounter + 5]);
+            memset(driveInformation->descriptor[i].modelNumber, 0, MODEL_NUM_LEN);
+            memcpy(driveInformation->descriptor[i].modelNumber, logBuffer + byteCounter + 8, MODEL_NUM_LEN);
+            byteCounter += 48;
+        }
+        return SUCCESS;
+    }
+    else
+    {
+        return FAILURE;
+    }
+}
+
+int get_SCSI_Capacity_Product_Information(tDevice* device, ptrDriveCapacityProductInformation driveInformation)
+{
+    if (SUCCESS == get_SCSI_Log(device, SCSI_LOG_CAPACITY_MODELNUMBER_MAPPING, ATA_ID_DATA_LOG_SUPPORTED_PAGES, NULL, NULL, true, (uint8_t*)driveInformation, LEGACY_DRIVE_SEC_SIZE, NULL))
+    {
+        return SUCCESS;
+    }
+    else
+    {
+        return FAILURE;
+    }
 }
 
 int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
@@ -2122,7 +2150,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
     }
     safe_Free_aligned(logBuffer)
 
-    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
     {
         //get long DST time
@@ -2603,7 +2631,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(unitSerialNumber)
-                break;
+                    break;
             }
             case DEVICE_IDENTIFICATION:
             {
@@ -2699,7 +2727,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(deviceIdentification)
-                break;
+                    break;
             }
             case EXTENDED_INQUIRY_DATA:
             {
@@ -2789,7 +2817,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(extendedInquiryData)
-                break;
+                    break;
             }
             case BLOCK_DEVICE_CHARACTERISTICS:
             {
@@ -2807,7 +2835,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
                 }
                 safe_Free_aligned(blockDeviceCharacteristics)
-                break;
+                    break;
             }
             case POWER_CONDITION:
                 //reading this information has been moved to the mode pages below. - TJE
@@ -2835,7 +2863,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(logicalBlockProvisioning)
-                break;
+                    break;
             }
             case BLOCK_LIMITS:
             {
@@ -2855,7 +2883,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     }
                 }
                 safe_Free_aligned(blockLimits)
-                break;
+                    break;
             }
             case ATA_INFORMATION:
             {
@@ -2874,7 +2902,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     driveInfo->numberOfFeaturesSupported++;
                 }
                 safe_Free_aligned(ataInformation)
-                break;
+                    break;
             }
             case CONCURRENT_POSITIONING_RANGES:
             {
@@ -2911,7 +2939,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
     if (!readCapBuf)
     {
         safe_Free_aligned(tempBuf)
-        return MEMORY_FAILURE;
+            return MEMORY_FAILURE;
     }
     switch (peripheralDeviceType)
     {
@@ -2929,8 +2957,8 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                 if (!temp)
                 {
                     safe_Free_aligned(tempBuf)
-                    safe_Free_aligned(readCapBuf)
-                    return MEMORY_FAILURE;
+                        safe_Free_aligned(readCapBuf)
+                        return MEMORY_FAILURE;
                 }
                 readCapBuf = temp;
                 memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
@@ -3001,8 +3029,8 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             if (temp == NULL)
             {
                 safe_Free_aligned(tempBuf)
-                safe_Free_aligned(readCapBuf)
-                return MEMORY_FAILURE;
+                    safe_Free_aligned(readCapBuf)
+                    return MEMORY_FAILURE;
             }
             readCapBuf = temp;
             memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
@@ -3048,46 +3076,46 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
         break;
     }
     safe_Free_aligned(readCapBuf)
-    if (protectionSupported)
-    {
-        //set protection types supported up here.
-        if (protectionType1Supported)
+        if (protectionSupported)
         {
-            if (protectionTypeEnabled == 1)
+            //set protection types supported up here.
+            if (protectionType1Supported)
             {
-                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1 [Enabled]");
+                if (protectionTypeEnabled == 1)
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1 [Enabled]");
+                }
+                else
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1");
+                }
+                driveInfo->numberOfFeaturesSupported++;
             }
-            else
+            if (protectionType2Supported)
             {
-                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 1");
+                if (protectionTypeEnabled == 2)
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2 [Enabled]");
+                }
+                else
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2");
+                }
+                driveInfo->numberOfFeaturesSupported++;
             }
-            driveInfo->numberOfFeaturesSupported++;
+            if (protectionType3Supported)
+            {
+                if (protectionTypeEnabled == 3)
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3 [Enabled]");
+                }
+                else
+                {
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3");
+                }
+                driveInfo->numberOfFeaturesSupported++;
+            }
         }
-        if (protectionType2Supported)
-        {
-            if (protectionTypeEnabled == 2)
-            {
-                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2 [Enabled]");
-            }
-            else
-            {
-                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 2");
-            }
-            driveInfo->numberOfFeaturesSupported++;
-        }
-        if (protectionType3Supported)
-        {
-            if (protectionTypeEnabled == 3)
-            {
-                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3 [Enabled]");
-            }
-            else
-            {
-                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Protection Type 3");
-            }
-            driveInfo->numberOfFeaturesSupported++;
-        }
-    }
     bool securityProtocolInSuccess = false;
     if (version >= 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
     {
@@ -3964,7 +3992,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                         driveInfo->numberOfFeaturesSupported++;
                     }
                     safe_Free(awreString)
-                    safe_Free(arreString)
+                        safe_Free(arreString)
                 }
                 break;
                 default:
@@ -6051,7 +6079,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     {
         //convert this to an "easy" unit instead of tons and tons of bytes
         char mTotalCapUnits[UNIT_STRING_LENGTH] = { 0 }, totalCapUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mTotalCapUnit = &mTotalCapUnits[0], * totalCapUnit = &totalCapUnits[0];
+        char* mTotalCapUnit = &mTotalCapUnits[0], *totalCapUnit = &totalCapUnits[0];
         double mTotalCapacity = driveInfo->controllerData.totalNVMCapacityD;
         double totalCapacity = mTotalCapacity;
         metric_Unit_Convert(&mTotalCapacity, &mTotalCapUnit);
@@ -6060,7 +6088,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         if (driveInfo->controllerData.unallocatedNVMCapacityD > 0)
         {
             char mUnCapUnits[4] = { 0 }, unCapUnits[4] = { 0 };
-            char* mUnCapUnit = &mUnCapUnits[0], * unCapUnit = &unCapUnits[0];
+            char* mUnCapUnit = &mUnCapUnits[0], *unCapUnit = &unCapUnits[0];
             double mUnCapacity = driveInfo->controllerData.unallocatedNVMCapacityD;
             double unCapacity = mUnCapacity;
             metric_Unit_Convert(&mUnCapacity, &mUnCapUnit);
@@ -6233,7 +6261,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     {
         //Namespace size
         char mSizeUnits[UNIT_STRING_LENGTH] = { 0 }, sizeUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mSizeUnit = &mSizeUnits[0], * sizeUnit = &sizeUnits[0];
+        char* mSizeUnit = &mSizeUnits[0], *sizeUnit = &sizeUnits[0];
         double nvmMSize = C_CAST(double, driveInfo->namespaceData.namespaceSize * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmSize = nvmMSize;
         metric_Unit_Convert(&nvmMSize, &mSizeUnit);
@@ -6243,7 +6271,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 
         //namespace capacity
         char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mCapUnit = &mCapUnits[0], * capUnit = &capUnits[0];
+        char* mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
         double nvmMCap = C_CAST(double, driveInfo->namespaceData.namespaceCapacity * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmCap = nvmMCap;
         metric_Unit_Convert(&nvmMCap, &mCapUnit);
@@ -6253,7 +6281,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 
         //namespace utilization
         char mUtilizationUnits[UNIT_STRING_LENGTH] = { 0 }, utilizationUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mUtilizationUnit = &mUtilizationUnits[0], * utilizationUnit = &utilizationUnits[0];
+        char* mUtilizationUnit = &mUtilizationUnits[0], *utilizationUnit = &utilizationUnits[0];
         double nvmMUtilization = C_CAST(double, driveInfo->namespaceData.namespaceUtilization * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmUtilization = nvmMUtilization;
         metric_Unit_Convert(&nvmMUtilization, &mUtilizationUnit);
@@ -6334,7 +6362,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 {
     double mCapacity = 0, capacity = 0;
     char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
-    char* mCapUnit = &mCapUnits[0], * capUnit = &capUnits[0];
+    char* mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
     if (strlen(driveInfo->vendorID))
     {
         printf("\tVendor ID: %s\n", driveInfo->vendorID);
@@ -7368,18 +7396,25 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
 
 int print_Capacity_Product_Information(tDevice* device)
 {
-	int ret = SUCCESS;
-	ptrDriveCapacityProductInformation driveInformation;
-	if (device->drive_info.drive_type == ATA_DRIVE)
-	{
-		driveInformation = C_CAST(ptrDriveCapacityProductInformation, calloc(1, sizeof(driveCapacityProductInformation)));
-		ret = get_ATA_Capacity_Product_Information(device, driveInformation);
-	}
-	else if (device->drive_info.drive_type == SCSI_DRIVE)
-	{
+    int ret = SUCCESS;
+    ptrDriveCapacityProductInformation driveInformation;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        driveInformation = C_CAST(ptrDriveCapacityProductInformation, calloc(1, sizeof(driveCapacityProductInformation)));
+        ret = get_ATA_Capacity_Product_Information(device, driveInformation);
+        printf("Model Number \t\t\t\t      Max LBA\n");
+        for (uint32_t i = 0; i < driveInformation->headerInfo.numberOfCapacityModelDescriptor; i++)
+        {
+            printf("%s  %" PRIu64 "\n", driveInformation->descriptor[i].modelNumber, driveInformation->descriptor[i].driveStatics);
 
-	}
-	return ret;
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        driveInformation = C_CAST(ptrDriveCapacityProductInformation, calloc(1, sizeof(driveCapacityProductInformation)));
+        ret = get_SCSI_Capacity_Product_Information(device, driveInformation);
+    }
+    return ret;
 }
 
 int print_Drive_Information(tDevice* device, bool showChildInformation)
@@ -7420,7 +7455,7 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
         //call the print functions appropriately
         if (showChildInformation && (device->drive_info.drive_type != SCSI_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) && scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
         {
-            if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe )&& ataDriveInfo)
+            if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) && ataDriveInfo)
             {
                 print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
             }
@@ -7485,10 +7520,10 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
         }
     }
     safe_Free(ataDriveInfo)
-    safe_Free(scsiDriveInfo)
-    safe_Free(usbDriveInfo)
-    safe_Free(nvmeDriveInfo)
-    return ret;
+        safe_Free(scsiDriveInfo)
+        safe_Free(usbDriveInfo)
+        safe_Free(nvmeDriveInfo)
+        return ret;
 }
 
 char* print_drive_type(tDevice* device)
