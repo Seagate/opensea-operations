@@ -1533,9 +1533,13 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Setting the drive sector size quickly.\n");
-            printf("Please wait a few minutes for this command to complete.\n");
             printf("It should complete in under 5 minutes, but interrupting it may make\n");
             printf("the drive unusable or require performing this command again!!\n");
+            printf("The command is issued with a timeout of 1 hour, much longer than necessary,\n");
+            printf("however there are rare cases where a drive is processing something in the\n");
+            printf("background when this command is received that may make this take longer than\n");
+            printf("a few minutes. Please wait at least this hour to ensure that this completes\n");
+            printf("successfully or with the error recovery built into this software.\n");
         }
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
