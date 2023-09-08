@@ -766,7 +766,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
             currentErase->eraseWeight = 1;
             currentErase->warningValid = false;
-            currentErase->sanitizationLevel = ERASE_SANITIZATION_POSSIBLE_PURGE;
+            currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;//only crypto erase is a possible purge in IEEE2883-2022
             //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
             ++currentErase;
             nvmFormatAdded = true;
