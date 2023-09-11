@@ -52,6 +52,11 @@ int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 
 int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
+    return scsi_Set_Max_LBA_2(device, newMaxLBA, reset, false);
+}
+
+int scsi_Set_Max_LBA_2(tDevice *device, uint64_t newMaxLBA, bool reset, bool changeId)
+{
     int ret = UNKNOWN;
     uint8_t *scsiDataBuffer = C_CAST(uint8_t*, calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment));//this should be big enough to get back the block descriptor we care about
     if (scsiDataBuffer == NULL)
@@ -68,6 +73,10 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         scsiDataBuffer[3] = 0;//clear the device specific parameter
         scsiDataBuffer[4] |= BIT0;//set the LLBAA bit
         scsiDataBuffer[7] = 0x10;
+        if (changeId)
+        {
+            scsiDataBuffer[3] |= BIT5;//set the CAPPID bit
+        }
         //now we have a block descriptor, so lets do what we need to do with it
         if (reset == false)
         {
@@ -142,6 +151,11 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 
 int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
+    return ata_Set_Max_LBA_2(device, newMaxLBA, reset, false);
+}
+
+int ata_Set_Max_LBA_2(tDevice *device, uint64_t newMaxLBA, bool reset, bool changeId)
+{
     int ret = NOT_SUPPORTED;
     //first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable address feature set)
     uint64_t nativeMaxLBA = 0;
@@ -163,23 +177,31 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
             if (device->drive_info.IdentifyData.ata.Word119 & BIT8)
             {
                 //accessible Max Address Configuration feature set supported
-                ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA);
+                ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA, changeId);
             }
             else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
             {
-                if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
+                if (changeId)
                 {
-                    ret = ata_Set_Max_Address_Ext(device, newMaxLBA, true); //this is a non-volitile command
+                    printf("Change model number is not supported on this device\n");
+                    ret = NOT_SUPPORTED;
                 }
                 else
                 {
-                    if (newMaxLBA <= MAX_28BIT)
+                    if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
                     {
-                        ret = ata_Set_Max_Address(device, C_CAST(uint32_t, newMaxLBA), true); //this is a non-volitile command
+                        ret = ata_Set_Max_Address_Ext(device, newMaxLBA, true); //this is a non-volitile command
                     }
                     else
                     {
-                        ret = NOT_SUPPORTED;
+                        if (newMaxLBA <= MAX_28BIT)
+                        {
+                            ret = ata_Set_Max_Address(device, C_CAST(uint32_t, newMaxLBA), true); //this is a non-volitile command
+                        }
+                        else
+                        {
+                            ret = NOT_SUPPORTED;
+                        }
                     }
                 }
             }
@@ -202,14 +224,19 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 
 int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
 {
+    return set_Max_LBA_2(device, newMaxLBA, reset, false);
+}
+
+int set_Max_LBA_2(tDevice *device, uint64_t newMaxLBA, bool reset, bool changeId)
+{
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        ret = scsi_Set_Max_LBA(device, newMaxLBA, reset);
+        ret = scsi_Set_Max_LBA_2(device, newMaxLBA, reset, changeId);
     }
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Max_LBA(device, newMaxLBA, reset);
+        ret = ata_Set_Max_LBA_2(device, newMaxLBA, reset, changeId);
     }
     else
     {
