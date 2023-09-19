@@ -1951,27 +1951,10 @@ static int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
     int ret = NOT_SUPPORTED;
     if (is_SMART_Command_Transport_Supported(device))
     {
-        bool checkData = false;
         //try reading the SCT status log (ACS4 adds SMART status to this log)
-        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly;//USB hack
         uint8_t sctStatus[512] = { 0 };
-        if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !readSCTStatusWithSMARTCommand &&
-            SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_SCT_COMMAND_STATUS, 0, sctStatus, 512, 0)
-            )
-        {
-            checkData = true;
-        }
-        else
-        {
-            if (is_SMART_Error_Logging_Supported(device))
-            {
-                if (SUCCESS == ata_SMART_Read_Log(device, ATA_SCT_COMMAND_STATUS, sctStatus, 512))
-                {
-                    checkData = true;
-                }
-            }
-        }
-        if (checkData)
+        ret = send_ATA_SCT_Status(device, sctStatus, 512);
+        if (ret == SUCCESS)
         {
             uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatus[1], sctStatus[0]);
             if (sctFormatVersion > 2)
@@ -1990,6 +1973,10 @@ static int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
                     ret = UNKNOWN;
                     break;
                 }
+            }
+            else
+            {
+                ret = NOT_SUPPORTED;
             }
         }
     }
@@ -3150,6 +3137,32 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             if (ret == SUCCESS)
             {
                 *timerValueMilliseconds = C_CAST(uint32_t, currentTimerValue) * UINT32_C(100);
+            }
+        }
+    }
+    return ret;
+}
+
+int sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
+{
+    int ret = NOT_SUPPORTED;
+    if (is_SMART_Command_Transport_Supported(device))
+    {
+        //try reading the SCT status log (ACS4 adds SMART status to this log)
+        uint8_t sctStatus[512] = { 0 };
+        ret = send_ATA_SCT_Status(device, sctStatus, 512);
+        if (ret == SUCCESS)
+        {
+            uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatus[1], sctStatus[0]);
+            if (sctFormatVersion > 2)
+            {
+                *minRcvTimeLmtMilliseconds = M_BytesTo2ByteValue(sctStatus[216], sctStatus[217]);
+                *minRcvTimeLmtMilliseconds *= 100;
+                ret = SUCCESS;
+            }
+            else
+            {
+                ret = NOT_SUPPORTED;
             }
         }
     }

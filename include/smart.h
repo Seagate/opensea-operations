@@ -301,7 +301,22 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds);
-    
+
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
+    //
+    //! \brief   Description:  Get the Minimum supported value for SCT Error recovery command timeout
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param minRcvTimeLmtMilliseconds - Minimum supported value for the RECOVERY TIME LIMIT field in milliseconds
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds);
+
     //-----------------------------------------------------------------------------
     //
     //  enable_Disable_SMART_Feature(tDevice *device, bool enable)
