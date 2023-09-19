@@ -55,7 +55,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Set_Max_LBA( tDevice * device )
+    //  scsi_Set_Max_LBA_2( tDevice * device )
     //
     //! \brief   Sets the maxLBA of the selected device using SCSI methods
     //
@@ -63,16 +63,21 @@ extern "C"
     //!   \param[in]  device file descriptor
     //!   \param[in]  newMaxLBA the new maxLBA you wish to set
     //!   \param[in]  reset if set to 1 (or higher), this will reset to the native max, otherwise it will use the newMaxLBA param to set the maxLBA
+    //!   \param[in]  changeId if set to 1 (or higher), this will change model number if available in AMAC feature set
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int scsi_Set_Max_LBA_2(tDevice *device, uint64_t newMaxLBA, bool reset, bool changeId);
+
+    // deprecated wrapper for scsi_Set_Max_LBA_2
+    // TODO: remove me when next major version bump
     OPENSEA_OPERATIONS_API int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Set_Max_LBA( tDevice * device )
+    //  ata_Set_Max_LBA_2( tDevice * device )
     //
     //! \brief   Sets the maxLBA of the selected device using HPA or AMA feature sets
     //
@@ -80,16 +85,21 @@ extern "C"
     //!   \param[in]  device file descriptor
     //!   \param[in]  newMaxLBA the new maxLBA you wish to set
     //!   \param[in]  reset if set to 1 (or higher), this will reset to the native max, otherwise it will use the newMaxLBA param to set the maxLBA
+    //!   \param[in]  changeId if set to 1 (or higher), this will change model number if available in AMAC feature set
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int ata_Set_Max_LBA_2(tDevice *device, uint64_t newMaxLBA, bool reset, bool changeId);
+
+    // deprecated wrapper for ata_Set_Max_LBA_2
+    // TODO: remove me when next major version bump
     OPENSEA_OPERATIONS_API int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Max_LBA( tDevice * device )
+    //  set_Max_LBA_2( tDevice * device )
     //
     //! \brief   Sets the maxLBA of the selected device. This will work with new and old methods.
     //!          If ATA, we have only implemented the legacy method for 48bit drives
@@ -98,11 +108,16 @@ extern "C"
     //!   \param[in]  device file descriptor
     //!   \param[in]  newMaxLBA the new maxLBA you wish to set
     //!   \param[in]  reset if set to 1 (or higher), this will reset to the native max, otherwise it will use the newMaxLBA param to set the maxLBA
+    //!   \param[in]  changeId if set to 1 (or higher), this will change model number if available in AMAC feature set
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int set_Max_LBA_2(tDevice *device, uint64_t newMaxLBA, bool reset, bool changeId);
+
+    // deprecated wrapper for set_Max_LBA_2
+    // TODO: remove me when next major version bump
     OPENSEA_OPERATIONS_API int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
 
 #if defined (__cplusplus)
