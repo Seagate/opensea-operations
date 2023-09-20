@@ -280,11 +280,12 @@ extern "C"
     //!   \param device - pointer to the device structure
     //!   \param ercCommand - specifies if the timer is for read or write commands
     //!   \param timerValueMilliseconds - how long to set the timer to in milliseconds
+    //!   \param isVolatile - true = volatile change (cleared on reset/power cycle), false = non-volatile change
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds);
+    OPENSEA_OPERATIONS_API int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile);
 
     //-----------------------------------------------------------------------------
     //
@@ -296,11 +297,27 @@ extern "C"
     //!   \param device - pointer to the device structure
     //!   \param ercCommand - specifies if the timer is for read or write commands
     //!   \param timerValueMilliseconds - how long to set the timer to in milliseconds
+    //!   \param isVolatile - true = volatile change (cleared on reset/power cycle), false = non-volatile change
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds);
+    OPENSEA_OPERATIONS_API int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand)
+    //
+    //! \brief   Description:  Restore the SCT Error recovery command timeout value to default
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param ercCommand - specifies if the timer is for read or write commands
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand);
 
     //-----------------------------------------------------------------------------
     //

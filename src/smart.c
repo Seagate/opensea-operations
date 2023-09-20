@@ -3083,7 +3083,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
     return ret;
 }
 
-int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds)
+int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -3100,10 +3100,10 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
                 switch (ercCommand)
                 {
                 case SCT_ERC_READ_COMMAND:
-                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0001, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
                     break;
                 case SCT_ERC_WRITE_COMMAND:
-                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0002, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
                     break;
                 default:
                     break;
@@ -3114,7 +3114,7 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     return ret;
 }
 
-int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds)
+int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -3126,10 +3126,10 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             switch (ercCommand)
             {
             case SCT_ERC_READ_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0001, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0002 : 0x0004, 0x0001, &currentTimerValue, 0);
                 break;
             case SCT_ERC_WRITE_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0002, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0002 : 0x0004, 0x0002, &currentTimerValue, 0);
                 break;
             default:
                 break;
@@ -3137,6 +3137,30 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             if (ret == SUCCESS)
             {
                 *timerValueMilliseconds = C_CAST(uint32_t, currentTimerValue) * UINT32_C(100);
+            }
+        }
+    }
+    return ret;
+}
+
+int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
+        {
+            //made it this far, so the feature is supported
+            switch (ercCommand)
+            {
+            case SCT_ERC_READ_COMMAND:
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0001, NULL, 0);
+                break;
+            case SCT_ERC_WRITE_COMMAND:
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0002, NULL, 0);
+                break;
+            default:
+                break;
             }
         }
     }
