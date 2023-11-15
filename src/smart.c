@@ -988,6 +988,7 @@ typedef enum _eATASMARTAttributeRawInterpretation
     ATA_SMART_ATTRIBUTE_RAW_HEX, //default, we don't know how to interpret so show the raw hex bytes
     ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW,//Seagate format where raw 1:0 is current (same as nominal), 5:4 is lowest, worst ever is highest temp 
     ATA_SMART_ATTRIBUTE_DECIMAL, //interpret specified raw bytes as a decimal value
+    ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP,//Seagate format where raw 1:0 is current, 2 is lowest, 3 is highest during this power cycle
     //Reserved? To show when a field is unused???
 }eATASMARTAttributeRawInterpretation;
 //
@@ -998,11 +999,15 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
 #define ATTR_HYBRID_RAW_STRING_LENGTH 24 //Setting 24 to prevent truncation warnings from the temperature setup, but real max is 16
 #define ATTR_HYBRID_ATTR_FLAG_LENGTH 8
 #define ATTR_HYBRID_THRESHOLD_VALUE_LENGTH 4
+#define ATTR_HYBRID_NOMINAL_VALUE_LENGTH 4
+#define ATTR_HYBRID_WORST_VALUE_LENGTH 4
 #define ATTR_HYBRID_OTHER_FLAGS_LENGTH 4
         char rawDataString[ATTR_HYBRID_RAW_STRING_LENGTH] = { 0 };
         char attributeFlags[ATTR_HYBRID_ATTR_FLAG_LENGTH] = { 0 };
         char thresholdValue[ATTR_HYBRID_THRESHOLD_VALUE_LENGTH] = { 0 };
         char otherFlags[ATTR_HYBRID_OTHER_FLAGS_LENGTH] = { 0 };
+        char nominalValue[ATTR_HYBRID_NOMINAL_VALUE_LENGTH] = { 0 };
+        char worstValue[ATTR_HYBRID_WORST_VALUE_LENGTH] = { 0 };
         uint64_t decimalValue = 0;
         int16_t currentTemp = 0;
         int16_t lowestTemp = 0;
@@ -1019,6 +1024,10 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             else if (currentAttribute->thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
             {
                 snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+            }
+            else if (currentAttribute->thresholdData.thresholdValue == ATA_SMART_THRESHOLD_INVALID)
+            {
+                snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
             }
             else
             {
@@ -1050,6 +1059,41 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         else
         {
             snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "N/A");
+        }
+
+        //setup current value
+        if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
+        {
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
+        }
+        else if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+        {
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+        }
+        else if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_INVALID)
+        {
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+        }
+        else
+        {
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8, currentAttribute->data.nominal);
+        }
+        //setup worst value
+        if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
+        {
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
+        }
+        else if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+        {
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+        }
+        else if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_INVALID)
+        {
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+        }
+        else
+        {
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8, currentAttribute->data.worstEver);
         }
 
         //setup warranty and "see analyzed" flags
@@ -1125,12 +1169,21 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //      At worst, the final parenthesis will be cut off. - TJE
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
             break;
+        case ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP:
+            currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
+            lowestTemp = currentAttribute->data.rawData[2];
+            highestTemp = currentAttribute->data.rawData[3];
+            //NOTE: This should always fit within 16 chars as temperatures should never exceed 3 characters wide for any of them. Anything wider would be a drive bug or garbage.
+            //      Min temps will never be -100C or more and max will never be 120C or more, let alone 999C or more. This should be ok as the output below will be truncated.
+            //      At worst, the final parenthesis will be cut off. - TJE
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
+            break;
         case ATA_SMART_ATTRIBUTE_RAW_HEX:
         default: //if not known, use hex
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h", currentAttribute->data.rawData[6], currentAttribute->data.rawData[5], currentAttribute->data.rawData[4], currentAttribute->data.rawData[3], currentAttribute->data.rawData[2], currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]);
             break;
         }
-        printf("%-3s%3" PRIu8 " %-35s %-8s %3" PRIu8 " %3" PRIu8 " %-3s %-16.16s\n", otherFlags, currentAttribute->data.attributeNumber, attributeName, attributeFlags, currentAttribute->data.nominal, currentAttribute->data.worstEver, thresholdValue, rawDataString);
+        printf("%-3s%3" PRIu8 " %-35s %-8s %-3s %-3s %-3s %-16.16s\n", otherFlags, currentAttribute->data.attributeNumber, attributeName, attributeFlags, nominalValue, worstValue, thresholdValue, rawDataString);
     }
     //clear out the attribute name before looping again so we don't show dulicates
     snprintf(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                                          ");
@@ -1154,10 +1207,11 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     printf("\t  R - Error Rate - indicates tracking of an error rate\n");
     printf("\t  C - Event Count - attribute represents a counter of events\n");
     printf("\t  K - Self Preservation (saved across power-cycles)\n");
-    printf("\tThresholds:\n");
+    printf("\tThresholds/Current/Worst:\n");
     printf("\t  N/A - thresholds not available for this attribute/device\n");
     printf("\t  AP  - threshold is always passing (value of zero)\n");
     printf("\t  AF  - threshold is always failing (value of 255)\n");
+    printf("\t  INV - threshold is set to an invalid value (value of 254)\n");
     printf("\tOther indicators:\n");
     printf("\t  ? - See analyzed output for more information on an attribute's raw data\n");
     printf("\t  ! - attribute is currently failing\n");
@@ -1235,7 +1289,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 1, 0, false);
                     break;
                 case 190: //Airflow Temperature
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP, 3, 0, true);
                     break;
                 case 191: //Shock Sensor Counter
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
