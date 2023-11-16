@@ -15,6 +15,7 @@
 #include "set_max_lba.h"
 #include "smart.h"
 #include "dst.h"
+#include "ata_helper.h"
 #include "scsi_helper.h"
 #include "nvme_helper_func.h"
 #include "firmware_download.h"
@@ -2199,21 +2200,28 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                 driveInfo->powerOnMinutesValid = true;
             }
             break;
-            case 194: //Temperature (This attribute seems shared between vendors)
+            case 194: 
+                //Temperature (This attribute seems shared between vendors)
+                //NOTE: Not all vendors report this the same way!
+                //Will need to handle variations on a case by case basis.
                 if (!driveInfo->temperatureData.temperatureDataValid)
                 {
                     driveInfo->temperatureData.temperatureDataValid = true;
                     driveInfo->temperatureData.currentTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[1], currentAttribute.rawData[0]));
                 }
-                if (!driveInfo->temperatureData.lowestValid)
+                /* TODO: This can be improved with better filters/interpretations defined per vendor to read this attribute. */
+                if (seagateFamily != MAXTOR)
                 {
-                    driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4]));
-                    driveInfo->temperatureData.lowestValid = true;
-                }
-                if (!driveInfo->temperatureData.highestValid)
-                {
-                    driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);
-                    driveInfo->temperatureData.highestValid = true;
+                    if (!driveInfo->temperatureData.lowestValid && C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4])) <= driveInfo->temperatureData.currentTemperature)
+                    {
+                        driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4]));
+                        driveInfo->temperatureData.lowestValid = true;
+                    }
+                    if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                    {
+                        driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);
+                        driveInfo->temperatureData.highestValid = true;
+                    }
                 }
                 break;
             case 231: //SSD Endurance
