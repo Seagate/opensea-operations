@@ -307,6 +307,15 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 12: //Drive Power Cycle Count
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
             break;
+        case 180: //End to End Error Detection
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End to End Error Detection");
+            break;
+        case 181: //Unaligned Access
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unaligned Access");
+            break;
+        case 183: //SATA Interface Downshift
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Interface Downshift");
+            break;
         case 184://End to End detection
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Detection");
             break;
@@ -358,11 +367,24 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 225: //Load Cycle Count
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Cycle Count");
             break;
+        case 240: //Head Fly Hours
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+            break;
+        case 241: //Total Write Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Write Count");
+            break;
+        case 242: //Total Read Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Read Count");
+            break;
+        case 254: //Free fall Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Count");
+            break;
         default:
             break;
         }
         break;
-    case MAXTOR: //names are from here: https://www.smartmontools.org/wiki/AttributesMaxtor
+    case MAXTOR:
+        //names are from here: https://www.smartmontools.org/wiki/AttributesMaxtor
         switch (attributeNumber)
         {
         case 1: //raw read error rate
@@ -390,6 +412,8 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
             break;
         case 9: //power on hours
+            //internal spec says this is minutes, but not sure which drives report in minutes.
+            //Old drives I have tested seem to do hours. may need to use revision number
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-On Hours");
             break;
         case 10: //spin-up retry count
@@ -432,12 +456,14 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
             break;
         case 201: //Soft Read Error Rate
+            //off track errors is an alternate name
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
             break;
         case 202: //Data Addres Mark Errors
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Data Address Mark Errors");
             break;
         case 203: //run out cancel
+            //ECC errors is an alternate name
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Run Out Cancel");
             break;
         case 204: //Soft ECC Correction
@@ -457,6 +483,15 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             break;
         case 209: //Offline Seek Performance
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Seek Performance");
+            break;
+        case 210: //Vibration during Write
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Write");
+            break;
+        case 211: //Vibration during Read
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Read");
+            break;
+        case 212: //Shock during Write
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock During Write");
             break;
         case 220: //Disk Shift
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Disk Shift");
@@ -826,6 +861,34 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             break;
         }
         break;
+    case SEAGATE_CONNER:
+        //From product manual for models CFS635A/CFS850A/CFS1275A
+        switch (attributeNumber)
+        {
+        case 1:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Firm Error Rate");
+            break;
+        case 3:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            break;
+        case 4:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Count");
+            break;
+        case 5:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors");
+            break;
+        case 7:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            break;
+        case 10:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retries");
+            break;
+        case 12:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            break;
+        default:
+            break;
+        }
     default:
         switch (attributeNumber)
         {
@@ -989,6 +1052,7 @@ typedef enum _eATASMARTAttributeRawInterpretation
     ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW,//Seagate format where raw 1:0 is current (same as nominal), 5:4 is lowest, worst ever is highest temp 
     ATA_SMART_ATTRIBUTE_DECIMAL, //interpret specified raw bytes as a decimal value
     ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP,//Seagate format where raw 1:0 is current, 2 is lowest, 3 is highest during this power cycle
+    ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY,//Maxtor where raw 1:0 handles current temperature, but no other values are reported
     //Reserved? To show when a field is unused???
 }eATASMARTAttributeRawInterpretation;
 //
@@ -1168,6 +1232,10 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //      Min temps will never be -100C or more and max will never be 120C or more, let alone 999C or more. This should be ok as the output below will be truncated.
             //      At worst, the final parenthesis will be cut off. - TJE
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
+            break;
+        case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY:
+            currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16, currentTemp);
             break;
         case ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP:
             currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
@@ -1429,6 +1497,18 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     break;
                 }
                 break;
+            case MAXTOR:
+                switch (iter)
+                {
+                case 194:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY, 1, 0, false);
+                    break;
+                default:
+                    //From what I can tell in maxtor specs, everything is just a single counter - TJE
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
+                    break;
+                }
+                break;
             default://unknown, not seagate, or we don't have enough information to provide a better interpretation at this time - TJE
                 switch (iter)
                 {
@@ -1444,8 +1524,11 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 case 197:
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
-                case 194://NOTE: All vendors report current/min/max somehow, but locations vary. We cannot look this up in that detail right now, so it is dumped as hex. - TJE
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_RAW_HEX, 6, 0, false);
+                case 194:
+                    //Each vendor handles this slightly differently.
+                    //Most common is raw 1:0 hold current.
+                    //getting min/max seems to come from different locations if it is supported at all.
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY, 6, 0, false);
                     break;
                 default:
                     //unknown format, so show RAW
@@ -1494,27 +1577,27 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     printf("%u - Unknown Attribute\n", iter);
                 }
                 printf("\tAttribute Type(s):\n");
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT0)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
                 {
                     printf("\t\tPre-fail/warranty. Indicates a cause of known impending failure.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT1)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_ONLINE_DATA_COLLECTION)
                 {
                     printf("\t\tOnline Data Collection. Updates as the drive runs.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT2)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_PERFORMANCE)
                 {
                     printf("\t\tPerformance. Degredation of this attribute will affect performance.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT3)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_ERROR_RATE)
                 {
                     printf("\t\tError Rate. Attribute tracks and error rate.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT4)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_EVENT_COUNT)
                 {
                     printf("\t\tEvent Count. Attribute is a counter.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT5)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_SELF_PRESERVING)
                 {
                     printf("\t\tSelf-Preserving. Saves between power cycles.\n");
                 }
@@ -1522,13 +1605,17 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                 printf("\tWorst Ever Value:        %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdDataValid)
                 {
-                    if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == 0)
+                    if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
                     {
                         printf("\tThreshold set to always passing\n");
                     }
-                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == UINT8_MAX)
+                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
                     {
                         printf("\tThreshold set to always failing\n");
+                    }
+                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_INVALID)
+                    {
+                        printf("\tThreshold set to invalid value\n");
                     }
                     else
                     {
@@ -1706,7 +1793,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     }
                     break;
                 case SEAGATE_VENDOR_G:
-                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber) 
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                     {
                     case 1:
                         printf("\tCorrectable, Soft LDPC correctable errors since last power cycle: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
@@ -1813,13 +1900,52 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         break;
                     }
                     break;
-                default:
-                    printf("\tRaw Data: ");
-                    for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
-                    {                    
-                        printf("%02" PRIX8 "", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
+                case MAXTOR:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    default:
+                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
                     }
-                    printf("h\n");
+                    break;
+                default:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                        //handle common attributes
+                    case 1://Read Error Rate
+                    case 4://Start/Stop Count
+                    case 5://Retired Sectors Count
+                    case 7://Seek Error Rate
+                    case 10: //Spin Retry Count 
+                    case 12: //Drive Power Cycle Count
+                    case 187://Reported Un-correctable
+                    case 197://Pending-Sparing Count
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 3://Spin Up Time
+                        printf("\tTime: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 9: //Power On Hours
+                        printf("\tHours: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 194://Temperature
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        //current temp is most commonly supported.
+                        //min/max varies by vendor so it is ommitted in this case
+                        break;
+                    default:
+                        printf("\tRaw Data: ");
+                        for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
+                        {
+                            printf("%02" PRIX8 "", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
+                        }
+                        printf("h\n");
+                        break;
+                    }
                     break;
                 }
                 
