@@ -1383,7 +1383,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             break;
         case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR:
             currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
-            highestTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[5], currentAttribute->data.rawData[4]));
+            highestTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[3], currentAttribute->data.rawData[2]));
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")", currentTemp, highestTemp);
             break;
         case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY:
