@@ -889,6 +889,99 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         default:
             break;
         }
+    case SEAGATE_VENDOR_K:
+        switch (attributeNumber)
+        {
+        case 1://read error rate
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            break;
+        case 5://reallocated sector count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            break;
+        case 9://power on hours
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            break;
+        case 12://power cycle count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+            break;
+        case 160://Uncorrectable Sector Count during r/w
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Sector Count - R/W");
+            break;
+        case 161://Number of valid spare blocks
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Valid Spare Blocks");
+            break;
+        case 163://number of invalid blocks
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Invalid Blocks");
+            break;
+        case 164://Total erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+            break;
+        case 165://Maximum erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+            break;
+        case 166://Minimum erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Minimum Erase Count");
+            break;
+        case 167://average erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+            break;
+        case 168://Max erase count of spec
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Erase Count of Spec");
+            break;
+        case 169://remaining life
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Life");
+            break;
+        case 172://Erase fail count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            break;
+        case 173://reserved
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reserved");
+            break;
+        case 181://Total Program Fail Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Program Fail Count");
+            break;
+        case 182://Total Erase Fail Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Fail Count");
+            break;
+        case 187://Uncorrectable error count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Error Count");
+            break;
+        case 192://power off retract count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Off Retract Count");
+            break;
+        case 194://temperature
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            break;
+        case 196://reallocation event count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocation Event Count");
+            break;
+        case 218://USB 3.0 recovery count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "USB 3.0 Recovery Count");
+            break;
+        case 231://SSD Life Left
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            break;
+        case 233://NAND Write (32MB units)
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND Written");
+            break;
+        case 241://Total LBA Written (32MB units)
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
+            break;
+        case 242://Total LBA Read (32MB units)
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
+            break;
+        case 244://Average Erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+            break;
+        case 245://maximum erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+            break;
+        case 246://Total Erase Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+            break;
+        default:
+            break;
+        }
     default:
         switch (attributeNumber)
         {
@@ -1053,6 +1146,9 @@ typedef enum _eATASMARTAttributeRawInterpretation
     ATA_SMART_ATTRIBUTE_DECIMAL, //interpret specified raw bytes as a decimal value
     ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP,//Seagate format where raw 1:0 is current, 2 is lowest, 3 is highest during this power cycle
     ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY,//Maxtor where raw 1:0 handles current temperature, but no other values are reported
+    ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST,//Nominal is current temperature, worst is hottest temp. Lowest not reported.
+    ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_MB,//Counter is in decimal and represents Mega Bytes
+    ATA_SMART_ATTRIBUTE_PERCENTAGE,//attribute reports a percentage value
     //Reserved? To show when a field is unused???
 }eATASMARTAttributeRawInterpretation;
 //
@@ -1216,6 +1312,9 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         //setup raw data for display
+        char dataUnitBuffer[UNIT_STRING_LENGTH] = { 0 };
+        char* dataUnits = &dataUnitBuffer[0];
+        double dataConversion = 0.0;
         switch (rawInterpretation)
         {
         case ATA_SMART_ATTRIBUTE_DECIMAL:
@@ -1223,6 +1322,20 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
             decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRIu64, decimalValue);
+            break;
+        case ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_MB:
+            //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
+            //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
+            decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
+            dataConversion = decimalValue * 1000.0 * 1000.0 * 32.0;
+            metric_Unit_Convert(&dataConversion, &dataUnits);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+            break;
+        case ATA_SMART_ATTRIBUTE_PERCENTAGE:
+            //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
+            //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
+            decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRIu64 "%%", decimalValue);
             break;
         case ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW:
             currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
@@ -1245,6 +1358,11 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //      Min temps will never be -100C or more and max will never be 120C or more, let alone 999C or more. This should be ok as the output below will be truncated.
             //      At worst, the final parenthesis will be cut off. - TJE
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
+            break;
+        case ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST:
+            currentTemp = currentAttribute->data.nominal;
+            highestTemp = currentAttribute->data.worstEver;
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")", currentTemp, highestTemp);
             break;
         case ATA_SMART_ATTRIBUTE_RAW_HEX:
         default: //if not known, use hex
@@ -1502,6 +1620,28 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 {
                 case 194:
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY, 1, 0, false);
+                    break;
+                default:
+                    //From what I can tell in maxtor specs, everything is just a single counter - TJE
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
+                    break;
+                }
+                break;
+            case SEAGATE_VENDOR_K:
+                dataFormatVerified = true;
+                switch (iter)
+                {
+                case 194:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST, 1, 0, false);
+                    break;
+                case 169:
+                case 231:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 6, 0, false);
+                    break;
+                case 241:
+                case 242:
+                case 233:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_MB, 6, 0, false);
                     break;
                 default:
                     //From what I can tell in maxtor specs, everything is just a single counter - TJE
@@ -1905,6 +2045,33 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     {
                     case 194:
                         printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    default:
+                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    }
+                    break;
+                case SEAGATE_VENDOR_K:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        //this can be read from nominal/worst or raw 1:0 and raw 5:4
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal);
+                        printf("\tMaximum Temperature (C): %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
+                        break;
+                    case 169:
+                    case 231:
+                        printf("\tPercent: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 233:
+                        printf("\tNAND Written: %" PRIu64 " MB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0) * UINT64_C(32));
+                        break;
+                    case 241:
+                        printf("\tTotal LBAs Written: %" PRIu64 " MB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0) * UINT64_C(32));
+                        break;
+                    case 242:
+                        printf("\tTotal LBAs Read: %" PRIu64 " MB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0) * UINT64_C(32));
                         break;
                     default:
                         //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
