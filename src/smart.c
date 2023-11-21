@@ -982,6 +982,37 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         default:
             break;
         }
+    case SEAGATE_QUANTUM:
+        switch (attributeNumber)
+        {
+        case 1://read error rate
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            break;
+        case 3://spin up time
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            break;
+        case 4://start-stop count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start-Stop Count");
+            break;
+        case 5://Reallocated sector count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            break;
+        case 7://seek error rate
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            break;
+        case 9://power on hours
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            break;
+        case 11://recal retry count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Recalibration Retry Count");
+            break;
+        case 12://drive power cycle count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            break;
+        default:
+            break;
+        }
+        break;
     default:
         switch (attributeNumber)
         {
@@ -1149,6 +1180,8 @@ typedef enum _eATASMARTAttributeRawInterpretation
     ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST,//Nominal is current temperature, worst is hottest temp. Lowest not reported.
     ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_MB,//Counter is in decimal and represents Mega Bytes
     ATA_SMART_ATTRIBUTE_PERCENTAGE,//attribute reports a percentage value
+    ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR,//reports current in raw 1:0 and highest in 3:2. No lowest
+    ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_GIB,//Reports a decimal counter using the units GiB NOT GB
     //Reserved? To show when a field is unused???
 }eATASMARTAttributeRawInterpretation;
 //
@@ -1193,7 +1226,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             {
                 snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8, currentAttribute->thresholdData.thresholdValue);
             }
-            if (currentAttribute->data.nominal <= currentAttribute->thresholdData.thresholdValue)
+            if (currentAttribute->thresholdData.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING && currentAttribute->data.nominal <= currentAttribute->thresholdData.thresholdValue)
             {
                 if (currentAttribute->isWarrantied)
                 {
@@ -1204,7 +1237,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
                     common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
                 }
             }
-            if (currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
+            if (currentAttribute->thresholdData.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING && currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
             {
                 if (currentAttribute->isWarrantied)
                 {
@@ -1222,34 +1255,28 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         }
 
         //setup current value
-        if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
+        if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_ALWAYS_PASSING || currentAttribute->data.nominal == ATA_SMART_THRESHOLD_INVALID)
         {
-            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
+            //original smart specification says valid values are 1-253
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
         }
         else if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
         {
             snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
-        }
-        else if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_INVALID)
-        {
-            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
         }
         else
         {
             snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8, currentAttribute->data.nominal);
         }
         //setup worst value
-        if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
+        if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_ALWAYS_PASSING || currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_INVALID)
         {
-            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
+            //original smart specification says valid values are 1-253
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
         }
         else if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
         {
             snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
-        }
-        else if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_INVALID)
-        {
-            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
         }
         else
         {
@@ -1331,6 +1358,14 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             metric_Unit_Convert(&dataConversion, &dataUnits);
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
             break;
+        case ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_GIB:
+            //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
+            //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
+            decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
+            dataConversion = decimalValue * 1024.0 * 1024.0 * 1024.0;
+            metric_Unit_Convert(&dataConversion, &dataUnits);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+            break;
         case ATA_SMART_ATTRIBUTE_PERCENTAGE:
             //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
             //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
@@ -1345,6 +1380,11 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //      Min temps will never be -100C or more and max will never be 120C or more, let alone 999C or more. This should be ok as the output below will be truncated.
             //      At worst, the final parenthesis will be cut off. - TJE
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
+            break;
+        case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR:
+            currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
+            highestTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[5], currentAttribute->data.rawData[4]));
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")", currentTemp, highestTemp);
             break;
         case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY:
             currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
@@ -1646,6 +1686,39 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 default:
                     //From what I can tell in maxtor specs, everything is just a single counter - TJE
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
+                    break;
+                }
+                break;
+            case SEAGATE_VENDOR_D://with Seagate for now. Might move sometime
+            case SEAGATE_VENDOR_E://with Seagate for now. Might move sometime
+                switch (iter)
+                {
+                case 1://read error rate
+                case 5://retired sectors count
+                case 9: //Power on Hours
+                case 12: //Drive Power Cycle Count
+                case 171: //Program Fail Count
+                case 172: //Erase Fail Count
+                case 181: //Program Fail Count
+                case 182: //Erase Fail Count
+                case 201: //Soft Error Rate
+                case 204: //Soft ECC Correction Rate
+                case 250: //Lifetime NAND Read Retries
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 0, false);
+                    break;
+                case 194: //Temperature
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR, 6, 0, false);
+                    break;
+                case 231: //SSD Life Left
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 6, 0, false);
+                    break;
+                case 234: //Lifetime Write to Flash
+                case 241: //Lifetime Writes from Host
+                case 242: //Lifetime Reads from Host
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_GIB, 6, 0, false);
+                    break;
+                    break;
+                default:
                     break;
                 }
                 break;

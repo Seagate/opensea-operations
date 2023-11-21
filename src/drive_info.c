@@ -2220,6 +2220,14 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                             driveInfo->temperatureData.highestValid = true;
                         }
                     }
+                    else if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E)
+                    {
+                        if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                        {
+                            driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[3], currentAttribute.rawData[2]));
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                    }
                     else
                     {
                         if (!driveInfo->temperatureData.lowestValid && C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4])) <= driveInfo->temperatureData.currentTemperature)
