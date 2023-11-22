@@ -2152,6 +2152,33 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         break;
                     }
                     break;
+                case SEAGATE_VENDOR_D:
+                case SEAGATE_VENDOR_E:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        //this can be read from nominal/worst or raw 1:0 and raw 5:4
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\tMaximum Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]));
+                        break;
+                    case 231:
+                        printf("\tPercent: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 234:
+                        printf("\tLifetime Writes To Flash: %" PRIu64 " GiB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0));
+                        break;
+                    case 241:
+                        printf("\tLifetime Writes From Host: %" PRIu64 " GiB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0));
+                        break;
+                    case 242:
+                        printf("\tLifetime Reads From Host: %" PRIu64 " GiB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0));
+                        break;
+                    default:
+                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    }
+                    break;
                 default:
                     switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                     {
