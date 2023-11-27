@@ -889,6 +889,7 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         default:
             break;
         }
+        break;
     case SEAGATE_VENDOR_K:
         switch (attributeNumber)
         {
@@ -982,6 +983,7 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         default:
             break;
         }
+        break;
     case SEAGATE_QUANTUM:
         switch (attributeNumber)
         {
