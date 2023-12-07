@@ -15,6 +15,7 @@
 #include "set_max_lba.h"
 #include "smart.h"
 #include "dst.h"
+#include "ata_helper.h"
 #include "scsi_helper.h"
 #include "nvme_helper_func.h"
 #include "firmware_download.h"
@@ -2199,25 +2200,51 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                 driveInfo->powerOnMinutesValid = true;
             }
             break;
-            case 194: //Temperature (This attribute seems shared between vendors)
+            case 194: 
+                //Temperature (This attribute seems shared between vendors)
+                //NOTE: Not all vendors report this the same way!
+                //Will need to handle variations on a case by case basis.
                 if (!driveInfo->temperatureData.temperatureDataValid)
                 {
                     driveInfo->temperatureData.temperatureDataValid = true;
                     driveInfo->temperatureData.currentTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[1], currentAttribute.rawData[0]));
                 }
-                if (!driveInfo->temperatureData.lowestValid)
+                /* TODO: This can be improved with better filters/interpretations defined per vendor to read this attribute. */
+                if (seagateFamily != MAXTOR)
                 {
-                    driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4]));
-                    driveInfo->temperatureData.lowestValid = true;
-                }
-                if (!driveInfo->temperatureData.highestValid)
-                {
-                    driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);
-                    driveInfo->temperatureData.highestValid = true;
+                    if (seagateFamily == SEAGATE_VENDOR_K)
+                    {
+                        if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                        {
+                            driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);//or raw 5:4
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                    }
+                    else if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E)
+                    {
+                        if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                        {
+                            driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[3], currentAttribute.rawData[2]));
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                    }
+                    else
+                    {
+                        if (!driveInfo->temperatureData.lowestValid && C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4])) <= driveInfo->temperatureData.currentTemperature)
+                        {
+                            driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4]));
+                            driveInfo->temperatureData.lowestValid = true;
+                        }
+                        if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                        {
+                            driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                    }
                 }
                 break;
             case 231: //SSD Endurance
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->percentEnduranceUsed < 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->percentEnduranceUsed < 0)
                 {
                     // SCSI was implemented first, and it returns a value where 0 means 100% spares left, ATA is the opposite,
                     // so we need to subtract our number from 100
@@ -2255,6 +2282,12 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                     //convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
                     driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                 }
+                else if (seagateFamily == SEAGATE_VENDOR_K)
+                {
+                    driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
+                    //units are in 32MB
+                    driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
+                }
                 break;
             case 234: //Lifetime Write to Flash (SSD)
                 if (seagateFamily == SEAGATE || (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B))
@@ -2265,7 +2298,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                 }
                 break;
             case 241: //Total Bytes written (SSD) Total LBAs written (HDD)
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsWritten == 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsWritten == 0)
                 {
                     driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
@@ -2273,16 +2306,26 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                         //some Seagate SSD's report this as GiB written, so convert to LBAs
                         driveInfo->totalLBAsWritten = (driveInfo->totalLBAsWritten * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                     }
+                    else if (seagateFamily == SEAGATE_VENDOR_K)
+                    {
+                        //units are 32MB, so convert to LBAs
+                        driveInfo->totalLBAsWritten = (driveInfo->totalLBAsWritten * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
+                    }
                 }
                 break;
             case 242: //Total Bytes read (SSD) Total LBAs read (HDD)
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsRead == 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsRead == 0)
                 {
                     driveInfo->totalLBAsRead = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB read, so convert to LBAs
                         driveInfo->totalLBAsRead = (driveInfo->totalLBAsRead * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
+                    }
+                    else if (seagateFamily == SEAGATE_VENDOR_K)
+                    {
+                        //units are 32MB, so convert to LBAs
+                        driveInfo->totalLBAsRead = (driveInfo->totalLBAsRead * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
                     }
                 }
                 break;
