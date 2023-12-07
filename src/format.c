@@ -112,9 +112,9 @@ int show_Format_Unit_Progress(tDevice *device)
     if (ret == IN_PROGRESS)
     {
         printf("\tFormat Unit Progress = %3.2f%% \n", percentComplete);
-	//add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
-	//we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
-	//with the format
+    //add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
+    //we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
+    //with the format
         if (percentComplete + 0.005 >= 100.0)
         {
             printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
@@ -307,7 +307,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, true, MPC_CURRENT_VALUES, modeParameterData))
         {
             //try mode sense 10 without the longLBA bit now
-            if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, false, MPC_CURRENT_VALUES, modeParameterData))
+            if (SUCCESS != scsi_Mode_Sense_10(device, 0, 16, 0, false, false, MPC_CURRENT_VALUES, modeParameterData))
             {
                 modeSelect10 = false;
                 //all else fails, try mode sense 6
@@ -326,11 +326,20 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         {
             blockDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN;
             blockDescriptorLength = M_BytesTo2ByteValue(modeParameterData[6], modeParameterData[7]);
+            //zero out the mode data length since we will not actually send it the mode page, just header and block descriptor
+            modeParameterData[0] = 0;
+            modeParameterData[1] = 0;
+            //zero out device specific parameter since those bits are mostly reserved in this case and don't really matter for a reformat.
+            modeParameterData[3] = 0;
         }
         else //mode sense 6
         {
             blockDescriptorOffset = MODE_PARAMETER_HEADER_6_LEN;
             blockDescriptorLength = modeParameterData[3];
+            //zero out the mode data length since we will not actually send it the mode page, just header and block descriptor
+            modeParameterData[0] = 0;
+            //zero out device specific parameter since those bits are mostly reserved in this case and don't really matter for a reformat.
+            modeParameterData[2] = 0;
         }
         if (blockDescriptorLength == 8)
         {
@@ -406,11 +415,11 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         //now send a mode select command
         if (modeSelect10)
         {
-            ret = scsi_Mode_Select_10(device, 24, false, true, false, modeParameterData, 24); //turning off page format bit due to reading page 0 above
+            ret = scsi_Mode_Select_10(device, (blockDescriptorLength + blockDescriptorOffset), false, true, false, modeParameterData, (blockDescriptorLength + blockDescriptorOffset)); //turning off page format bit due to reading page 0 above
         }
         else
         {
-            ret = scsi_Mode_Select_6(device, 12, false, true, false, modeParameterData, 12); //turning off page format bit due to reading page 0 above
+            ret = scsi_Mode_Select_6(device, C_CAST(uint8_t, (blockDescriptorLength + blockDescriptorOffset)), false, true, false, modeParameterData, (blockDescriptorLength + blockDescriptorOffset)); //turning off page format bit due to reading page 0 above
         }
     }
     if (ret == SUCCESS)
@@ -728,7 +737,8 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
                 printf("Power On Minutes Since Last Format: %" PRIu32"\n", formatStatus->powerOnMinutesSinceFormat);
                 //convert the time to seconds, then print it in a displayable format
                 printf("Power On Time Since Last Format: ");
-                uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
                 convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, formatStatus->powerOnMinutesSinceFormat) * UINT64_C(60), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
@@ -1523,9 +1533,13 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Setting the drive sector size quickly.\n");
-            printf("Please wait a few minutes for this command to complete.\n");
             printf("It should complete in under 5 minutes, but interrupting it may make\n");
             printf("the drive unusable or require performing this command again!!\n");
+            printf("The command is issued with a timeout of 1 hour, much longer than necessary,\n");
+            printf("however there are rare cases where a drive is processing something in the\n");
+            printf("background when this command is received that may make this take longer than\n");
+            printf("a few minutes. Please wait at least this hour to ensure that this completes\n");
+            printf("successfully or with the error recovery built into this software.\n");
         }
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
@@ -1543,7 +1557,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             //NOTE: last sector is sometimes used as a backup of the MBR, which is why it will also be erased
             int writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
             int writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
-            if (!writeBackupMBR || !writeMBR)
+            if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
             {
                 mbrEraseWarning = true;
             }
@@ -1553,7 +1567,7 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
         {
             mbrEraseWarning = true;
         }
-        if(mbrEraseWarning)
+        if (mbrEraseWarning)
         {
             if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
             {
@@ -1633,13 +1647,13 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             formatUnitParameters.defaultFormat = true;//Don't need any option bits! In fact, this could cause an error if not set!
             formatUnitParameters.protectionType = device->drive_info.currentProtectionType;
             formatUnitParameters.protectionIntervalExponent = device->drive_info.piExponent;
-            formatUnitParameters.disableImmediate = true;
+            formatUnitParameters.disableImmediate = false;//this will require polling for progress until complete with this disabled, but reduces the likelyhood of a reset going to the drive.
             //make this smarter to know which type of fast format to use! FAST_FORMAT_WRITE_NOT_REQUIRED is a power of 2 change (512 to 4096), FAST_FORMAT_WRITE_REQUIRED is any other size change
             if (!is_Requested_Sector_Size_Multiple(device, sectorSize))
             {
                 formatUnitParameters.formatType = FORMAT_FAST_WRITE_REQUIRED;
             }
-            ret = run_Format_Unit(device, formatUnitParameters, false);
+            ret = run_Format_Unit(device, formatUnitParameters, true);
         }
         os_Unlock_Device(device);
         os_Update_File_System_Cache(device);
@@ -1761,8 +1775,8 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
     nvmeFormatCmdOpts formatCmdOptions;
     memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
     //Set metadata, PI, PIL settings to current device settings to start
-    formatCmdOptions.ms = device->drive_info.IdentifyData.nvme.ns.mc & BIT0 ? 1 : 0;
-    formatCmdOptions.pil = device->drive_info.IdentifyData.nvme.ns.dps & BIT3 ? 1 : 0;
+    formatCmdOptions.ms = (device->drive_info.IdentifyData.nvme.ns.mc & BIT0) ? 1 : 0;
+    formatCmdOptions.pil = (device->drive_info.IdentifyData.nvme.ns.dps & BIT3) ? 1 : 0;
     formatCmdOptions.pi = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
 
     if (nvmParams.metadataSettings.valid)

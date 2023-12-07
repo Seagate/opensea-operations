@@ -122,6 +122,7 @@ extern "C"
                 uint8_t attributeNumber;//NOTE: This may not be available since the threshold sector has been obsolete for a long time. If this is zero, it is an invalid attribute number
                 uint8_t thresholdValue;
                 uint8_t nominalValue;
+                uint8_t worstValue;
             }ataAttribute;
             struct
             {
@@ -148,7 +149,7 @@ extern "C"
     //!   \param[in] tripInfo = OPTIONAL pointer to a struct to get why a drive has been tripped (if available).
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected (from SCSI SMART check), all others - unknown status or error occured
+    //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected, all others - unknown status or error occured
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
@@ -279,11 +280,12 @@ extern "C"
     //!   \param device - pointer to the device structure
     //!   \param ercCommand - specifies if the timer is for read or write commands
     //!   \param timerValueMilliseconds - how long to set the timer to in milliseconds
+    //!   \param isVolatile - true = volatile change (cleared on reset/power cycle), false = non-volatile change
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds);
+    OPENSEA_OPERATIONS_API int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile);
 
     //-----------------------------------------------------------------------------
     //
@@ -295,12 +297,43 @@ extern "C"
     //!   \param device - pointer to the device structure
     //!   \param ercCommand - specifies if the timer is for read or write commands
     //!   \param timerValueMilliseconds - how long to set the timer to in milliseconds
+    //!   \param isVolatile - true = volatile change (cleared on reset/power cycle), false = non-volatile change
     //  Exit:
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds);
-    
+    OPENSEA_OPERATIONS_API int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand)
+    //
+    //! \brief   Description:  Restore the SCT Error recovery command timeout value to default
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param ercCommand - specifies if the timer is for read or write commands
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
+    //
+    //! \brief   Description:  Get the Minimum supported value for SCT Error recovery command timeout
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param minRcvTimeLmtMilliseconds - Minimum supported value for the RECOVERY TIME LIMIT field in milliseconds
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds);
+
     //-----------------------------------------------------------------------------
     //
     //  enable_Disable_SMART_Feature(tDevice *device, bool enable)

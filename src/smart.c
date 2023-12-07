@@ -53,7 +53,7 @@ int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                     smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].valid = true;
                     memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].data, &currentAttribute, sizeof(ataSMARTAttribute));
                     //check if it's warrantied (This should work on Seagate drives at least)
-                    if (currentAttribute.status & BIT0)
+                    if (currentAttribute.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
                     {
                         smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].isWarrantied = true;
                     }
@@ -307,6 +307,15 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 12: //Drive Power Cycle Count
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
             break;
+        case 180: //End to End Error Detection
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End to End Error Detection");
+            break;
+        case 181: //Unaligned Access
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unaligned Access");
+            break;
+        case 183: //SATA Interface Downshift
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Interface Downshift");
+            break;
         case 184://End to End detection
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Detection");
             break;
@@ -358,11 +367,24 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
         case 225: //Load Cycle Count
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Cycle Count");
             break;
+        case 240: //Head Fly Hours
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+            break;
+        case 241: //Total Write Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Write Count");
+            break;
+        case 242: //Total Read Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Read Count");
+            break;
+        case 254: //Free fall Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Count");
+            break;
         default:
             break;
         }
         break;
-    case MAXTOR: //names are from here: https://www.smartmontools.org/wiki/AttributesMaxtor
+    case MAXTOR:
+        //names are from here: https://www.smartmontools.org/wiki/AttributesMaxtor
         switch (attributeNumber)
         {
         case 1: //raw read error rate
@@ -390,6 +412,8 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
             break;
         case 9: //power on hours
+            //internal spec says this is minutes, but not sure which drives report in minutes.
+            //Old drives I have tested seem to do hours. may need to use revision number
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-On Hours");
             break;
         case 10: //spin-up retry count
@@ -432,12 +456,14 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
             break;
         case 201: //Soft Read Error Rate
+            //off track errors is an alternate name
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
             break;
         case 202: //Data Addres Mark Errors
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Data Address Mark Errors");
             break;
         case 203: //run out cancel
+            //ECC errors is an alternate name
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Run Out Cancel");
             break;
         case 204: //Soft ECC Correction
@@ -457,6 +483,15 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             break;
         case 209: //Offline Seek Performance
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Seek Performance");
+            break;
+        case 210: //Vibration during Write
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Write");
+            break;
+        case 211: //Vibration during Read
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Read");
+            break;
+        case 212: //Shock during Write
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock During Write");
             break;
         case 220: //Disk Shift
             snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Disk Shift");
@@ -826,6 +861,160 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
             break;
         }
         break;
+    case SEAGATE_CONNER:
+        //From product manual for models CFS635A/CFS850A/CFS1275A
+        switch (attributeNumber)
+        {
+        case 1:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Firm Error Rate");
+            break;
+        case 3:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            break;
+        case 4:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Count");
+            break;
+        case 5:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors");
+            break;
+        case 7:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            break;
+        case 10:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retries");
+            break;
+        case 12:
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            break;
+        default:
+            break;
+        }
+        break;
+    case SEAGATE_VENDOR_K:
+        switch (attributeNumber)
+        {
+        case 1://read error rate
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            break;
+        case 5://reallocated sector count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            break;
+        case 9://power on hours
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            break;
+        case 12://power cycle count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+            break;
+        case 160://Uncorrectable Sector Count during r/w
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Sector Count - R/W");
+            break;
+        case 161://Number of valid spare blocks
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Valid Spare Blocks");
+            break;
+        case 163://number of invalid blocks
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Invalid Blocks");
+            break;
+        case 164://Total erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+            break;
+        case 165://Maximum erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+            break;
+        case 166://Minimum erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Minimum Erase Count");
+            break;
+        case 167://average erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+            break;
+        case 168://Max erase count of spec
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Erase Count of Spec");
+            break;
+        case 169://remaining life
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Life");
+            break;
+        case 172://Erase fail count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            break;
+        case 173://reserved
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reserved");
+            break;
+        case 181://Total Program Fail Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Program Fail Count");
+            break;
+        case 182://Total Erase Fail Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Fail Count");
+            break;
+        case 187://Uncorrectable error count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Error Count");
+            break;
+        case 192://power off retract count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Off Retract Count");
+            break;
+        case 194://temperature
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            break;
+        case 196://reallocation event count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocation Event Count");
+            break;
+        case 218://USB 3.0 recovery count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "USB 3.0 Recovery Count");
+            break;
+        case 231://SSD Life Left
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            break;
+        case 233://NAND Write (32MB units)
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND Written");
+            break;
+        case 241://Total LBA Written (32MB units)
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
+            break;
+        case 242://Total LBA Read (32MB units)
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
+            break;
+        case 244://Average Erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+            break;
+        case 245://maximum erase count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+            break;
+        case 246://Total Erase Count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+            break;
+        default:
+            break;
+        }
+        break;
+    case SEAGATE_QUANTUM:
+        switch (attributeNumber)
+        {
+        case 1://read error rate
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            break;
+        case 3://spin up time
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            break;
+        case 4://start-stop count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start-Stop Count");
+            break;
+        case 5://Reallocated sector count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            break;
+        case 7://seek error rate
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            break;
+        case 9://power on hours
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            break;
+        case 11://recal retry count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Recalibration Retry Count");
+            break;
+        case 12://drive power cycle count
+            snprintf(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            break;
+        default:
+            break;
+        }
+        break;
     default:
         switch (attributeNumber)
         {
@@ -874,20 +1063,35 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue *currentAttribute, char 
     uint8_t rawIter = 0;
     if (currentAttribute->data.attributeNumber != 0)
     {
-        char flags[5] = { 0 };
+#define ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN (5)
+        char flags[ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN] = { 0 };
         if (currentAttribute->isWarrantied)
         {
-            common_String_Concat(flags, 5, "*");
+            common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*");
         }
         if (currentAttribute->thresholdDataValid)
         {
             if (currentAttribute->data.nominal <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(flags, 5, "!");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
+                }
+                else
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
+                }
             }
             if (currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(flags, 5, "^");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
+                }
+                else
+                {
+                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
+                }
             }
             printf("%-5s%3"PRIu8" %-35s  %04"PRIX16"h    %02"PRIX8"h     %02"PRIX8"h     %02"PRIX8"h   ", flags, currentAttribute->data.attributeNumber, attributeName, currentAttribute->data.status, currentAttribute->data.nominal, currentAttribute->data.worstEver, currentAttribute->thresholdData.thresholdValue);
         }
@@ -915,7 +1119,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
         perror("Calloc Failure!\n");
         return;
     }
-    printf("     # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
+    printf("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
     for (uint8_t iter = 0; iter < 255; ++iter)
     {
         if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -926,8 +1130,10 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
         }
     }
     printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
-    printf("! - attribute is currently failing (thresholds required)\n");
-    printf("^ - attribute has previously failed (thresholds required)\n");
+    printf("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
+    printf("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
+    printf("%% - attribute is currently issuing a warning (thresholds required)\n");
+    printf("~ - attribute has previously warned about its condition (thresholds required)\n");
     printf("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
     safe_Free(attributeName)
 }
@@ -971,6 +1177,13 @@ typedef enum _eATASMARTAttributeRawInterpretation
     ATA_SMART_ATTRIBUTE_RAW_HEX, //default, we don't know how to interpret so show the raw hex bytes
     ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW,//Seagate format where raw 1:0 is current (same as nominal), 5:4 is lowest, worst ever is highest temp 
     ATA_SMART_ATTRIBUTE_DECIMAL, //interpret specified raw bytes as a decimal value
+    ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP,//Seagate format where raw 1:0 is current, 2 is lowest, 3 is highest during this power cycle
+    ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY,//Maxtor where raw 1:0 handles current temperature, but no other values are reported
+    ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST,//Nominal is current temperature, worst is hottest temp. Lowest not reported.
+    ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_MB,//Counter is in decimal and represents Mega Bytes
+    ATA_SMART_ATTRIBUTE_PERCENTAGE,//attribute reports a percentage value
+    ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR,//reports current in raw 1:0 and highest in 3:2. No lowest
+    ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_GIB,//Reports a decimal counter using the units GiB NOT GB
     //Reserved? To show when a field is unused???
 }eATASMARTAttributeRawInterpretation;
 //
@@ -981,11 +1194,15 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
 #define ATTR_HYBRID_RAW_STRING_LENGTH 24 //Setting 24 to prevent truncation warnings from the temperature setup, but real max is 16
 #define ATTR_HYBRID_ATTR_FLAG_LENGTH 8
 #define ATTR_HYBRID_THRESHOLD_VALUE_LENGTH 4
+#define ATTR_HYBRID_NOMINAL_VALUE_LENGTH 4
+#define ATTR_HYBRID_WORST_VALUE_LENGTH 4
 #define ATTR_HYBRID_OTHER_FLAGS_LENGTH 4
         char rawDataString[ATTR_HYBRID_RAW_STRING_LENGTH] = { 0 };
         char attributeFlags[ATTR_HYBRID_ATTR_FLAG_LENGTH] = { 0 };
         char thresholdValue[ATTR_HYBRID_THRESHOLD_VALUE_LENGTH] = { 0 };
         char otherFlags[ATTR_HYBRID_OTHER_FLAGS_LENGTH] = { 0 };
+        char nominalValue[ATTR_HYBRID_NOMINAL_VALUE_LENGTH] = { 0 };
+        char worstValue[ATTR_HYBRID_WORST_VALUE_LENGTH] = { 0 };
         uint64_t decimalValue = 0;
         int16_t currentTemp = 0;
         int16_t lowestTemp = 0;
@@ -995,30 +1212,77 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         //setup threshold output
         if (currentAttribute->thresholdDataValid)
         {
-            if (currentAttribute->thresholdData.thresholdValue == 0)
+            if (currentAttribute->thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
             {
                 snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
             }
-            else if (currentAttribute->thresholdData.thresholdValue == 0xFF)
+            else if (currentAttribute->thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
             {
                 snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+            }
+            else if (currentAttribute->thresholdData.thresholdValue == ATA_SMART_THRESHOLD_INVALID)
+            {
+                snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
             }
             else
             {
                 snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8, currentAttribute->thresholdData.thresholdValue);
             }
-            if (currentAttribute->data.nominal <= currentAttribute->thresholdData.thresholdValue)
+            if (currentAttribute->thresholdData.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING && currentAttribute->data.nominal <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+                }
+                else
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
+                }
             }
-            if (currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
+            if (currentAttribute->thresholdData.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING && currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
             {
-                common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+                if (currentAttribute->isWarrantied)
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+                }
+                else
+                {
+                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
+                }
             }
         }
         else
         {
             snprintf(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "N/A");
+        }
+
+        //setup current value
+        if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_ALWAYS_PASSING || currentAttribute->data.nominal == ATA_SMART_THRESHOLD_INVALID)
+        {
+            //original smart specification says valid values are 1-253
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+        }
+        else if (currentAttribute->data.nominal == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+        {
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+        }
+        else
+        {
+            snprintf(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8, currentAttribute->data.nominal);
+        }
+        //setup worst value
+        if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_ALWAYS_PASSING || currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_INVALID)
+        {
+            //original smart specification says valid values are 1-253
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+        }
+        else if (currentAttribute->data.worstEver == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+        {
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+        }
+        else
+        {
+            snprintf(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8, currentAttribute->data.worstEver);
         }
 
         //setup warranty and "see analyzed" flags
@@ -1028,7 +1292,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         }
 
         //setup status flags
-        if (currentAttribute->data.status & BIT0)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "P");
         }
@@ -1036,7 +1300,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT1)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_ONLINE_DATA_COLLECTION)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "O");
         }
@@ -1044,7 +1308,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT2)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_PERFORMANCE)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "S");
         }
@@ -1052,7 +1316,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT3)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_ERROR_RATE)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "R");
         }
@@ -1060,7 +1324,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT4)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_EVENT_COUNT)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "C");
         }
@@ -1068,7 +1332,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
-        if (currentAttribute->data.status & BIT5)
+        if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_SELF_PRESERVING)
         {
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "K");
         }
@@ -1077,6 +1341,9 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         //setup raw data for display
+        char dataUnitBuffer[UNIT_STRING_LENGTH] = { 0 };
+        char* dataUnits = &dataUnitBuffer[0];
+        double dataConversion = 0.0;
         switch (rawInterpretation)
         {
         case ATA_SMART_ATTRIBUTE_DECIMAL:
@@ -1084,6 +1351,28 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
             decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRIu64, decimalValue);
+            break;
+        case ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_MB:
+            //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
+            //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
+            decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
+            dataConversion = decimalValue * 1000.0 * 1000.0 * 32.0;
+            metric_Unit_Convert(&dataConversion, &dataUnits);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+            break;
+        case ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_GIB:
+            //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
+            //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
+            decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
+            dataConversion = decimalValue * 1024.0 * 1024.0 * 1024.0;
+            metric_Unit_Convert(&dataConversion, &dataUnits);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+            break;
+        case ATA_SMART_ATTRIBUTE_PERCENTAGE:
+            //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
+            //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
+            decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRIu64 "%%", decimalValue);
             break;
         case ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW:
             currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
@@ -1094,12 +1383,35 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //      At worst, the final parenthesis will be cut off. - TJE
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
             break;
+        case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR:
+            currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
+            highestTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[3], currentAttribute->data.rawData[2]));
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")", currentTemp, highestTemp);
+            break;
+        case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY:
+            currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16, currentTemp);
+            break;
+        case ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP:
+            currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
+            lowestTemp = currentAttribute->data.rawData[2];
+            highestTemp = currentAttribute->data.rawData[3];
+            //NOTE: This should always fit within 16 chars as temperatures should never exceed 3 characters wide for any of them. Anything wider would be a drive bug or garbage.
+            //      Min temps will never be -100C or more and max will never be 120C or more, let alone 999C or more. This should be ok as the output below will be truncated.
+            //      At worst, the final parenthesis will be cut off. - TJE
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
+            break;
+        case ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST:
+            currentTemp = currentAttribute->data.nominal;
+            highestTemp = currentAttribute->data.worstEver;
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")", currentTemp, highestTemp);
+            break;
         case ATA_SMART_ATTRIBUTE_RAW_HEX:
         default: //if not known, use hex
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h", currentAttribute->data.rawData[6], currentAttribute->data.rawData[5], currentAttribute->data.rawData[4], currentAttribute->data.rawData[3], currentAttribute->data.rawData[2], currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]);
             break;
         }
-        printf("%-3s%3" PRIu8 " %-35s %-8s %3" PRIu8 " %3" PRIu8 " %-3s %-16.16s\n", otherFlags, currentAttribute->data.attributeNumber, attributeName, attributeFlags, currentAttribute->data.nominal, currentAttribute->data.worstEver, thresholdValue, rawDataString);
+        printf("%-3s%3" PRIu8 " %-35s %-8s %-3s %-3s %-3s %-16.16s\n", otherFlags, currentAttribute->data.attributeNumber, attributeName, attributeFlags, nominalValue, worstValue, thresholdValue, rawDataString);
     }
     //clear out the attribute name before looping again so we don't show dulicates
     snprintf(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                                          ");
@@ -1123,14 +1435,17 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     printf("\t  R - Error Rate - indicates tracking of an error rate\n");
     printf("\t  C - Event Count - attribute represents a counter of events\n");
     printf("\t  K - Self Preservation (saved across power-cycles)\n");
-    printf("\tThresholds:\n");
+    printf("\tThresholds/Current/Worst:\n");
     printf("\t  N/A - thresholds not available for this attribute/device\n");
     printf("\t  AP  - threshold is always passing (value of zero)\n");
     printf("\t  AF  - threshold is always failing (value of 255)\n");
+    printf("\t  INV - threshold is set to an invalid value (value of 254)\n");
     printf("\tOther indicators:\n");
     printf("\t  ? - See analyzed output for more information on an attribute's raw data\n");
     printf("\t  ! - attribute is currently failing\n");
     printf("\t  ^ - attribute has previously failed\n");
+    printf("\t  %% - attribute is currently issuing a warning\n");
+    printf("\t  ~ - attribute has previously warned about its condition\n");
     printf("\tTemperature:\n");
     printf("\t  m = minimum\n");
     printf("\t  M = maximum\n");
@@ -1155,7 +1470,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                 {
                 case 1://read error rate
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
                     break;
                 case 3://spin up time
                     //raw unused
@@ -1168,7 +1483,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
                 case 7://seek error rate
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
                     break;
                 case 9://power on hours
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
@@ -1183,6 +1498,12 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 case 18://Head health self-assessment
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_RAW_HEX, 6, 0, false);
                     break;
+                case 174://Unexpected power loss
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
+                    break;
+                case 183://Phy event counters
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 1, 0, false);
+                    break;
                 case 184://IOEDC Count
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
@@ -1196,7 +1517,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 1, 0, false);
                     break;
                 case 190: //Airflow Temperature
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_AIRFLOW_TEMP, 3, 0, true);
                     break;
                 case 191: //Shock Sensor Counter
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
@@ -1211,7 +1532,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW, 3, 0, true);
                     break;
                 case 195: //ECC On the Fly Count
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, true);
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
                     break;
                 case 197: //Pending-Sparing Count
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
@@ -1336,6 +1657,73 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     break;
                 }
                 break;
+            case MAXTOR:
+                switch (iter)
+                {
+                case 194:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY, 1, 0, false);
+                    break;
+                default:
+                    //From what I can tell in maxtor specs, everything is just a single counter - TJE
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
+                    break;
+                }
+                break;
+            case SEAGATE_VENDOR_K:
+                dataFormatVerified = true;
+                switch (iter)
+                {
+                case 194:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST, 1, 0, false);
+                    break;
+                case 169:
+                case 231:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 6, 0, false);
+                    break;
+                case 241:
+                case 242:
+                case 233:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_MB, 6, 0, false);
+                    break;
+                default:
+                    //From what I can tell in maxtor specs, everything is just a single counter - TJE
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
+                    break;
+                }
+                break;
+            case SEAGATE_VENDOR_D://with Seagate for now. Might move sometime
+            case SEAGATE_VENDOR_E://with Seagate for now. Might move sometime
+                switch (iter)
+                {
+                case 1://read error rate
+                case 5://retired sectors count
+                case 9: //Power on Hours
+                case 12: //Drive Power Cycle Count
+                case 171: //Program Fail Count
+                case 172: //Erase Fail Count
+                case 181: //Program Fail Count
+                case 182: //Erase Fail Count
+                case 201: //Soft Error Rate
+                case 204: //Soft ECC Correction Rate
+                case 250: //Lifetime NAND Read Retries
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 0, false);
+                    break;
+                case 194: //Temperature
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR, 6, 0, false);
+                    break;
+                case 231: //SSD Life Left
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 6, 0, false);
+                    break;
+                case 234: //Lifetime Write to Flash
+                case 241: //Lifetime Writes from Host
+                case 242: //Lifetime Reads from Host
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_GIB, 6, 0, false);
+                    break;
+                    break;
+                default:
+                    break;
+                }
+                break;
             default://unknown, not seagate, or we don't have enough information to provide a better interpretation at this time - TJE
                 switch (iter)
                 {
@@ -1351,8 +1739,11 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 case 197:
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
-                case 194://NOTE: All vendors report current/min/max somehow, but locations vary. We cannot look this up in that detail right now, so it is dumped as hex. - TJE
-                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_RAW_HEX, 6, 0, false);
+                case 194:
+                    //Each vendor handles this slightly differently.
+                    //Most common is raw 1:0 hold current.
+                    //getting min/max seems to come from different locations if it is supported at all.
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_CURRENT_ONLY, 6, 0, false);
                     break;
                 default:
                     //unknown format, so show RAW
@@ -1401,27 +1792,27 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     printf("%u - Unknown Attribute\n", iter);
                 }
                 printf("\tAttribute Type(s):\n");
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT0)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
                 {
                     printf("\t\tPre-fail/warranty. Indicates a cause of known impending failure.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT1)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_ONLINE_DATA_COLLECTION)
                 {
                     printf("\t\tOnline Data Collection. Updates as the drive runs.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT2)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_PERFORMANCE)
                 {
                     printf("\t\tPerformance. Degredation of this attribute will affect performance.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT3)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_ERROR_RATE)
                 {
                     printf("\t\tError Rate. Attribute tracks and error rate.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT4)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_EVENT_COUNT)
                 {
                     printf("\t\tEvent Count. Attribute is a counter.\n");
                 }
-                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & BIT5)
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_SELF_PRESERVING)
                 {
                     printf("\t\tSelf-Preserving. Saves between power cycles.\n");
                 }
@@ -1429,13 +1820,17 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                 printf("\tWorst Ever Value:        %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdDataValid)
                 {
-                    if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == 0)
+                    if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
                     {
                         printf("\tThreshold set to always passing\n");
                     }
-                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == UINT8_MAX)
+                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
                     {
                         printf("\tThreshold set to always failing\n");
+                    }
+                    else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_INVALID)
+                    {
+                        printf("\tThreshold set to invalid value\n");
                     }
                     else
                     {
@@ -1497,6 +1892,21 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                                 printf("\t\tNo Failed Heads\n");
                             }
                         }
+                        break;
+                    case 174: //Unexpected power loss
+                        printf("\tUnexpected Power Loss Count: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\t\tStandby received before power off: ");
+                        if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4])
+                        {
+                            printf("true\n");
+                        }
+                        else
+                        {
+                            printf("false\n");
+                        }
+                        break;
+                    case 183: //Reported Phy Event Counter
+                        printf("\tPhy Event Count: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 184://IOEDC Count
                         printf("\tLifetime IOEDC Count: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
@@ -1598,7 +2008,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     }
                     break;
                 case SEAGATE_VENDOR_G:
-                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber) 
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                     {
                     case 1:
                         printf("\tCorrectable, Soft LDPC correctable errors since last power cycle: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
@@ -1705,13 +2115,106 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         break;
                     }
                     break;
-                default:
-                    printf("\tRaw Data: ");
-                    for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
-                    {                    
-                        printf("%02" PRIX8 "", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
+                case MAXTOR:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    default:
+                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
                     }
-                    printf("h\n");
+                    break;
+                case SEAGATE_VENDOR_K:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        //this can be read from nominal/worst or raw 1:0 and raw 5:4
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal);
+                        printf("\tMaximum Temperature (C): %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
+                        break;
+                    case 169:
+                    case 231:
+                        printf("\tPercent: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 233:
+                        printf("\tNAND Written: %" PRIu64 " MB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0) * UINT64_C(32));
+                        break;
+                    case 241:
+                        printf("\tTotal LBAs Written: %" PRIu64 " MB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0) * UINT64_C(32));
+                        break;
+                    case 242:
+                        printf("\tTotal LBAs Read: %" PRIu64 " MB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0) * UINT64_C(32));
+                        break;
+                    default:
+                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    }
+                    break;
+                case SEAGATE_VENDOR_D:
+                case SEAGATE_VENDOR_E:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        //this can be read from nominal/worst or raw 1:0 and raw 5:4
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        printf("\tMaximum Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]));
+                        break;
+                    case 231:
+                        printf("\tPercent: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 234:
+                        printf("\tLifetime Writes To Flash: %" PRIu64 " GiB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0));
+                        break;
+                    case 241:
+                        printf("\tLifetime Writes From Host: %" PRIu64 " GiB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0));
+                        break;
+                    case 242:
+                        printf("\tLifetime Reads From Host: %" PRIu64 " GiB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0));
+                        break;
+                    default:
+                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    }
+                    break;
+                default:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                        //handle common attributes
+                    case 1://Read Error Rate
+                    case 4://Start/Stop Count
+                    case 5://Retired Sectors Count
+                    case 7://Seek Error Rate
+                    case 10: //Spin Retry Count 
+                    case 12: //Drive Power Cycle Count
+                    case 187://Reported Un-correctable
+                    case 197://Pending-Sparing Count
+                        printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 3://Spin Up Time
+                        printf("\tTime: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 9: //Power On Hours
+                        printf("\tHours: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 194://Temperature
+                        printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        //current temp is most commonly supported.
+                        //min/max varies by vendor so it is ommitted in this case
+                        break;
+                    default:
+                        printf("\tRaw Data: ");
+                        for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
+                        {
+                            printf("%02" PRIX8 "", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
+                        }
+                        printf("h\n");
+                        break;
+                    }
                     break;
                 }
                 
@@ -1897,27 +2400,10 @@ static int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
     int ret = NOT_SUPPORTED;
     if (is_SMART_Command_Transport_Supported(device))
     {
-        bool checkData = false;
         //try reading the SCT status log (ACS4 adds SMART status to this log)
-        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly;//USB hack
         uint8_t sctStatus[512] = { 0 };
-        if (device->drive_info.ata_Options.generalPurposeLoggingSupported && !readSCTStatusWithSMARTCommand &&
-            SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_SCT_COMMAND_STATUS, 0, sctStatus, 512, 0)
-            )
-        {
-            checkData = true;
-        }
-        else
-        {
-            if (is_SMART_Error_Logging_Supported(device))
-            {
-                if (SUCCESS == ata_SMART_Read_Log(device, ATA_SCT_COMMAND_STATUS, sctStatus, 512))
-                {
-                    checkData = true;
-                }
-            }
-        }
-        if (checkData)
+        ret = send_ATA_SCT_Status(device, sctStatus, 512);
+        if (ret == SUCCESS)
         {
             uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatus[1], sctStatus[0]);
             if (sctFormatVersion > 2)
@@ -1937,6 +2423,10 @@ static int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
                     break;
                 }
             }
+            else
+            {
+                ret = NOT_SUPPORTED;
+            }
         }
     }
     return ret;
@@ -1947,6 +2437,8 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     int ret = NOT_SUPPORTED; //command return value
     if (is_SMART_Enabled(device))
     {
+        smartLogData attributes;
+        memset(&attributes, 0, sizeof(smartLogData));
         //NOTE: ATA-3 and up all report the return status as mandatory when smart is supported and enabled
         //      HOWEVER: SFF-8035i lists this as an optional command.
         //      Always attempt a SMART return status command, then perform workarounds to get the status if it fails.
@@ -1968,81 +2460,144 @@ int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             //this will be attempted, but may need to do a attributes to thresholds comparison to know for sure.
             ret = get_ATA_SMART_Status_From_SCT_Log(device);
         }
-        
-        if ((ret == FAILURE && tripInfo) || ret == UNKNOWN || ret == NOT_SUPPORTED)
+        //Even though we may have already determined pass/fail, attempt to read the attributes and thresholds for more comparison and detail
+        //It is possible for some drives to give "warnings" for attributes that are not warrantied, which would be useful to report when possible.
+        if (SUCCESS == get_SMART_Attributes(device, &attributes))
         {
-            smartLogData attributes;
-            memset(&attributes, 0, sizeof(smartLogData));
-            if (SUCCESS == get_SMART_Attributes(device, &attributes))
+            //go through and compare attirbutes to thresholds (as long as the thresholds were able to be read!!!)
+            for (uint16_t counter = 0; counter < ATA_SMART_LOG_MAX_ATTRIBUTES; ++counter)
             {
-                //go through and compare attirbutes to thresholds (as long as the thresholds were able to be read!!!)
-                for (uint16_t counter = 0; counter < 256; ++counter)
+                if (attributes.attributes.ataSMARTAttr.attributes[counter].valid)
                 {
-                    if (attributes.attributes.ataSMARTAttr.attributes[counter].valid)
+                    if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdDataValid)
                     {
-                        if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdDataValid)
+                        if (ret != FAILURE && ret != IN_PROGRESS)
                         {
-                            if (ret != FAILURE)
+                            ret = SUCCESS;//need to set this to "pass" since we will otherwise keep a unknown status or not supported status
+                        }
+                        if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
+                        {
+                            //skip, this is an always passing attribute
+                        }
+                        else if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+                        {
+                            //This is an always failing attribute! (make note on the screen)
+                            ret = FAILURE;//this should override the "unknown" return value if it was set
+                            if (tripInfo)
                             {
-                                ret = SUCCESS;//need to set this to "pass" since we will otherwise keep a unknown status or not supported status
-                            }
-                            if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0)
-                            {
-                                //skip, this is an always passing attribute
-                            }
-                            else if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue == 0xFF)
-                            {
-                                //This is an always failing attribute! (make note on the screen)
-                                ret = FAILURE;//this should override the "unknown" return value if it was set
-                                if (tripInfo)
+                                tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
+                                tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
+                                tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
+                                tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
+                                char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
+                                get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
+                                if (strlen(attributeName))
                                 {
-                                    tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
-                                    tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
-                                    tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
-                                    tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
-                                    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-                                    get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
-                                    if (strlen(attributeName))
-                                    {
-                                        //use the name in the error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] set to test trip!", attributeName, tripInfo->ataAttribute.attributeNumber);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
-                                    }
-                                    else
-                                    {
-                                        //Couldn't look up the name, so set a generic error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " set to test trip!", tripInfo->ataAttribute.attributeNumber);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
-                                    }
+                                    //use the name in the error reason
+                                    snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] set to test trip!", attributeName, tripInfo->ataAttribute.attributeNumber);
+                                    tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                 }
-                                break;
+                                else
+                                {
+                                    //Couldn't look up the name, so set a generic error reason
+                                    snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " set to test trip!", tripInfo->ataAttribute.attributeNumber);
+                                    tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                }
                             }
-                            else if (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                            break;
+                        }
+                        else if (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue
+                            || attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                        {
+                            bool fromWorst = false;
+                            if (attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                            {
+                                fromWorst = true;
+                            }
+#define ATA_SMART_WHEN_FAILED_MAX_STR_LEN (12)
+                            if (attributes.attributes.ataSMARTAttr.attributes[counter].isWarrantied)
                             {
                                 //found the attribute causing the problem!!!
                                 ret = FAILURE;//this should override the "unknown" return value if it was set
                                 if (tripInfo)
                                 {
+                                    char whenFailedStr[ATA_SMART_WHEN_FAILED_MAX_STR_LEN] = { 0 };
+                                    if (fromWorst)
+                                    {
+                                        snprintf(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Worst Ever");
+                                    }
+                                    else
+                                    {
+                                        snprintf(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Current");
+                                    }
                                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
                                     tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
                                     tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
+                                    tripInfo->ataAttribute.worstValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver;
                                     tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
-                                    char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-                                    get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
-                                    if (strlen(attributeName))
+                                    char* attributeName = C_CAST(char*, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
+                                    if (attributeName)
+                                    {
+                                        get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
+                                    }
+                                    if (attributeName && strlen(attributeName) > 0)
                                     {
                                         //use the name in the error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, whenFailedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         //Couldn't look up the name, so set a generic error reason
-                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! Nominal Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenFailedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
                                     }
+                                    safe_Free(attributeName)
                                 }
                                 break;
+                            }
+                            else
+                            {
+                                //This attribute is not a warrantied failure, but it is generating a warning that could be helpful to report -TJE
+                                //Using IN_PROGRESS for warning like SCSI code uses.
+                                //Do not break if this is found because it is possible for warnings and failure to exist on different attributes.
+                                //So store this until more detail is uncovered.
+                                ret = IN_PROGRESS;
+                                if (tripInfo)
+                                {
+                                    char whenWarnedStr[ATA_SMART_WHEN_FAILED_MAX_STR_LEN] = { 0 };
+                                    if (fromWorst)
+                                    {
+                                        snprintf(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Worst Ever");
+                                    }
+                                    else
+                                    {
+                                        snprintf(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Current");
+                                    }
+                                    tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
+                                    tripInfo->ataAttribute.attributeNumber = attributes.attributes.ataSMARTAttr.attributes[counter].data.attributeNumber;
+                                    tripInfo->ataAttribute.nominalValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
+                                    tripInfo->ataAttribute.worstValue = attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver;
+                                    tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
+                                    char* attributeName = C_CAST(char*, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
+                                    if (attributeName)
+                                    {
+                                        get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
+                                    }
+                                    if (attributeName && strlen(attributeName) > 0)
+                                    {
+                                        //use the name in the error reason
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] is warning! %s Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, whenWarnedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                    }
+                                    else
+                                    {
+                                        //Couldn't look up the name, so set a generic error reason
+                                        snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " is warning! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenWarnedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                    }
+                                    safe_Free(attributeName)
+                                }
                             }
                         }
                     }
@@ -2089,75 +2644,77 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char
         {
             bool impendingFailureMissing = false;
             bool failureReasonMissing = false;
-            char impendingFailure[40] = { 0 };
+#define SCSI_IMPENDING_FAILURE_STRING_LENGTH 40
+            char impendingFailure[SCSI_IMPENDING_FAILURE_STRING_LENGTH] = { 0 };
             switch (ascq >> 4)
             {
             case 1:
-                snprintf(impendingFailure, 40, "Hardware Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Hardware Impending Failure");
                 break;
             case 2:
-                snprintf(impendingFailure, 40, "Controller Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Controller Impending Failure");
                 break;
             case 3:
-                snprintf(impendingFailure, 40, "Data Channel Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Data Channel Impending Failure");
                 break;
             case 4:
-                snprintf(impendingFailure, 40, "Servo Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Servo Impending Failure");
                 break;
             case 5:
-                snprintf(impendingFailure, 40, "Spindle Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Spindle Impending Failure");
                 break;
             case 6:
-                snprintf(impendingFailure, 40, "Firmware Impending Failure");
+                snprintf(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Firmware Impending Failure");
                 break;
             default:
                 impendingFailureMissing = true;
                 break;
             }
-            char failureReason[40] = { 0 };
+#define SCSI_FAILURE_REASON_STRING_LENGTH 40
+            char failureReason[SCSI_FAILURE_REASON_STRING_LENGTH] = { 0 };
             switch (ascq & 0x0F)
             {
             case 0x00:
-                snprintf(impendingFailure, 40, "General Hard Drive Failure");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "General Hard Drive Failure");
                 break;
             case 0x01:
-                snprintf(impendingFailure, 40, "Drive Error Rate Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Error Rate Too High");
                 break;
             case 0x02:
-                snprintf(impendingFailure, 40, "Data Error Rate Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Data Error Rate Too High");
                 break;
             case 0x03:
-                snprintf(impendingFailure, 40, "Seek Error Rate Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Error Rate Too High");
                 break;
             case 0x04:
-                snprintf(impendingFailure, 40, "Too Many Block Reassigns");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Too Many Block Reassigns");
                 break;
             case 0x05:
-                snprintf(impendingFailure, 40, "Access Times Too High");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Access Times Too High");
                 break;
             case 0x06:
-                snprintf(impendingFailure, 40, "Start Unit Times Too high");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Start Unit Times Too high");
                 break;
             case 0x07:
-                snprintf(impendingFailure, 40, "Channel Parametrics");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Channel Parametrics");
                 break;
             case 0x08:
-                snprintf(impendingFailure, 40, "Controller Detected");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Controller Detected");
                 break;
             case 0x09:
-                snprintf(impendingFailure, 40, "Throughput Performance");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Throughput Performance");
                 break;
             case 0x0A:
-                snprintf(impendingFailure, 40, "Seek Time Performance");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Time Performance");
                 break;
             case 0x0B:
-                snprintf(impendingFailure, 40, "Spin-up Retry Count");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Spin-up Retry Count");
                 break;
             case 0x0C:
-                snprintf(impendingFailure, 40, "Drive Calibration Retry Count");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Calibration Retry Count");
                 break;
             case 0x0D:
-                snprintf(impendingFailure, 40, "Power Loss Protection Circuit");
+                snprintf(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Power Loss Protection Circuit");
                 break;
             default:
                 failureReasonMissing = true;
@@ -2975,7 +3532,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
     return ret;
 }
 
-int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds)
+int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2992,10 +3549,10 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
                 switch (ercCommand)
                 {
                 case SCT_ERC_READ_COMMAND:
-                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0001, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0001, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
                     break;
                 case SCT_ERC_WRITE_COMMAND:
-                    ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0001, 0x0002, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0002, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
                     break;
                 default:
                     break;
@@ -3006,7 +3563,7 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     return ret;
 }
 
-int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds)
+int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -3018,10 +3575,10 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             switch (ercCommand)
             {
             case SCT_ERC_READ_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0001, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0002 : 0x0004, 0x0001, &currentTimerValue, 0);
                 break;
             case SCT_ERC_WRITE_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0002, 0x0002, &currentTimerValue, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0002 : 0x0004, 0x0002, &currentTimerValue, 0);
                 break;
             default:
                 break;
@@ -3029,6 +3586,56 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
             if (ret == SUCCESS)
             {
                 *timerValueMilliseconds = C_CAST(uint32_t, currentTimerValue) * UINT32_C(100);
+            }
+        }
+    }
+    return ret;
+}
+
+int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
+        {
+            //made it this far, so the feature is supported
+            switch (ercCommand)
+            {
+            case SCT_ERC_READ_COMMAND:
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0001, NULL, 0);
+                break;
+            case SCT_ERC_WRITE_COMMAND:
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0002, NULL, 0);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+int sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
+{
+    int ret = NOT_SUPPORTED;
+    if (is_SMART_Command_Transport_Supported(device))
+    {
+        //try reading the SCT status log (ACS4 adds SMART status to this log)
+        uint8_t sctStatus[512] = { 0 };
+        ret = send_ATA_SCT_Status(device, sctStatus, 512);
+        if (ret == SUCCESS)
+        {
+            uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatus[1], sctStatus[0]);
+            if (sctFormatVersion > 2)
+            {
+                *minRcvTimeLmtMilliseconds = M_BytesTo2ByteValue(sctStatus[216], sctStatus[217]);
+                *minRcvTimeLmtMilliseconds *= 100;
+                ret = SUCCESS;
+            }
+            else
+            {
+                ret = NOT_SUPPORTED;
             }
         }
     }
@@ -7200,7 +7807,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     break;
                 }
                 printf(" Life Timestamp: ");
-                uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
                 uint64_t lifeTimeStampSeconds = 0;
                 if (errorLogData->extLog)
                 {
@@ -7471,7 +8079,8 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     break;
                 }
                 printf(" Life Timestamp: ");
-                uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
                 convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, errorLogData->smartError[iter].error.lifeTimestamp) * UINT64_C(3600), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");

@@ -266,7 +266,7 @@ int print_Current_Power_Mode(tDevice *device)
         ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
         if (ret == SUCCESS)
         {
-            printf("Device is in Power State %d\n", powerMode);
+            printf("Device is in Power State %" PRIu32 "\n", powerMode);
         }
         else
         {
@@ -423,6 +423,286 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
     }
     return ret;
 }
+
+int get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps)
+{
+    int ret = NOT_SUPPORTED;
+    if (device && device->drive_info.drive_type == NVME_DRIVE && nvmps)
+    {
+        ret = SUCCESS;
+        //use cached NVMe identify ctrl data since this won't change.
+        uint16_t driveMaxPowerStates = device->drive_info.IdentifyData.nvme.ctrl.npss + 1;//plus 1 since this is zeroes based
+        memset(nvmps, 0, sizeof(nvmeSupportedPowerStates));
+        for (uint16_t powerIter = 0; powerIter < driveMaxPowerStates && powerIter < MAXIMUM_NVME_POWER_STATES; ++powerIter)
+        {
+            nvmps->powerState[powerIter].powerStateNumber = powerIter;
+            //set max power if available
+            if (device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].maxPower > 0)
+            {
+                nvmps->powerState[powerIter].maxPowerValid = true;
+                nvmps->powerState[powerIter].maxPowerMilliWatts = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].maxPower;
+                if ((device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].flags & BIT0) == 0)
+                {
+                    //reported in centiwatts, so convert it
+                    nvmps->powerState[powerIter].maxPowerMilliWatts *= 10;
+                }
+            }
+            if (device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].flags & BIT1)
+            {
+                nvmps->powerState[powerIter].isNonOperationalPS = true;
+            }
+            //entry exit latency
+            nvmps->powerState[powerIter].entryLatency = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].entryLat;
+            nvmps->powerState[powerIter].exitLatency = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].exitLat;
+            //r/w throughput and latency are all 5bit fields, so stripping off the top 3 bits when assigning in case future revisions make changes.
+            nvmps->powerState[powerIter].relativeReadThroughput = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].readTPut & 0x1F;
+            nvmps->powerState[powerIter].relativeReadLatency = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].readLat & 0x1F;
+            nvmps->powerState[powerIter].relativeWriteThroughput = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].writeLput & 0x1F;
+            nvmps->powerState[powerIter].relativeWriteLatency = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].writeLat & 0x1F;
+            //set idle power if available
+            if (device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idlePower > 0)
+            {
+                nvmps->powerState[powerIter].idlePowerValid = true;
+                nvmps->powerState[powerIter].idlePowerMilliWatts = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idlePower;
+                uint8_t scale = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idleScale, 7, 6);
+                if (scale == 2)
+                {
+                    //reported in centiwatts, so convert it
+                    nvmps->powerState[powerIter].idlePowerMilliWatts *= 10;
+                }
+                else if (scale == 3 || scale == 0)
+                {
+                    //cannot handle these cases, so disable reporting idle power since we cannot report it correctly
+                    nvmps->powerState[powerIter].idlePowerValid = false;
+                }
+            }
+            //set active power if available
+            if (device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activePower > 0)
+            {
+                nvmps->powerState[powerIter].activePowerValid = true;
+                nvmps->powerState[powerIter].activePowerMilliWatts = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activePower;
+                nvmps->powerState[powerIter].activePowerWorkload = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activeWorkScale, 2, 0);
+                uint8_t scale = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activeWorkScale, 7, 6);
+                if (scale == 2)
+                {
+                    //reported in centiwatts, so convert it
+                    nvmps->powerState[powerIter].idlePowerMilliWatts *= 10;
+                }
+                else if (scale == 3 || scale == 0)
+                {
+                    //cannot handle these cases, so disable reporting idle power since we cannot report it correctly
+                    nvmps->powerState[powerIter].activePowerValid = false;
+                }
+            }
+            nvmps->numberOfPowerStates += 1;
+        }
+        //finish by reading which is the current power state that the device is operating in
+        get_Power_State(device, &nvmps->activePowerState, CURRENT_VALUE);
+    }
+    return ret;
+}
+
+static uint8_t calculate_Relative_NVM_Latency_Or_Throughput(uint8_t value, uint16_t numberOfPowerStates)
+{
+    uint8_t relativeVal = C_CAST(uint8_t, 100.0 - (C_CAST(double, value) / C_CAST(double, numberOfPowerStates) * 100.0));
+
+    return relativeVal;
+}
+
+//convert the entry/exit latencies into human readable strings
+//This was basically copy-pasted from common_public.c in opensea-transport. Need to make this a function in opensea-common instead
+#define NVM_POWER_ENT_EX_TIME_MAX_STR_LEN 10
+static const char* convert_NVM_Latency_To_HR_Time_Str(uint64_t timeInNanoSeconds, char timeStr[NVM_POWER_ENT_EX_TIME_MAX_STR_LEN])
+{
+    const char* ctimestr = &timeStr[0];
+    double printTime = C_CAST(double, timeInNanoSeconds);
+    uint8_t unitCounter = 0;
+    bool breakLoop = false;
+    while (printTime > 1 && unitCounter <= 6)
+    {
+        switch (unitCounter)
+        {
+        case 6://shouldn't get this far...
+            break;
+        case 5://h to d
+            if ((printTime / 24.0) < 1)
+            {
+                breakLoop = true;
+            }
+            break;
+        case 4://m to h
+        case 3://s to m
+            if ((printTime / 60.0) < 1)
+            {
+                breakLoop = true;
+            }
+            break;
+        case 0://ns to us
+        case 1://us to ms
+        case 2://ms to s
+        default:
+            if ((printTime / 1000.0) < 1)
+            {
+                breakLoop = true;
+            }
+            break;
+        }
+        if (breakLoop)
+        {
+            break;
+        }
+        switch (unitCounter)
+        {
+        case 6://shouldn't get this far...
+            break;
+        case 5://h to d
+            printTime /= 24.0;
+            break;
+        case 4://m to h
+        case 3://s to m
+            printTime /= 60.0;
+            break;
+        case 0://ns to us
+        case 1://us to ms
+        case 2://ms to s
+        default:
+            printTime /= 1000.0;
+            break;
+        }
+        if (unitCounter == 6)
+        {
+            break;
+        }
+        ++unitCounter;
+    }
+#define NVM_LAT_UNIT_STR_LEN 3
+    char units[NVM_LAT_UNIT_STR_LEN] = { 0 };
+    switch (unitCounter)
+    {
+    case 6://we shouldn't get to a days value, but room for future large drives I guess...-TJE
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "d");
+        break;
+    case 5:
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "h");
+        break;
+    case 4:
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "m");
+        break;
+    case 3:
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "s");
+        break;
+    case 2:
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "ms");
+        break;
+    case 1:
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "us");
+        break;
+    case 0:
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "ns");
+        break;
+    default://couldn't get a good conversion or something weird happened so show original nanoseconds.
+        snprintf(units, NVM_LAT_UNIT_STR_LEN, "ns");
+        printTime = C_CAST(double, timeInNanoSeconds);
+        break;
+    }
+    snprintf(timeStr, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "%0.02f %s", printTime, units);
+    return ctimestr;
+}
+
+#define NVM_POWER_WATTS_MAX_STR_LEN 10
+void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
+{
+    if (nvmps)
+    {
+        printf("\nSupported NVMe Power States\n");
+        //TODO: Print a header for what will be in each column
+        //flags = non operational, current power state
+        printf("\t* = current power state\n");
+        printf("\t! = non-operational power state\n");
+        printf("\tNR = this value was not reported by the device\n");
+        printf("\n\tRead/write through put and latency meanings:\n");
+        printf("\t\tRRT = Relative Read Throughput\n");
+        printf("\t\tRRL = Relative Read Latency\n");
+        printf("\t\tRWT = Relative Write Throughput\n");
+        printf("\t\tRWL = Relative Write Latency\n");
+        printf("\t\tRead/Write throughput and latency values are scaled from 0 - 100%%.\n");
+        printf("\t100%% = max performance, 0%% = minimum relative performance.\n");
+        //flags | # | max power | idle power | active power | latencies and throughputs (can be N/A when not reported)
+        printf("\n   #  Max Power: Idle Power: Active Power: RRT: RRL: RWT: RWL: Entry Time: Exit Time:\n");
+        printf("-------------------------------------------------------------------------------------\n");
+        //TODO: latencies
+        //all values should be in watts. 1.00 watts, 0.25 watts, etc
+        //should relative values be scaled to percentages? 100% = max performance. This may be easier for some to understand than a random number
+        for (uint16_t psIter = 0; psIter < nvmps->numberOfPowerStates && psIter < MAXIMUM_NVME_POWER_STATES; ++psIter)
+        {
+            char flags[3] = { ' ', ' ', '\0' };
+            char maxPowerWatts[NVM_POWER_WATTS_MAX_STR_LEN] = { 0 };
+            char idlePowerWatts[NVM_POWER_WATTS_MAX_STR_LEN] = { 0 };
+            char activePowerWatts[NVM_POWER_WATTS_MAX_STR_LEN] = { 0 };
+            char entryTime[NVM_POWER_ENT_EX_TIME_MAX_STR_LEN] = { 0 };
+            char exitTime[NVM_POWER_ENT_EX_TIME_MAX_STR_LEN] = { 0 };
+            if (nvmps->activePowerState == nvmps->powerState[psIter].powerStateNumber)
+            {
+                //mark as active with a *
+                flags[0] = '*';
+            }
+            if (nvmps->powerState[psIter].isNonOperationalPS)
+            {
+                //mark as non operational with a !
+                flags[1] = '!';
+            }
+            if (nvmps->powerState[psIter].maxPowerValid)
+            {
+                snprintf(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W", (nvmps->powerState[psIter].maxPowerMilliWatts / 1000.0));
+            }
+            else
+            {
+                snprintf(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+            }
+            if (nvmps->powerState[psIter].idlePowerValid)
+            {
+                snprintf(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W", (nvmps->powerState[psIter].idlePowerMilliWatts / 1000.0));
+            }
+            else
+            {
+                snprintf(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+            }
+            if (nvmps->powerState[psIter].activePowerValid)
+            {
+                snprintf(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W", (nvmps->powerState[psIter].activePowerMilliWatts / 1000.0));
+            }
+            else
+            {
+                snprintf(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+            }
+            if (nvmps->powerState[psIter].entryLatency > 0)
+            {
+                convert_NVM_Latency_To_HR_Time_Str(nvmps->powerState[psIter].entryLatency * UINT64_C(1000), entryTime);
+            }
+            else
+            {
+                snprintf(entryTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
+            }
+            if (nvmps->powerState[psIter].exitLatency > 0)
+            {
+                convert_NVM_Latency_To_HR_Time_Str(nvmps->powerState[psIter].exitLatency * UINT64_C(1000), exitTime);
+            }
+            else
+            {
+                snprintf(exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
+            }
+            printf("%s%2" PRIu16 " %10s  %10s    %10s %4" PRIu8 " %4" PRIu8 " %4" PRIu8 " %4" PRIu8 "  %10s %10s\n", flags, nvmps->powerState[psIter].powerStateNumber, maxPowerWatts, idlePowerWatts, activePowerWatts, 
+                calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeReadThroughput, nvmps->numberOfPowerStates - 1),
+                calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeReadLatency, nvmps->numberOfPowerStates - 1),
+                calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeWriteThroughput, nvmps->numberOfPowerStates - 1),
+                calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeWriteLatency, nvmps->numberOfPowerStates - 1),
+                entryTime, exitTime
+                );
+        }
+    }
+    return;
+}
+
 int transition_NVM_Power_State(tDevice *device, uint8_t newState)
 {
     int ret = NOT_SUPPORTED;
@@ -1814,35 +2094,56 @@ static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     uint8_t epcVPDPage[VPD_POWER_CONDITION_LEN] = { 0 };
     if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, NULL, NULL, true, epcVPDPage, VPD_POWER_CONDITION_LEN, NULL))
     {
+        //NOTE: Recovery times are in milliseconds, not 100 milliseconds like other timers, so need to convert to 100 millisecond units for now-TJE
         //idle a
         if (epcVPDPage[5] & BIT0)
         {
             epcSettings->idle_a.powerConditionSupported = true;
             epcSettings->idle_a.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[12], epcVPDPage[13]);
+            if (epcSettings->idle_a.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->idle_a.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->idle_a.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //idle b
         if (epcVPDPage[5] & BIT1)
         {
             epcSettings->idle_b.powerConditionSupported = true;
             epcSettings->idle_b.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[14], epcVPDPage[15]);
+            if (epcSettings->idle_b.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->idle_b.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->idle_b.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //idle c
         if (epcVPDPage[5] & BIT2)
         {
             epcSettings->idle_c.powerConditionSupported = true;
             epcSettings->idle_c.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[16], epcVPDPage[17]);
+            if (epcSettings->idle_c.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->idle_c.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->idle_c.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //standby y
         if (epcVPDPage[4] & BIT0)
         {
             epcSettings->standby_y.powerConditionSupported = true;
             epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[10], epcVPDPage[11]);
+            if (epcSettings->standby_y.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->standby_y.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         //standby z
         if (epcVPDPage[4] & BIT1)
         {
             epcSettings->standby_z.powerConditionSupported = true;
             epcSettings->standby_z.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[8], epcVPDPage[9]);
+            if (epcSettings->standby_z.nominalRecoveryTimeToActiveState > 0)
+            {
+                epcSettings->standby_z.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->standby_z.nominalRecoveryTimeToActiveState / 100);
+            }
         }
         epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
         //now time to read the mode pages for the other information (start with current, then saved, then default)
@@ -1886,6 +2187,15 @@ static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
                     standbyYtimerSetting = &epcSettings->standby_y.currentTimerSetting;
                     standbyZenabledBit = &epcSettings->standby_z.currentTimerEnabled;
                     standbyZtimerSetting = &epcSettings->standby_z.currentTimerSetting;
+                    //special case. If reading the current values, check the page for the PS bit (parameters savable) to note this for all power conditions.
+                    if (epcModePage[headerLength + 0] & BIT7)
+                    {
+                        epcSettings->idle_a.powerConditionSaveable = true;
+                        epcSettings->idle_b.powerConditionSaveable = true;
+                        epcSettings->idle_c.powerConditionSaveable = true;
+                        epcSettings->standby_y.powerConditionSaveable = true;
+                        epcSettings->standby_z.powerConditionSaveable = true;
+                    }
                     break;
                 case MPC_CHANGABLE_VALUES:
                     idleAenabledBit = &epcSettings->idle_a.powerConditionChangeable;

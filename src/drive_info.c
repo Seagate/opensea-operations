@@ -15,6 +15,7 @@
 #include "set_max_lba.h"
 #include "smart.h"
 #include "dst.h"
+#include "ata_helper.h"
 #include "scsi_helper.h"
 #include "nvme_helper_func.h"
 #include "firmware_download.h"
@@ -40,24 +41,9 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
     {
         uint8_t* bytePtr = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
         uint16_t* wordPtr = &device->drive_info.IdentifyData.ata.Word000;
-        //MN
-        memcpy(driveInfo->modelNumber, device->drive_info.IdentifyData.ata.ModelNum, MODEL_NUM_LEN);
-#if !defined (__BIG_ENDIAN__)
-        byte_Swap_String(driveInfo->modelNumber);
-#endif
-        remove_Leading_And_Trailing_Whitespace(driveInfo->modelNumber);
-        //SN
-        memcpy(driveInfo->serialNumber, device->drive_info.IdentifyData.ata.SerNum, SERIAL_NUM_LEN);
-#if !defined (__BIG_ENDIAN__)
-        byte_Swap_String(driveInfo->serialNumber);
-#endif
-        remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-        //FWRev
-        memcpy(driveInfo->firmwareRevision, device->drive_info.IdentifyData.ata.FirmVer, FW_REV_LEN);
-#if !defined (__BIG_ENDIAN__)
-        byte_Swap_String(driveInfo->firmwareRevision);
-#endif
-        remove_Leading_And_Trailing_Whitespace(driveInfo->firmwareRevision);
+
+        fill_ATA_Strings_From_Identify_Data(bytePtr, driveInfo->modelNumber, driveInfo->serialNumber, driveInfo->firmwareRevision);
+
         //WWN
         if (device->drive_info.IdentifyData.ata.Word084 & BIT8 || device->drive_info.IdentifyData.ata.Word087 & BIT8)
         {
@@ -1144,6 +1130,18 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             }
             driveInfo->numberOfFeaturesSupported++;
         }
+        if (wordPtr[83] & BIT8)
+        {
+            if (wordPtr[86] & BIT8)
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "HPA Security Extension [Enabled]");
+            }
+            else
+            {
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "HPA Security Extension");
+            }
+            driveInfo->numberOfFeaturesSupported++;
+        }
         if (wordPtr[83] & BIT5)
         {
             if (wordPtr[86] & BIT5)
@@ -1742,6 +1740,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                         if (pohQword & BIT63 && pohQword & BIT62)
                         {
                             driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
+                            driveInfo->powerOnMinutesValid = true;
                         }
                         //logical sectors written
                         uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[31], logBuffer[30], logBuffer[29], logBuffer[28], logBuffer[27], logBuffer[26], logBuffer[25], logBuffer[24]);
@@ -1850,6 +1849,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                                                 if (pohQword & BIT63 && pohQword & BIT62)
                                                 {
                                                     driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
+                                                    driveInfo->powerOnMinutesValid = true;
                                                 }
                                                 //logical sectors written
                                                 uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[offset + 31], logBuffer[offset + 30], logBuffer[offset + 29], logBuffer[offset + 28], logBuffer[offset + 27], logBuffer[offset + 26], logBuffer[offset + 25], logBuffer[offset + 24]);
@@ -2197,27 +2197,54 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                 {
                     driveInfo->powerOnMinutes = powerOnMinutes;
                 }
+                driveInfo->powerOnMinutesValid = true;
             }
             break;
-            case 194: //Temperature (This attribute seems shared between vendors)
+            case 194: 
+                //Temperature (This attribute seems shared between vendors)
+                //NOTE: Not all vendors report this the same way!
+                //Will need to handle variations on a case by case basis.
                 if (!driveInfo->temperatureData.temperatureDataValid)
                 {
                     driveInfo->temperatureData.temperatureDataValid = true;
                     driveInfo->temperatureData.currentTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[1], currentAttribute.rawData[0]));
                 }
-                if (!driveInfo->temperatureData.lowestValid)
+                /* TODO: This can be improved with better filters/interpretations defined per vendor to read this attribute. */
+                if (seagateFamily != MAXTOR)
                 {
-                    driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4]));
-                    driveInfo->temperatureData.lowestValid = true;
-                }
-                if (!driveInfo->temperatureData.highestValid)
-                {
-                    driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);
-                    driveInfo->temperatureData.highestValid = true;
+                    if (seagateFamily == SEAGATE_VENDOR_K)
+                    {
+                        if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                        {
+                            driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);//or raw 5:4
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                    }
+                    else if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E)
+                    {
+                        if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                        {
+                            driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[3], currentAttribute.rawData[2]));
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                    }
+                    else
+                    {
+                        if (!driveInfo->temperatureData.lowestValid && C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4])) <= driveInfo->temperatureData.currentTemperature)
+                        {
+                            driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[5], currentAttribute.rawData[4]));
+                            driveInfo->temperatureData.lowestValid = true;
+                        }
+                        if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
+                        {
+                            driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, currentAttribute.worstEver);
+                            driveInfo->temperatureData.highestValid = true;
+                        }
+                    }
                 }
                 break;
             case 231: //SSD Endurance
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->percentEnduranceUsed < 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->percentEnduranceUsed < 0)
                 {
                     // SCSI was implemented first, and it returns a value where 0 means 100% spares left, ATA is the opposite,
                     // so we need to subtract our number from 100
@@ -2255,6 +2282,12 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                     //convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
                     driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                 }
+                else if (seagateFamily == SEAGATE_VENDOR_K)
+                {
+                    driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
+                    //units are in 32MB
+                    driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
+                }
                 break;
             case 234: //Lifetime Write to Flash (SSD)
                 if (seagateFamily == SEAGATE || (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B))
@@ -2265,7 +2298,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                 }
                 break;
             case 241: //Total Bytes written (SSD) Total LBAs written (HDD)
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsWritten == 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsWritten == 0)
                 {
                     driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
@@ -2273,16 +2306,26 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                         //some Seagate SSD's report this as GiB written, so convert to LBAs
                         driveInfo->totalLBAsWritten = (driveInfo->totalLBAsWritten * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                     }
+                    else if (seagateFamily == SEAGATE_VENDOR_K)
+                    {
+                        //units are 32MB, so convert to LBAs
+                        driveInfo->totalLBAsWritten = (driveInfo->totalLBAsWritten * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
+                    }
                 }
                 break;
             case 242: //Total Bytes read (SSD) Total LBAs read (HDD)
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G) && driveInfo->totalLBAsRead == 0)
+                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsRead == 0)
                 {
                     driveInfo->totalLBAsRead = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB read, so convert to LBAs
                         driveInfo->totalLBAsRead = (driveInfo->totalLBAsRead * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
+                    }
+                    else if (seagateFamily == SEAGATE_VENDOR_K)
+                    {
+                        //units are 32MB, so convert to LBAs
+                        driveInfo->totalLBAsRead = (driveInfo->totalLBAsRead * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
                     }
                 }
                 break;
@@ -3522,9 +3565,11 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                             if (M_BytesTo2ByteValue(startStopCounterLog[4], startStopCounterLog[5]) == 0x0001)
                             {
                                 //DOM found
+                                char domWeekStr[3] = { startStopCounterLog[12], startStopCounterLog[13], 0 };
+                                char domYearStr[5] = { startStopCounterLog[8], startStopCounterLog[9], startStopCounterLog[10], startStopCounterLog[11], 0 };
                                 driveInfo->dateOfManufactureValid = true;
-                                driveInfo->manufactureYear = M_BytesTo4ByteValue(startStopCounterLog[8], startStopCounterLog[9], startStopCounterLog[10], startStopCounterLog[11]);
-                                driveInfo->manufactureWeek = M_BytesTo2ByteValue(startStopCounterLog[12], startStopCounterLog[13]);
+                                driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
+                                driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10));
                             }
                         }
                     }
@@ -3626,6 +3671,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     {
                         //bytes 8 to 11
                         driveInfo->powerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[8], backgroundScanResults[9], backgroundScanResults[10], backgroundScanResults[11]);
+                        driveInfo->powerOnMinutesValid = true;
                     }
                     safe_Free_aligned(backgroundScanResults)
                 }
@@ -3671,6 +3717,13 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                         else//we have a trip condition...don't care what the specific trip is though
                         {
                             driveInfo->smartStatus = 1;
+                        }
+                        if (!driveInfo->temperatureData.temperatureDataValid && informationExceptions[10] > 0)
+                        {
+                            //temperature log page was not read, neither was environmental reporting, but we do have
+                            //a current temperature reading here, so use it
+                            driveInfo->temperatureData.temperatureDataValid = true;
+                            driveInfo->temperatureData.currentTemperature = informationExceptions[10];
                         }
                     }
                     else
@@ -5560,7 +5613,8 @@ int get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInf
             getHostIdentifier.fid = 0x81;
             getHostIdentifier.sel = 0;//current data
             uint8_t hostIdentifier[16] = { 0 };
-            getHostIdentifier.prp1 = C_CAST(uintptr_t, hostIdentifier);
+            getHostIdentifier.dataPtr = hostIdentifier;
+            getHostIdentifier.dataLength = 16;
             //TODO: Need to debug why this doesn't work right now - TJE
             if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
             {
@@ -6111,7 +6165,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tComposite Temperature (K): %" PRIu16 "\n", driveInfo->smartData.compositeTemperatureKelvin);
         printf("\tPercent Used (%%): %" PRIu8 "\n", driveInfo->smartData.percentageUsed);
         printf("\tAvailable Spare (%%): %" PRIu8 "\n", driveInfo->smartData.availableSpacePercent);
-        uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
         convert_Seconds_To_Displayable_Time_Double(driveInfo->smartData.powerOnHoursD * 3600.0, &years, &days, &hours, &minutes, &seconds);
         printf("\tPower On Time: ");
         print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
@@ -6458,10 +6513,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     //Power On Time
     printf("\tPower On Time: ");
-    if (driveInfo->powerOnMinutes > 0)
+    if (driveInfo->powerOnMinutesValid)
     {
-        uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
-        convert_Seconds_To_Displayable_Time(driveInfo->powerOnMinutes * 60, &years, &days, &hours, &minutes, &seconds);
+        uint16_t days = 0;
+        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+        convert_Seconds_To_Displayable_Time(driveInfo->powerOnMinutes * UINT64_C(60), &years, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
     }
     else
@@ -6470,7 +6526,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     printf("\n");
     printf("\tPower On Hours: ");
-    if (driveInfo->powerOnMinutes > 0)
+    if (driveInfo->powerOnMinutesValid)
     {
         //convert to a double to display as xx.xx
         double powerOnHours = C_CAST(double, driveInfo->powerOnMinutes) / 60.00;
@@ -6585,7 +6641,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     //Last DST information
     printf("\tLast DST information:\n");
-    if (driveInfo->dstInfo.informationValid)
+    if (driveInfo->dstInfo.informationValid && driveInfo->powerOnMinutesValid)
     {
         if (driveInfo->powerOnMinutes - (driveInfo->dstInfo.powerOnHours * 60) != driveInfo->powerOnMinutes)
         {
@@ -6621,7 +6677,8 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->longDSTTimeMinutes > 0)
     {
         //print as hours:minutes
-        uint8_t years, days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
         convert_Seconds_To_Displayable_Time(driveInfo->longDSTTimeMinutes * 60, &years, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
     }
@@ -6820,7 +6877,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     printf("\tAnnualized Workload Rate (TB/yr): ");
     if (driveInfo->totalBytesRead > 0 || driveInfo->totalBytesWritten > 0)
     {
-        if (driveInfo->powerOnMinutes > 0)
+        if (driveInfo->powerOnMinutesValid)
         {
 #ifndef MINUTES_IN_1_YEAR
 #define MINUTES_IN_1_YEAR 525600.0
@@ -7298,6 +7355,7 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
         {
             //Power on hours
             externalDriveInfo->powerOnMinutes = C_CAST(uint64_t, nvmeDriveInfo->smartData.powerOnHoursD * 60);
+            externalDriveInfo->powerOnMinutesValid = true;
             //Temperature (SCSI is in Celsius!)
             externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
             externalDriveInfo->temperatureData.temperatureDataValid = true;
@@ -7368,7 +7426,7 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
     scsiDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe)
     {
         //allocate ataDriveInfo since this is an ATA drive
         ataDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));
@@ -7398,9 +7456,9 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
     if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
     {
         //call the print functions appropriately
-        if (showChildInformation && device->drive_info.drive_type != SCSI_DRIVE && scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
+        if (showChildInformation && (device->drive_info.drive_type != SCSI_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) && scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
         {
-            if (device->drive_info.drive_type == ATA_DRIVE && ataDriveInfo)
+            if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe )&& ataDriveInfo)
             {
                 print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
             }

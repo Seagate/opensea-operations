@@ -717,6 +717,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 0;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
         ++currentErase;
     }
 
@@ -728,6 +729,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 1;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
         ++currentErase;
     }
 
@@ -739,6 +741,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "If interrupted, must be restarted from the beginning.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 2;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
         ++currentErase;
         formatUnitAdded = true;
     }
@@ -752,6 +755,8 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: Crypto Erase");
             currentErase->eraseWeight = 0;
             currentErase->warningValid = false;
+            currentErase->sanitizationLevel = ERASE_SANITIZATION_POSSIBLE_PURGE;
+            //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
             ++currentErase;
         }
         //if NOT an NVM HDD, user erase should be next since it will most likely be as fast as a sanitize block erase
@@ -761,12 +766,14 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
             currentErase->eraseWeight = 1;
             currentErase->warningValid = false;
+            currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;//only crypto erase is a possible purge in IEEE2883-2022
+            //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
             ++currentErase;
             nvmFormatAdded = true;
         }
     }
 
-    //trim/unmap/deallocate are not allowed since they are "hints" rather than guaranteed erasure.
+    //trim/unmap/deallocate are not allowed since they are "hints" that those LBAs are not needed rather than guaranteed erasure of those blocks
 
     //This weight value is reserved for TCG revert (this is placed in another library)
 
@@ -780,6 +787,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 5;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
         ++currentErase;
     }
 
@@ -793,6 +801,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 7;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
         ++currentErase;
     }
 
@@ -804,6 +813,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "If interupted, must be restarted from the beginning.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 8;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;//If security initialize is supported in format it can be a purge. Seagate drives do not support this bit, other vendors might.
         ++currentErase;
         formatUnitAdded = true;
     }
@@ -815,6 +825,8 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         currentErase->eraseWeight = 8;//assuming that this will do a full drive overwrite format which will be slow
         //NOTE: If crypto is supported, a request for user secure erase may run a crypto erase, but no way to know for sure-TJE
         currentErase->warningValid = false;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
+        //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
         ++currentErase;
         nvmFormatAdded = true;
     }
@@ -827,6 +839,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Host may abort erase with disc access.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 9;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
         ++currentErase;
     }
 
@@ -843,6 +856,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
             currentErase->warningValid = true;
             currentErase->eraseWeight = 10;
+            currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
             ++currentErase;
         }
         //add normal erase
@@ -851,6 +865,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 11;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
         ++currentErase;
 
         //if enhanced erase has not been added, but is supported, add it here (since it's longer than short)
@@ -864,6 +879,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
             currentErase->warningValid = true;
             currentErase->eraseWeight = 12;
+            currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
             ++currentErase;
         }
 
@@ -884,6 +900,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     //snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "");
     currentErase->warningValid = false;
     currentErase->eraseWeight = 13;
+    currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
     ++currentErase;
 
     if (overwriteEraseTimeEstimateMinutes)//make sure the incoming value is zero in case time was set by something above here (like ata security erase)
@@ -912,9 +929,27 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     bool cryptoSupported = false;
     bool sanitizeBlockEraseSupported = false;
     M_USE_UNUSED(device);
-    printf("Erase Methods supported by this drive (listed fastest to slowest):\n");
+    printf("Data sanitization capabilities:\n");
+    printf("\tRecommendation - Restore the MaxLBA of the device prior to any erase in\n");
+    printf("\t                 order to allow the drive to erase all user addressable\n");
+    printf("\t                 sectors. For ATA devices this means restoring \n");
+    printf("\t                 HPA + DCO / AMAC to restore the maxLBA.\n");
+    printf("\t                 Restoring the MaxLBA also allows full verification of\n");
+    printf("\t                 all user addressable space on the device without a\n");
+    printf("\t                 limitation from a lower maxLBA.\n");
+    printf("\tClear - Logical techniques are applied to all addressable storage\n");
+    printf("\t        locations, protecting against simple, non-invasive data\n");
+    printf("\t        recovery techniques.\n");
+    printf("\tClear, Possible Purge - Cryptographic erase is a purge if the vendor\n");
+    printf("\t        implementation meets the requirements in IEEE 2883-2022.\n");
+    printf("\tPurge - Logical techniques that target user data, overprovisioning,\n");
+    printf("\t        unused space, and bad blocks rendering data recovery infeasible\n");
+    printf("\t        even with state-of-the-art laboratory techniques.\n");
+    printf("\nErase Methods supported by this drive (listed fastest to slowest):\n");
     while (counter < MAX_SUPPORTED_ERASE_METHODS)
     {
+#define ERASE_SANITIZATION_CAPABILITIES_STR_LEN (24)
+        char eraseDataCapabilities[ERASE_SANITIZATION_CAPABILITIES_STR_LEN] = { 0 };
         switch (eraseMethodList[counter].eraseIdentifier)
         {
         case ERASE_MAX_VALUE:
@@ -929,23 +964,47 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
         case ERASE_SANITIZE_BLOCK:
             sanitizeBlockEraseSupported = true;
             break;
-        default:
+        case ERASE_NOT_SUPPORTED:
+        case ERASE_OVERWRITE:
+        case ERASE_WRITE_SAME:
+        case ERASE_ATA_SECURITY_NORMAL:
+        case ERASE_ATA_SECURITY_ENHANCED:
+        case ERASE_OBSOLETE:
+        case ERASE_FORMAT_UNIT:
+        case ERASE_NVM_FORMAT_USER_SECURE_ERASE:
+        case ERASE_SANITIZE_OVERWRITE:
+            break;
+        }
+        switch (eraseMethodList[counter].sanitizationLevel)
+        {
+        case ERASE_SANITIZATION_UNKNOWN:
+            snprintf(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Unknown");
+            break;
+        case ERASE_SANITIZATION_CLEAR:
+            snprintf(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Clear");
+            break;
+        case ERASE_SANITIZATION_POSSIBLE_PURGE:
+            snprintf(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Clear, Possible Purge");
+            break;
+        case ERASE_SANITIZATION_PURGE:
+            snprintf(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Purge");
             break;
         }
         if (eraseMethodList[counter].warningValid)
         {
-            printf("%2"PRIu8" %-*s\n\tNOTE: %-*s\n", counter + 1, MAX_ERASE_NAME_LENGTH, eraseMethodList[counter].eraseName, MAX_ERASE_WARNING_LENGTH, eraseMethodList[counter].eraseWarning);
+            printf("%2" PRIu8 " %-*s (%s)\n\tNOTE: %-*s\n", counter + 1, MAX_ERASE_NAME_LENGTH, eraseMethodList[counter].eraseName, eraseDataCapabilities, MAX_ERASE_WARNING_LENGTH, eraseMethodList[counter].eraseWarning);
         }
         else
         {
-            printf("%2"PRIu8" %-*s\n\n", counter + 1, MAX_ERASE_NAME_LENGTH, eraseMethodList[counter].eraseName);
+            printf("%2" PRIu8 " %-*s (%s)\n\n", counter + 1, MAX_ERASE_NAME_LENGTH, eraseMethodList[counter].eraseName, eraseDataCapabilities);
         }
         ++counter;
     }
     if (overwriteEraseTimeEstimateMinutes)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
-        convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, *overwriteEraseTimeEstimateMinutes * 60), NULL, &days, &hours, &minutes, &seconds);
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
+        convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, *overwriteEraseTimeEstimateMinutes) * UINT64_C(60), NULL, &days, &hours, &minutes, &seconds);
         //Example output: 
         //The minimum time to overwrite erase this drive is approximately x days y hours z minutes. 
         //The actual time may take longer. Cryptographic erase completes in seconds. Trim/Unmap & blockerase should also complete in under a minute
@@ -1119,7 +1178,7 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
 void show_Test_Unit_Ready_Status(tDevice *device)
 {
     scsiStatus returnedStatus;
-	memset(&returnedStatus, 0, sizeof(scsiStatus));
+    memset(&returnedStatus, 0, sizeof(scsiStatus));
     int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {

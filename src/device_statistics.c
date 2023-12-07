@@ -599,7 +599,7 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
                     //this exists for the hack loop above
                     break;
                 }
-                qwordPtrDeviceStatsLog = (uint64_t*)&deviceStatsLog[offset];
+                qwordPtrDeviceStatsLog = C_CAST(uint64_t*, &deviceStatsLog[offset]);
 #if defined (__BIG_ENDIAN__)
                 //TODO: Find a better way to change this code, but for now, on big endian systems, we need to byte swap all qwords of the buffer to make the code below work properly
                 for (uint8_t qwordBSwapIter = 0; qwordBSwapIter < 64; ++qwordBSwapIter)
@@ -7396,9 +7396,10 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+            uint16_t days = 0;
+            uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
             //this is reported in milliseconds...convert to other displayable.
-            uint64_t statisticSeconds = theStatistic.statisticValue / 1000;
+            uint64_t statisticSeconds = theStatistic.statisticValue / UINT64_C(1000);
             convert_Seconds_To_Displayable_Time(statisticSeconds, &years, &days, &hours, &minutes, &seconds);
             print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
         }
@@ -7465,10 +7466,11 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
         if (theStatistic.isValueValid)
         {
             //this is reported in minutes...convert to other displayable.
-            uint64_t statisticMinutes = theStatistic.statisticValue * 60;
+            uint64_t statisticMinutes = theStatistic.statisticValue * UINT64_C(60);
             if (statisticMinutes > 0)
             {
-                uint8_t years = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
+                uint16_t days = 0;
+                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
                 convert_Seconds_To_Displayable_Time(statisticMinutes, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
             }
@@ -8216,7 +8218,7 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
                     {
                         if (deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].sasPhyStatsValid)
                         {
-                            printf("\t--Port %" PRIu16 " - Phy %" PRIu8 "--\n", deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID, deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyID);
+                            printf("\t--Port %" PRIu16 " - Phy %" PRIu16 "--\n", deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID, deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyID);
                             print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].invalidDWORDCount, "Invalid Dword Count", NULL);
                             print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].runningDisparityErrorCount, "Running Disparit Error Count", NULL);
                             print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].lossOfDWORDSynchronizationCount, "Loss of Dword Snchronization Count", NULL);

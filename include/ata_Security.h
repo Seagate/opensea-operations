@@ -130,11 +130,12 @@ extern "C"
     //!   \param[in] ataPassword = pointer to the structure that holds all the relavent information to put the password in the buffer. Allows for empty passwords and non-ascii characters
     //!   \param[in] setPassword = Set to true when using the buffer to send the security set password command so that the master password identifier and capability fields will be set.
     //!   \param[in] eraseUnit = set to true when using the buffer to send the security erase command so that the zac options bit can be set.
+    //!   \param[in] useSAT = set to true to attempt commands using the SAT spec security protocol for ATA security. This is recommended for non-ata interfaces if the SATL supports it since it allows the SATL to control the erase and incomming commands.
     //!
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPassword ataPassword, bool setPassword, bool eraseUnit);
+    OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPassword ataPassword, bool setPassword, bool eraseUnit, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -145,11 +146,12 @@ extern "C"
     //  Entry:
     //!   \param[out] ptrData = pointer to the buffer to set the password in
     //!   \param[in] eraseType = enhanced or normal ATA Security erase.
+    //!   \param[in] useSAT = set to true when using SAT security protocol to issue the erase
     //!
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseType eraseType);
+    OPENSEA_OPERATIONS_API void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseType eraseType, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //

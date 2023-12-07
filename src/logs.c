@@ -62,6 +62,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     if (dup)
     {
         snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", dup, logExtension);
+        safe_Free(dup);
     }
     else
     {
@@ -83,6 +84,7 @@ int create_And_Open_Log_File(tDevice *device,\
     char *filename = &name[0];
     char *pathAndFileName = NULL;
     bool nullLogFileNameUsed = false;
+    bool systemPathSeparatorInLogPath = false;
     struct tm logTime;
     memset(&logTime, 0, sizeof(struct tm));
 #ifdef _DEBUG
@@ -97,13 +99,21 @@ int create_And_Open_Log_File(tDevice *device,\
     printf("\t logPath=%s, logName=%s, logExtension=%s\n"\
                         ,logPath, logName, logExtension);
 #endif
+
+    if (logPath)
+    {
+        if (logPath[strlen(logPath) - 1] == SYSTEM_PATH_SEPARATOR)
+        {
+            systemPathSeparatorInLogPath = true;
+        }
+    }
+
     ret = generate_Logfile_Name(device, logName, logExtension, logFileNamingConvention, &filename);
     if (SUCCESS != ret)
     {
         return ret;
     }
-
-    if (SUCCESS == ret)
+    else
     {
 #ifdef _DEBUG
         printf("\tfilename %s\n", filename);
@@ -120,7 +130,16 @@ int create_And_Open_Log_File(tDevice *device,\
             if (strcmp((*logFileNameUsed), "") == 0)
             {
                 //logPath has valid value and logFileNameUsed is empty. Prepend logpath to the generated filename
-                snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                if (systemPathSeparatorInLogPath)
+                {
+                    //system path separator already exists, so no need to add one
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%s", logPath, filename);
+                }
+                else
+                {
+                    //need a system path separator added
+                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                }
             }
             else
             {
@@ -128,10 +147,28 @@ int create_And_Open_Log_File(tDevice *device,\
                 char lpathNFilename[OPENSEA_PATH_MAX] = { 0 };
                 char lpathNFilenameGeneration[OPENSEA_PATH_MAX] = { 0 };
                 snprintf(lpathNFilename, OPENSEA_PATH_MAX, "%s", *logFileNameUsed);
-                snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+
+                //check if a system path separator is already part of the path to decide if one is needed or not
+                if (systemPathSeparatorInLogPath)
+                {
+                    //separator not needed
+                    snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%s", logPath, filename);
+                }
+                else
+                {
+                    //separator needed
+                    snprintf(lpathNFilenameGeneration, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                }
                 if (strcmp(lpathNFilename, lpathNFilenameGeneration) == 0)
                 {
-                    snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                    if (systemPathSeparatorInLogPath)
+                    {
+                        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%s", logPath, filename);
+                    }
+                    else
+                    {
+                        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+                    }
                 }
                 else
                 {
@@ -152,7 +189,14 @@ int create_And_Open_Log_File(tDevice *device,\
             {
                 return MEMORY_FAILURE;
             }
-            snprintf(pathAndFileName, pathAndFileNameLength, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+            if (systemPathSeparatorInLogPath)
+            {
+                snprintf(pathAndFileName, pathAndFileNameLength, "%s%s", logPath, filename);
+            }
+            else
+            {
+                snprintf(pathAndFileName, pathAndFileNameLength, "%s%c%s", logPath, SYSTEM_PATH_SEPARATOR, filename);
+            }
             *logFileNameUsed = pathAndFileName;
         }
         else
@@ -313,16 +357,30 @@ int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint
     //first check that the logpage is supported
     if (logSubPage != 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, 255))
     {
-        uint16_t pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH;
-        uint16_t pageLen = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
-        //search the buffer for the page we want
-        for (pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH; pageSupportIter < pageLen; pageSupportIter += 2)
+        //validate the page code and subpage code
+        uint8_t pageCode = M_GETBITRANGE(logBuffer[0], 5, 0);
+        uint8_t subpageCode = logBuffer[1];
+        bool spf = M_ToBool(logBuffer[0] & BIT6);
+        if (spf && pageCode == LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES && subpageCode == 0xFF)
         {
-            if (logBuffer[pageSupportIter] == logPage && logBuffer[pageSupportIter + 1] == logSubPage)
+            uint16_t pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH;
+            uint16_t pageLen = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+            //search the buffer for the page we want
+            for (pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH; pageSupportIter < pageLen; pageSupportIter += 2)
             {
-                ret = SUCCESS;
-                break;
+                if (logBuffer[pageSupportIter] == logPage && logBuffer[pageSupportIter + 1] == logSubPage)
+                {
+                    ret = SUCCESS;
+                    break;
+                }
             }
+        }
+        else
+        {
+            //the device did not return the data that is was asked to, so it does not appear subpages are supported at all
+            //since this is only looking on this page for subpages, call this page not supported since the returned list was not as expected
+            ret = NOT_SUPPORTED;
+            *logFileSize = 0;
         }
     }
     else if (logSubPage == 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, 255))
@@ -1092,9 +1150,20 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             return MEMORY_FAILURE;
         }
 
+        char* fileNameUsed = NULL;
+        if (!toBuffer)
+        {
+            fileNameUsed = C_CAST(char*, calloc(OPENSEA_PATH_MAX + 1, sizeof(char)));
+            if (!fileNameUsed)
+            {
+                safe_Free_aligned(logBuffer)
+                perror("Calloc Failure!\n");
+                return MEMORY_FAILURE;
+            }
+        }
+
         if (GPL)
         {
-            char *fileNameUsed = NULL;
             //read each log 1 page at a time since some can get to be so large some controllers won't let you pull it.
             uint16_t pagesToReadAtATime = 1;
             uint16_t numberOfLogPages = C_CAST(uint16_t, logSize / LEGACY_DRIVE_SEC_SIZE);
@@ -1152,6 +1221,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                             fclose(fp_log);
                             fileOpened = false;
                             safe_Free_aligned(logBuffer)
+                            safe_Free(fileNameUsed)
                             return ERROR_WRITING_FILE;
                         }
                         ret = SUCCESS;
@@ -1179,6 +1249,10 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 printf("\n");
+                if (!toBuffer)
+                {
+                    printf("Binary log saved to: %s\n", fileNameUsed);
+                }
             }
         }
         //if the log wasn't found in the GPL directory, then try reading from the SMART directory
@@ -1190,7 +1264,6 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             {
                 if (!toBuffer && !fileOpened)
                 {
-                    char *fileNameUsed = NULL;
                     if (SUCCESS == create_And_Open_Log_File(device, &fp_log, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                     {
                         fileOpened = true;
@@ -1208,6 +1281,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                         fclose(fp_log);
                         fileOpened = false;
                         safe_Free_aligned(logBuffer)
+                        safe_Free(fileNameUsed)
                         return ERROR_WRITING_FILE;
                     }
                     ret = SUCCESS;
@@ -1221,6 +1295,14 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     else
                     {
                         return BAD_PARAMETER;
+                    }
+                }
+                else
+                {
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        printf("\n");
+                        printf("Binary log saved to: %s\n", fileNameUsed);
                     }
                 }
             }
@@ -1241,6 +1323,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 }
                 fclose(fp_log);
                 fileOpened = false;
+                safe_Free(fileNameUsed)
                 safe_Free_aligned(logBuffer)
                 return ERROR_WRITING_FILE;
             }
@@ -1340,6 +1423,11 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
                         return ERROR_WRITING_FILE;
                     }
                     fclose(fp_log);
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        printf("\n");
+                        printf("Binary log saved to: %s\n", fileNameUsed);
+                    }
                 }
             }
             if (toBuffer) //NOTE: the buffer size checked earlier. 
@@ -1374,12 +1462,21 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
             }
             return MEMORY_FAILURE;
         }
+        char* fileNameUsed = NULL;
+        if (!toBuffer)
+        {
+            fileNameUsed = C_CAST(char*, calloc(OPENSEA_PATH_MAX + 1, sizeof(char)));
+            if (!fileNameUsed)
+            {
+                safe_Free_aligned(vpdBuffer)
+                return MEMORY_FAILURE;
+            }
+        }
         //read the requested VPD page
         if (SUCCESS == scsi_Inquiry(device, vpdBuffer, vpdBufferLength, pageCode, true, false))
         {
             if (!toBuffer && !fileOpened && ret != FAILURE)
             {
-                char *fileNameUsed = NULL;
                 if (SUCCESS == create_And_Open_Log_File(device, &fp_vpd, filePath, logName, fileExtension, NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
                 {
                     fileOpened = true;
@@ -1397,7 +1494,13 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
                     fclose(fp_vpd);
                     fileOpened = false;
                     safe_Free_aligned(vpdBuffer)
+                    safe_Free(fileNameUsed)
                     return ERROR_WRITING_FILE;
+                }
+                if (device->deviceVerbosity > VERBOSITY_QUIET)
+                {
+                    printf("\n");
+                    printf("Binary log saved to: %s\n", fileNameUsed);
                 }
             }
             if (toBuffer && ret != FAILURE)
@@ -1423,12 +1526,14 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
                 fclose(fp_vpd);
                 fileOpened = false;
                 safe_Free_aligned(vpdBuffer)
+                safe_Free(fileNameUsed)
                 return ERROR_WRITING_FILE;
             }
             fclose(fp_vpd);
             fileOpened = false;
         }
         safe_Free_aligned(vpdBuffer)
+        safe_Free(fileNameUsed)
     }
     return ret;
 }
@@ -1474,7 +1579,7 @@ static int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t 
                     //fileOpened = true;
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Saving telemetry log to file %s\n", fileNameUsed);
+                        printf("Saving telemetry log to file: %s\n", fileNameUsed);
                     }
                 }
                 else
@@ -1760,7 +1865,7 @@ static int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
-                            printf("Saving to file %s\n", fileNameUsed);
+                            printf("Saving to file: %s\n", fileNameUsed);
                         }
                         if ((fwrite(dataBuffer, LEGACY_DRIVE_SEC_SIZE, 1, isl) != 1) || ferror(isl))
                         {
@@ -1982,7 +2087,7 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     //fileOpened = true;
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Saving Telemetry log to file %s\n", fileNameUsed);
+                        printf("Saving Telemetry log to file: %s\n", fileNameUsed);
                     }
                 }
                 else
@@ -2103,8 +2208,8 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     {
                         pullChunkSize = (islPullingSize - pageNumber) * LEGACY_DRIVE_SEC_SIZE;
                     }
-                    //read each remaining chunk with the trigger bit set to 0
-                    telemOpts.lsp = 0;
+                    //read each remaining chunk with the trigger bit set to 1 as thats what nvme-cli is doing - Deb
+                    telemOpts.lsp = 1;
                     telemOpts.offset = C_CAST(uint64_t, pageNumber) * UINT64_C(512);
                     telemOpts.dataLen = pullChunkSize;
                     if (SUCCESS == nvme_Get_Log_Page(device, &telemOpts))

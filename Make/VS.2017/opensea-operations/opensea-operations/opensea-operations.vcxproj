@@ -724,6 +724,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\ata_device_config_overlay.h" />
     <ClInclude Include="..\..\..\..\include\ata_Security.h" />
     <ClInclude Include="..\..\..\..\include\buffer_test.h" />
     <ClInclude Include="..\..\..\..\include\defect.h" />
@@ -741,6 +742,7 @@
     <ClInclude Include="..\..\..\..\include\opensea_operation_version.h" />
     <ClInclude Include="..\..\..\..\include\operations.h" />
     <ClInclude Include="..\..\..\..\include\operations_Common.h" />
+    <ClInclude Include="..\..\..\..\include\partition_info.h" />
     <ClInclude Include="..\..\..\..\include\power_control.h" />
     <ClInclude Include="..\..\..\..\include\reservations.h" />
     <ClInclude Include="..\..\..\..\include\sanitize.h" />
@@ -754,6 +756,7 @@
     <ClInclude Include="..\..\..\..\include\zoned_operations.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\ata_device_config_overlay.c" />
     <ClCompile Include="..\..\..\..\src\ata_Security.c" />
     <ClCompile Include="..\..\..\..\src\buffer_test.c" />
     <ClCompile Include="..\..\..\..\src\defect.c" />
@@ -769,6 +772,7 @@
     <ClCompile Include="..\..\..\..\src\logs.c" />
     <ClCompile Include="..\..\..\..\src\nvme_operations.c" />
     <ClCompile Include="..\..\..\..\src\operations.c" />
+    <ClCompile Include="..\..\..\..\src\partition_info.c" />
     <ClCompile Include="..\..\..\..\src\power_control.c" />
     <ClCompile Include="..\..\..\..\src\reservations.c" />
     <ClCompile Include="..\..\..\..\src\sanitize.c" />

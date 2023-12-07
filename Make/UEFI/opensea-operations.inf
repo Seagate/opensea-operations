@@ -44,6 +44,9 @@
   include/writesame.h
   include/zoned_operations.h
   include/reservations.h
+  include/partition_info.h
+  include/farm_log.h
+  include/ata_device_config_overlay.h
   src/ata_Security.c
   src/buffer_test.c
   src/defect.c
@@ -70,6 +73,8 @@
   src/zoned_operations.c
   src/reservations.c
   src/farm_log.c
+  src/partition_info.c
+  src/ata_device_config_overlay.c
 
 [Packages]
   StdLib/StdLib.dec

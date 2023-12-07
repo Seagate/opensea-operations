@@ -439,7 +439,9 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)defect.c \
 	$(SRC_DIR)nvme_operations.c\
 	$(SRC_DIR)reservations.c\
-	$(SRC_DIR)reservations.c
+	$(SRC_DIR)farm_log.c\
+	$(SRC_DIR)partition_info.c\
+	$(SRC_DIR)ata_device_config_overlay.c
 
 #Only define public stuff
 PROJECT_DEFINES += $(VMW_EXTRA_DEFS)#-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG

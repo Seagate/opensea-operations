@@ -48,7 +48,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
     int ret = SUCCESS;
     uint8_t *reportZones = NULL;
     uint32_t sectorCount = get_Sector_Count_For_512B_Based_XFers(device);
-    uint32_t dataBytesToRequest = (((numberOfZoneDescriptors * 64 + 64) + 511) / LEGACY_DRIVE_SEC_SIZE) * LEGACY_DRIVE_SEC_SIZE;//rounds to nearest 512B
+    uint32_t dataBytesToRequest = numberOfZoneDescriptors * 64;
     if (!zoneDescriptors || numberOfZoneDescriptors == 0)
     {
         return BAD_PARAMETER;
@@ -62,12 +62,12 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
     uint64_t nextZoneLBA = startingLBA;
     uint64_t zoneMaxLBA = device->drive_info.deviceMaxLba;//start with this...change later.
     uint32_t zoneIter = 0;
-    for (uint32_t pullIter = 0; pullIter < dataBytesToRequest; pullIter += (LEGACY_DRIVE_SEC_SIZE * 64))
+    for (uint32_t pullIter = 0; pullIter < dataBytesToRequest; pullIter += (sectorCount * LEGACY_DRIVE_SEC_SIZE - 64))
     {
         uint32_t localListLength = 0;
         if ((pullIter + (sectorCount * LEGACY_DRIVE_SEC_SIZE)) > dataBytesToRequest)
         {
-            sectorCount = (dataBytesToRequest - pullIter) / LEGACY_DRIVE_SEC_SIZE;
+            sectorCount = (dataBytesToRequest - pullIter + 64 + (LEGACY_DRIVE_SEC_SIZE - 1)) / LEGACY_DRIVE_SEC_SIZE;//rounds to nearest 512B
         }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
@@ -91,11 +91,12 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
             return ret;
         }
         //fill in the returned zones.
-        for (uint32_t byteIter = 64; zoneIter < numberOfZoneDescriptors && byteIter < localListLength && byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount); ++zoneIter, byteIter += 64)
+        for (uint32_t byteIter = 64; zoneIter < numberOfZoneDescriptors && byteIter <= localListLength && byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount); ++zoneIter, byteIter += 64)
         {
             zoneDescriptors[zoneIter].descriptorValid = true;
             zoneDescriptors[zoneIter].zoneType = C_CAST(eZoneType, M_Nibble0(reportZones[byteIter + 0]));
             zoneDescriptors[zoneIter].zoneCondition = C_CAST(eZoneCondition, M_Nibble1(reportZones[byteIter + 1]));
+            zoneDescriptors[zoneIter].predictedUnRecErrBit = reportZones[byteIter + 1] & BIT2;
             zoneDescriptors[zoneIter].nonseqBit = reportZones[byteIter + 1] & BIT1;
             zoneDescriptors[zoneIter].resetBit = reportZones[byteIter + 1] & BIT0;
             //zone length
@@ -133,17 +134,23 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
         switch (zoneDescriptor.zoneType)
         {
         case ZONE_TYPE_CONVENTIONAL:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Conventional");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "CONV");
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_REQUIRED:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Sequential Write Required");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWR");
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_PREFERRED:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Sequential Write Preferred");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWP");
+            break;
+        case ZONE_TYPE_SEQUENTIAL_OR_BEFORE_REQUIRED:
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SOBR");
+            break;
+        case ZONE_TYPE_GAP:
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "GAP");
             break;
         case ZONE_TYPE_RESERVED:
         default:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "Reserved");
+            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "RESV");
             break;
         }
 #define ZONE_CONDITION_STRING_LENGTH 18
@@ -165,6 +172,9 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
         case ZONE_CONDITION_CLOSED:
             snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Closed");
             break;
+        case ZONE_CONDITION_INACTIVE:
+            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Inactive");
+            break;
         case ZONE_CONDITION_READ_ONLY:
             snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Read Only");
             break;
@@ -178,14 +188,54 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
             snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Reserved");
             break;
         }
-        //TODO: add showing reset bit and nonseq bit?
-        printf("%-26s  %-17s  %-20"PRIu64"  %-20"PRIu64"  %-20"PRIu64"\n", zoneTypeString, zoneCondition, zoneDescriptor.zoneStartingLBA, zoneDescriptor.zoneLength, zoneDescriptor.writePointerLBA);
+#define ZONE_ATTR_OTHER_FLAGS_LENGTH 4
+        char otherFlags[ZONE_ATTR_OTHER_FLAGS_LENGTH] = { 0 };
+        if (zoneDescriptor.resetBit)
+        {
+            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "R");
+        }
+        else
+        {
+            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+        }
+        if (zoneDescriptor.nonseqBit)
+        {
+            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "N");
+        }
+        else
+        {
+            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+        }
+        if (zoneDescriptor.predictedUnRecErrBit)
+        {
+            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "P");
+        }
+        else
+        {
+            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+        }
+        // zone start and WP LBA could be at max FFFFFFFFFFFFh which is 15 digits in decimal
+        // typical zone length is 524288 (256MiB) which is 6 digits, and +1 in case extend in future
+        printf("%-4s  %-17s  %-4s  %-15"PRIu64"  %-7"PRIu64"  %-15"PRIu64"\n", zoneTypeString, zoneCondition, otherFlags, zoneDescriptor.zoneStartingLBA, zoneDescriptor.zoneLength, zoneDescriptor.writePointerLBA);
     }
 }
 
 
 void print_Zone_Descriptors(eZoneReportingOptions reportingOptions, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors)
 {
+    printf("=======Key======\n");
+    printf("\tZone Type:\n");
+    printf("\t  CONV - Conventional\n");
+    printf("\t  SWP  - Sequential write preferred\n");
+    printf("\t  SWR  - Sequential write required\n");
+    printf("\t  SOBR - Sequential or before required\n");
+    printf("\t  GAP  - Gap\n");
+    printf("\t  RESV - Reserved\n");
+    printf("\tAttributes:\n");
+    printf("\t  R - RESET bit, RWP Recommended\n");
+    printf("\t  N - NON_SEQ bit, Non-Sequential Write Resources Active\n");
+    printf("\t  P - PREDICTED UNRECOVERED ERRORS bit, Predicted Unrecovered Errors Present\n");
+    printf("--------------------------------------------------------------------------------\n");
 #define SHOWING_ZONES_STRING_LENGTH 40
     char showingZones[SHOWING_ZONES_STRING_LENGTH] = { 0 };
     switch (reportingOptions)
@@ -234,8 +284,7 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions, uint32_t num
     }
     printf("\n===%s===\n", showingZones);
 
-    //TODO: add showing reset bit and nonseq bit?
-    printf("%-26s  %-17s  %-20s  %-20s  %-20s\n", "Zone Type", "Zone Condition", "Start LBA", "Length", "Write Pointer LBA");
+    printf("%-4s  %-17s  %-4s  %-15s  %-7s  %-15s\n", "Type", "Zone Condition", "Attr", "Start LBA", "Length", "Write Pointer");
     for (uint32_t zoneIter = 0; zoneIter < numberOfZoneDescriptors; ++zoneIter)
     {
         print_Zone_Descriptor(zoneDescriptors[zoneIter]);
