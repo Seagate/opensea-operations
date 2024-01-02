@@ -586,6 +586,183 @@ int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t
     return ret;
 }
 
+static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, uint16_t* offlineTimeSeconds)
+{
+    bool supported = false;
+    if (is_SMART_Enabled(device))
+    {
+        //also check that self test is supported by the drive
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT1)
+            || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT1))
+        {
+            //NOTE: Also need to check the SMART read data as it also contains a bit to indicate if DST is supported or not!
+            //      That field also indicates whether Short, extended, or conveyance tests are supported!
+            //      Since the SAMART read data has been made obsolete on newer standards, we may need a version check or something to keep proper behavior
+            //      as new devices show up without support for this information.
+            //SMART read data is listed as optional in ata/atapi-7
+            uint8_t smartData[512] = { 0 };
+            if (SUCCESS == ata_SMART_Read_Data(device, smartData, 512))
+            {
+                //check the pff-line data collection capability field
+                //assume this is more accurate since this seems to be the case with some older products
+                if (smartData[367] & BIT0)//bit0 = the subcommand
+                {
+                    supported = true;
+                    if (abortRestart)
+                    {
+                        if (smartData[367] & BIT2)
+                        {
+                            *abortRestart = true;
+                        }
+                        else
+                        {
+                            *abortRestart = false;
+                        }
+                    }
+                    if (offlineTimeSeconds)
+                    {
+                        *offlineTimeSeconds = M_BytesTo2ByteValue(smartData[365], smartData[364]);
+                    }
+                }
+            }
+            else
+            {
+                //assume that the identify bits were accurate for this command.
+                supported = true;
+            }
+        }
+    }
+    return supported;
+}
+
+static int get_SMART_Offline_Status(tDevice* device, uint8_t *status)
+{
+    int ret = SUCCESS;
+    if (!status)
+    {
+        return BAD_PARAMETER;
+    }
+    uint8_t smartData[512] = { 0 };
+    ret = ata_SMART_Read_Data(device, smartData, 512);
+    if (ret == SUCCESS)
+    {
+        *status = smartData[362];
+    }
+    return ret;
+}
+
+int run_SMART_Offline(tDevice* device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        bool abortRestart = false;
+        uint16_t offlineTimeInSeconds = 0;
+        if (is_ATA_SMART_Offline_Supported(device, &abortRestart, &offlineTimeInSeconds))
+        {
+            ret = ata_SMART_Offline(device, 0, 15);
+            if (ret == SUCCESS)
+            {
+                uint8_t status = 0;
+                if (!abortRestart)
+                {
+                    //check every few minutes
+                    bool inProgress = true;
+                    uint16_t delayTime = offlineTimeInSeconds / 10;//attempting to check enough times that it's in 10% increments, even though the device will not tell us a real percent complete here.
+                    printf("\n");
+                    while (inProgress)
+                    {
+                        delay_Seconds(delayTime);
+                        if (SUCCESS == get_SMART_Offline_Status(device, &status))
+                        {
+                            switch (status)
+                            {
+                            case 0:
+                            case 0x80:
+                            case 2:
+                            case 0x82:
+                            case 4:
+                            case 0x84:
+                            case 5:
+                            case 0x85:
+                            case 6:
+                            case 0x86:
+                                inProgress = false;
+                                break;
+                            case 3:
+                                //still in progress
+                                printf(".");
+                                break;
+                            default:
+                                //reserved or vendor unique status....leave as "in progress" until we get one of the completion codes.
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            printf("Error getting status\n");
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    //count down for the abount of time the drive reports for how long this should take
+                    uint16_t countDownSecondsRemaining = offlineTimeInSeconds;
+                    uint8_t hours = 0, minutes = 0, seconds = 0;
+                    while (countDownSecondsRemaining > 0)
+                    {
+                        convert_Seconds_To_Displayable_Time(countDownSecondsRemaining, NULL, NULL, &hours, &minutes, &seconds);
+                        printf("\r%2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds remaining", hours, minutes, seconds);
+                        delay_Seconds(1);
+                        --countDownSecondsRemaining;
+                    }
+                }
+                if (SUCCESS == get_SMART_Offline_Status(device, &status))
+                {
+                    printf("\nSMART Off-line data collection ");
+                    switch (status)
+                    {
+                    case 0:
+                    case 0x80:
+                        printf("never started\n");
+                        break;
+                    case 2:
+                    case 0x82:
+                        printf("completed without error\n");
+                        break;
+                    case 4:
+                    case 0x84:
+                        printf("was suspended by an interrupting command from the host\n");
+                        break;
+                    case 5:
+                    case 0x85:
+                        printf("was aborted by an interrupting command from the host\n");
+                    case 6:
+                    case 0x86:
+                        printf("was aborted by the device with a fatal error\n");
+                        break;
+                    case 3:
+                        printf("is progress\n");
+                        break;
+                    default:
+                        if (status >= 0xC0 /*through 0xff*/ || (status >= 0x40 && status <= 0x7F))
+                        {
+                            printf("status is vendor specific\n");
+                        }
+                        else
+                        {
+                            printf("status is reserved\n");
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return ret;
+}
+
 int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime)
 {
     int ret = NOT_SUPPORTED;
