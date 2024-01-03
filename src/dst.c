@@ -681,6 +681,7 @@ int run_SMART_Offline(tDevice* device)
                 {
                     convert_Seconds_To_Displayable_Time(countDownSecondsRemaining, NULL, NULL, &hours, &minutes, &seconds);
                     printf("\r%2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds remaining", hours, minutes, seconds);
+                    fflush(stdout);
                     delay_Seconds(1);
                     --countDownSecondsRemaining;
                     ++pollCounter;
