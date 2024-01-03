@@ -696,14 +696,16 @@ int run_SMART_Offline(tDevice* device)
                             case 0x80:
                             case 2:
                             case 0x82:
-                            case 4:
-                            case 0x84:
                             case 5:
                             case 0x85:
                             case 6:
                             case 0x86:
                                 inProgress = false;
                                 break;
+                            case 4:
+                            case 0x84:
+                                //command "suspended" can be returned just by making the query to get progress.
+                                //So treat this case as "in progress" as well and do not stop.
                             case 3:
                                 //still in progress. No need to stop.
                                 break;
