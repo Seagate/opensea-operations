@@ -660,19 +660,33 @@ int run_SMART_Offline(tDevice* device)
         uint16_t offlineTimeInSeconds = 0;
         if (is_ATA_SMART_Offline_Supported(device, &abortRestart, &offlineTimeInSeconds))
         {
+            //TODO: Print out how long this will take to run so the user knows what to expect.
+            uint8_t hours = 0, minutes = 0, seconds = 0;
+            convert_Seconds_To_Displayable_Time(offlineTimeInSeconds, NULL, NULL, &hours, &minutes, &seconds);
+            printf("Data Collection time: %2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds\n", hours, minutes, seconds);
+            time_t currentTime = time(NULL);
+            time_t futureTime = get_Future_Date_And_Time(currentTime, offlineTimeInSeconds);
+            char timeFormat[TIME_STRING_LENGTH] = { 0 };
+            printf("\tEstimated completion Time : sometime after %s\n", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
             ret = ata_SMART_Offline(device, 0, 15);
             if (ret == SUCCESS)
             {
                 uint8_t status = 0;
-                if (!abortRestart)
+                //count down for the abount of time the drive reports for how long this should take
+                uint16_t countDownSecondsRemaining = offlineTimeInSeconds;
+                bool inProgress = true;
+                uint16_t pollingTime = offlineTimeInSeconds / 10;//attempting to check enough times that it's in 10% increments, even though the device will not tell us a real percent complete here.
+                uint16_t pollCounter = 0;
+                while (countDownSecondsRemaining > 0 && inProgress)
                 {
-                    //check every few minutes
-                    bool inProgress = true;
-                    uint16_t delayTime = offlineTimeInSeconds / 10;//attempting to check enough times that it's in 10% increments, even though the device will not tell us a real percent complete here.
-                    printf("\n");
-                    while (inProgress)
+                    convert_Seconds_To_Displayable_Time(countDownSecondsRemaining, NULL, NULL, &hours, &minutes, &seconds);
+                    printf("\r%2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds remaining", hours, minutes, seconds);
+                    delay_Seconds(1);
+                    --countDownSecondsRemaining;
+                    ++pollCounter;
+                    if (!abortRestart && pollCounter == pollingTime)
                     {
-                        delay_Seconds(delayTime);
+                        //time to to a progress check to determine if we should keep waiting or exit early.
                         if (SUCCESS == get_SMART_Offline_Status(device, &status))
                         {
                             switch (status)
@@ -690,32 +704,17 @@ int run_SMART_Offline(tDevice* device)
                                 inProgress = false;
                                 break;
                             case 3:
-                                //still in progress
-                                printf(".");
+                                //still in progress. No need to stop.
                                 break;
                             default:
                                 //reserved or vendor unique status....leave as "in progress" until we get one of the completion codes.
+                                //Leaving this as "in progress" until the time runs out because some early drives may have used a vendor unique
+                                //code to indicate "in progress" versus some other error since the case "3" above was not defined until later.-TJE
                                 break;
                             }
                         }
-                        else
-                        {
-                            printf("Error getting status\n");
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    //count down for the abount of time the drive reports for how long this should take
-                    uint16_t countDownSecondsRemaining = offlineTimeInSeconds;
-                    uint8_t hours = 0, minutes = 0, seconds = 0;
-                    while (countDownSecondsRemaining > 0)
-                    {
-                        convert_Seconds_To_Displayable_Time(countDownSecondsRemaining, NULL, NULL, &hours, &minutes, &seconds);
-                        printf("\r%2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds remaining", hours, minutes, seconds);
-                        delay_Seconds(1);
-                        --countDownSecondsRemaining;
+                        //else just let it keep running for the time the drive reported earlier.
+                        pollCounter = 0;
                     }
                 }
                 if (SUCCESS == get_SMART_Offline_Status(device, &status))
@@ -738,6 +737,7 @@ int run_SMART_Offline(tDevice* device)
                     case 5:
                     case 0x85:
                         printf("was aborted by an interrupting command from the host\n");
+                        break;
                     case 6:
                     case 0x86:
                         printf("was aborted by the device with a fatal error\n");
