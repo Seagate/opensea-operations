@@ -2120,3 +2120,753 @@ int clr_Pcie_Correctable_Errs(tDevice *device)
         return NOT_SUPPORTED;
     }
 }
+
+typedef enum _eATAMaxSupportLogEntries
+{
+    SUPPORTED_MAX_ENTRIES_VERSION_1 = 8,
+    SUPPORTED_MAX_ENTRIES_VERSION_2 = 22
+} eATAMaxSupportLogEntries;
+
+bool is_Seagate_DeviceStatistics_Supported(tDevice *device)
+{
+    bool supported = false;
+    uint32_t logSize = 0;
+
+    if ((device->drive_info.drive_type == ATA_DRIVE) && (get_ATA_Log_Size(device, 0xC7, &logSize, true, false) == SUCCESS))
+    {
+        supported = true;
+    }
+    else if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x2F, 0x00, &logSize) == SUCCESS))
+    {
+        supported = true;
+    }
+#if defined (_DEBUG)
+    else
+        printf("\nSeagate Device Statistics logs not supported.\n");
+#endif
+
+    return supported;
+}
+
+static int get_Seagate_ATA_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats)
+{
+    int ret = NOT_SUPPORTED;
+    if (!seagateDeviceStats)
+    {
+        return BAD_PARAMETER;
+    }
+
+    uint32_t deviceStatsSize = 0;
+    //need to get the seagate device statistics log
+    if (SUCCESS == get_ATA_Log_Size(device, 0xC7, &deviceStatsSize, true, false))
+    {
+        uint8_t* deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (!deviceStatsLog)
+        {
+            return MEMORY_FAILURE;
+        }
+
+        if (SUCCESS == get_ATA_Log(device, 0xC7, NULL, NULL, true, false, true, deviceStatsLog, deviceStatsSize, NULL, 0, 0))
+        {
+            ret = SUCCESS;
+            uint8_t maxLogEntries = 0;
+            uint64_t* qwordPtrDeviceStatsLog = C_CAST(uint64_t*, &deviceStatsLog[0]);       //log version
+            if (*qwordPtrDeviceStatsLog == 0x01)
+                maxLogEntries = SUPPORTED_MAX_ENTRIES_VERSION_1;
+            else if (*qwordPtrDeviceStatsLog == 0x02)
+                maxLogEntries = SUPPORTED_MAX_ENTRIES_VERSION_2;
+            else
+                return NOT_SUPPORTED;
+
+            seagateDeviceStats->sataStatistics.version = maxLogEntries;
+            for (uint8_t logEntry = 0; logEntry < maxLogEntries; ++logEntry)
+            {
+                uint32_t offset = 16 + (logEntry * 8);
+                if (offset > deviceStatsSize)
+                {
+                    break;
+                }
+                qwordPtrDeviceStatsLog = C_CAST(uint64_t*, &deviceStatsLog[offset]);
+                switch (logEntry)
+                {
+                case 0:
+                    //Sanitize Crypto Erase Pass Count Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 1:
+                    //Sanitize Crypto Erase Pass Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 2:
+                    //Sanitize Overwrite Erase Pass Count Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 3:
+                    //Sanitize Overwrite Erase Pass Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 4:
+                    //Sanitize Block Erase Pass Count Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 5:
+                    //Sanitize Block Erase Pass Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 6:
+                    //Ata Security Erase Unit Pass Count Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 7:
+                    //Ata Security Erase Unit Pass Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 8:
+                    //Erase Security File Failure Count Statistic
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 9:
+                    //Erase Security File Failure Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 10:
+                    //Ata Security Erase Unit Enhanced Pass Count Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 11:
+                    //Ata Security Erase Unit Enhanced Pass Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 12:
+                    //Sanitize Crypto Erase Failure Count Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 13:
+                    //Sanitize Crypto Erase Failure Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 14:
+                    //Sanitize Overwrite Erase Failure Count Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 15:
+                    //Sanitize Overwrite Erase Failure Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 16:
+                    //Sanitize Block Erase Failure Count Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 17:
+                    //Sanitize Block Erase Failure Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 18:
+                    //Ata Security Erase Unit Failure Count Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 19:
+                    //Ata Security Erase Unit Failure Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 20:
+                    //Ata Security Erase Unit Enhanced Failure Count Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                case 21:
+                    //Ata Security Erase Unit Enhanced Failure Timestamp Statistic
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isSupported = qwordPtrDeviceStatsLog[0] & BIT63;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isValueValid = qwordPtrDeviceStatsLog[0] & BIT62;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isNormalized = qwordPtrDeviceStatsLog[0] & BIT61;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.failureInfo = M_Byte5(qwordPtrDeviceStatsLog[0]);
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isTimeStampsInMinutes = qwordPtrDeviceStatsLog[0] & BIT39;
+                    seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.statisticsDataValue = M_DoubleWord0(qwordPtrDeviceStatsLog[0]);
+                    break;
+
+                default:
+                    break;
+                }
+            }
+        }
+
+        safe_Free_aligned(deviceStatsLog)
+    }
+
+    return ret;
+}
+
+typedef enum _eSeagateSMARTStatusLogPageParamCode
+{
+    SANITIZE_CRYPTO_ERASE_STATISTICS = 0x0040,
+    SANITIZE_OVERWRITE_STATISTICS = 0x0041,
+    SANITIZE_BLOCK_ERASE_STATISTICS = 0x0042,
+    ERASE_SECURITY_FILE_FAILURES = 0x0050,
+} eSeagateSMARTStatusLogPageParamCode;
+
+static int get_Seagate_SCSI_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats)
+{
+    int ret = NOT_SUPPORTED;
+    if (!seagateDeviceStats)
+    {
+        return BAD_PARAMETER;
+    }
+
+    uint32_t deviceStatsSize = 0;
+    if (SUCCESS == get_SCSI_Log_Size(device, 0x2F, 0x00, &deviceStatsSize))
+    {
+        uint8_t* deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (!deviceStatsLog)
+        {
+            return MEMORY_FAILURE;
+        }
+
+        if (SUCCESS == get_SCSI_Log(device, 0x2F, 0x00, NULL, NULL, true, deviceStatsLog, deviceStatsSize, NULL))
+        {
+            ret = SUCCESS;
+
+            uint16_t pageLength = M_BytesTo2ByteValue(deviceStatsLog[2], deviceStatsLog[3]);
+            uint8_t parameterLength = 0;
+            for (uint16_t iter = 4; iter < pageLength; iter += (parameterLength + 4))
+            {
+                uint16_t parameterCode = M_BytesTo2ByteValue(deviceStatsLog[iter], deviceStatsLog[iter + 1]);
+                parameterLength = deviceStatsLog[iter + 3];
+                switch (parameterCode)
+                {
+                case SANITIZE_CRYPTO_ERASE_STATISTICS:
+                    seagateDeviceStats->sasStatistics.sanitizeCryptoEraseCount.isValueValid = true;
+                    seagateDeviceStats->sasStatistics.sanitizeCryptoEraseCount.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 4], deviceStatsLog[iter + 5], deviceStatsLog[iter + 6], deviceStatsLog[iter + 7]);
+                    if (seagateDeviceStats->sasStatistics.sanitizeCryptoEraseCount.statisticsDataValue != 0)
+                    {
+                        seagateDeviceStats->sasStatistics.sanitizeCryptoEraseTimeStamp.isValueValid = true;
+                        seagateDeviceStats->sasStatistics.sanitizeCryptoEraseTimeStamp.isTimeStampsInMinutes = true;
+                        seagateDeviceStats->sasStatistics.sanitizeCryptoEraseTimeStamp.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 8], deviceStatsLog[iter + 9], deviceStatsLog[iter + 10], deviceStatsLog[iter + 11]);
+                    }
+                    break;
+
+                case SANITIZE_OVERWRITE_STATISTICS:
+                    seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseCount.isValueValid = true;
+                    seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseCount.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 4], deviceStatsLog[iter + 5], deviceStatsLog[iter + 6], deviceStatsLog[iter + 7]);
+                    if (seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseCount.statisticsDataValue != 0)
+                    {
+                        seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseTimeStamp.isValueValid = true;
+                        seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseTimeStamp.isTimeStampsInMinutes = true;
+                        seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseTimeStamp.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 8], deviceStatsLog[iter + 9], deviceStatsLog[iter + 10], deviceStatsLog[iter + 11]);
+                    }
+                    break;
+
+                case SANITIZE_BLOCK_ERASE_STATISTICS:
+                    seagateDeviceStats->sasStatistics.sanitizeBlockEraseCount.isValueValid = true;
+                    seagateDeviceStats->sasStatistics.sanitizeBlockEraseCount.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 4], deviceStatsLog[iter + 5], deviceStatsLog[iter + 6], deviceStatsLog[iter + 7]);
+                    if (seagateDeviceStats->sasStatistics.sanitizeBlockEraseCount.statisticsDataValue != 0)
+                    {
+                        seagateDeviceStats->sasStatistics.sanitizeBlockEraseTimeStamp.isValueValid = true;
+                        seagateDeviceStats->sasStatistics.sanitizeBlockEraseTimeStamp.isTimeStampsInMinutes = true;
+                        seagateDeviceStats->sasStatistics.sanitizeBlockEraseTimeStamp.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 8], deviceStatsLog[iter + 9], deviceStatsLog[iter + 10], deviceStatsLog[iter + 11]);
+                    }
+                    break;
+
+                case ERASE_SECURITY_FILE_FAILURES:
+                    seagateDeviceStats->sasStatistics.eraseSecurityFileFailureCount.isValueValid = true;
+                    seagateDeviceStats->sasStatistics.eraseSecurityFileFailureCount.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 4], deviceStatsLog[iter + 5], deviceStatsLog[iter + 6], deviceStatsLog[iter + 7]);
+                    if (seagateDeviceStats->sasStatistics.eraseSecurityFileFailureCount.statisticsDataValue != 0)
+                    {
+                        seagateDeviceStats->sasStatistics.eraseSecurityFileFailureTimeStamp.isValueValid = true;
+                        seagateDeviceStats->sasStatistics.eraseSecurityFileFailureTimeStamp.isTimeStampsInMinutes = true;
+                        seagateDeviceStats->sasStatistics.eraseSecurityFileFailureTimeStamp.statisticsDataValue = M_BytesTo4ByteValue(deviceStatsLog[iter + 8], deviceStatsLog[iter + 9], deviceStatsLog[iter + 10], deviceStatsLog[iter + 11]);
+                    }
+                    break;
+
+                default:
+                    break;
+                }
+            }
+        }
+
+        safe_Free_aligned(deviceStatsLog)
+    }
+
+    return ret;
+}
+
+int get_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats)
+{
+    int ret = NOT_SUPPORTED;
+    if (!seagateDeviceStats)
+    {
+        return BAD_PARAMETER;
+    }
+
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        return get_Seagate_ATA_DeviceStatistics(device, seagateDeviceStats);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return get_Seagate_SCSI_DeviceStatistics(device, seagateDeviceStats);
+    }
+
+    return ret;
+}
+
+static void print_Count_Statistics(char *statisticsName, seagateStatistic statistics)
+{
+    printf("%-60s", statisticsName);
+    if (statistics.isValueValid)
+        printf("%"PRIu32, statistics.statisticsDataValue);
+    else
+        printf("Not Available");
+    printf("\n");
+}
+
+static void print_TimeStamp_Statistics(char *statisticsName, seagateStatistic statistics)
+{
+    printf("%-60s", statisticsName);
+    if (statistics.isValueValid)
+    {
+        uint64_t timeInMinutes = C_CAST(uint64_t, statistics.statisticsDataValue);
+        if (!statistics.isTimeStampsInMinutes)
+            timeInMinutes *= UINT64_C(60);
+        printf("%"PRIu64" minutes", timeInMinutes);
+    }
+    else
+        printf("Not Available");
+    printf("\n");
+}
+
+static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagateDeviceStats)
+{
+    if (!seagateDeviceStats)
+    {
+        return;
+    }
+
+    printf("===Seagate Device Statistics===\n");
+
+    printf(" %-60s %-16s\n", "Statistic Name:", "Value:");
+    uint8_t maxLogEntries = seagateDeviceStats->sataStatistics.version;
+    for (uint8_t logEntry = 0; logEntry < maxLogEntries; ++logEntry)
+    {
+        switch (logEntry)
+        {
+        case 0:
+            print_Count_Statistics("Sanitize Crypto Erase Count", seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount);
+            break;
+
+        case 1:
+            print_TimeStamp_Statistics("Sanitize Crypto Erase Timestamp", seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp);
+            break;
+
+        case 2:
+            print_Count_Statistics("Sanitize Overwrite Count", seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount);
+            break;
+
+        case 3:
+            print_TimeStamp_Statistics("Sanitize Overwrite Timestamp", seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp);
+            break;
+
+        case 4:
+            print_Count_Statistics("Sanitize Block Erase Count", seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount);
+            break;
+
+        case 5:
+            print_TimeStamp_Statistics("Sanitize Block Erase Timestamp", seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp);
+            break;
+
+        case 6:
+            print_Count_Statistics("ATA Security Erase Unit Count", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount);
+            break;
+
+        case 7:
+            print_TimeStamp_Statistics("ATA Security Erase Unit Timestamp", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp);
+            break;
+
+        case 8:
+            print_Count_Statistics("Erase Security File Failure Count", seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount);
+            break;
+
+        case 9:
+            print_TimeStamp_Statistics("Erase Security File Failure Timestamp", seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp);
+            break;
+
+        case 10:
+            print_Count_Statistics("ATA Security Erase Unit Enhanced Count", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount);
+            break;
+
+        case 11:
+            print_TimeStamp_Statistics("ATA Security Erase Unit Enhanced Timestamp", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp);
+            break;
+
+        case 12:
+            print_Count_Statistics("Sanitize Crypto Erase Failure Count", seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount);
+            break;
+
+        case 13:
+            print_TimeStamp_Statistics("Sanitize Crypto Erase Failure Timestamp", seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp);
+            break;
+
+        case 14:
+            print_Count_Statistics("Sanitize Overwrite Failure Count", seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount);
+            break;
+
+        case 15:
+            print_TimeStamp_Statistics("Sanitize Overwrite Failure Timestamp", seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp);
+            break;
+
+        case 16:
+            print_Count_Statistics("Sanitize Block Erase Failure Count", seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount);
+            break;
+
+        case 17:
+            print_TimeStamp_Statistics("Sanitize Block Erase Failure Timestamp", seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp);
+            break;
+
+        case 18:
+            print_Count_Statistics("ATA Security Erase Unit Failure Count", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount);
+            break;
+
+        case 19:
+            print_TimeStamp_Statistics("ATA Security Erase Unit Failure Timestamp", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp);
+            break;
+
+        case 20:
+            print_Count_Statistics("ATA Security Erase Unit Enhanced Failure Count", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount);
+            break;
+
+        case 21:
+            print_TimeStamp_Statistics("ATA Security Erase Unit Enhanced Failure Timestamp", seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp);
+            break;
+
+        default:
+            break;
+        }
+    }
+    printf("\n\n");
+
+    //latest result for Sanitize Crypto 
+    if (seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isValueValid)
+    {
+        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        if (seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+        if (seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+
+        if (timestampInMinutesForPass != 0 && timestampInMinutesForFail != 0)
+        {
+            if (timestampInMinutesForPass > timestampInMinutesForFail)
+                printf("Last Sanitize Crypto Erase Passed.\n");
+            else
+                printf("Last Sanitize Crypto Erase Failed.\n");
+        }
+    }
+    else if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isValueValid)
+        printf("Last Sanitize Crypto Erase Passed.\n");
+    else if (seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isValueValid)
+        printf("Last Sanitize Crypto Erase Failed.\n");
+
+    //latest result for Sanitize Overwrite 
+    if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isValueValid)
+    {
+        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+        if (seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+
+        if (timestampInMinutesForPass != 0 && timestampInMinutesForFail != 0)
+        {
+            if (timestampInMinutesForPass > timestampInMinutesForFail)
+                printf("Last Sanitize Overwrite Erase Passed.\n");
+            else
+                printf("Last Sanitize Overwrite Erase Failed.\n");
+        }
+    }
+    else if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isValueValid)
+        printf("Last Sanitize Overwrite Erase Passed.\n");
+    else if (seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isValueValid)
+        printf("Last Sanitize Overwrite Erase Failed.\n");
+
+    //latest result for Sanitize Block 
+    if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isValueValid)
+    {
+        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+        if (seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+
+        if (timestampInMinutesForPass != 0 && timestampInMinutesForFail != 0)
+        {
+            if (timestampInMinutesForPass > timestampInMinutesForFail)
+                printf("Last Sanitize Block Erase Passed.\n");
+            else
+                printf("Last Sanitize Block Erase Failed.\n");
+        }
+    }
+    else if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isValueValid)
+        printf("Last Sanitize Block Erase Passed.\n");
+    else if (seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isValueValid
+        && seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isValueValid)
+        printf("Last Sanitize Block Erase Failed.\n");
+
+    //latest result for Ata Security Erase Unit 
+    if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isValueValid)
+    {
+        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+        if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+
+        if (timestampInMinutesForPass != 0 && timestampInMinutesForFail != 0)
+        {
+            if (timestampInMinutesForPass > timestampInMinutesForFail)
+                printf("Last ATA Security Erase Unit Passed.\n");
+            else
+                printf("Last ATA Security Erase Unit Failed.\n");
+        }
+    }
+    else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isValueValid)
+        printf("Last ATA Security Erase Unit Passed.\n");
+    else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isValueValid
+        && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isValueValid)
+        printf("Last ATA Security Erase Unit Failed.\n");
+
+    //latest result for Ata Security Erase Unit Enhanced 
+    if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isValueValid)
+    {
+        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+        if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isValueValid)
+        {
+            timestampInMinutesForPass = seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isTimeStampsInMinutes
+                ? seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.statisticsDataValue
+                : seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.statisticsDataValue * UINT64_C(60);
+        }
+
+        if (timestampInMinutesForPass != 0 && timestampInMinutesForFail != 0)
+        {
+            if (timestampInMinutesForPass > timestampInMinutesForFail)
+                printf("Last ATA Security Erase Unit Enhanced Passed.\n");
+            else
+                printf("Last ATA Security Erase Unit Enhanced Failed.\n");
+        }
+    }
+    else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid
+        && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isValueValid)
+        printf("Last ATA Security Erase Unit Enhanced Passed.\n");
+    else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isValueValid
+        && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isValueValid)
+        printf("Last ATA Security Erase Unit Enhanced Failed.\n");
+
+    return;
+}
+
+static void print_Seagate_SCSI_DeviceStatistics(ptrSeagateDeviceStatistics seagateDeviceStats)
+{
+    if (!seagateDeviceStats)
+    {
+        return;
+    }
+
+    printf("\n\n===Seagate Device Statistics===\n");
+
+    printf(" %-60s %-16s\n", "Statistic Name:", "Value:");
+    print_Count_Statistics("Sanitize Crypo Erase Count", seagateDeviceStats->sasStatistics.sanitizeCryptoEraseCount);
+    print_TimeStamp_Statistics("Sanitize Crypo Erase Requested Time", seagateDeviceStats->sasStatistics.sanitizeCryptoEraseTimeStamp);
+
+    print_Count_Statistics("Sanitize Overwrite Erase Count", seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseCount);
+    print_TimeStamp_Statistics("Sanitize Overwrite Erase Requested Time", seagateDeviceStats->sasStatistics.sanitizeOverwriteEraseTimeStamp);
+
+    print_Count_Statistics("Sanitize Block Erase Count", seagateDeviceStats->sasStatistics.sanitizeBlockEraseCount);
+    print_TimeStamp_Statistics("Sanitize Block Erase Requested Time", seagateDeviceStats->sasStatistics.sanitizeBlockEraseTimeStamp);
+
+    print_Count_Statistics("Erase Security File Failures Count", seagateDeviceStats->sasStatistics.eraseSecurityFileFailureCount);
+    print_TimeStamp_Statistics("Erase Security File Failures Requested Time", seagateDeviceStats->sasStatistics.eraseSecurityFileFailureTimeStamp);
+}
+
+void print_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        print_Seagate_ATA_DeviceStatistics(seagateDeviceStats);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        print_Seagate_SCSI_DeviceStatistics(seagateDeviceStats);
+    }
+}

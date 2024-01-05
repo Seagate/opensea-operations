@@ -779,12 +779,19 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
 
     bool enhancedEraseAddedToList = false;
     //maybe enhanced ata security erase (check time...if it's set to 2 minutes, then that is the lowest possible time and likely a TCG drive doing a crypto erase)
-    if (ataSecurityInfo.enhancedEraseSupported && ataSecurityInfo.enhancedSecurityEraseUnitTimeMinutes == 2 && !ataSecurityInfo.securityEnabled)
+    if (ataSecurityInfo.enhancedEraseSupported && ataSecurityInfo.enhancedSecurityEraseUnitTimeMinutes == 2)
     {
         enhancedEraseAddedToList = true;
         currentErase->eraseIdentifier = ERASE_ATA_SECURITY_ENHANCED;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
-        snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
+        if (ataSecurityInfo.securityEnabled)
+        {
+            snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Provide the password used to enable the security or disable it via BIOS/UEFI first.");
+        }
+        else
+        {
+            snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
+        }
         currentErase->warningValid = true;
         currentErase->eraseWeight = 5;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -844,7 +851,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     }
 
     //ata security - normal &| enhanced (check times)
-    if (!ataSecurityInfo.securityEnabled && ataSecurityInfo.securitySupported)
+    if (ataSecurityInfo.securitySupported)
     {
         if (!enhancedEraseAddedToList && ataSecurityInfo.enhancedEraseSupported && ataSecurityInfo.enhancedSecurityEraseUnitTimeMinutes <= ataSecurityInfo.securityEraseUnitTimeMinutes)
         {
@@ -853,7 +860,14 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             enhancedEraseAddedToList = true;
             currentErase->eraseIdentifier = ERASE_ATA_SECURITY_ENHANCED;
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
-            snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
+            if (ataSecurityInfo.securityEnabled)
+            {
+                snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Provide the password used to enable the security or disable it via BIOS/UEFI first.");
+            }
+            else
+            {
+                snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Requires setting device password. Password cleared upon success.");
+            }
             currentErase->warningValid = true;
             currentErase->eraseWeight = 10;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
