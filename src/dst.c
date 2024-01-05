@@ -651,6 +651,12 @@ static int get_SMART_Offline_Status(tDevice* device, uint8_t *status)
     return ret;
 }
 
+//NOTE: During my testing, even a drive that doesn't "abort" due to a command interruption never continues when trying to poll.
+//      But the "in progress" wasn't added until ATA/ATAPI-7, so the polling may need to be restricted to drives with that
+//      standard compliance. The drive I have been testing is older and does not support that and does not seem to ever
+//      restart on its own. The standards just say it restarts after a "vendor specific event".
+//      Because of this, the polling code is removed entirely unless the following #define is set to reenable it. -TJE
+//#define ENABLE_SMART_OFFLINE_ROUTINE_POLLING 1
 int run_SMART_Offline(tDevice* device)
 {
     int ret = NOT_SUPPORTED;
@@ -664,6 +670,14 @@ int run_SMART_Offline(tDevice* device)
             uint8_t hours = 0, minutes = 0, seconds = 0;
             convert_Seconds_To_Displayable_Time(offlineTimeInSeconds, NULL, NULL, &hours, &minutes, &seconds);
             printf("Data Collection time: %2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds\n", hours, minutes, seconds);
+            if (abortRestart)
+            {
+                printf("\tInterrupting commands will cause data collection to abort and will require manually restarting.\n");
+            }
+            else
+            {
+                printf("\tInterrupting commands will cause data collection to suspend and will restart after a vendor specific event.\n");
+            }
             time_t currentTime = time(NULL);
             time_t futureTime = get_Future_Date_And_Time(currentTime, offlineTimeInSeconds);
             char timeFormat[TIME_STRING_LENGTH] = { 0 };
@@ -674,16 +688,23 @@ int run_SMART_Offline(tDevice* device)
                 uint8_t status = 0;
                 //count down for the abount of time the drive reports for how long this should take
                 uint16_t countDownSecondsRemaining = offlineTimeInSeconds;
+#if defined ENABLE_SMART_OFFLINE_ROUTINE_POLLING
                 bool inProgress = true;
                 uint16_t pollingTime = offlineTimeInSeconds / 10;//attempting to check enough times that it's in 10% increments, even though the device will not tell us a real percent complete here.
                 uint16_t pollCounter = 0;
-                while (countDownSecondsRemaining > 0 && inProgress)
+#endif //ENABLE_SMART_OFFLINE_ROUTINE_POLLING
+                while (countDownSecondsRemaining > 0
+#if defined ENABLE_SMART_OFFLINE_ROUTINE_POLLING
+                    && inProgress
+#endif //ENABLE_SMART_OFFLINE_ROUTINE_POLLING
+                    )
                 {
                     convert_Seconds_To_Displayable_Time(countDownSecondsRemaining, NULL, NULL, &hours, &minutes, &seconds);
                     printf("\r%2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds remaining", hours, minutes, seconds);
                     fflush(stdout);
                     delay_Seconds(1);
                     --countDownSecondsRemaining;
+#if defined ENABLE_SMART_OFFLINE_ROUTINE_POLLING
                     ++pollCounter;
                     if (!abortRestart && pollCounter == pollingTime)
                     {
@@ -706,6 +727,9 @@ int run_SMART_Offline(tDevice* device)
                             case 0x84:
                                 //command "suspended" can be returned just by making the query to get progress.
                                 //So treat this case as "in progress" as well and do not stop.
+                                //SEE NOTE above. This does not seem to work like expected as this never seems to restart -TJE
+                                inProgress = false;
+                                break;
                             case 3:
                                 //still in progress. No need to stop.
                                 break;
@@ -719,7 +743,10 @@ int run_SMART_Offline(tDevice* device)
                         //else just let it keep running for the time the drive reported earlier.
                         pollCounter = 0;
                     }
+#endif //ENABLE_SMART_OFFLINE_ROUTINE_POLLING
                 }
+                //print this to finish the countdown to zero.-TJE
+                printf("\r 0 hours,  0 minutes,  0 seconds remaining\n");
                 if (SUCCESS == get_SMART_Offline_Status(device, &status))
                 {
                     printf("\nSMART Off-line data collection ");
