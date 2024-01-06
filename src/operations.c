@@ -1039,28 +1039,6 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     return;
 }
 
-int enable_Disable_PUIS_Feature(tDevice *device, bool enable)
-{
-    int ret = NOT_SUPPORTED;
-    if(device->drive_info.drive_type == ATA_DRIVE)
-    {
-    
-        //check the identify bits to make sure PUIS is supported.
-        if(device->drive_info.IdentifyData.ata.Word083 & BIT5)
-        {
-            if(enable)
-            {
-                ret = ata_Set_Features(device, SF_ENABLE_PUIS_FEATURE, 0, 0, 0, 0);
-            }
-            else
-            {
-                ret = ata_Set_Features(device, SF_DISABLE_PUIS_FEATURE, 0, 0, 0, 0);
-            }
-        }
-    }
-    return ret;
-}
-
 int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
 {
     int ret = NOT_SUPPORTED;
