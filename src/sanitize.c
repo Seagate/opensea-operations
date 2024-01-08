@@ -419,6 +419,7 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
     double percentComplete = 0;
     eSanitizeStatus sanitizeInProgress = 0;
     bool sendExitFailureMode = false;
+    bool allowUnrestrictedSanitizeExit = false;//TODO: Make this a user selectable parameter. Setting to false to match previous behavior until this is user selectable.
     //first check if a sanitize test is in progress (and that the drive isn't frozen or in a failure state)
     ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
     if (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS || ret == IN_PROGRESS)
@@ -440,7 +441,13 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
         ret = send_Sanitize_Exit_Failure_Mode(device);
         if (ret != SUCCESS)
         {
-            return ret;
+            ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
+            if (sanitizeInProgress == SANITIZE_STATUS_FAILED || sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
+            {
+                //need to run the sanitize command in restricted exit mode, so you can only get it to run by reissuing the command in restricted mode again.
+                allowUnrestrictedSanitizeExit = false;
+                //TODO: If this becomes a user selectable option, need to return and tell the user to run in restricted mode rather than doing this automatically.-TJE
+            }
         }
     }
 
@@ -454,15 +461,15 @@ int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperatio
     switch (sanitizeOperation)
     {
     case SANITIZE_BLOCK_ERASE:
-        ret = send_Sanitize_Block_Erase(device, false, false);
+        ret = send_Sanitize_Block_Erase(device, allowUnrestrictedSanitizeExit, false);
         delayTime = 1;
         break;
     case SANITIZE_CRYPTO_ERASE:
-        ret = send_Sanitize_Crypto_Erase(device, false, false);
+        ret = send_Sanitize_Crypto_Erase(device, allowUnrestrictedSanitizeExit, false);
         delayTime = 1;
         break;
     case SANITIZE_OVERWRITE_ERASE:
-        ret = send_Sanitize_Overwrite_Erase(device, false, false, UINT8_C(1), pattern, C_CAST(uint16_t, patternLength), false);
+        ret = send_Sanitize_Overwrite_Erase(device, allowUnrestrictedSanitizeExit, false, UINT8_C(1), pattern, C_CAST(uint16_t, patternLength), false);
         delayTime = 600;//this is 10 minute delay between progress updates
         break;
     case SANTIZIE_FREEZE_LOCK:
