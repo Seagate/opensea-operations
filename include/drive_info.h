@@ -308,62 +308,6 @@ extern "C"
         };
     }driveInformation, *ptrDriveInformation;
 
-    typedef struct _capacityModelDescriptor
-    {
-        uint64_t capacityMaxAddress;
-        char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
-    }capacityModelDescriptor, *ptrDriveCapacityModelDescriptor;
-
-    typedef struct _capacityModelNumberMapping
-    {
-        uint32_t numberOfDescriptors;
-        capacityModelDescriptor descriptor[1];//NOTE: This must be allocated based on how many descriptors are actually available! ex: malloc(sizeof(capacityModelNumberMapping) + (get_capacityModelDescriptor_Count() * sizeof(capacityModelDescriptor)));
-    }capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
-
-    //-----------------------------------------------------------------------------
-    //
-    //  is_Change_Identify_String_Supported(tDevice *device)
-    //
-    //! \brief   Description:  Checks if the device supports Change ID Strings.
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!
-    //  Exit:
-    //!   \return true = changing sector size supported, false = not supported
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Change_Identify_String_Supported(tDevice *device);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  get_Capacity_Model_Number_Mapping(tDevice* device)
-    //
-    //! \brief   Description:  This function fills in Capacity/Product Mapping
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!
-    //  Exit:
-    //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = NULL.
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
-    //
-    //! \brief   Description:  This function free allocated Capacity/Product Mapping
-    //
-    //  Entry:
-    //!   \param[in] capModelMapping = pointer to the struct to fill in with Capacity/Product Mapping
-    //!
-    //  Exit:
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
-
     //-----------------------------------------------------------------------------
     //
     //  get_ATA_Drive_Information(tDevice *device, ptrDriveInformation driveInfo)
@@ -478,20 +422,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int print_Drive_Information(tDevice *device, bool showChildInformation);
-
-    //-----------------------------------------------------------------------------
-    //
-    //  print_Capacity_Model_Number_Mapping()
-    //
-    //! \brief   Description:  This function prints capacity Model number mapping information
-    //
-    //  Entry:
-    //!   \param[in] capModelMapping = pointer to the struct to fill in with Capacity/Product Mapping
-    //!
-    //  Exit:
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
 
     //-----------------------------------------------------------------------------
     //
