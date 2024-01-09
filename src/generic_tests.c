@@ -81,7 +81,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
         {
             switch (rwvCommand)
             {
-            case RWV_COMMAND_WRITE: 
+            case RWV_COMMAND_WRITE:
                 printf("\rWriting LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                 break;
             case RWV_COMMAND_READ:
@@ -108,7 +108,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
                 {
                     switch (rwvCommand)
                     {
-                    case RWV_COMMAND_WRITE: 
+                    case RWV_COMMAND_WRITE:
                         printf("\rWriting LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
                         break;
                     case RWV_COMMAND_READ:
@@ -140,7 +140,7 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
     {
         switch (rwvCommand)
         {
-        case RWV_COMMAND_WRITE: 
+        case RWV_COMMAND_WRITE:
             printf("\rWriting LBA: %-20"PRIu64"", lbaIter);//20 wide is the max width for a unsigned 64bit number
             break;
         case RWV_COMMAND_READ:
@@ -250,7 +250,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
                 snprintf(message, 256, "Unknown failed within OD sequential read");
                 break;
             }
-            printf("\n%s\n",message);
+            printf("\n%s\n", message);
         }
         safe_Free(randomLBAList)
         return ret;
@@ -299,7 +299,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
                 snprintf(message, 256, "Unknown failed within ID sequential read");
                 break;
             }
-            printf("\n%s\n",message);
+            printf("\n%s\n", message);
         }
         safe_Free(randomLBAList)
         return ret;
@@ -982,7 +982,7 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\nError occured at LBA %"PRIu64"\n",errorList[0].errorAddress);
+            printf("\nError occured at LBA %"PRIu64"\n", errorList[0].errorAddress);
         }
     }
     else
@@ -1488,7 +1488,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1546,7 +1547,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     //ID
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1606,7 +1608,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     seed_64(time(NULL));//start random number generator
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1666,7 +1669,8 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
     innerLBA -= sectorCount;// -ODEndingLBA;
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0, seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1851,7 +1855,7 @@ static int diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwvCommand, u
     {
         printf("\n");
     }
-    
+
     return ret;
 }
 
@@ -1880,7 +1884,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
             printf("\n");
         }
     }
-    if(outerRet != SUCCESS && ret == SUCCESS)
+    if (outerRet != SUCCESS && ret == SUCCESS)
     {
         ret = outerRet;
     }
@@ -1897,7 +1901,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
             printf("\n");
         }
     }
-    if(middleRet != SUCCESS && ret == SUCCESS)
+    if (middleRet != SUCCESS && ret == SUCCESS)
     {
         ret = middleRet;
     }
@@ -1914,7 +1918,7 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
             printf("\n");
         }
     }
-    if(innerRet != SUCCESS && ret == SUCCESS)
+    if (innerRet != SUCCESS && ret == SUCCESS)
     {
         ret = innerRet;
     }
@@ -2058,7 +2062,7 @@ static int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, ui
                 {
                     switch (rwvCommand)
                     {
-                    case RWV_COMMAND_WRITE: 
+                    case RWV_COMMAND_WRITE:
                         printf("\rWriting LBA: %-20"PRIu64"", startingLBA);//20 wide is the max width for a unsigned 64bit number
                         break;
                     case RWV_COMMAND_READ:
@@ -2096,7 +2100,7 @@ static int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, ui
             continue;//continuing here since startingLBA will get incremented beyond the error so we pick up where we left off.
         }
         startingLBA += sectorCount;
-        
+
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
     {
@@ -2135,7 +2139,8 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
     errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
     uint64_t odOrMdLBAsAccessed = 0;
-    uint8_t days = 0, hours = 0, minutes = 0, seconds = 0;
+    uint16_t days = 0;
+    uint8_t hours = 0, minutes = 0, seconds = 0;
     convert_Seconds_To_Displayable_Time(timeInSecondsPerDiameter, NULL, &days, &hours, &minutes, &seconds);
 
     //OD
@@ -2153,7 +2158,7 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
             printf("\n");
         }
     }
-    if(outerRet != SUCCESS && ret == SUCCESS)
+    if (outerRet != SUCCESS && ret == SUCCESS)
     {
         ret = outerRet;
     }
@@ -2179,7 +2184,7 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
         }
         odOrMdLBAsAccessed = (odOrMdLBAsAccessed > mdLBAsAccessed) ? odOrMdLBAsAccessed : mdLBAsAccessed;//get the higher of these two counts.
     }
-    if(middleRet != SUCCESS && ret == SUCCESS)
+    if (middleRet != SUCCESS && ret == SUCCESS)
     {
         ret = middleRet;
     }
@@ -2205,7 +2210,7 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
             printf("\n");
         }
     }
-    if(innerRet != SUCCESS && ret == SUCCESS)
+    if (innerRet != SUCCESS && ret == SUCCESS)
     {
         ret = innerRet;
     }
@@ -2269,4 +2274,316 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
     }
     safe_Free(errorList)
     return ret;
+}
+
+int zero_Verify_Test(tDevice * device, eZeroVerifyTestType zeroVerifyTestType, bool hideLBACounter)
+{
+    if (zeroVerifyTestType == ZERO_VERIFY_TYPE_FULL)
+        return full_Zero_Verify_Test(device, hideLBACounter);
+    else if (zeroVerifyTestType == ZERO_VERIFY_TYPE_QUICK)
+        return quick_Zero_Verify_Test(device, hideLBACounter);
+    else
+        return BAD_PARAMETER;
+}
+
+int full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
+{
+    uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
+
+    for (uint64_t lbaIterator = 0; lbaIterator < device->drive_info.deviceMaxLba; lbaIterator += sectorCount)
+    {
+        uint32_t lbaRange = C_CAST(uint32_t, ((lbaIterator + sectorCount) > device->drive_info.deviceMaxLba) ? (device->drive_info.deviceMaxLba - lbaIterator) : sectorCount);
+        uint32_t bufferSize = device->drive_info.deviceBlockSize * lbaRange;
+        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (!dataBuffer)
+        {
+            perror("\nfailed to allocate memory for reading data\n");
+            return MEMORY_FAILURE;
+        }
+
+        if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+        {
+            printf("\rReading LBA: %-20"PRIu64"", lbaIterator);
+            fflush(stdout);
+        }
+
+        if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, lbaIterator, dataBuffer, bufferSize))
+        {
+            //Validate it against zero buffer
+            uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!validationBuffer)
+            {
+                perror("\nfailed to allocate memory for validation data\n");
+                safe_Free_aligned(dataBuffer)
+                return MEMORY_FAILURE;
+            }
+
+            if (memcmp(validationBuffer, dataBuffer, bufferSize))
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("\nValidation Failed for LBA Range : %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
+                }
+                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(validationBuffer)
+                return VALIDATION_FAILURE;
+            }
+            safe_Free_aligned(validationBuffer)
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("\nRead failed at LBA %-20"PRIu64"\n", lbaIterator);
+            }
+            safe_Free_aligned(dataBuffer)
+            return FAILURE;
+        }
+        safe_Free_aligned(dataBuffer)
+    }
+
+    printf("\n");
+    return SUCCESS;
+}
+
+#define DRIVE_CAPACITY_PERCENTAGE       0.1             //0.1 percentage
+#define DRIVE_SECTIONS                  10000           //divide drive into these many sections and then pick 2 random LBA from each section
+
+int quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
+{
+    uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
+    uint64_t totalLBAToRead = C_CAST(uint64_t, (device->drive_info.deviceMaxLba * 0.01 * DRIVE_CAPACITY_PERCENTAGE));        //for OD/ID
+    uint64_t startLBA = 0, endLBA = 0;
+
+    //0.1% OD Validation
+    startLBA = 0; endLBA = align_LBA(device, totalLBAToRead);
+    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    {
+        printf("\nSequential Verification Test at OD for %0.2f%% Capacity\n", DRIVE_CAPACITY_PERCENTAGE);
+    }
+    for (uint64_t lbaIterator = startLBA; lbaIterator < endLBA; lbaIterator += sectorCount)
+    {
+        uint32_t lbaRange = C_CAST(uint32_t, ((lbaIterator + sectorCount) > device->drive_info.deviceMaxLba) ? (device->drive_info.deviceMaxLba - lbaIterator) : sectorCount);
+        uint32_t bufferSize = device->drive_info.deviceBlockSize * lbaRange;
+        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (!dataBuffer)
+        {
+            perror("\nfailed to allocate memory for reading data\n");
+            return MEMORY_FAILURE;
+        }
+
+        if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+        {
+            printf("\rReading LBA: %-20"PRIu64"", lbaIterator);
+            fflush(stdout);
+        }
+
+        if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, lbaIterator, dataBuffer, bufferSize))
+        {
+            //Validate it against zero buffer
+            uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!validationBuffer)
+            {
+                perror("\nfailed to allocate memory for validation data\n");
+                safe_Free_aligned(dataBuffer)
+                return MEMORY_FAILURE;
+            }
+
+            if (memcmp(validationBuffer, dataBuffer, bufferSize))
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("\nValidation Failed for LBA Range: %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
+                }
+                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(validationBuffer)
+                return VALIDATION_FAILURE;
+            }
+            safe_Free_aligned(validationBuffer)
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("\nRead failed at LBA %-20"PRIu64"\n", lbaIterator);
+            }
+            safe_Free_aligned(dataBuffer)
+            return FAILURE;
+        }
+        safe_Free_aligned(dataBuffer)
+    }
+
+    //0.1% ID Validation
+    startLBA = align_LBA(device, (device->drive_info.deviceMaxLba - totalLBAToRead)); endLBA = device->drive_info.deviceMaxLba;
+    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    {
+        printf("\nSequential Verification Test at ID for %0.2f%% Capacity\n", DRIVE_CAPACITY_PERCENTAGE);
+    }
+    for (uint64_t lbaIterator = startLBA; lbaIterator < endLBA; lbaIterator += sectorCount)
+    {
+        uint32_t lbaRange = C_CAST(uint32_t, ((lbaIterator + sectorCount) > device->drive_info.deviceMaxLba) ? (device->drive_info.deviceMaxLba - lbaIterator) : sectorCount);
+        uint32_t bufferSize = device->drive_info.deviceBlockSize * lbaRange;
+        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (!dataBuffer)
+        {
+            perror("\nfailed to allocate memory for reading data\n");
+            return MEMORY_FAILURE;
+        }
+
+        if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+        {
+            printf("\rReading LBA: %-20"PRIu64"", lbaIterator);
+            fflush(stdout);
+        }
+
+        if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, lbaIterator, dataBuffer, bufferSize))
+        {
+            //Validate it against zero buffer
+            uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!validationBuffer)
+            {
+                perror("\nfailed to allocate memory for validation data\n");
+                safe_Free_aligned(dataBuffer)
+                return MEMORY_FAILURE;
+            }
+
+            if (memcmp(validationBuffer, dataBuffer, bufferSize))
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("\nValidation Failed for LBA Range: %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
+                }
+                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(validationBuffer)
+                return VALIDATION_FAILURE;
+            }
+            safe_Free_aligned(validationBuffer)
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("\nRead failed at LBA %-20"PRIu64"\n", lbaIterator);
+            }
+            safe_Free_aligned(dataBuffer)
+            return FAILURE;
+        }
+        safe_Free_aligned(dataBuffer)
+    }
+
+    //Random Section Validation
+    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    {
+        printf("\nVerification Test for Random LBAs from %"PRId32" sections\n", DRIVE_SECTIONS);
+    }
+    uint64_t randomLBA = UINT64_MAX;
+    uint64_t randomLBASectionSize = C_CAST(uint64_t, device->drive_info.deviceMaxLba / DRIVE_SECTIONS);
+    seed_64(time(NULL));
+    for (uint64_t sectionCounter = 0, counter = 0; sectionCounter < DRIVE_SECTIONS; sectionCounter++, counter += 2)
+    {
+        //first random LBA from section
+        {
+            randomLBA = align_LBA(device, random_Range_64((sectionCounter * randomLBASectionSize), ((sectionCounter + 1) * randomLBASectionSize)));
+            if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+            {
+                printf("\rReading LBA: %-20"PRIu64"", randomLBA);
+                fflush(stdout);
+            }
+
+            uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!dataBuffer)
+            {
+                perror("\nfailed to allocate memory for reading data\n");
+                return MEMORY_FAILURE;
+            }
+
+            if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, randomLBA, dataBuffer, device->drive_info.deviceBlockSize))
+            {
+                //Validate it against zero buffer
+                uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!validationBuffer)
+                {
+                    perror("\nfailed to allocate memory for validation data\n");
+                    safe_Free_aligned(dataBuffer)
+                    return MEMORY_FAILURE;
+                }
+
+                if (memcmp(validationBuffer, dataBuffer, device->drive_info.deviceBlockSize))
+                {
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        printf("\nValidation Failed for LBA: %-20"PRIu64"\n", randomLBA);
+                    }
+                    safe_Free_aligned(dataBuffer)
+                    safe_Free_aligned(validationBuffer)
+                    return VALIDATION_FAILURE;
+                }
+                safe_Free_aligned(validationBuffer)
+            }
+            else
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("\nRead failed at LBA %-20"PRIu64"\n", randomLBA);
+                }
+                safe_Free_aligned(dataBuffer)
+                return FAILURE;
+            }
+            safe_Free_aligned(dataBuffer)
+        }
+
+        //second random LBA from section
+        {
+            randomLBA = align_LBA(device, random_Range_64((sectionCounter * randomLBASectionSize), ((sectionCounter + 1) * randomLBASectionSize)));
+            if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+            {
+                printf("\rReading LBA: %-20"PRIu64"", randomLBA);
+                fflush(stdout);
+            }
+
+            uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!dataBuffer)
+            {
+                perror("\nfailed to allocate memory for reading data\n");
+                return MEMORY_FAILURE;
+            }
+
+            if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, randomLBA, dataBuffer, device->drive_info.deviceBlockSize))
+            {
+                //Validate it against zero buffer
+                uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!validationBuffer)
+                {
+                    perror("\nfailed to allocate memory for validation data\n");
+                    safe_Free_aligned(dataBuffer)
+                    return MEMORY_FAILURE;
+                }
+
+                if (memcmp(validationBuffer, dataBuffer, device->drive_info.deviceBlockSize))
+                {
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        printf("\nValidation Failed for LBA: %-20"PRIu64"\n", randomLBA);
+                    }
+                    safe_Free_aligned(dataBuffer);
+                    safe_Free_aligned(validationBuffer);
+                    return VALIDATION_FAILURE;
+                }
+                safe_Free_aligned(validationBuffer);
+            }
+            else
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("\nRead failed at LBA %-20"PRIu64"\n", randomLBA);
+                }
+                safe_Free_aligned(dataBuffer)
+                return FAILURE;
+            }
+            safe_Free_aligned(dataBuffer)
+        }
+    }
+
+    printf("\n");
+    return SUCCESS;
 }

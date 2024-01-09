@@ -3051,3 +3051,72 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
     printf("\n");
     return;
 }
+
+int get_PUIS_Info(tDevice* device, ptrPuisInfo info)
+{
+    int ret = NOT_SUPPORTED;
+    if (!info)
+    {
+        return BAD_PARAMETER;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = SUCCESS;
+        //set everything to false then verify the identify bits
+        info->puisSupported = false;
+        info->puisEnabled = false;
+        info->spinupCommandRequired = false;
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT5)
+        {
+            info->puisSupported = true;
+        }
+        if (device->drive_info.IdentifyData.ata.Word086 & BIT5)
+        {
+            info->puisEnabled = true;
+        }
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT6 || device->drive_info.IdentifyData.ata.Word086 & BIT6)
+        {
+            info->spinupCommandRequired = true;
+        }
+    }
+    return ret;
+}
+
+int enable_Disable_PUIS_Feature(tDevice* device, bool enable)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure PUIS is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT5)
+        {
+            if (enable)
+            {
+                ret = ata_Set_Features(device, SF_ENABLE_PUIS_FEATURE, 0, 0, 0, 0);
+            }
+            else
+            {
+                ret = ata_Set_Features(device, SF_DISABLE_PUIS_FEATURE, 0, 0, 0, 0);
+            }
+        }
+    }
+    return ret;
+}
+
+int puis_Spinup(tDevice* device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        //check the identify bits to make sure PUIS is supported.
+        if (device->drive_info.IdentifyData.ata.Word083 & BIT5 && device->drive_info.IdentifyData.ata.Word083 & BIT6)
+        {
+            ret = ata_Set_Features(device, SF_PUIS_DEVICE_SPIN_UP, 0, 0, 0, 0);
+        }
+        else
+        {
+            //this command is not required to spinup the drive. Any media access will spin it up.
+        }
+    }
+    return ret;
+}

@@ -319,6 +319,8 @@ extern "C"
 
     OPENSEA_OPERATIONS_API bool is_Selective_Self_Test_Supported(tDevice* device);
 
+    OPENSEA_OPERATIONS_API int run_SMART_Offline(tDevice* device);
+
 #if defined (__cplusplus)
 }
 #endif

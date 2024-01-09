@@ -166,6 +166,7 @@ extern "C"
         bool worldWideNameExtensionValid;//NAA = 6
         temperatureInformation temperatureData;
         humidityInformation humidityData;//SCSI only. Only available when SBC4 or SPC5 are supported
+        bool powerOnMinutesValid;//check this to make sure the time is valid. It is possible this is zero on a brand new out of the box product
         uint64_t powerOnMinutes;
         uint64_t maxLBA;
         uint64_t nativeMaxLBA;//ATA Only since SCSI doesn't have a way to get the native max without changing the drive (not ok to do for this function) if set to 0, or UINT64_MAX, then the value is invalid

@@ -371,7 +371,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int long_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter);
-    
+
     //-----------------------------------------------------------------------------
     //
     //  user_Sequential_Read_Test()
@@ -648,6 +648,34 @@ extern "C"
     OPENSEA_OPERATIONS_API int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bool middle, bool inner, uint64_t timeInSecondsPerDiameter, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, bool hideLBACounter);
 
     OPENSEA_OPERATIONS_API int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+
+    typedef enum _eZeroVerifyTestType
+    {
+        ZERO_VERIFY_TYPE_FULL,
+        ZERO_VERIFY_TYPE_QUICK,
+        ZERO_VERIFY_TYPE_INVALID
+    } eZeroVerifyTestType;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  zero_Verify_Test()
+    //
+    //! \brief   Description:  This function performs a zero pattern verification with read and validate it against "zero". This will return on first "zero" mismatch
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] zeroVerifyTestType = enum value specifying which mode for zero verification to run
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int zero_Verify_Test(tDevice *device, eZeroVerifyTestType zeroVerifyTestType, bool hideLBACounter);
+
+    OPENSEA_OPERATIONS_API int full_Zero_Verify_Test(tDevice *device, bool hideLBACounter);
+
+    OPENSEA_OPERATIONS_API int quick_Zero_Verify_Test(tDevice *device, bool hideLBACounter);
 
 #if defined (__cplusplus)
 }
