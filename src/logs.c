@@ -24,8 +24,6 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
                            eLogFileNamingConvention logFileNamingConvention, char **logFileNameUsed)
 {
     int ret = SUCCESS;
-    time_t currentTime = 0;
-    char currentTimeString[64] = { 0 };
     struct tm logTime;
     memset(&logTime, 0, sizeof(struct tm));
 #ifdef _DEBUG
@@ -44,11 +42,14 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
         break;
     case NAMING_SERIAL_NUMBER_DATE_TIME:
         //get current date and time
-        currentTime = time(NULL);
-        memset(currentTimeString, 0, sizeof(currentTimeString) / sizeof(*currentTimeString));
-        strftime(currentTimeString, sizeof(currentTimeString) / sizeof(*currentTimeString), "%Y%m%dT%H%M%S", get_Localtime(&currentTime, &logTime));
+        if (strcmp(CURRENT_TIME_STRING, "") == 0)
+        {
+            CURRENT_TIME = time(NULL);
+            memset(CURRENT_TIME_STRING, 0, sizeof(CURRENT_TIME_STRING) / sizeof(*CURRENT_TIME_STRING));
+            strftime(CURRENT_TIME_STRING, sizeof(CURRENT_TIME_STRING) / sizeof(*CURRENT_TIME_STRING), "%Y%m%dT%H%M%S", get_Localtime(&CURRENT_TIME, &logTime));
+        }
         //set up the log file name
-        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s_%s_%s", serialNumber, logName, currentTimeString);
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s_%s_%s", serialNumber, logName, CURRENT_TIME_STRING);
         break;
     case NAMING_OPENSTACK:
         return NOT_SUPPORTED;
@@ -207,15 +208,16 @@ int create_And_Open_Log_File(tDevice *device,\
     //check if file already exist
     if ((*filePtr = fopen(*logFileNameUsed, "r")) != NULL)
     {
-        time_t currentTime = 0;
-        char currentTimeString[64] = { 0 };
         fclose(*filePtr);
         //append timestamp
-        currentTime = time(NULL);
-        memset(currentTimeString, 0, 64);
-        strftime(currentTimeString, 64, "%Y%m%dT%H%M%S", get_Localtime(&currentTime, &logTime));
+        if (strcmp(CURRENT_TIME_STRING, "") == 0)
+        {
+            CURRENT_TIME = time(NULL);
+            memset(CURRENT_TIME_STRING, 0, 64);
+            strftime(CURRENT_TIME_STRING, 64, "%Y%m%dT%H%M%S", get_Localtime(&CURRENT_TIME, &logTime));
+        }
         //Append timestamp to the log file name
-        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "_%s", &currentTimeString[0]);
+        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "_%s", &CURRENT_TIME_STRING[0]);
     }
 
 #ifdef _DEBUG
