@@ -209,12 +209,12 @@ int create_And_Open_Log_File(tDevice *device,\
     if ((*filePtr = fopen(*logFileNameUsed, "r")) != NULL)
     {
         fclose(*filePtr);
-        //append timestamp
+        //Append timestamp
         if (strcmp(CURRENT_TIME_STRING, "") == 0)
         {
             CURRENT_TIME = time(NULL);
-            memset(CURRENT_TIME_STRING, 0, 64);
-            strftime(CURRENT_TIME_STRING, 64, "%Y%m%dT%H%M%S", get_Localtime(&CURRENT_TIME, &logTime));
+            memset(CURRENT_TIME_STRING, 0, CURRENT_TIME_STRING_LENGTH);
+            strftime(CURRENT_TIME_STRING, CURRENT_TIME_STRING_LENGTH, "%Y%m%dT%H%M%S", get_Localtime(&CURRENT_TIME, &logTime));
         }
         //Append timestamp to the log file name
         snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "_%s", &CURRENT_TIME_STRING[0]);
