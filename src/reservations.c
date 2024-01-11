@@ -1401,7 +1401,7 @@ typedef struct _persistentReserveOutBasic
 
 static void format_Basic_Info(uint8_t *ptrData, uint32_t dataLength, ptrPersistentReserveOutBasic basicInfo)
 {
-    if (ptrData && dataLength >= 24 && basicInfo)//24 is minimum length for this buffer
+    if (ptrData && dataLength >= PR_OUT_BASIC_MIN_LENGTH && basicInfo)//24 is minimum length for this buffer
     {
         //reservation key
         ptrData[0] = M_Byte7(basicInfo->reservationKey);
@@ -1445,14 +1445,14 @@ static void format_Basic_Info(uint8_t *ptrData, uint32_t dataLength, ptrPersiste
         ptrData[22] = M_Byte1(basicInfo->extentLength);
         ptrData[23] = M_Byte0(basicInfo->extentLength);
         //additional info (transport IDs)
-        if (basicInfo->transportIDLength > 0 && (basicInfo->transportIDLength + 24 /*length of basic data buffer before transport IDs*/ + 4 /*for the length that is set before the transport ids start */) >= dataLength)
+        if (dataLength > PR_OUT_BASIC_MIN_LENGTH && basicInfo->transportIDLength > 0 && (basicInfo->transportIDLength + PR_OUT_BASIC_MIN_LENGTH /*length of basic data buffer before transport IDs*/ + 4 /*for the length that is set before the transport ids start */) <= dataLength)
         {
             ptrData[24] = M_Byte3(basicInfo->transportIDLength);
             ptrData[25] = M_Byte2(basicInfo->transportIDLength);
             ptrData[26] = M_Byte1(basicInfo->transportIDLength);
             ptrData[27] = M_Byte0(basicInfo->transportIDLength);
             //now copy remaining data to the buffer...already checked the size above
-            memcpy(&ptrData[28], basicInfo->transportID, basicInfo->transportIDLength);
+            memcpy(&ptrData[28], basicInfo->transportID, M_Min(dataLength - 28, basicInfo->transportIDLength));
         }
     }
 }
