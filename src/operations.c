@@ -786,7 +786,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
         if (ataSecurityInfo.securityEnabled)
         {
-            snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
+            snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Please Provide the password used to enable the security. You can disable it via BIOS/UEFI first.");
         }
         else
         {
@@ -862,7 +862,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
             if (ataSecurityInfo.securityEnabled)
             {
-                snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
+                snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Please Provide the password used to enable the security. You can disable it via BIOS/UEFI first.");
             }
             else
             {
