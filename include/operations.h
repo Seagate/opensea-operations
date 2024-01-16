@@ -375,22 +375,6 @@ extern "C"
     
     //-----------------------------------------------------------------------------
     //
-    //  enable_Disable_PUIS_Feature(tDevice *device, bool enable)
-    //
-    //! \brief   Enables or disables the SATA PUIS feature
-    //
-    //  Entry:
-    //!   \param device - file descriptor
-    //!   \param enable - set to true to enable the PUIS feature. Set to False to disable the PUIS feature.
-    //!
-    //  Exit:
-    //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int enable_Disable_PUIS_Feature(tDevice *device, bool enable);
-
-    //-----------------------------------------------------------------------------
-    //
     //  set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
     //
     //! \brief   Set the default sense data format.

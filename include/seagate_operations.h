@@ -187,13 +187,13 @@ extern "C"
 
     OPENSEA_OPERATIONS_API int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled);//SATA only. SAS should use the set power consumption options in power_control.h
 
-	//this enum is used to know the power mode of a device
-	typedef enum _ePowerBalanceMode
-	{
-		POWER_BAL_ENABLE = 1,
-		POWER_BAL_DISABLE = 2,
-		POWER_BAL_LIMITED = 3
-	} ePowerBalanceMode;
+    //this enum is used to know the power mode of a device
+    typedef enum _ePowerBalanceMode
+    {
+        POWER_BAL_ENABLE = 1,
+        POWER_BAL_DISABLE = 2,
+        POWER_BAL_LIMITED = 3
+    } ePowerBalanceMode;
 
     OPENSEA_OPERATIONS_API int seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode);//SATA only. SAS should use the set power consumption options in power_control.h
 
@@ -457,6 +457,70 @@ extern "C"
 
     OPENSEA_OPERATIONS_API void print_smart_log_CF(fb_log_page_CF *pLogPageCF);
 
+    typedef struct _seagateStatistic
+    {
+        uint32_t statisticsDataValue;
+        bool isTimeStampsInMinutes;
+        uint8_t failureInfo;
+        bool isSupported;
+        bool isValueValid;
+        bool isNormalized;
+    }seagateStatistic;
+
+    typedef struct _seagateSataDeviceStatistics
+    {
+        uint8_t version;
+        seagateStatistic sanitizeCryptoErasePassCount;
+        seagateStatistic sanitizeCryptoErasePassTimeStamp;
+        seagateStatistic sanitizeOverwriteErasePassCount;
+        seagateStatistic sanitizeOverwriteErasePassTimeStamp;
+        seagateStatistic sanitizeBlockErasePassCount;
+        seagateStatistic sanitizeBlockErasePassTimeStamp;
+        seagateStatistic ataSecurityEraseUnitPassCount;
+        seagateStatistic ataSecurityEraseUnitPassTimeStamp;
+        seagateStatistic eraseSecurityFileFailureCount;
+        seagateStatistic eraseSecurityFileFailureTimeStamp;
+        seagateStatistic ataSecurityEraseUnitEnhancedPassCount;
+        seagateStatistic ataSecurityEraseUnitEnhancedPassTimeStamp;
+        seagateStatistic sanitizeCryptoEraseFailCount;
+        seagateStatistic sanitizeCryptoEraseFailTimeStamp;
+        seagateStatistic sanitizeOverwriteEraseFailCount;
+        seagateStatistic sanitizeOverwriteEraseFailTimeStamp;
+        seagateStatistic sanitizeBlockEraseFailCount;
+        seagateStatistic sanitizeBlockEraseFailTimeStamp;
+        seagateStatistic ataSecurityEraseUnitFailCount;
+        seagateStatistic ataSecurityEraseUnitFailTimeStamp;
+        seagateStatistic ataSecurityEraseUnitEnhancedFailCount;
+        seagateStatistic ataSecurityEraseUnitEnhancedFailTimeStamp;
+    }seagateSataDeviceStatistics;
+
+    typedef struct _seagateSasDeviceStatistics
+    {
+        seagateStatistic sanitizeCryptoEraseCount;
+        seagateStatistic sanitizeCryptoEraseTimeStamp;
+        seagateStatistic sanitizeOverwriteEraseCount;
+        seagateStatistic sanitizeOverwriteEraseTimeStamp;
+        seagateStatistic sanitizeBlockEraseCount;
+        seagateStatistic sanitizeBlockEraseTimeStamp;
+        seagateStatistic eraseSecurityFileFailureCount;
+        seagateStatistic eraseSecurityFileFailureTimeStamp;
+    }seagateSasDeviceStatistics;
+
+    //access the proper stats in the union based on device->drive_info.drive_type
+    typedef struct _seagateDeviceStatistics
+    {
+        union
+        {
+            seagateSataDeviceStatistics sataStatistics;
+            seagateSasDeviceStatistics sasStatistics;
+        };
+    }seagateDeviceStatistics, *ptrSeagateDeviceStatistics;
+
+    OPENSEA_OPERATIONS_API bool is_Seagate_DeviceStatistics_Supported(tDevice *device);
+
+    OPENSEA_OPERATIONS_API int get_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats);
+
+    OPENSEA_OPERATIONS_API void print_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats);
 #if defined (__cplusplus)
 }
 #endif

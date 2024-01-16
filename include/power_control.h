@@ -366,6 +366,33 @@ extern "C"
     OPENSEA_OPERATIONS_API int scsi_Set_Idle_Timer_State(tDevice *device, bool enable);
     OPENSEA_OPERATIONS_API int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  enable_Disable_PUIS_Feature(tDevice *device, bool enable)
+    //
+    //! \brief   Enables or disables the SATA PUIS feature
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param enable - set to true to enable the PUIS feature. Set to False to disable the PUIS feature.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int enable_Disable_PUIS_Feature(tDevice* device, bool enable);
+
+    OPENSEA_OPERATIONS_API int puis_Spinup(tDevice* device);
+
+    typedef struct _puisInfo
+    {
+        bool puisSupported;
+        bool puisEnabled;
+        bool spinupCommandRequired; //requires the spinup command to be issued to spin up. If false, then a media access will spinup as needed.
+    }puisInfo, * ptrPuisInfo;
+
+    OPENSEA_OPERATIONS_API int get_PUIS_Info(tDevice* device, ptrPuisInfo info);
+
 #if defined (__cplusplus)
 }
 #endif

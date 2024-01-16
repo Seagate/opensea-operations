@@ -1533,9 +1533,13 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Setting the drive sector size quickly.\n");
-            printf("Please wait a few minutes for this command to complete.\n");
             printf("It should complete in under 5 minutes, but interrupting it may make\n");
             printf("the drive unusable or require performing this command again!!\n");
+            printf("The command is issued with a timeout of 1 hour, much longer than necessary,\n");
+            printf("however there are rare cases where a drive is processing something in the\n");
+            printf("background when this command is received that may make this take longer than\n");
+            printf("a few minutes. Please wait at least this hour to ensure that this completes\n");
+            printf("successfully or with the error recovery built into this software.\n");
         }
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
@@ -1643,13 +1647,13 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             formatUnitParameters.defaultFormat = true;//Don't need any option bits! In fact, this could cause an error if not set!
             formatUnitParameters.protectionType = device->drive_info.currentProtectionType;
             formatUnitParameters.protectionIntervalExponent = device->drive_info.piExponent;
-            formatUnitParameters.disableImmediate = true;
+            formatUnitParameters.disableImmediate = false;//this will require polling for progress until complete with this disabled, but reduces the likelyhood of a reset going to the drive.
             //make this smarter to know which type of fast format to use! FAST_FORMAT_WRITE_NOT_REQUIRED is a power of 2 change (512 to 4096), FAST_FORMAT_WRITE_REQUIRED is any other size change
             if (!is_Requested_Sector_Size_Multiple(device, sectorSize))
             {
                 formatUnitParameters.formatType = FORMAT_FAST_WRITE_REQUIRED;
             }
-            ret = run_Format_Unit(device, formatUnitParameters, false);
+            ret = run_Format_Unit(device, formatUnitParameters, true);
         }
         os_Unlock_Device(device);
         os_Update_File_System_Cache(device);
