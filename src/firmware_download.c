@@ -17,6 +17,7 @@
 #include "logs.h"
 #include "common_platform.h"
 #include "platform_helper.h"
+#include "power_control.h"
 
 //In order to be able to validate the data on any CPU, we don't want to hardcode any lengths in case things get packed or aligned differently.
 //So define each struct version here internally so we can do sizeof(v1), etc to check it.
@@ -214,6 +215,13 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             {
                 options->dlMode = FWDL_UPDATE_MODE_SEGMENTED;
             }
+        }
+
+        if (device->drive_info.drive_type != NVME_DRIVE)
+        {
+            //Before flushing the cache, make sure the drive is not in standby. This seems to be a problem on some HBAs, but not all.
+            //NOTE: Not sending this to NVMe for now, but we may need to do this in the future
+            transition_Power_State(device, PWR_CND_ACTIVE);
         }
 
         //Adding a flush cache here because it is occasionally needed on some devices. It is just a precaution to avoid potential issues with firmware not flushing when it activates new code.
