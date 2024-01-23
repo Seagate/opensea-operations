@@ -217,6 +217,10 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress);
 
+    OPENSEA_OPERATIONS_API bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime);
+
+    OPENSEA_OPERATIONS_API int depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID);
+
 #if defined(__cplusplus)
 }
 #endif

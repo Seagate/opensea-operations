@@ -211,6 +211,225 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-1");
             driveInfo->numberOfSpecificationsSupported++;
         }
+        //Get the ATA Minor version to add to the list too.
+        if (is_ATA_Identify_Word_Valid(wordPtr[81]))
+        {
+            switch (wordPtr[81])
+            {
+            case ATA_MINOR_VERSION_NOT_REPORTED:
+                break;
+            case ATA_MINOR_VERSION_ATA_1_PRIOR_TO_REV_4:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-1 (pre Revision 4)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_1_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-1 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_1_REV_4:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-1 (Revision 4)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_2_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-2 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_2_PRIOR_TO_REV_2K:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-2 (Pre Revision 2K)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_3_REV_1:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-3 (Revision 1)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_2_REV_2K:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-2 (Revision 2K)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_3_REV_0:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-3 (Revision 0)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_2_REV_3:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-2 (Revision 3)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_3_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-3 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_3_REV_6:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-3 (Revision 6)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_3_REV_7_AND_7A:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA-3 (Revision 7 & 7A)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_6:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Revision 6)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_13:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Revision 13)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV7:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Revision 7)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_18:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Revision 18)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_15:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Revision 15)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_5_REV_3:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-5 (Revision 3)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_14:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Revision 14)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_5_REV_1:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-5 (Revision 1)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_5_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-5 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_17:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-4 (Revision 17)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_0:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-6 (Revision 0)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_3A:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-6 (Revision 3A)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_1:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-7 (Revision 1)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_2:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-6 (Revision 2)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_1:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-6 (Revision 1)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_7_RUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-7 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_0:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-7 (Revision 0)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS3_REV_3B:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-3 (Revision 3B)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_4A:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-7 (Revision 4A)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA_ATAPI_6_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA/ATAPI-6 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_3C:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 3C)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_6:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 6)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_4:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 4)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS5_REV_8:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 8)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS2_REV_2:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-2 (Revision 2)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_3E:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 3E)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_4C:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 4C)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_3F:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 3F)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_3B:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 3B)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS4_REV_5:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-4 (Revision 5)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS3_REV_5:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-3 (Revision 5)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS6_REV_2:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-6 (Revision 2)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS_2_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-2 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS4_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-4 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ATA8_ACS_REV_2D:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ATA8-ACS (Revision 2D)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS3_PUBLISHED:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-3 (Published)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS2_REV_3:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-2 (Revision 3)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_ACS3_REV_4:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "ACS-3 (Revision 4)");
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            case ATA_MINOR_VERSION_NOT_REPORTED_2:
+                break;
+            default:
+                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "Unknown Minor version: %04" PRIX16, wordPtr[81]);
+                driveInfo->numberOfSpecificationsSupported++;
+                break;
+            }
+        }
         //now get the Transport specs supported.
         specsBits = wordPtr[222];
         uint8_t transportType = M_Nibble3(specsBits);//0 = parallel, 1 = serial, e = PCIe
@@ -1405,6 +1624,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                 bool capacity = false;
                 bool supportedCapabilities = false;
                 bool currentSettings = false;
+                bool zonedDeviceSupport = false;
                 if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
                 {
                     uint8_t pageNumber = logBuffer[2];
@@ -1433,7 +1653,10 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                             case ATA_ID_DATA_LOG_SECURITY:
                             case ATA_ID_DATA_LOG_PARALLEL_ATA:
                             case ATA_ID_DATA_LOG_SERIAL_ATA:
+                                break;
                             case ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION:
+                                zonedDeviceSupport = true;
+                                break;
                             default:
                                 break;
                             }
@@ -1441,7 +1664,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                     }
                 }
                 //we need to read pages 2, 3 (read them one at a time to work around some USB issues as best we can)
-                if (capacity && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 2, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                if (capacity && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_CAPACITY, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
                     if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_CAPACITY && M_Word0(qword0) >= 0x0001)
@@ -1458,7 +1681,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                     }
                 }
                 bool dlcSupported = false;
-                if (supportedCapabilities && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 3, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                if (supportedCapabilities && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     //supported capabilities
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
@@ -1467,6 +1690,11 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                         uint64_t supportedCapabilitiesQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
                         if (supportedCapabilitiesQWord & BIT63)
                         {
+                            if (supportedCapabilitiesQWord & BIT55)
+                            {
+                                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Mutate");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
                             if (supportedCapabilitiesQWord & BIT54)
                             {
                                 snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Advanced Background Operations");
@@ -1522,7 +1750,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                     }
                 }
                 bool dlcEnabled = false;
-                if (currentSettings && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 5, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                if (currentSettings && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_CURRENT_SETTINGS, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
                     if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_CURRENT_SETTINGS && M_Word0(qword0) >= 0x0001)
@@ -1548,6 +1776,75 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                     {
                         snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Device Life Control");
                         driveInfo->numberOfFeaturesSupported++;
+                    }
+                }
+                if (zonedDeviceSupport && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                {
+                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
+                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION && M_Word0(qword0) >= 0x0001)
+                    {
+                        uint64_t zonedSettingsQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                        uint64_t versionQWord = M_BytesTo8ByteValue(logBuffer[55], logBuffer[54], logBuffer[53], logBuffer[52], logBuffer[51], logBuffer[50], logBuffer[49], logBuffer[48]);
+                        uint64_t zoneActCapQWord = M_BytesTo8ByteValue(logBuffer[63], logBuffer[62], logBuffer[61], logBuffer[60], logBuffer[59], logBuffer[58], logBuffer[57], logBuffer[56]);
+                        if (zonedSettingsQWord & BIT63)
+                        {
+                            if (zonedSettingsQWord & BIT1)
+                            {
+                                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Remove Element And Modify Zones");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
+                        }
+                        if (versionQWord & BIT63)
+                        {
+                            switch (M_Word0(versionQWord))
+                            {
+                            case ZAC_MINOR_VERSION_NOT_REPORTED:
+                                break;
+                            case ZAC_MINOR_VERSION_ZAC_REV_5:
+                                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC (Revision 5)");
+                                driveInfo->numberOfSpecificationsSupported++;
+                                break;
+                            case ZAC_MINOR_VERSION_ZAC2_REV_15:
+                                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC-2 (Revision 15)");
+                                driveInfo->numberOfSpecificationsSupported++;
+                                break;
+                            case ZAC_MINOR_VERSION_ZAC2_REV_1B:
+                                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC-2 (Revision 1B)");
+                                driveInfo->numberOfSpecificationsSupported++;
+                                break;
+                            case ZAC_MINOR_VERSION_ZAC_REV_4:
+                                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC (Revision 4)");
+                                driveInfo->numberOfSpecificationsSupported++;
+                                break;
+                            case ZAC_MINOR_VERSION_ZAC2_REV12:
+                                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC-2 (Revision 12)");
+                                driveInfo->numberOfSpecificationsSupported++;
+                                break;
+                            case ZAC_MINOR_VERSION_ZAC_REV_1:
+                                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC (Revision 1)");
+                                driveInfo->numberOfSpecificationsSupported++;
+                                break;
+                            case ZAC_MINOR_VERSION_NOT_REPORTED_2:
+                                break;
+                            default:
+                                snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
+                                driveInfo->numberOfSpecificationsSupported++;
+                                break;
+                            }
+                        }
+                        if (zoneActCapQWord & BIT63)
+                        {
+                            if (zoneActCapQWord & BIT0)
+                            {
+                                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Zone Domains");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
+                            if (zoneActCapQWord & BIT1)
+                            {
+                                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Zone Realms");
+                                driveInfo->numberOfFeaturesSupported++;
+                            }
+                        }
                     }
                 }
             }
@@ -1605,6 +1902,11 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                                             uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
                                             if (supportedCapabilities & BIT63)
                                             {
+                                                if (supportedCapabilities & BIT55)
+                                                {
+                                                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Mutate");
+                                                    driveInfo->numberOfFeaturesSupported++;
+                                                }
                                                 if (supportedCapabilities & BIT54)
                                                 {
                                                     snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Advanced Background Operations");
@@ -1664,6 +1966,71 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                                                 if (currentSettings & BIT17)
                                                 {
                                                     dlcEnabled = true;
+                                                }
+                                            }
+                                        }
+                                        else if (pageHeader & BIT63 && M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION) //check page and version number
+                                        {
+                                            uint64_t zonedSettingsQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
+                                            uint64_t versionQWord = M_BytesTo8ByteValue(logBuffer[55], logBuffer[54], logBuffer[53], logBuffer[52], logBuffer[51], logBuffer[50], logBuffer[49], logBuffer[48]);
+                                            uint64_t zoneActCapQWord = M_BytesTo8ByteValue(logBuffer[63], logBuffer[62], logBuffer[61], logBuffer[60], logBuffer[59], logBuffer[58], logBuffer[57], logBuffer[56]);
+                                            if (zonedSettingsQWord & BIT63)
+                                            {
+                                                if (zonedSettingsQWord & BIT1)
+                                                {
+                                                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Remove Element And Modify Zones");
+                                                    driveInfo->numberOfFeaturesSupported++;
+                                                }
+                                            }
+                                            if (versionQWord & BIT63)
+                                            {
+                                                switch (M_Word0(versionQWord))
+                                                {
+                                                case ZAC_MINOR_VERSION_NOT_REPORTED:
+                                                    break;
+                                                case ZAC_MINOR_VERSION_ZAC_REV_5:
+                                                    snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC (Revision 5)");
+                                                    driveInfo->numberOfSpecificationsSupported++;
+                                                    break;
+                                                case ZAC_MINOR_VERSION_ZAC2_REV_15:
+                                                    snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC-2 (Revision 15)");
+                                                    driveInfo->numberOfSpecificationsSupported++;
+                                                    break;
+                                                case ZAC_MINOR_VERSION_ZAC2_REV_1B:
+                                                    snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC-2 (Revision 1B)");
+                                                    driveInfo->numberOfSpecificationsSupported++;
+                                                    break;
+                                                case ZAC_MINOR_VERSION_ZAC_REV_4:
+                                                    snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC (Revision 4)");
+                                                    driveInfo->numberOfSpecificationsSupported++;
+                                                    break;
+                                                case ZAC_MINOR_VERSION_ZAC2_REV12:
+                                                    snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC-2 (Revision 12)");
+                                                    driveInfo->numberOfSpecificationsSupported++;
+                                                    break;
+                                                case ZAC_MINOR_VERSION_ZAC_REV_1:
+                                                    snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_FEATURE_LENGTH, "ZAC (Revision 1)");
+                                                    driveInfo->numberOfSpecificationsSupported++;
+                                                    break;
+                                                case ZAC_MINOR_VERSION_NOT_REPORTED_2:
+                                                    break;
+                                                default:
+                                                    snprintf(driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
+                                                    driveInfo->numberOfSpecificationsSupported++;
+                                                    break;
+                                                }
+                                            }
+                                            if (zoneActCapQWord & BIT63)
+                                            {
+                                                if (zoneActCapQWord & BIT0)
+                                                {
+                                                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Zone Domains");
+                                                    driveInfo->numberOfFeaturesSupported++;
+                                                }
+                                                if (zoneActCapQWord & BIT1)
+                                                {
+                                                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Zone Realms");
+                                                    driveInfo->numberOfFeaturesSupported++;
                                                 }
                                             }
                                         }
@@ -2388,6 +2755,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
     bool isSCSI1drive = false;
     bool isSCSI2drive = false;
     bool isSEAGATEVendorID = false;//matches SCSI/SAS/FC for Seagate
+    bool zoneDomainsOrRealms = false;
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
     if (SUCCESS == scsi_Inquiry(device, inquiryData, 255, 0, false, false))
     {
@@ -2939,6 +3307,32 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                 safe_Free_aligned(concurrentRanges)
             }
             break;
+            case ZONED_BLOCK_DEVICE_CHARACTERISTICS:
+            {
+                uint8_t* zbdCharacteristics = C_CAST(uint8_t*, calloc_aligned(VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (!zbdCharacteristics)
+                {
+                    perror("Error allocating memory to read zoned block device characteristics VPD page");
+                    continue;
+                }
+                if (SUCCESS == scsi_Inquiry(device, zbdCharacteristics, VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, ZONED_BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                {
+                    switch (M_Nibble1(zbdCharacteristics[4]))
+                    {
+                    case 0:
+                        break;
+                    case 1://host aware
+                        break;
+                    case 2://domains and realms
+                        //add to features supported
+                        zoneDomainsOrRealms = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                safe_Free_aligned(zbdCharacteristics)
+            }
             default:
                 break;
             }
@@ -5343,6 +5737,23 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             driveInfo->numberOfFeaturesSupported++;
         }
         memset(supportedCommands, 0, 1024);
+        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_WITH_PRESET_CMD, 0, 14, supportedCommands))
+        {
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific mannor in same format as case 3
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Format With Preset");
+                driveInfo->numberOfFeaturesSupported++;
+                break;
+            default:
+                break;
+            }
+        }
+        memset(supportedCommands, 0, 1024);
         //Sanitize (need to check each service action to make sure at least one is supported.
         bool sanitizeSupported = false;
         if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
@@ -5472,6 +5883,60 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                 driveInfo->numberOfFeaturesSupported++;
             }
         }
+        //Add checking that this is zbd first?
+        if (version >= 5 && peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x1A, 20, supportedCommands))
+        {
+            switch (supportedCommands[1] & 0x07)
+            {
+            case 0: //not available right now...so not supported
+            case 1://not supported
+                break;
+            case 3://supported according to spec
+            case 5://supported in vendor specific manor in same format as case 3
+                snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Remove Element and Modify Zones");
+                driveInfo->numberOfFeaturesSupported++;
+                break;
+            default:
+                break;
+            }
+        }
+        if (zoneDomainsOrRealms && peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+        {
+            if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x95, 0x07, 20, supportedCommands))
+            {
+                switch (supportedCommands[1] & 0x07)
+                {
+                case 0: //not available right now...so not supported
+                case 1://not supported
+                    break;
+                case 3://supported according to spec
+                case 5://supported in vendor specific manor in same format as case 3
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Zone Domains");
+                    driveInfo->numberOfFeaturesSupported++;
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x95, 0x06, 20, supportedCommands))
+            {
+                switch (supportedCommands[1] & 0x07)
+                {
+                case 0: //not available right now...so not supported
+                case 1://not supported
+                    break;
+                case 3://supported according to spec
+                case 5://supported in vendor specific manor in same format as case 3
+                    snprintf(driveInfo->featuresSupported[driveInfo->numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "Zone Realms");
+                    driveInfo->numberOfFeaturesSupported++;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+
         if (!securityProtocolInSuccess)
         {
             //Check security protocol in case the earlier attempt did not work to detect when the OS/driver/HBA are blocking these commands
