@@ -1142,7 +1142,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                 else
                 {
                     printf("\t508 minutes (max per ATA specification).\n");
-                    erasemaxSeconds = 508 * 2;
+                    erasemaxSeconds = 508 * 60;
                 }
                 //provide a completion time estimate based on the max values.
                 //Need to report it as a time greater than what we print to the screen to make it clear.
