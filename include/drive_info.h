@@ -251,7 +251,8 @@ extern "C"
             uint8_t numberOfFirmwareSlots;
             uint8_t nvmSubsystemNVMeQualifiedName[257];//This is a UTF8 string!
             eEncryptionSupport encryptionSupport;
-            uint16_t numberOfControllerFeatures;
+            uint8_t reserved;//previously part of numberOfControllerFeatures as a word, but changed to a byte
+            uint8_t numberOfControllerFeatures;
             char controllerFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
             uint64_t longDSTTimeMinutes;
             uint8_t numberOfPowerStatesSupported;
@@ -287,7 +288,8 @@ extern "C"
             uint8_t namespaceGloballyUniqueIdentifier[16];
             uint64_t ieeeExtendedUniqueIdentifier;
             //Namespace features will include protection information types, and security protocols supported
-            uint16_t numberOfNamespaceFeatures;
+            uint8_t reserved;//previously part of numberOfControllerFeatures as a word, but changed to a byte
+            uint8_t numberOfNamespaceFeatures;
             char namespaceFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
         }namespaceData;
     }driveInformationNVMe, *ptrDriveInformationNVMe;
