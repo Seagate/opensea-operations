@@ -2602,19 +2602,20 @@ int get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
             {
                 info->enabled = true;
             }
-            //filling in remaining data because it is possible some drives will report valid data for these other modes even if not enabled.
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word211) && is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word210))
-            {
-                info->wrv3sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word211, device->drive_info.IdentifyData.ata.Word210);
-            }
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word213) && is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word212))
-            {
-                info->wrv2sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word213, device->drive_info.IdentifyData.ata.Word212);
-            }
             if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word220))
             {
                 info->currentWRVMode = M_Byte0(device->drive_info.IdentifyData.ata.Word220);
             }
+            //filling in remaining data because it is possible some drives will report valid data for these other modes even if not enabled.
+            if (info->currentWRVMode == ATA_WRV_MODE_USER && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word211) && is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word210)))
+            {
+                info->wrv3sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word211, device->drive_info.IdentifyData.ata.Word210);
+            }
+            if (info->currentWRVMode == ATA_WRV_MODE_VENDOR && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word213) && is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word212)))
+            {
+                info->wrv2sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word213, device->drive_info.IdentifyData.ata.Word212);
+            }
+            
             if (info->enabled)
             {
                 switch (info->currentWRVMode)
@@ -2661,6 +2662,11 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
                 {
                     capacity_Unit_Convert(&capD, &capUnit);
                     metric_Unit_Convert(&metD, &metUnit);
+                }
+                else
+                {
+                    snprintf(capUnit, UNIT_STRING_LENGTH, "B");
+                    snprintf(metUnit, UNIT_STRING_LENGTH, "B");
                 }
                 switch (info->currentWRVMode)
                 {
