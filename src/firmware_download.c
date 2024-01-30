@@ -217,11 +217,22 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             }
         }
 
-        if (device->drive_info.drive_type != NVME_DRIVE)
+        //send test unit ready to determine if spinup command is required. If it is, send the SCSI start-stop unit command to do the spinup.
+        scsiStatus turStatus;
+        memset(&turStatus, 0, sizeof(scsiStatus));
+        if (SUCCESS == scsi_Test_Unit_Ready(device, &turStatus))
         {
-            //Before flushing the cache, make sure the drive is not in standby. This seems to be a problem on some HBAs, but not all.
-            //NOTE: Not sending this to NVMe for now, but we may need to do this in the future
-            transition_Power_State(device, PWR_CND_ACTIVE);
+            if (turStatus.senseKey == SENSE_KEY_NOT_READY)
+            {
+                //check for "initilizing command required"
+                if (turStatus.asc == 0x04 && turStatus.ascq == 0x02)
+                {
+                    //send the start-stop unit command with the "start" bit set to one.
+                    //We should only hit this on anything scsi encapsulated either by a SATL or RAID controller or a native SCSI drive that needs
+                    //a spin up before receiving any other commands.
+                    scsi_Start_Stop_Unit(device, false, 0, 0, false, false, true);
+                }
+            }
         }
 
         //Adding a flush cache here because it is occasionally needed on some devices. It is just a precaution to avoid potential issues with firmware not flushing when it activates new code.

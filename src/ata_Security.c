@@ -199,7 +199,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                     if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
                     {
                         uint8_t listLen = securityPage[8];
-                        for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < UINT16_C(512); ++iter)
+                        for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(512); ++iter)
                         {
                             bool foundSecurityPage = false;
                             switch (securityPage[iter])
@@ -1142,7 +1142,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                 else
                 {
                     printf("\t508 minutes (max per ATA specification).\n");
-                    erasemaxSeconds = 508 * 2;
+                    erasemaxSeconds = 508 * 60;
                 }
                 //provide a completion time estimate based on the max values.
                 //Need to report it as a time greater than what we print to the screen to make it clear.

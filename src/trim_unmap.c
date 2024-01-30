@@ -30,7 +30,7 @@ static bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
             {
                 //data is valid, so figure out supported pages
                 uint8_t listLen = logBuffer[8];
-                for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
+                for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
                 {
                     switch (logBuffer[iter])
                     {
