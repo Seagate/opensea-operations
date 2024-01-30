@@ -106,96 +106,103 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
     {
         return;
     }
-    printf("\n====SATA Phy Event Counters====\n");
-    printf("V = Vendor Unique event tracker\n");
-    printf("M = Counter maximum value reached\n");
-    printf("D2H = Device to Host\n");
-    printf("H2D = Host to Device\n");
-    //Figure out how to keep names of each event short before printing them out. -TJE
-
-    printf("    ID                Value Description\n");
-    for (uint16_t iter = 0; iter < counters->numberOfCounters; ++iter)
+    if (counters->valid)
     {
-        char vendorEvent = ' ';
-        char maxedCount = ' ';
+        printf("\n====SATA Phy Event Counters====\n");
+        printf("V = Vendor Unique event tracker\n");
+        printf("M = Counter maximum value reached\n");
+        printf("D2H = Device to Host\n");
+        printf("H2D = Host to Device\n");
+        //Figure out how to keep names of each event short before printing them out. -TJE
+
+        printf("    ID                Value Description\n");
+        for (uint16_t iter = 0; iter < counters->numberOfCounters; ++iter)
+        {
+            char vendorEvent = ' ';
+            char maxedCount = ' ';
 #define PHY_COUNTER_DESCRIPTION_LEN 56
-        char counterDescription[PHY_COUNTER_DESCRIPTION_LEN] = { 0 };
-        if (counters->counters[iter].vendorUnique)
-        {
-            vendorEvent = 'V';
-            snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Vendor Unique Event %04" PRIX16 "h", counters->counters[iter].rawID);
-        }
-        else
-        {
-            switch (counters->counters[iter].eventID)
+            char counterDescription[PHY_COUNTER_DESCRIPTION_LEN] = { 0 };
+            if (counters->counters[iter].vendorUnique)
             {
-            case SATA_PHY_EVENT_COMMAND_ICRC:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Command failed with iCRC error");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_DATA_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for data FIS");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_D2H_DATA_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for D2H data FIS");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_H2D_DATA_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D data FIS");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_NON_DATA_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for non-data FIS");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_D2H_NON_DATA_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for D2H non-data FIS");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_H2D_NON_DATA_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D non-data FIS");
-                break;
-            case SATA_PHY_EVENT_D2H_NON_DATA_FIS_RETRIES:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "D2H non-data FIS retries");
-                break;
-            case SATA_PHY_EVENT_TRANSITIONS_FROM_PHYRDY_2_PHYRDYN:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Transitions from PHYRDY to PHYRDYn");
-                break;
-            case SATA_PHY_EVENT_H2D_FISES_SENT_DUE_TO_COMRESET:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "H2D FISes sent due to COMRESET");
-                break;
-            case SATA_PHY_EVENT_CRC_ERRORS_WITHIN_H2D_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "CRC errors withing H2D FIS");
-                break;
-            case SATA_PHY_EVENT_NON_CRC_ERRORS_WITHIN_H2D_FIS:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Non-CRC errors within H2D FIS");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_DATA_FIS_CRC:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D data FIS CRC");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_DATA_FIS_NONCRC:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D data FIS non-CRC");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_NONDATA_FIS_CRC:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D non-data FIS CRC");
-                break;
-            case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_NONDATA_FIS_NONCRC:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D non-data FIS non-CRC");
-                break;
-            case SATA_PHY_EVENT_PM_H2D_NONDATA_FIS_R_ERR_END_STAT_COLLISION:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "PM H2D non-data FIS R_ERR ending status from collision");
-                break;
-            case SATA_PHY_EVENT_PM_SIGNATURE_REGISTER_D2H_FISES:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "PM signature register D2H FISes");
-                break;
-            case SATA_PHY_EVENT_PM_CORRUPT_CRC_PROPAGATION_D2H_FISES:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "PM corrupt CRC propagation D2H FISes");
-                break;
-            default:
-                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Unknown Event %04" PRIX16 "h", counters->counters[iter].rawID);
-                break;
+                vendorEvent = 'V';
+                snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Vendor Unique Event %04" PRIX16 "h", counters->counters[iter].rawID);
             }
+            else
+            {
+                switch (counters->counters[iter].eventID)
+                {
+                case SATA_PHY_EVENT_COMMAND_ICRC:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Command failed with iCRC error");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_DATA_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for data FIS");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_D2H_DATA_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for D2H data FIS");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_H2D_DATA_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D data FIS");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_NON_DATA_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for non-data FIS");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_D2H_NON_DATA_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for D2H non-data FIS");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_H2D_NON_DATA_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D non-data FIS");
+                    break;
+                case SATA_PHY_EVENT_D2H_NON_DATA_FIS_RETRIES:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "D2H non-data FIS retries");
+                    break;
+                case SATA_PHY_EVENT_TRANSITIONS_FROM_PHYRDY_2_PHYRDYN:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Transitions from PHYRDY to PHYRDYn");
+                    break;
+                case SATA_PHY_EVENT_H2D_FISES_SENT_DUE_TO_COMRESET:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "H2D FISes sent due to COMRESET");
+                    break;
+                case SATA_PHY_EVENT_CRC_ERRORS_WITHIN_H2D_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "CRC errors withing H2D FIS");
+                    break;
+                case SATA_PHY_EVENT_NON_CRC_ERRORS_WITHIN_H2D_FIS:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Non-CRC errors within H2D FIS");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_DATA_FIS_CRC:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D data FIS CRC");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_DATA_FIS_NONCRC:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D data FIS non-CRC");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_NONDATA_FIS_CRC:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D non-data FIS CRC");
+                    break;
+                case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_NONDATA_FIS_NONCRC:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D non-data FIS non-CRC");
+                    break;
+                case SATA_PHY_EVENT_PM_H2D_NONDATA_FIS_R_ERR_END_STAT_COLLISION:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "PM H2D non-data FIS R_ERR ending status from collision");
+                    break;
+                case SATA_PHY_EVENT_PM_SIGNATURE_REGISTER_D2H_FISES:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "PM signature register D2H FISes");
+                    break;
+                case SATA_PHY_EVENT_PM_CORRUPT_CRC_PROPAGATION_D2H_FISES:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "PM corrupt CRC propagation D2H FISes");
+                    break;
+                default:
+                    snprintf(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Unknown Event %04" PRIX16 "h", counters->counters[iter].rawID);
+                    break;
+                }
+            }
+            if (counters->counters[iter].counterMaxValue == counters->counters[iter].counterValue)
+            {
+                maxedCount = 'M';
+            }
+            printf("%c%c %3" PRIu16 " %20" PRIu64 " %s\n", vendorEvent, maxedCount, counters->counters[iter].eventID, counters->counters[iter].counterValue, counterDescription);
         }
-        if (counters->counters[iter].counterMaxValue == counters->counters[iter].counterValue)
+        if (!counters->validChecksumReceived)
         {
-            maxedCount = 'M';
+            printf("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
         }
-        printf("%c%c %3" PRIu16 " %20" PRIu64 " %s\n", vendorEvent, maxedCount, counters->counters[iter].eventID, counters->counters[iter].counterValue, counterDescription);
     }
     return;
 }
