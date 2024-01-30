@@ -79,7 +79,7 @@ int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counter
                         counterLength = 6;
                         break;
                     case 4://64 bits
-                        counters->counters[counters->numberOfCounters].counterMaxValue = MAX_48_BIT_LBA;
+                        counters->counters[counters->numberOfCounters].counterMaxValue = UINT64_MAX;
                         counters->counters[counters->numberOfCounters].counterValue = M_BytesTo8ByteValue(phyEventLog[offset + 9], phyEventLog[offset + 8], phyEventLog[offset + 7], phyEventLog[offset + 6], phyEventLog[offset + 5], phyEventLog[offset + 4], phyEventLog[offset + 3], phyEventLog[offset + 2]);
                         counterLength = 8;
                         break;
