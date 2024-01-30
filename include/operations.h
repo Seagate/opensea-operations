@@ -489,7 +489,7 @@ extern "C"
     //!   \return SUCCESS = successfully read concurrent positioning data, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges);
+    OPENSEA_OPERATIONS_API int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges);
 
     //-----------------------------------------------------------------------------
     //
@@ -503,7 +503,26 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);
+    OPENSEA_OPERATIONS_API void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);
+
+    typedef struct _wrvInfo
+    {
+        bool supported;//if the write-read-verify feature even supported. This must be true for any further data in this structure to be valid
+        bool enabled;
+        uint8_t currentWRVMode;//only valid if the feature is enabled.
+        uint64_t bytesBeingVerified;//if set to UINT64_MAX, then all bytes are being verified. Otherwise it will match the mode * current logical sector size.-TJE
+        uint32_t wrv2sectorCount;//vendor specific. Technically only valid if enabled to mode 2
+        uint32_t wrv3sectorCount;//user defined. Technocally only valid if enabled to mode 3
+        //TODO: Output number of bytes that are verified in addition to sectors???
+    }wrvInfo, *ptrWRVInfo;
+
+    OPENSEA_OPERATIONS_API int get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info);
+
+    OPENSEA_OPERATIONS_API void print_Write_Read_Verify_Info(ptrWRVInfo info);
+
+    OPENSEA_OPERATIONS_API int disable_Write_Read_Verify(tDevice* device);
+
+    OPENSEA_OPERATIONS_API int set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount);
 
     #if defined (__cplusplus)
 }
