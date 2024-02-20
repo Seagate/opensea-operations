@@ -2569,6 +2569,7 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG:
             case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG:
             case ATA_LOG_SECTOR_CONFIGURATION_LOG:
+            case ATA_LOG_CAPACITY_MODELNUMBER_MAPPING:
                 if (smartLogSize)
                 {
                     bug = true;
