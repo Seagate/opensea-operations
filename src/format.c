@@ -1533,13 +1533,22 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Setting the drive sector size quickly.\n");
-            printf("It should complete in under 5 minutes, but interrupting it may make\n");
-            printf("the drive unusable or require performing this command again!!\n");
-            printf("The command is issued with a timeout of 1 hour, much longer than necessary,\n");
-            printf("however there are rare cases where a drive is processing something in the\n");
-            printf("background when this command is received that may make this take longer than\n");
-            printf("a few minutes. Please wait at least this hour to ensure that this completes\n");
-            printf("successfully or with the error recovery built into this software.\n");
+            printf("This command may appear to hang the utiliy. Do NOT interrupt this\n");
+            printf("command for at least 1 hour if it appears hung. The drive is busy\n");
+            printf("performing the sector size change and is not able to indicate its\n");
+            printf("progress during this time.\n");
+            printf("This often only takes a few minutes to complete and return completion\n");
+            printf("of this command to the utility but in some cases it may take this full\n");
+            printf("hour before the drive is ready to use.\n");
+            printf("After this command has completed successfully the drive is ready to\n");
+            printf("read and write data.\n");
+            printf("Be aware that the drive may begin performing vendor unique background\n");
+            printf("activity which may prevent idle and standby timers from taking affect\n");
+            printf("until the background activity has completed.\n");
+            printf("If this command takes an hour or the command reports a failure due to\n");
+            printf("interruption by the system with a reset, recovery will be attempted\n");
+            printf("automatically. You may attempt to run this command again if recovery\n");
+            printf("does not appear successfull.\n");
         }
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
