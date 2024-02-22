@@ -328,6 +328,7 @@
     <ClInclude Include="..\..\..\..\include\reservations.h" />
     <ClInclude Include="..\..\..\..\include\sanitize.h" />
     <ClInclude Include="..\..\..\..\include\sas_phy.h" />
+    <ClInclude Include="..\..\..\..\include\sata_phy.h" />
     <ClInclude Include="..\..\..\..\include\seagate_operations.h" />
     <ClInclude Include="..\..\..\..\include\sector_repair.h" />
     <ClInclude Include="..\..\..\..\include\set_max_lba.h" />
@@ -358,6 +359,7 @@
     <ClCompile Include="..\..\..\..\src\reservations.c" />
     <ClCompile Include="..\..\..\..\src\sanitize.c" />
     <ClCompile Include="..\..\..\..\src\sas_phy.c" />
+    <ClCompile Include="..\..\..\..\src\sata_phy.c" />
     <ClCompile Include="..\..\..\..\src\seagate_operations.c" />
     <ClCompile Include="..\..\..\..\src\sector_repair.c" />
     <ClCompile Include="..\..\..\..\src\set_max_lba.c" />

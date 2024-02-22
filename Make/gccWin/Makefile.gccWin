@@ -84,7 +84,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)reservations.c\
 	$(SRC_DIR)farm_log.c\
 	$(SRC_DIR)partition_info.c\
-	$(SRC_DIR)ata_device_config_overlay.c
+	$(SRC_DIR)ata_device_config_overlay.c\
+	$(SRC_DIR)sata_phy.c
 
 PROJECT_DEFINES += -DSTATIC_OPENSEA_OPERATIONS -DSTATIC_OPENSEA_TRANSPORT
 PROJECT_DEFINES += -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE
