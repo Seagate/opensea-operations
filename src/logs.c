@@ -1139,6 +1139,11 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
         return BAD_PARAMETER;
     }
 
+    if ((logAddress == ATA_SCT_COMMAND_STATUS || logAddress == ATA_SCT_DATA_TRANSFER) && device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly)
+    {
+        GPL = false;
+    }
+
     ret = get_ATA_Log_Size(device, logAddress, &logSize, GPL, SMART);
     if (ret == SUCCESS)
     {
