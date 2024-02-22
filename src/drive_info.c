@@ -80,414 +80,377 @@ static bool add_Specification_To_Supported_List(char specificationsSupported[MAX
     return success;
 }
 
-int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+//This is an internal structure that's purpose is to report capabilities out of the subfunctions processing identify data or other data so that
+//additional commands to run for device discovery can be performed as needed based on these capabilities.
+typedef struct _idDataCapabilitiesForDriveInfo
+{
+    eSeagateFamily seagateFamily;
+    bool supportsIDDataLog;//used to help figure out what needs to be parsed or not out of std identify data, not already available in the log
+    struct {
+        bool copyOfIdentify;
+        bool capacity;
+        bool supportedCapabilities;
+        bool currentSettings;
+        bool strings;
+        bool security;
+        bool parallelATA;
+        bool serialATA;
+        bool zac2;
+    }supportedIDDataPages;
+    bool sctSupported;
+    bool gplSupported;
+    bool smartErrorLoggingSupported;
+    bool smartStatusFromSCTStatusLog;
+    bool tcgSupported;//for trusted send/receive commands
+    bool processedStdIDData;//set when the function that reviews the standard ID data (ECh) has already been called.
+}idDataCapabilitiesForDriveInfo, *ptrIdDataCapabilitiesForDriveInfo;
+
+static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* identify, uint32_t dataLength)
 {
     int ret = SUCCESS;
-    bool sctSupported = false;
-    bool gplSupported = false;
-    bool smartErrorLoggingSupported = false;
-    bool smartStatusFromSCTStatusLog = false;
-    if (!driveInfo)
+    uint8_t* bytePtr = identify;
+    uint16_t* wordPtr = C_CAST(uint16_t*, &identify);
+
+    fill_ATA_Strings_From_Identify_Data(bytePtr, driveInfo->modelNumber, driveInfo->serialNumber, driveInfo->firmwareRevision);
+
+    //WWN
+    if (wordPtr[84] & BIT8 || wordPtr[87] & BIT8)
     {
-        return BAD_PARAMETER;
+        driveInfo->worldWideNameSupported = true;
+        memcpy(&driveInfo->worldWideName, &wordPtr[108], 8); //copy the 8 bytes into the world wide name
+        word_Swap_64(&driveInfo->worldWideName); //byte swap to make useful
     }
-    memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
-    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
-    if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE))
+    //MaxLBA
+    if (wordPtr[83] & BIT10)
     {
-        uint8_t* bytePtr = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
-        uint16_t* wordPtr = &device->drive_info.IdentifyData.ata.Word000;
-
-        fill_ATA_Strings_From_Identify_Data(bytePtr, driveInfo->modelNumber, driveInfo->serialNumber, driveInfo->firmwareRevision);
-
-        //WWN
-        if (device->drive_info.IdentifyData.ata.Word084 & BIT8 || device->drive_info.IdentifyData.ata.Word087 & BIT8)
+        driveInfo->maxLBA = M_BytesTo8ByteValue(bytePtr[200], bytePtr[201], bytePtr[202], bytePtr[203], bytePtr[204], bytePtr[205], bytePtr[206], bytePtr[207]);
+        byte_Swap_64(&driveInfo->maxLBA);
+    }
+    else
+    {
+        uint32_t tempMaxLba = M_BytesTo4ByteValue(bytePtr[120], bytePtr[121], bytePtr[122], bytePtr[123]);
+        byte_Swap_32(&tempMaxLba);
+        driveInfo->maxLBA = tempMaxLba;
+    }
+    if (driveInfo->maxLBA > 0)
+    {
+        driveInfo->maxLBA -= 1;
+    }
+    //Check if CHS words are non-zero to set if the information is valid.
+    if (!(wordPtr[1] == 0 || wordPtr[3] == 0 || wordPtr[6] == 0))
+    {
+        driveInfo->ataLegacyCHSInfo.legacyCHSValid = true;
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders = wordPtr[1];
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads = C_CAST(uint8_t, wordPtr[3]);
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack = C_CAST(uint8_t, wordPtr[6]);
+        if ((wordPtr[53] & BIT0) || (wordPtr[54] != 0 && wordPtr[55] != 0 && wordPtr[56] != 0 && wordPtr[57] != 0 && wordPtr[58] != 0))
         {
-            driveInfo->worldWideNameSupported = true;
-            memcpy(&driveInfo->worldWideName, &device->drive_info.IdentifyData.ata.Word108, 8); //copy the 8 bytes into the world wide name
-            word_Swap_64(&driveInfo->worldWideName); //byte swap to make useful
+            driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid = true;
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders = wordPtr[54];
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads = C_CAST(uint8_t, wordPtr[55]);
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = C_CAST(uint8_t, wordPtr[56]);
+            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_BytesTo4ByteValue(bytePtr[117], bytePtr[116], bytePtr[115], bytePtr[114]);
         }
-        //MaxLBA
-        if (wordPtr[83] & BIT10)
+    }
+    //get the sector sizes from the identify data
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[106])) //making sure this word has valid data
+    {
+        //word 117 is only valid when word 106 bit 12 is set
+        if ((wordPtr[106] & BIT12) == BIT12)
         {
-            driveInfo->maxLBA = M_BytesTo8ByteValue(bytePtr[200], bytePtr[201], bytePtr[202], bytePtr[203], bytePtr[204], bytePtr[205], bytePtr[206], bytePtr[207]);
-            byte_Swap_64(&driveInfo->maxLBA);
+            driveInfo->logicalSectorSize = M_BytesTo2ByteValue(wordPtr[118], wordPtr[117]);
+            driveInfo->logicalSectorSize *= 2; //convert to words to bytes
         }
-        else
+        else //means that logical sector size is 512bytes
         {
-            uint32_t tempMaxLba = M_BytesTo4ByteValue(bytePtr[120], bytePtr[121], bytePtr[122], bytePtr[123]);
-            byte_Swap_32(&tempMaxLba);
-            driveInfo->maxLBA = tempMaxLba;
+            driveInfo->logicalSectorSize = 512;
         }
-        if (driveInfo->maxLBA > 0)
+        if ((wordPtr[106] & BIT13) == 0)
         {
-            driveInfo->maxLBA -= 1;
+            driveInfo->physicalSectorSize = driveInfo->logicalSectorSize;
         }
-        //Check if CHS words are non-zero to set if the information is valid.
-        if (!(wordPtr[1] == 0 || wordPtr[3] == 0 || wordPtr[6] == 0))
+        else //multiple logical sectors per physical sector
         {
-            driveInfo->ataLegacyCHSInfo.legacyCHSValid = true;
-            driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders = wordPtr[1];
-            driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads = C_CAST(uint8_t, wordPtr[3]);
-            driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack = C_CAST(uint8_t, wordPtr[6]);
-            if ((wordPtr[53] & BIT0) || (wordPtr[54] != 0 && wordPtr[55] != 0 && wordPtr[56] != 0 && wordPtr[57] != 0 && wordPtr[58] != 0))
-            {
-                driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid = true;
-                driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders = wordPtr[54];
-                driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads = C_CAST(uint8_t, wordPtr[55]);
-                driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = C_CAST(uint8_t, wordPtr[56]);
-                driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_BytesTo4ByteValue(bytePtr[117], bytePtr[116], bytePtr[115], bytePtr[114]);
-            }
+            uint8_t sectorSizeExponent = 0;
+            //get the number of logical blocks per physical blocks
+            sectorSizeExponent = wordPtr[106] & 0x000F;
+            driveInfo->physicalSectorSize = C_CAST(uint32_t, driveInfo->logicalSectorSize * power_Of_Two(sectorSizeExponent));
         }
-        //get the sector sizes from the identify data
-        if (((wordPtr[106] & BIT14) == BIT14) && ((wordPtr[106] & BIT15) == 0)) //making sure this word has valid data
-        {
-            //word 117 is only valid when word 106 bit 12 is set
-            if ((wordPtr[106] & BIT12) == BIT12)
-            {
-                driveInfo->logicalSectorSize = M_BytesTo2ByteValue(wordPtr[118], wordPtr[117]);
-                driveInfo->logicalSectorSize *= 2; //convert to words to bytes
-            }
-            else //means that logical sector size is 512bytes
-            {
-                driveInfo->logicalSectorSize = 512;
-            }
-            if ((wordPtr[106] & BIT13) == 0)
-            {
-                driveInfo->physicalSectorSize = driveInfo->logicalSectorSize;
-            }
-            else //multiple logical sectors per physical sector
-            {
-                uint8_t sectorSizeExponent = 0;
-                //get the number of logical blocks per physical blocks
-                sectorSizeExponent = wordPtr[106] & 0x000F;
-                driveInfo->physicalSectorSize = C_CAST(uint32_t, driveInfo->logicalSectorSize * power_Of_Two(sectorSizeExponent));
-            }
-        }
-        else
-        {
-            driveInfo->logicalSectorSize = LEGACY_DRIVE_SEC_SIZE;
-            driveInfo->physicalSectorSize = LEGACY_DRIVE_SEC_SIZE;
-        }
-        //sector alignment
-        if (wordPtr[209] & BIT14)
-        {
-            //bits 13:0 are valid for alignment. bit 15 will be 0 and bit 14 will be 1. remove bit 14 with an xor
-            driveInfo->sectorAlignment = C_CAST(uint16_t, wordPtr[209] ^ BIT14);
-        }
-        //rotation rate
+    }
+    else
+    {
+        driveInfo->logicalSectorSize = LEGACY_DRIVE_SEC_SIZE;
+        driveInfo->physicalSectorSize = LEGACY_DRIVE_SEC_SIZE;
+    }
+    //sector alignment
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[209]))
+    {
+        //bits 13:0 are valid for alignment. bit 15 will be 0 and bit 14 will be 1. remove bit 14 with an xor
+        driveInfo->sectorAlignment = C_CAST(uint16_t, wordPtr[209] ^ BIT14);
+    }
+    //rotation rate
+    if (is_ATA_Identify_Word_Valid(wordPtr[217]))
+    {
         memcpy(&driveInfo->rotationRate, &wordPtr[217], 2);
-        //Special case for SSD detection. One of these SSDs didn't set the media_type to SSD
-        //but it is an SSD. So this match will catch it when this happens. It should be uncommon to find though -TJE
-        if (driveInfo->rotationRate == 0 &&
-            strlen(driveInfo->modelNumber) > 0 && (strstr(driveInfo->modelNumber, "Seagate SSD") != NULL) &&
-            strlen(driveInfo->firmwareRevision) > 0 && (strstr(driveInfo->firmwareRevision, "UHFS") != NULL))
-        {
-            driveInfo->rotationRate = 0x0001;
-        }
-        //form factor
+    }
+    else
+    {
+        driveInfo->rotationRate = 0;
+    }
+    //Special case for SSD detection. One of these SSDs didn't set the media_type to SSD
+    //but it is an SSD. So this match will catch it when this happens. It should be uncommon to find though -TJE
+    if (driveInfo->rotationRate == 0 &&
+        strlen(driveInfo->modelNumber) > 0 && (strstr(driveInfo->modelNumber, "Seagate SSD") != NULL) &&
+        strlen(driveInfo->firmwareRevision) > 0 && (strstr(driveInfo->firmwareRevision, "UHFS") != NULL))
+    {
+        driveInfo->rotationRate = 0x0001;
+    }
+    //form factor
+    if (is_ATA_Identify_Word_Valid(wordPtr[168]))
+    {
         driveInfo->formFactor = M_Nibble0(wordPtr[168]);
-        //zoned capabilities (ACS4)
-        driveInfo->zonedDevice = C_CAST(uint8_t, wordPtr[69] & (BIT0 | BIT1));
-        //get which specifications are supported and the number of them added to the list (ATA Spec listed in word 80)
-        uint16_t specsBits = wordPtr[80];
+    }
+    //zoned capabilities (ACS4)
+    driveInfo->zonedDevice = C_CAST(uint8_t, wordPtr[69] & (BIT0 | BIT1));
+    //get which specifications are supported and the number of them added to the list (ATA Spec listed in word 80)
+    uint16_t specsBits = wordPtr[80];
+    if (is_ATA_Identify_Word_Valid(wordPtr[80]))
+    {
         //Guessed name as this doesn't exist yet
         if (specsBits & BIT15)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-8");
-            
         }
         if (specsBits & BIT14)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-7");
-            
         }
         if (specsBits & BIT13)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-6");
-            
         }
         if (specsBits & BIT12)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-5");
-            
         }
         if (specsBits & BIT11)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-4");
-            
         }
         if (specsBits & BIT10)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3");
-            
         }
         if (specsBits & BIT9)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-2");
-            
         }
         if (specsBits & BIT8)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS");
-            
         }
         if (specsBits & BIT7)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7");
-            
         }
         if (specsBits & BIT6)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6");
-            
         }
         if (specsBits & BIT5)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-5");
-            
         }
         if (specsBits & BIT4)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4");
-            
         }
         if (specsBits & BIT3)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3");
-            
         }
         if (specsBits & BIT2)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2");
-            
         }
         if (specsBits & BIT1)
         {
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-1");
-            
         }
-        //Get the ATA Minor version to add to the list too.
-        if (is_ATA_Identify_Word_Valid(wordPtr[81]))
+    }
+    //Get the ATA Minor version to add to the list too.
+    if (is_ATA_Identify_Word_Valid(wordPtr[81]))
+    {
+        switch (wordPtr[81])
         {
-            switch (wordPtr[81])
-            {
-            case ATA_MINOR_VERSION_NOT_REPORTED:
-                break;
-            case ATA_MINOR_VERSION_ATA_1_PRIOR_TO_REV_4:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-1 (pre Revision 4)");
-                break;
-            case ATA_MINOR_VERSION_ATA_1_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-1 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_1_REV_4:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-1 (Revision 4)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_2_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_2_PRIOR_TO_REV_2K:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Pre Revision 2K)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_3_REV_1:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 1)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_2_REV_2K:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Revision 2K)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_3_REV_0:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 0)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_2_REV_3:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Revision 3)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_3_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_3_REV_6:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 6)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_3_REV_7_AND_7A:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 7 & 7A)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_6:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 6)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_13:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 13)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV7:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 7)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_18:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 18)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_15:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 15)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_5_REV_3:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-5 (Revision 3)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_14:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 14)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_5_REV_1:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-5 (Revision 1)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_5_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-5 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_17:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 17)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_0:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 0)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_3A:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 3A)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_1:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Revision 1)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_2:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 2)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_1:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 1)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_7_RUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_0:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Revision 0)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS3_REV_3B:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Revision 3B)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_4A:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Revision 4A)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA_ATAPI_6_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_3C:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3C)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_6:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 6)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_4:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 4)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS5_REV_8:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 8)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS2_REV_2:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-2 (Revision 2)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_3E:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3E)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_4C:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 4C)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_3F:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3F)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_3B:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3B)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS4_REV_5:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-4 (Revision 5)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS3_REV_5:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Revision 5)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS6_REV_2:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-6 (Revision 2)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS_2_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-2 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS4_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-4 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ATA8_ACS_REV_2D:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 2D)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS3_PUBLISHED:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Published)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS2_REV_3:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-2 (Revision 3)");
-                
-                break;
-            case ATA_MINOR_VERSION_ACS3_REV_4:
-                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Revision 4)");
-                
-                break;
-            case ATA_MINOR_VERSION_NOT_REPORTED_2:
-                break;
-            default:
-                //add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Unknown Minor version: %04" PRIX16, wordPtr[81]);
-                
-                break;
-            }
+        case ATA_MINOR_VERSION_NOT_REPORTED:
+            break;
+        case ATA_MINOR_VERSION_ATA_1_PRIOR_TO_REV_4:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-1 (pre Revision 4)");
+            break;
+        case ATA_MINOR_VERSION_ATA_1_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-1 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA_1_REV_4:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-1 (Revision 4)");
+            break;
+        case ATA_MINOR_VERSION_ATA_2_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA_2_PRIOR_TO_REV_2K:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Pre Revision 2K)");
+            break;
+        case ATA_MINOR_VERSION_ATA_3_REV_1:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 1)");
+            break;
+        case ATA_MINOR_VERSION_ATA_2_REV_2K:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Revision 2K)");
+            break;
+        case ATA_MINOR_VERSION_ATA_3_REV_0:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 0)");
+            break;
+        case ATA_MINOR_VERSION_ATA_2_REV_3:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-2 (Revision 3)");
+            break;
+        case ATA_MINOR_VERSION_ATA_3_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA_3_REV_6:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 6)");
+            break;
+        case ATA_MINOR_VERSION_ATA_3_REV_7_AND_7A:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA-3 (Revision 7 & 7A)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_6:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 6)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_13:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 13)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_REV7:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 7)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_18:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 18)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_15:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 15)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_5_REV_3:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-5 (Revision 3)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_14:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 14)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_5_REV_1:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-5 (Revision 1)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_5_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-5 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_4_REV_17:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-4 (Revision 17)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_0:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 0)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_3A:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 3A)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_1:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Revision 1)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_2:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 2)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_6_REV_1:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Revision 1)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_7_RUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_0:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Revision 0)");
+            break;
+        case ATA_MINOR_VERSION_ACS3_REV_3B:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Revision 3B)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_7_REV_4A:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-7 (Revision 4A)");
+            break;
+        case ATA_MINOR_VERSION_ATA_ATAPI_6_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA/ATAPI-6 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_3C:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3C)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_6:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 6)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_4:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 4)");
+            break;
+        case ATA_MINOR_VERSION_ACS5_REV_8:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 8)");
+            break;
+        case ATA_MINOR_VERSION_ACS2_REV_2:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-2 (Revision 2)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_3E:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3E)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_4C:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 4C)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_3F:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3F)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_3B:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 3B)");
+            break;
+        case ATA_MINOR_VERSION_ACS4_REV_5:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-4 (Revision 5)");
+            break;
+        case ATA_MINOR_VERSION_ACS3_REV_5:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Revision 5)");
+            break;
+        case ATA_MINOR_VERSION_ACS6_REV_2:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-6 (Revision 2)");
+            break;
+        case ATA_MINOR_VERSION_ACS_2_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-2 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ACS4_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-4 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ATA8_ACS_REV_2D:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ATA8-ACS (Revision 2D)");
+            break;
+        case ATA_MINOR_VERSION_ACS3_PUBLISHED:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Published)");
+            break;
+        case ATA_MINOR_VERSION_ACS2_REV_3:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-2 (Revision 3)");
+            break;
+        case ATA_MINOR_VERSION_ACS3_REV_4:
+            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ACS-3 (Revision 4)");
+            break;
+        case ATA_MINOR_VERSION_NOT_REPORTED_2:
+            break;
+        default:
+            //add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Unknown Minor version: %04" PRIX16, wordPtr[81]);
+            break;
         }
-        //now get the Transport specs supported.
+    }
+    //now get the Transport specs supported.
+    uint8_t transportType = 0;
+    if (is_ATA_Identify_Word_Valid(wordPtr[222]))
+    {
         specsBits = wordPtr[222];
-        uint8_t transportType = M_Nibble3(specsBits);//0 = parallel, 1 = serial, e = PCIe
+        transportType = M_Nibble3(specsBits);//0 = parallel, 1 = serial, e = PCIe
         if (specsBits & BIT10)
         {
             if (transportType == 0x01)
@@ -498,7 +461,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT9)
         {
@@ -510,7 +472,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT8)
         {
@@ -522,7 +483,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT7)
         {
@@ -534,7 +494,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT6)
         {
@@ -546,7 +505,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT5)
         {
@@ -558,7 +516,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT4)
         {
@@ -570,7 +527,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT3)
         {
@@ -582,7 +538,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT2)
         {
@@ -594,7 +549,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT1)
         {
@@ -610,7 +564,6 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
         if (specsBits & BIT0)
         {
@@ -626,329 +579,423 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             {
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Reserved");
             }
-            
         }
-        //get if it's FDE/TCG
-        if (wordPtr[69] & BIT4)
+    }
+    //get if it's FDE/TCG
+    if (wordPtr[69] & BIT4)
+    {
+        //FDE
+        driveInfo->encryptionSupport = ENCRYPTION_FULL_DISK;
+    }
+    if (ataCapabilities->seagateFamily == SEAGATE && wordPtr[243] & BIT14)
+    {
+        //FDE
+        driveInfo->encryptionSupport = ENCRYPTION_FULL_DISK;
+    }
+    if (wordPtr[48] & BIT0)
+    {
+        ataCapabilities->tcgSupported = true;
+    }
+    //cache size (legacy method - from ATA 1/2)
+    driveInfo->cacheSize = C_CAST(uint64_t, M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
+    if (transportType == 0xE)
+    {
+        driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PCIE;
+    }
+    else if (wordPtr[76] != 0 && wordPtr[76] != UINT16_MAX)
+    {
+        driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_SERIAL;
+        driveInfo->interfaceSpeedInfo.speedIsValid = true;
+        //port speed
+        driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts = 1;
+        driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0;
+        //Word 76 holds bits for supporteed signalling speeds (SATA)
+        if (wordPtr[76] & BIT3)
         {
-            //FDE
-            driveInfo->encryptionSupport = ENCRYPTION_FULL_DISK;
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 3;
         }
-        if (is_Seagate_Family(device) == SEAGATE && wordPtr[243] & BIT14)
+        else if (wordPtr[76] & BIT2)
         {
-            //FDE
-            driveInfo->encryptionSupport = ENCRYPTION_FULL_DISK;
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 2;
         }
-        if (wordPtr[48] & BIT0)
+        else if (wordPtr[76] & BIT1)
         {
-            //TCG - SED drive (need to test a trusted command to see if it is being blocked or not)
-            if (SUCCESS != ata_Trusted_Non_Data(device, 0, true, 0))
-            {
-                driveInfo->trustedCommandsBeingBlocked = true;
-            }
-            else
-            {
-                //Read supported security protocol list
-                uint8_t* protocolList = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (protocolList)
-                {
-                    if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0, protocolList, LEGACY_DRIVE_SEC_SIZE))
-                    {
-                        uint16_t listLength = M_BytesTo2ByteValue(protocolList[7], protocolList[6]);
-                        for (uint32_t offset = UINT16_C(8); offset < C_CAST(uint32_t, listLength + UINT16_C(8)) && offset < LEGACY_DRIVE_SEC_SIZE; ++offset)
-                        {
-                            switch (protocolList[offset])
-                            {
-                            case SECURITY_PROTOCOL_INFORMATION:
-                                break;
-                            case SECURITY_PROTOCOL_TCG_1:
-                            case SECURITY_PROTOCOL_TCG_2:
-                            case SECURITY_PROTOCOL_TCG_3:
-                            case SECURITY_PROTOCOL_TCG_4:
-                            case SECURITY_PROTOCOL_TCG_5:
-                            case SECURITY_PROTOCOL_TCG_6:
-                                driveInfo->encryptionSupport = ENCRYPTION_SELF_ENCRYPTING;
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCG");
-                                break;
-                            case SECURITY_PROTOCOL_CbCS:
-                            case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
-                            case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
-                            case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
-                            case SECURITY_PROTOCOL_IKE_V2_SCSI:
-                            case SECURITY_PROTOCOL_NVM_EXPRESS:
-                                break;
-                            case SECURITY_PROTOCOL_SCSA:
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCSA");
-                                break;
-                            case SECURITY_PROTOCOL_JEDEC_UFS:
-                            case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
-                                break;
-                            case SECURITY_PROTOCOL_IEEE_1667:
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IEEE 1667");
-                                break;
-                            case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD://T10 only (SAT)
-                                break;
-                            default:
-                                break;
-                            }
-                        }
-                    }
-                    safe_Free_aligned(protocolList)
-                }
-            }
-        }
-        //cache size (legacy method - from ATA 1/2)
-        driveInfo->cacheSize = C_CAST(uint64_t, M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
-        if (transportType == 0xE)
-        {
-            driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PCIE;
-        }
-        else if (wordPtr[76] != 0 && wordPtr[76] != UINT16_MAX)
-        {
-            driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_SERIAL;
-            driveInfo->interfaceSpeedInfo.speedIsValid = true;
-            //port speed
-            driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts = 1;
-            driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0;
-            //Word 76 holds bits for supporteed signalling speeds (SATA)
-            if (wordPtr[76] & BIT3)
-            {
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 3;
-            }
-            else if (wordPtr[76] & BIT2)
-            {
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 2;
-            }
-            else if (wordPtr[76] & BIT1)
-            {
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 1;
-            }
-            else
-            {
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 0;
-            }
-            //Word 77 has a coded value for the negotiated speed.
-            switch (M_Nibble0(wordPtr[77]) >> 1)
-            {
-            case 3://6.0Gb/s
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 3;
-                break;
-            case 2://3.0Gb/s
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 2;
-                break;
-            case 1://1.5Gb/s
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 1;
-                break;
-            case 0:
-            default:
-                driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 0;
-                break;
-            }
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 1;
         }
         else
         {
-            //parallel speed.
-            driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
-            driveInfo->interfaceSpeedInfo.speedIsValid = true;
-            if (wordPtr[53] & BIT1)//UDMA modes
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 0;
+        }
+        //Word 77 has a coded value for the negotiated speed.
+        switch (M_Nibble0(wordPtr[77]) >> 1)
+        {
+        case 3://6.0Gb/s
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 3;
+            break;
+        case 2://3.0Gb/s
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 2;
+            break;
+        case 1://1.5Gb/s
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 1;
+            break;
+        case 0:
+        default:
+            driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 0;
+            break;
+        }
+    }
+    else
+    {
+        //parallel speed.
+        driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
+        driveInfo->interfaceSpeedInfo.speedIsValid = true;
+        if (wordPtr[53] & BIT1)//UDMA modes
+        {
+            uint8_t supported = M_Byte0(wordPtr[88]);
+            uint8_t selected = M_Byte1(wordPtr[88]);
+            int8_t counter = -1;
+            while (supported > 0)
             {
-                uint8_t supported = M_Byte0(wordPtr[88]);
-                uint8_t selected = M_Byte1(wordPtr[88]);
-                int8_t counter = -1;
-                while (supported > 0)
+                supported = supported >> 1;
+                ++counter;
+            }
+            switch (counter)
+            {
+            case 7://compact flash only
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 167;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
+                break;
+            case 6:
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 133;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
+                break;
+            case 5:
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 100;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
+                break;
+            case 4:
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 66.7;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
+                break;
+            case 3:
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 44.4;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
+                break;
+            case 2:
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 33.3;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
+                break;
+            case 1:
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 25;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
+                break;
+            case 0:
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 16.7;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
+                break;
+            }
+            //now check selected
+            if (selected > 0)
+            {
+                driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
+                counter = -1;
+                while (selected > 0)
                 {
-                    supported = supported >> 1;
+                    selected = selected >> 1;
                     ++counter;
                 }
                 switch (counter)
                 {
                 case 7://compact flash only
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 167;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 167;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
                     break;
                 case 6:
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 133;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 133;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
                     break;
                 case 5:
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 100;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 100;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
                     break;
                 case 4:
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 66.7;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 66.7;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
                     break;
                 case 3:
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 44.4;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 44.4;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
                     break;
                 case 2:
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 33.3;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 33.3;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
                     break;
                 case 1:
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 25;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 25;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
                     break;
                 case 0:
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 16.7;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 16.7;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
                     break;
                 }
-                //now check selected
-                if (selected > 0)
-                {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-                    counter = -1;
-                    while (selected > 0)
-                    {
-                        selected = selected >> 1;
-                        ++counter;
-                    }
-                    switch (counter)
-                    {
-                    case 7://compact flash only
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 167;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
-                        break;
-                    case 6:
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 133;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
-                        break;
-                    case 5:
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 100;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
-                        break;
-                    case 4:
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 66.7;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
-                        break;
-                    case 3:
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 44.4;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
-                        break;
-                    case 2:
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 33.3;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
-                        break;
-                    case 1:
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 25;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
-                        break;
-                    case 0:
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 16.7;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
-                        break;
-                    }
-                }
             }
-            int8_t counter = -1;
-            //MWDMA
-            uint8_t mwdmaSupported = M_GETBITRANGE(wordPtr[63], 2, 0);
-            uint8_t mwdmaSelected = M_GETBITRANGE(wordPtr[63], 10, 8);
-            if (mwdmaSupported > 0 && mwdmaSupported < UINT8_MAX)
+        }
+        int8_t counter = -1;
+        //MWDMA
+        uint8_t mwdmaSupported = M_GETBITRANGE(wordPtr[63], 2, 0);
+        uint8_t mwdmaSelected = M_GETBITRANGE(wordPtr[63], 10, 8);
+        if (mwdmaSupported > 0 && mwdmaSupported < UINT8_MAX)
+        {
+            while (mwdmaSupported > 0)
             {
-                while (mwdmaSupported > 0)
+                mwdmaSupported = mwdmaSupported >> 1;
+                ++counter;
+            }
+            switch (counter)
+            {
+            case 2:
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
                 {
-                    mwdmaSupported = mwdmaSupported >> 1;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 16.7;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
+                }
+                break;
+            case 1:
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 13.3)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 13.3;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
+                }
+                break;
+            case 0:
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 4.2;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
+                }
+                break;
+            }
+            //now check selected
+            if (mwdmaSelected > 0)
+            {
+                driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
+                counter = -1;
+                while (mwdmaSelected > 0)
+                {
+                    mwdmaSelected = mwdmaSelected >> 1;
                     ++counter;
                 }
                 switch (counter)
                 {
                 case 2:
+                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 16.7)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 16.7;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
+                    }
+                    break;
+                case 1:
+                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 13.3)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 13.3;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
+                    }
+                    break;
+                case 0:
+                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 4.2)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 4.2;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
+                    }
+                    break;
+                }
+            }
+        }
+        //SWDMA (obsolete since MW is so much faster...) (word 52 also holds the max supported value, but is also long obsolete...it can be checked if word 62 is not supported)
+        uint8_t swdmaSupported = M_GETBITRANGE(wordPtr[62], 2, 0);
+        uint8_t swdmaSelected = M_GETBITRANGE(wordPtr[62], 10, 8);
+        bool swdmaWordSupported = false;
+        if (swdmaSupported > 0 && swdmaSupported < UINT8_MAX)
+        {
+            counter = -1;
+            swdmaWordSupported = true;
+            while (swdmaSupported > 0)
+            {
+                swdmaSupported = swdmaSupported >> 1;
+                ++counter;
+            }
+            switch (counter)
+            {
+            case 2:
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 8.3;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                }
+                break;
+            case 1:
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 4.2;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                }
+                break;
+            case 0:
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 2.1)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 2.1;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                }
+                break;
+            }
+            //now check selected
+            if (swdmaSelected > 0)
+            {
+                driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
+                counter = -1;
+                while (swdmaSelected > 0)
+                {
+                    swdmaSelected = swdmaSelected >> 1;
+                    ++counter;
+                }
+                switch (counter)
+                {
+                case 2:
+                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 8.3)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 8.3;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                    }
+                    break;
+                case 1:
+                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 4.2)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 4.2;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                    }
+                    break;
+                case 0:
+                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 2.1)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 2.1;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                    }
+                    break;
+                }
+            }
+        }
+        uint16_t maxPIOCycleTime = 0;
+        if (wordPtr[53] & BIT0)//other PIO modes
+        {
+            //PIO - from cycle time & mode3/4 support bits
+            uint8_t advancedPIOModes = M_GETBITRANGE(wordPtr[64], 1, 0);
+
+            if (advancedPIOModes)
+            {
+                if (advancedPIOModes & BIT1)
+                {
+                    maxPIOCycleTime = 120;
                     if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 16.7;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
                     }
-                    break;
-                case 1:
-                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 13.3)
-                    {
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 13.3;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
-                    }
-                    break;
-                case 0:
-                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
-                    {
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 4.2;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
-                    }
-                    break;
                 }
-                //now check selected
-                if (mwdmaSelected > 0)
+                else if (advancedPIOModes & BIT0)
                 {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-                    counter = -1;
-                    while (mwdmaSelected > 0)
+                    maxPIOCycleTime = 180;
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 11.1)
                     {
-                        mwdmaSelected = mwdmaSelected >> 1;
-                        ++counter;
-                    }
-                    switch (counter)
-                    {
-                    case 2:
-                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 16.7)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 16.7;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
-                        }
-                        break;
-                    case 1:
-                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 13.3)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 13.3;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
-                        }
-                        break;
-                    case 0:
-                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 4.2)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 4.2;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
-                        }
-                        break;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 11.1;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
                     }
                 }
             }
-            //SWDMA (obsolete since MW is so much faster...) (word 52 also holds the max supported value, but is also long obsolete...it can be checked if word 62 is not supported)
-            uint8_t swdmaSupported = M_GETBITRANGE(wordPtr[62], 2, 0);
-            uint8_t swdmaSelected = M_GETBITRANGE(wordPtr[62], 10, 8);
-            bool swdmaWordSupported = false;
-            if (swdmaSupported > 0 && swdmaSupported < UINT8_MAX)
+            else
             {
-                counter = -1;
-                swdmaWordSupported = true;
-                while (swdmaSupported > 0)
+                //determine maximum from cycle times?
+                maxPIOCycleTime = wordPtr[68];
+                switch (maxPIOCycleTime)
                 {
-                    swdmaSupported = swdmaSupported >> 1;
-                    ++counter;
+                case 120://PIO4
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 16.7;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
+                    }
+                    break;
+                case 180://PIO3
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 11.1)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 11.1;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
+                    }
+                    break;
+                case 240://PIO2
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 8.3;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
+                    }
+                    break;
+                case 383://PIO1
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 5.2)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 5.2;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
+                    }
+                    break;
+                case 600://PIO0
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 3.3)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 3.3;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
+                    }
+                    break;
                 }
-                switch (counter)
+            }
+        }
+        else
+        {
+            if (!swdmaWordSupported && wordPtr[52] != UINT16_MAX)
+            {
+                switch (wordPtr[52])
                 {
                 case 2:
                     if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
@@ -975,1491 +1022,956 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                     }
                     break;
                 }
-                //now check selected
-                if (swdmaSelected > 0)
+            }
+            //if still nothing, word 51 is obsolete (ATA4) but contains the PIO mode (0 - 3). Not sure if this is a "supported" or "negotiated" value.
+            if (wordPtr[51] != UINT16_MAX)
+            {
+                switch (wordPtr[51])
                 {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-                    counter = -1;
-                    while (swdmaSelected > 0)
+                case 2:
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
                     {
-                        swdmaSelected = swdmaSelected >> 1;
-                        ++counter;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 8.3;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
                     }
-                    switch (counter)
+                    break;
+                case 1:
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 5.2)
                     {
-                    case 2:
-                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 8.3)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 8.3;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
-                        }
-                        break;
-                    case 1:
-                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 4.2)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 4.2;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
-                        }
-                        break;
-                    case 0:
-                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid || driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 2.1)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = 2.1;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
-                        }
-                        break;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 5.2;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
                     }
+                    break;
+                case 0:
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 3.3)
+                    {
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 3.3;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
+                    }
+                    break;
                 }
             }
-            uint16_t maxPIOCycleTime = 0;
-            if (wordPtr[53] & BIT0)//other PIO modes
+            //if PIO mode 0, we also need to check some even older bits for Mb/s for ancient history
+            if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed <= 3.3)
             {
-                //PIO - from cycle time & mode3/4 support bits
-                uint8_t advancedPIOModes = M_GETBITRANGE(wordPtr[64], 1, 0);
+                //check if the really OLD Mb/s bits are set...if they are, set the speed based off of them
+                if (M_GETBITRANGE(wordPtr[0], 10, 8) > 0)
+                {
+                    memset(&driveInfo->interfaceSpeedInfo, 0, sizeof(interfaceSpeed));//clear anything we've set so far
+                    driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_ANCIENT;
+                    driveInfo->interfaceSpeedInfo.speedIsValid = true;
+                    if (wordPtr[0] & BIT10)
+                    {
+                        driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt10MbS = true;
+                    }
+                    if (wordPtr[0] & BIT9)
+                    {
+                        driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt5MbSLte10MbS = true;
+                    }
+                    if (wordPtr[0] & BIT8)
+                    {
+                        driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferLte5MbS = true;
+                    }
+                    if (wordPtr[0] & BIT3)
+                    {
+                        driveInfo->interfaceSpeedInfo.ancientHistorySpeed.notMFMEncoded = true;
+                    }
+                }
 
-                if (advancedPIOModes)
-                {
-                    if (advancedPIOModes & BIT1)
-                    {
-                        maxPIOCycleTime = 120;
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 16.7;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
-                        }
-                    }
-                    else if (advancedPIOModes & BIT0)
-                    {
-                        maxPIOCycleTime = 180;
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 11.1)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 11.1;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
-                        }
-                    }
-                }
-                else
-                {
-                    //determine maximum from cycle times?
-                    maxPIOCycleTime = wordPtr[68];
-                    switch (maxPIOCycleTime)
-                    {
-                    case 120://PIO4
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 16.7;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
-                        }
-                        break;
-                    case 180://PIO3
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 11.1)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 11.1;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
-                        }
-                        break;
-                    case 240://PIO2
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 8.3;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
-                        }
-                        break;
-                    case 383://PIO1
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 5.2)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 5.2;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
-                        }
-                        break;
-                    case 600://PIO0
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 3.3)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 3.3;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
-                        }
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                if (!swdmaWordSupported && wordPtr[52] != UINT16_MAX)
-                {
-                    switch (wordPtr[52])
-                    {
-                    case 2:
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 8.3;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
-                        }
-                        break;
-                    case 1:
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 4.2;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
-                        }
-                        break;
-                    case 0:
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 2.1)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 2.1;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
-                        }
-                        break;
-                    }
-                }
-                //if still nothing, word 51 is obsolete (ATA4) but contains the PIO mode (0 - 3). Not sure if this is a "supported" or "negotiated" value.
-                if (wordPtr[51] != UINT16_MAX)
-                {
-                    switch (wordPtr[52])
-                    {
-                    case 2:
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 8.3;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
-                        }
-                        break;
-                    case 1:
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 5.2)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 5.2;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
-                        }
-                        break;
-                    case 0:
-                        if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 3.3)
-                        {
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 3.3;
-                            driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
-                        }
-                        break;
-                    }
-                }
-                //if PIO mode 0, we also need to check some even older bits for Mb/s for ancient history
-                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed <= 3.3)
-                {
-                    //check if the really OLD Mb/s bits are set...if they are, set the speed based off of them
-                    if (M_GETBITRANGE(wordPtr[0], 10, 8) > 0)
-                    {
-                        memset(&driveInfo->interfaceSpeedInfo, 0, sizeof(interfaceSpeed));//clear anything we've set so far
-                        driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_ANCIENT;
-                        driveInfo->interfaceSpeedInfo.speedIsValid = true;
-                        if (wordPtr[0] & BIT10)
-                        {
-                            driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt10MbS = true;
-                        }
-                        if (wordPtr[0] & BIT9)
-                        {
-                            driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt5MbSLte10MbS = true;
-                        }
-                        if (wordPtr[0] & BIT8)
-                        {
-                            driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferLte5MbS = true;
-                        }
-                        if (wordPtr[0] & BIT3)
-                        {
-                            driveInfo->interfaceSpeedInfo.ancientHistorySpeed.notMFMEncoded = true;
-                        }
-                    }
-
-                }
-            }
-        }
-
-        //firmware download support
-        if (wordPtr[69] & BIT8)
-        {
-            driveInfo->fwdlSupport.dmaModeSupported = true;
-        }
-        if (wordPtr[83] & BIT0 || wordPtr[86] & BIT0)
-        {
-            driveInfo->fwdlSupport.downloadSupported = true;
-        }
-        if (wordPtr[119] & BIT4 || wordPtr[120] & BIT4)
-        {
-            driveInfo->fwdlSupport.segmentedSupported = true;
-        }
-        if (is_Seagate_Family(device) == SEAGATE && wordPtr[243] & BIT12)
-        {
-            driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = true;
-        }
-        //ata security status
-        get_ATA_Security_Info(device, &driveInfo->ataSecurityInformation, false);
-        //read look ahead
-        if (wordPtr[82] & BIT6)
-        {
-            driveInfo->readLookAheadSupported = true;
-            if (wordPtr[85] & BIT6)
-            {
-                driveInfo->readLookAheadEnabled = true;
-            }
-        }
-        //write cache
-        if (wordPtr[82] & BIT5)
-        {
-            driveInfo->writeCacheSupported = true;
-            if (wordPtr[85] & BIT5)
-            {
-                driveInfo->writeCacheEnabled = true;
-            }
-        }
-        //NV Cache Size logical blocks - needs testing against different drives to make sure the value is correct
-        driveInfo->hybridNANDSize = C_CAST(uint64_t, M_WordsTo4ByteValue(wordPtr[215], wordPtr[216])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
-        //create a list of supported features
-        if (driveInfo->trustedCommandsBeingBlocked == true)
-        {
-            if (wordPtr[48] & BIT0)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCG");
-            }
-            if (wordPtr[69] & BIT7)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IEEE 1667");
-            }
-        }
-        if (wordPtr[59] & BIT12)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sanitize");
-        }
-        if (wordPtr[76] != 0 && wordPtr[76] != 0xFFFF && wordPtr[76] & BIT8)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA NCQ");
-        }
-        if (wordPtr[77] != 0 && wordPtr[77] != 0xFFFF && wordPtr[77] & BIT4)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA NCQ Streaming");
-        }
-        if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT11)
-        {
-            if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT11)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Rebuild Assist [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Rebuild Assist");
-            }
-        }
-        if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT9)
-        {
-            if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT9)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hybrid Information [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hybrid Information");
-            }
-        }
-        if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT8)
-        {
-            if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT8)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Sleep [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Sleep");
-            }
-        }
-        if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT6)
-        {
-            if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT6)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Software Settings Preservation [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Software Settings Preservation");
-            }
-        }
-        if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT5)
-        {
-            if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT5)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hardware Feature Control [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hardware Feature Control");
-            }
-        }
-        if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT4)
-        {
-            if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT4)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA In-Order Data Delivery [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA In-Order Data Delivery");
-            }
-        }
-        if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT3)
-        {
-            if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT3)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Initiated Power Management [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Initiated Power Management");
-            }
-        }
-        if (wordPtr[82] & BIT10 || wordPtr[85] & BIT10)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "HPA");
-        }
-        if (wordPtr[82] & BIT3)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Power Management");
-        }
-        if (wordPtr[82] & BIT1)
-        {
-            if (wordPtr[85] & BIT1)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Security [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Security");
-            }
-        }
-        if (wordPtr[82] & BIT0)
-        {
-            if (wordPtr[85] & BIT0)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART");
-            }
-        }
-        if (wordPtr[83] & BIT11 || wordPtr[86] & BIT11)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DCO");
-        }
-        if (wordPtr[83] & BIT10 || wordPtr[86] & BIT10)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "48bit Address");
-        }
-        if (wordPtr[83] & BIT9)
-        {
-            if (wordPtr[86] & BIT9)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "AAM [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "AAM");
-            }
-        }
-        if (wordPtr[83] & BIT8)
-        {
-            if (wordPtr[86] & BIT8)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Set Max Security Extension [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Set Max Security Extension");
-            }
-        }
-        if (wordPtr[83] & BIT5)
-        {
-            if (wordPtr[86] & BIT5)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PUIS [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PUIS");
-            }
-        }
-        if (wordPtr[83] & BIT4)
-        {
-            if (wordPtr[86] & BIT4)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Removable Media Status Notification [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Removable Media Status Notification");
-            }
-        }
-        if (wordPtr[83] & BIT3)
-        {
-            if (wordPtr[86] & BIT3)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM");
-            }
-        }
-        if (wordPtr[83] & BIT2)
-        {
-            if (wordPtr[86] & BIT2)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "CFA [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "CFA");
-            }
-            
-        }
-        if (wordPtr[83] & BIT1 || wordPtr[86] & BIT1)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCQ");
-        }
-        if (wordPtr[84] & BIT5 || wordPtr[86] & BIT5)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "GPL");
-            gplSupported = true;
-        }
-        if (wordPtr[84] & BIT4)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Streaming");
-        }
-        if (wordPtr[84] & BIT3 || wordPtr[87] & BIT3)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Media Card Pass-through");
-        }
-        if (wordPtr[84] & BIT1 || wordPtr[87] & BIT1)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART Self-Test");
-        }
-        if (wordPtr[84] & BIT0 || wordPtr[87] & BIT0)
-        {
-            smartErrorLoggingSupported = true;
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART Error Logging");
-        }
-        if (wordPtr[82] & BIT4 || wordPtr[85] & BIT4)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Packet");
-        }
-        if (wordPtr[119] & BIT5)
-        {
-            if (wordPtr[120] & BIT5)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Free-fall Control [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Free-fall Control");
-            }
-        }
-        if (wordPtr[119] & BIT1)
-        {
-            if (wordPtr[120] & BIT1)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write-Read-Verify [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write-Read-Verify");
-            }
-        }
-        if (wordPtr[119] & BIT9)
-        {
-            if (wordPtr[120] & BIT9)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DSN [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DSN");
-            }
-        }
-        if (wordPtr[119] & BIT8)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "AMAC");
-        }
-        if (wordPtr[119] & BIT7)
-        {
-            if (wordPtr[120] & BIT7)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "EPC [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "EPC");
-            }
-        }
-        if (wordPtr[119] & BIT6)
-        {
-            if (wordPtr[120] & BIT6)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sense Data Reporting [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sense Data Reporting");
-            }
-        }
-        if (wordPtr[169] & BIT0)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TRIM");
-        }
-        if (wordPtr[206] & BIT0)
-        {
-            sctSupported = true;
-            if (wordPtr[206] & BIT1)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Read/Write Long");
-            }
-            if (wordPtr[206] & BIT2)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Write Same");
-            }
-            if (wordPtr[206] & BIT3)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Error Recovery Control");
-            }
-            if (wordPtr[206] & BIT4)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Feature Control");
-            }
-            if (wordPtr[206] & BIT5)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Data Tables");
-            }
-        }
-        if (M_Byte3(wordPtr[214]) > 0)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NV Cache");
-        }
-        if (wordPtr[214] & BIT0)
-        {
-            if (wordPtr[214] & BIT1)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NV Cache Power Mode [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NV Cache Power Mode");
             }
         }
     }
-    driveInfo->percentEnduranceUsed = -1;//start with this to filter out this value later if necessary
 
-    //Read Log data
-    uint32_t logBufferSize = LEGACY_DRIVE_SEC_SIZE;
-    uint8_t* logBuffer = C_CAST(uint8_t*, calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!logBuffer)
+    //firmware download support
+    if (wordPtr[69] & BIT8)
     {
-        return MEMORY_FAILURE;
+        driveInfo->fwdlSupport.dmaModeSupported = true;
     }
-
-    bool gotLogDirectory = false;
-    bool directoryFromGPL = false;
-    if (gplSupported && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+    if (wordPtr[83] & BIT0 || wordPtr[86] & BIT0)
     {
-        gotLogDirectory = true;
-        directoryFromGPL = true;
+        driveInfo->fwdlSupport.downloadSupported = true;
     }
-    else if (smartErrorLoggingSupported && SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+    if (wordPtr[119] & BIT4 || wordPtr[120] & BIT4)
     {
-        gotLogDirectory = true;
+        driveInfo->fwdlSupport.segmentedSupported = true;
     }
-
-    if (gotLogDirectory || smartErrorLoggingSupported)
+    if (ataCapabilities->seagateFamily == SEAGATE && wordPtr[243] & BIT12)
     {
-        //check for log sizes we are interested in
-        uint32_t devStatsSize = 0, idDataLog = 0, hybridInfoSize = 0, smartSelfTest = 0, extSelfTest = 0, hostlogging = 0, sctStatus = 0, concurrentRangesSize = 0, farmLogSize = 0;
-        if (gotLogDirectory)
+        driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = true;
+    }
+    //ata security status
+    //word 128
+    if (is_ATA_Identify_Word_Valid(wordPtr[128]) && wordPtr[128] & BIT0)
+    {
+        driveInfo->ataSecurityInformation.securitySupported = true;
+        if (wordPtr[128] & BIT1)
         {
-            devStatsSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2) + 1], logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            idDataLog = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            hybridInfoSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2) + 1], logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            smartSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            extSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            sctStatus = M_BytesTo2ByteValue(logBuffer[(ATA_SCT_COMMAND_STATUS * 2) + 1], logBuffer[(ATA_SCT_COMMAND_STATUS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            hostlogging = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HOST_SPECIFIC_80H * 2) + 1], logBuffer[(ATA_LOG_HOST_SPECIFIC_80H * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            concurrentRangesSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2) + 1], logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2)]) * LEGACY_DRIVE_SEC_SIZE;
-            farmLogSize = M_BytesTo2ByteValue(logBuffer[(SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS * 2) + 1], logBuffer[(SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            driveInfo->ataSecurityInformation.securityEnabled = true;
+        }
+        if (wordPtr[128] & BIT2)
+        {
+            driveInfo->ataSecurityInformation.securityLocked = true;
+        }
+        if (wordPtr[128] & BIT3)
+        {
+            driveInfo->ataSecurityInformation.securityFrozen = true;
+        }
+        if (wordPtr[128] & BIT4)
+        {
+            driveInfo->ataSecurityInformation.securityCountExpired = true;
+        }
+        if (wordPtr[128] & BIT5)
+        {
+            driveInfo->ataSecurityInformation.enhancedEraseSupported = true;
+        }
+        if (wordPtr[128] & BIT8)
+        {
+            driveInfo->ataSecurityInformation.masterPasswordCapability = true;
+        }
+        //word 89
+        if (wordPtr[89] & BIT15)
+        {
+            driveInfo->ataSecurityInformation.extendedTimeFormat = true;
+            //bits 14:0
+            driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = (wordPtr[89] & 0x7FFF) * 2;
+            if (driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes == (32767 * 2))
+            {
+                driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = UINT16_MAX;
+            }
         }
         else
         {
-            //This is a case for old drives. They will only support single sector logs when this is set like this
-            if (is_Self_Test_Supported(device))
+            //bits 7:0
+            driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = M_Byte0(wordPtr[89]) * 2;
+            if (driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes == (255 * 2))
             {
-                smartSelfTest = UINT32_C(512);
+                driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = UINT16_MAX;
             }
-            //The only other logs to look at in here are SMART error log (summary and comprehensive) and selective self test
-            // as these are the only other single sector logs that will show up on old drives like these
         }
-        if (hostlogging == (UINT32_C(16) * UINT16_C(512)))
+        //word 90
+        if (wordPtr[90] & BIT15)
         {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Host Logging");
-        }
-        //read identify device data log (only some pages are needed)
-        if (idDataLog > 0) //Can come from SMART or GPL! Need to handle this...
-        {
-            if (gplSupported && directoryFromGPL)
+            driveInfo->ataSecurityInformation.extendedTimeFormat = true;
+            //bits 14:0
+            driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = (wordPtr[90] & 0x7FFF) * 2;
+            if (driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
             {
-                bool capacity = false;
-                bool supportedCapabilities = false;
-                bool currentSettings = false;
-                bool zonedDeviceSupport = false;
-                if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, logBuffer, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
-                {
-                    uint8_t pageNumber = logBuffer[2];
-                    uint16_t revision = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
-                    if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
-                    {
-                        //data is valid, so figure out supported pages
-                        uint8_t listLen = logBuffer[8];
-                        for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(512); ++iter)
-                        {
-                            switch (logBuffer[iter])
-                            {
-                            case ATA_ID_DATA_LOG_SUPPORTED_PAGES:
-                            case ATA_ID_DATA_LOG_COPY_OF_IDENTIFY_DATA:
-                                break;
-                            case ATA_ID_DATA_LOG_CAPACITY:
-                                capacity = true;
-                                break;
-                            case ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES:
-                                supportedCapabilities = true;
-                                break;
-                            case ATA_ID_DATA_LOG_CURRENT_SETTINGS:
-                                currentSettings = true;
-                                break;
-                            case ATA_ID_DATA_LOG_ATA_STRINGS:
-                            case ATA_ID_DATA_LOG_SECURITY:
-                            case ATA_ID_DATA_LOG_PARALLEL_ATA:
-                            case ATA_ID_DATA_LOG_SERIAL_ATA:
-                                break;
-                            case ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION:
-                                zonedDeviceSupport = true;
-                                break;
-                            default:
-                                break;
-                            }
-                        }
-                    }
-                }
-                //we need to read pages 2, 3 (read them one at a time to work around some USB issues as best we can)
-                if (capacity && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_CAPACITY, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-                {
-                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_CAPACITY && M_Word0(qword0) >= 0x0001)
-                    {
-                        //get the nominal buffer size
-                        uint64_t nominalBufferSize = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
-                        if (nominalBufferSize & BIT63)
-                        {
-                            //data is valid. Remove bit 63
-                            nominalBufferSize ^= BIT63;
-                            //now save this value to cache size (number of bytes)
-                            driveInfo->cacheSize = nominalBufferSize;
-                        }
-                    }
-                }
-                bool dlcSupported = false;
-                if (supportedCapabilities && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-                {
-                    //supported capabilities
-                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= 0x0001)
-                    {
-                        uint64_t supportedCapabilitiesQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                        if (supportedCapabilitiesQWord & BIT63)
-                        {
-                            if (supportedCapabilitiesQWord & BIT55)
-                            {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Mutate");
-                            }
-                            if (supportedCapabilitiesQWord & BIT54)
-                            {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Advanced Background Operations");
-                            }
-                            if (supportedCapabilitiesQWord & BIT49)
-                            {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Set Sector Configuration");
-                            }
-                            if (supportedCapabilitiesQWord & BIT46)
-                            {
-                                dlcSupported = true;
-                            }
-                        }
-                        //Download capabilities
-                        uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
-                        if (downloadCapabilities & BIT63)
-                        {
-                            if (downloadCapabilities & BIT34)
-                            {
-                                driveInfo->fwdlSupport.deferredSupported = true;
-                            }
-                        }
-                        //Utilization (IDK if we need anything from this log for this information)
+                driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+            }
+        }
+        else
+        {
+            //bits 7:0
+            driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = M_Byte0(wordPtr[90]) * 2;
+            if (driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
+            {
+                driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+            }
+        }
+        //word 92
+        driveInfo->ataSecurityInformation.masterPasswordIdentifier = wordPtr[92];
+    }
+    if (is_ATA_Identify_Word_Valid(wordPtr[69]))
+    {
+        driveInfo->ataSecurityInformation.encryptAll = wordPtr[69] & BIT4;
+    }
+    //read look ahead
+    if (wordPtr[82] & BIT6)
+    {
+        driveInfo->readLookAheadSupported = true;
+        if (wordPtr[85] & BIT6)
+        {
+            driveInfo->readLookAheadEnabled = true;
+        }
+    }
+    //write cache
+    if (wordPtr[82] & BIT5)
+    {
+        driveInfo->writeCacheSupported = true;
+        if (wordPtr[85] & BIT5)
+        {
+            driveInfo->writeCacheEnabled = true;
+        }
+    }
+    //NV Cache Size logical blocks - needs testing against different drives to make sure the value is correct
+    driveInfo->hybridNANDSize = C_CAST(uint64_t, M_WordsTo4ByteValue(wordPtr[215], wordPtr[216])) * C_CAST(uint64_t, driveInfo->logicalSectorSize);
+    //create a list of supported features
+    if (driveInfo->trustedCommandsBeingBlocked == true)
+    {
+        if (wordPtr[48] & BIT0)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCG");
+        }
+        if (wordPtr[69] & BIT7)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IEEE 1667");
+        }
+    }
+    if (wordPtr[59] & BIT12)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sanitize");
+    }
+    if (wordPtr[76] != 0 && wordPtr[76] != 0xFFFF && wordPtr[76] & BIT8)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA NCQ");
+    }
+    if (wordPtr[77] != 0 && wordPtr[77] != 0xFFFF && wordPtr[77] & BIT4)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA NCQ Streaming");
+    }
+    if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT11)
+    {
+        if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT11)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Rebuild Assist [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Rebuild Assist");
+        }
+    }
+    if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT9)
+    {
+        if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT9)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hybrid Information [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hybrid Information");
+        }
+    }
+    if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT8)
+    {
+        if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT8)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Sleep [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Sleep");
+        }
+    }
+    if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT6)
+    {
+        if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT6)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Software Settings Preservation [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Software Settings Preservation");
+        }
+    }
+    if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT5)
+    {
+        if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT5)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hardware Feature Control [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Hardware Feature Control");
+        }
+    }
+    if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT4)
+    {
+        if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT4)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA In-Order Data Delivery [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA In-Order Data Delivery");
+        }
+    }
+    if (wordPtr[78] != 0 && wordPtr[78] != 0xFFFF && wordPtr[78] & BIT3)
+    {
+        if (wordPtr[79] != 0 && wordPtr[79] != 0xFFFF && wordPtr[79] & BIT3)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Initiated Power Management [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Device Initiated Power Management");
+        }
+    }
+    if (wordPtr[82] & BIT10 || wordPtr[85] & BIT10)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "HPA");
+    }
+    if (wordPtr[82] & BIT3)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Power Management");
+    }
+    if (wordPtr[82] & BIT1)
+    {
+        if (wordPtr[85] & BIT1)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Security [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Security");
+        }
+    }
+    if (wordPtr[82] & BIT0)
+    {
+        if (wordPtr[85] & BIT0)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART");
+        }
+    }
+    if (wordPtr[83] & BIT11 || wordPtr[86] & BIT11)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DCO");
+    }
+    if (wordPtr[83] & BIT10 || wordPtr[86] & BIT10)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "48bit Address");
+    }
+    if (wordPtr[83] & BIT9)
+    {
+        if (wordPtr[86] & BIT9)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "AAM [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "AAM");
+        }
+    }
+    if (wordPtr[83] & BIT8)
+    {
+        if (wordPtr[86] & BIT8)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Set Max Security Extension [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Set Max Security Extension");
+        }
+    }
+    if (wordPtr[83] & BIT5)
+    {
+        if (wordPtr[86] & BIT5)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PUIS [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PUIS");
+        }
+    }
+    if (wordPtr[83] & BIT4)
+    {
+        if (wordPtr[86] & BIT4)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Removable Media Status Notification [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Removable Media Status Notification");
+        }
+    }
+    if (wordPtr[83] & BIT3)
+    {
+        if (wordPtr[86] & BIT3)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM");
+        }
+    }
+    if (wordPtr[83] & BIT2)
+    {
+        if (wordPtr[86] & BIT2)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "CFA [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "CFA");
+        }
 
-                        //zoned capabilities
-                        uint64_t zonedCapabilities = M_BytesTo8ByteValue(logBuffer[111], logBuffer[110], logBuffer[109], logBuffer[108], logBuffer[107], logBuffer[106], logBuffer[105], logBuffer[104]);
-                        if (zonedCapabilities & BIT63)
-                        {
-                            //we only need bits 1 & 2
-                            driveInfo->zonedDevice = zonedCapabilities & 0x3;
-                        }
+    }
+    if (wordPtr[83] & BIT1 || wordPtr[86] & BIT1)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCQ");
+    }
+    if (wordPtr[84] & BIT5 || wordPtr[86] & BIT5)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "GPL");
+        ataCapabilities->gplSupported = true;
+    }
+    if (wordPtr[84] & BIT4)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Streaming");
+    }
+    if (wordPtr[84] & BIT3 || wordPtr[87] & BIT3)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Media Card Pass-through");
+    }
+    if (wordPtr[84] & BIT1 || wordPtr[87] & BIT1)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART Self-Test");
+    }
+    if (wordPtr[84] & BIT0 || wordPtr[87] & BIT0)
+    {
+        ataCapabilities->smartErrorLoggingSupported = true;
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SMART Error Logging");
+    }
+    if (wordPtr[82] & BIT4 || wordPtr[85] & BIT4)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Packet");
+    }
+    if (wordPtr[119] & BIT5)
+    {
+        if (wordPtr[120] & BIT5)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Free-fall Control [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Free-fall Control");
+        }
+    }
+    if (wordPtr[119] & BIT1)
+    {
+        if (wordPtr[120] & BIT1)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write-Read-Verify [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write-Read-Verify");
+        }
+    }
+    if (wordPtr[119] & BIT9)
+    {
+        if (wordPtr[120] & BIT9)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DSN [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DSN");
+        }
+    }
+    if (wordPtr[119] & BIT8)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "AMAC");
+    }
+    if (wordPtr[119] & BIT7)
+    {
+        if (wordPtr[120] & BIT7)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "EPC [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "EPC");
+        }
+    }
+    if (wordPtr[119] & BIT6)
+    {
+        if (wordPtr[120] & BIT6)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sense Data Reporting [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sense Data Reporting");
+        }
+    }
+    if (wordPtr[169] & BIT0)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TRIM");
+    }
+    if (wordPtr[206] & BIT0)
+    {
+        ataCapabilities->sctSupported = true;
+        if (wordPtr[206] & BIT1)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Read/Write Long");
+        }
+        if (wordPtr[206] & BIT2)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Write Same");
+        }
+        if (wordPtr[206] & BIT3)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Error Recovery Control");
+        }
+        if (wordPtr[206] & BIT4)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Feature Control");
+        }
+        if (wordPtr[206] & BIT5)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCT Data Tables");
+        }
+    }
+    if (M_Byte3(wordPtr[214]) > 0)
+    {
+        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NV Cache");
+    }
+    if (wordPtr[214] & BIT0)
+    {
+        if (wordPtr[214] & BIT1)
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NV Cache Power Mode [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NV Cache Power Mode");
+        }
+    }
+    return ret;
+}
 
-                        //depopulate storage element support
-                        uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(logBuffer[159], logBuffer[158], logBuffer[157], logBuffer[156], logBuffer[155], logBuffer[154], logBuffer[153], logBuffer[152]);
-                        if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
-                        {
-                            if (supportedCapabilitiesQWord18 & BIT1 && supportedCapabilitiesQWord18 & BIT0)//checking for both commands to be supported
-                            {
-                                if (supportedCapabilitiesQWord18 & BIT2)
-                                {
-                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation + Restore");
-                                }
-                                else
-                                {
-                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation");
-                                }
-                            }
-                        }
-                    }
-                }
-                bool dlcEnabled = false;
-                if (currentSettings && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_CURRENT_SETTINGS, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-                {
-                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_CURRENT_SETTINGS && M_Word0(qword0) >= 0x0001)
-                    {
-                        uint64_t currentSettingsQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                        if (currentSettingsQWord & BIT63)
-                        {
-                            if (currentSettingsQWord & BIT17)
-                            {
-                                dlcEnabled = true;
-                            }
-                        }
-                    }
-                }
-                if (dlcSupported)
-                {
-                    if (dlcEnabled)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control [Enabled]");
-                    }
-                    else
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control");
-                    }
-                }
-                if (zonedDeviceSupport && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-                {
-                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION && M_Word0(qword0) >= 0x0001)
-                    {
-                        uint64_t zonedSettingsQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                        uint64_t versionQWord = M_BytesTo8ByteValue(logBuffer[55], logBuffer[54], logBuffer[53], logBuffer[52], logBuffer[51], logBuffer[50], logBuffer[49], logBuffer[48]);
-                        uint64_t zoneActCapQWord = M_BytesTo8ByteValue(logBuffer[63], logBuffer[62], logBuffer[61], logBuffer[60], logBuffer[59], logBuffer[58], logBuffer[57], logBuffer[56]);
-                        if (zonedSettingsQWord & BIT63)
-                        {
-                            if (zonedSettingsQWord & BIT1)
-                            {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Remove Element And Modify Zones");
-                            }
-                        }
-                        if (versionQWord & BIT63)
-                        {
-                            switch (M_Word0(versionQWord))
-                            {
-                            case ZAC_MINOR_VERSION_NOT_REPORTED:
-                                break;
-                            case ZAC_MINOR_VERSION_ZAC_REV_5:
-                                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 5)");
-                                break;
-                            case ZAC_MINOR_VERSION_ZAC2_REV_15:
-                                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 15)");
-                                break;
-                            case ZAC_MINOR_VERSION_ZAC2_REV_1B:
-                                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 1B)");
-                                break;
-                            case ZAC_MINOR_VERSION_ZAC_REV_4:
-                                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 4)");
-                                break;
-                            case ZAC_MINOR_VERSION_ZAC2_REV12:
-                                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 12)");
-                                break;
-                            case ZAC_MINOR_VERSION_ZAC_REV_1:
-                                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 1)");
-                                break;
-                            case ZAC_MINOR_VERSION_NOT_REPORTED_2:
-                                break;
-                            default:
-                                //add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
-                                break;
-                            }
-                        }
-                        if (zoneActCapQWord & BIT63)
-                        {
-                            if (zoneActCapQWord & BIT0)
-                            {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Domains");
-                            }
-                            if (zoneActCapQWord & BIT1)
-                            {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Realms");
-                            }
-                        }
-                    }
-                }
-            }
-            else if (smartErrorLoggingSupported)
+//This function expects a complete ID data log, so the supported pages followed by all supported pages that were read.
+static int get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* idDataLog, uint32_t dataLength)
+{
+    int ret = NOT_SUPPORTED;
+    uint8_t pageNumber = idDataLog[2];
+    uint16_t revision = M_BytesTo2ByteValue(idDataLog[1], idDataLog[0]);
+    if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= ATA_ID_DATA_VERSION_1)
+    {
+        ret = SUCCESS;
+        ataCapabilities->supportsIDDataLog = true;
+        //data is valid, so figure out supported pages
+        uint8_t listLen = idDataLog[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
+        uint32_t offset = 0;
+        bool dlcSupported = false;
+        bool dlcEnabled = false;
+        for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(ATA_LOG_PAGE_LEN_BYTES); ++iter)
+        {
+            switch (idDataLog[iter])
             {
-                //First try reading only the first sector and check if the page we want is available
-                if (ata_SMART_Read_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+            case ATA_ID_DATA_LOG_SUPPORTED_PAGES:
+                break;
+            case ATA_ID_DATA_LOG_COPY_OF_IDENTIFY_DATA:
+                ataCapabilities->supportedIDDataPages.copyOfIdentify = true;
+                break;
+            case ATA_ID_DATA_LOG_CAPACITY:
+                ataCapabilities->supportedIDDataPages.capacity = true;
+                break;
+            case ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES:
+                ataCapabilities->supportedIDDataPages.supportedCapabilities = true;
+                break;
+            case ATA_ID_DATA_LOG_CURRENT_SETTINGS:
+                ataCapabilities->supportedIDDataPages.currentSettings = true;
+                break;
+            case ATA_ID_DATA_LOG_ATA_STRINGS:
+                ataCapabilities->supportedIDDataPages.strings = true;
+                break;
+            case ATA_ID_DATA_LOG_SECURITY:
+                ataCapabilities->supportedIDDataPages.security = true;
+                break;
+            case ATA_ID_DATA_LOG_PARALLEL_ATA:
+                ataCapabilities->supportedIDDataPages.parallelATA = true;
+                break;
+            case ATA_ID_DATA_LOG_SERIAL_ATA:
+                ataCapabilities->supportedIDDataPages.serialATA = true;
+                break;
+            case ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION:
+                ataCapabilities->supportedIDDataPages.zac2 = true;
+                break;
+            default:
+                break;
+            }
+        }
+        if (ataCapabilities->supportedIDDataPages.capacity)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_CAPACITY;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_CAPACITY && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
+            {
+                //get the nominal buffer size
+                uint64_t nominalBufferSize = M_BytesTo8ByteValue(idDataLog[offset + 39], idDataLog[offset + 38], idDataLog[offset + 37], idDataLog[offset + 36], idDataLog[offset + 35], idDataLog[offset + 34], idDataLog[offset + 33], idDataLog[offset + 32]);
+                if (nominalBufferSize & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    uint64_t header = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (M_Word0(header) == 0x0001 && M_Byte2(header) == 0) //check page and version number
-                    {
-                        bool readFullLog = false;
-                        //check that pages 2 and/or 3 are supported
-                        uint16_t numberOfEntries = logBuffer[8];
-                        for (uint16_t offset = 9; offset < (numberOfEntries + UINT8_C(8)) && offset < 512; ++offset)
-                        {
-                            if (logBuffer[offset] == 0x02 || logBuffer[offset] == 0x03)
-                            {
-                                readFullLog = true;
-                                break;
-                            }
-                        }
-                        if (readFullLog)
-                        {
-                            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(logBuffer, 0, idDataLog * sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (temp)
-                            {
-                                logBuffer = temp;
-                                logBufferSize = idDataLog * sizeof(uint8_t);
-                                if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, logBuffer, logBufferSize))
-                                {
-                                    bool dlcSupported = false;
-                                    bool dlcEnabled = false;
-                                    //start att offset 1024 snce page 0 and page 1 are not needed. (0 = list of supported pages, 1 = copy of identify data)
-                                    for (uint32_t offset = UINT32_C(1024); offset < logBufferSize; offset += UINT32_C(512))
-                                    {
-                                        uint64_t pageHeader = M_BytesTo8ByteValue(logBuffer[offset + 7], logBuffer[offset + 6], logBuffer[offset + 5], logBuffer[offset + 4], logBuffer[offset + 3], logBuffer[offset + 2], logBuffer[offset + 1], logBuffer[offset + 0]);
-                                        if (pageHeader & BIT63 && M_Word0(pageHeader) >= 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_CAPACITY) //check page and version number
-                                        {
-                                            //read page 2 data
-                                            //get the nominal buffer size
-                                            uint64_t nominalBufferSize = M_BytesTo8ByteValue(logBuffer[offset + 39], logBuffer[offset + 38], logBuffer[offset + 37], logBuffer[offset + 36], logBuffer[offset + 35], logBuffer[offset + 34], logBuffer[offset + 33], logBuffer[offset + 32]);
-                                            if (nominalBufferSize & BIT63)
-                                            {
-                                                //data is valid. Remove bit 63
-                                                nominalBufferSize ^= BIT63;
-                                                //now save this value to cache size (number of bytes)
-                                                driveInfo->cacheSize = nominalBufferSize;
-                                            }
-                                        }
-                                        else if (pageHeader & BIT63 && M_Word0(pageHeader) >= 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES) //check page and version number
-                                        {
-                                            //read page 3 data
-                                            //supported capabilities
-                                            uint64_t supportedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
-                                            if (supportedCapabilities & BIT63)
-                                            {
-                                                if (supportedCapabilities & BIT55)
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Mutate");
-                                                }
-                                                if (supportedCapabilities & BIT54)
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Advanced Background Operations");
-                                                }
-                                                if (supportedCapabilities & BIT49)
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Set Sector Configuration");
-                                                }
-                                                if (supportedCapabilities & BIT46)
-                                                {
-                                                    dlcSupported = true;
-                                                }
-                                            }
-                                            //Download capabilities
-                                            uint64_t downloadCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
-                                            if (downloadCapabilities & BIT63)
-                                            {
-                                                if (downloadCapabilities & BIT34)
-                                                {
-                                                    driveInfo->fwdlSupport.deferredSupported = true;
-                                                }
-                                            }
-                                            //Utilization (IDK if we need anything from this log for this information)
-
-                                            //zoned capabilities
-                                            uint64_t zonedCapabilities = M_BytesTo8ByteValue(logBuffer[offset + 111], logBuffer[offset + 110], logBuffer[offset + 109], logBuffer[offset + 108], logBuffer[offset + 107], logBuffer[offset + 106], logBuffer[offset + 105], logBuffer[offset + 104]);
-                                            if (zonedCapabilities & BIT63)
-                                            {
-                                                //we only need bits 1 & 2
-                                                driveInfo->zonedDevice = zonedCapabilities & 0x3;
-                                            }
-
-                                            //depopulate storage element support
-                                            uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(logBuffer[offset + 159], logBuffer[offset + 158], logBuffer[offset + 157], logBuffer[offset + 156], logBuffer[offset + 155], logBuffer[offset + 154], logBuffer[offset + 153], logBuffer[offset + 152]);
-                                            if (supportedCapabilitiesQWord18 & BIT63)//making sure this is set for "validity"
-                                            {
-                                                if (supportedCapabilitiesQWord18 & BIT2)
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation + Restore");
-                                                }
-                                                else
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation");
-                                                }
-                                            }
-                                        }
-                                        else if (pageHeader & BIT63 && M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_CURRENT_SETTINGS) //check page and version number
-                                        {
-                                            //supported capabilities
-                                            uint64_t currentSettings = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
-                                            if (currentSettings & BIT63)
-                                            {
-                                                if (currentSettings & BIT17)
-                                                {
-                                                    dlcEnabled = true;
-                                                }
-                                            }
-                                        }
-                                        else if (pageHeader & BIT63 && M_Word0(pageHeader) == 0x0001 && M_Byte2(pageHeader) == ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION) //check page and version number
-                                        {
-                                            uint64_t zonedSettingsQWord = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                                            uint64_t versionQWord = M_BytesTo8ByteValue(logBuffer[55], logBuffer[54], logBuffer[53], logBuffer[52], logBuffer[51], logBuffer[50], logBuffer[49], logBuffer[48]);
-                                            uint64_t zoneActCapQWord = M_BytesTo8ByteValue(logBuffer[63], logBuffer[62], logBuffer[61], logBuffer[60], logBuffer[59], logBuffer[58], logBuffer[57], logBuffer[56]);
-                                            if (zonedSettingsQWord & BIT63)
-                                            {
-                                                if (zonedSettingsQWord & BIT1)
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Remove Element And Modify Zones");
-                                                    
-                                                }
-                                            }
-                                            if (versionQWord & BIT63)
-                                            {
-                                                switch (M_Word0(versionQWord))
-                                                {
-                                                case ZAC_MINOR_VERSION_NOT_REPORTED:
-                                                    break;
-                                                case ZAC_MINOR_VERSION_ZAC_REV_5:
-                                                    add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 5)");
-                                                    break;
-                                                case ZAC_MINOR_VERSION_ZAC2_REV_15:
-                                                    add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 15)");
-                                                    break;
-                                                case ZAC_MINOR_VERSION_ZAC2_REV_1B:
-                                                    add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 1B)");
-                                                    break;
-                                                case ZAC_MINOR_VERSION_ZAC_REV_4:
-                                                    add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 4)");
-                                                    break;
-                                                case ZAC_MINOR_VERSION_ZAC2_REV12:
-                                                    add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 12)");
-                                                    break;
-                                                case ZAC_MINOR_VERSION_ZAC_REV_1:
-                                                    add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 1)");
-                                                    break;
-                                                case ZAC_MINOR_VERSION_NOT_REPORTED_2:
-                                                    break;
-                                                default:
-                                                    //add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
-                                                    
-                                                    break;
-                                                }
-                                            }
-                                            if (zoneActCapQWord & BIT63)
-                                            {
-                                                if (zoneActCapQWord & BIT0)
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Domains");
-                                                }
-                                                if (zoneActCapQWord & BIT1)
-                                                {
-                                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Realms");
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if (dlcSupported)
-                                    {
-                                        if (dlcEnabled)
-                                        {
-                                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control [Enabled]");
-                                        }
-                                        else
-                                        {
-                                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control");
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    //data is valid. Remove bit 63
+                    M_CLEAR_BIT(nominalBufferSize, 63);
+                    //now save this value to cache size (number of bytes)
+                    driveInfo->cacheSize = nominalBufferSize;
                 }
             }
         }
-        //read device statistics log (only some pages are needed)
-        if (devStatsSize > 0)//can come from GPL or SMART
+        if (ataCapabilities->supportedIDDataPages.supportedCapabilities)
         {
-            if (gplSupported && directoryFromGPL)
+            //supported capabilities
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
-                //we need to read pages 1, 7, 5 (read them one at a time to work around some USB issues as best we can)
-                //get list of supported pages first to use that to find supported pages we are interested in.
-                bool generalStatistics = false;
-                bool solidStateStatistics = false;
-                bool temperatureStatistics = false;
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_LIST, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                uint64_t supportedCapabilitiesQWord = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
+                if (supportedCapabilitiesQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    uint16_t iter = 9;
-                    uint8_t numberOfEntries = logBuffer[8];
-                    for (iter = 9; iter < (numberOfEntries + 9) && iter < 512; ++iter)
+                    if (supportedCapabilitiesQWord & BIT55)
                     {
-                        switch (logBuffer[iter])
-                        {
-                        case ATA_DEVICE_STATS_LOG_LIST:
-                            break;
-                        case ATA_DEVICE_STATS_LOG_GENERAL:
-                            generalStatistics = true;
-                            break;
-                        case ATA_DEVICE_STATS_LOG_FREE_FALL:
-                            break;
-                        case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA:
-                            break;
-                        case ATA_DEVICE_STATS_LOG_GEN_ERR:
-                            break;
-                        case ATA_DEVICE_STATS_LOG_TEMP:
-                            temperatureStatistics = true;
-                            break;
-                        case ATA_DEVICE_STATS_LOG_TRANSPORT:
-                            break;
-                        case ATA_DEVICE_STATS_LOG_SSD:
-                            solidStateStatistics = true;
-                            break;
-                        default:
-                            break;
-                        }
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Mutate");
+                    }
+                    if (supportedCapabilitiesQWord & BIT54)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Advanced Background Operations");
+                    }
+                    if (supportedCapabilitiesQWord & BIT49)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Set Sector Configuration");
+                    }
+                    if (supportedCapabilitiesQWord & BIT46)
+                    {
+                        dlcSupported = true;
                     }
                 }
-                if (generalStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                //Download capabilities
+                uint64_t downloadCapabilities = M_BytesTo8ByteValue(idDataLog[offset + 23], idDataLog[offset + 22], idDataLog[offset + 21], idDataLog[offset + 20], idDataLog[offset + 19], idDataLog[offset + 18], idDataLog[offset + 17], idDataLog[offset + 16]);
+                if (downloadCapabilities & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_GENERAL && M_Word0(qword0) >= 0x0001)//validating we got the right page
+                    if (downloadCapabilities & BIT34)
                     {
-                        //power on hours
-                        uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]);
-                        if (pohQword & BIT63 && pohQword & BIT62)
-                        {
-                            driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
-                            driveInfo->powerOnMinutesValid = true;
-                        }
-                        //logical sectors written
-                        uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[31], logBuffer[30], logBuffer[29], logBuffer[28], logBuffer[27], logBuffer[26], logBuffer[25], logBuffer[24]);
-                        if (lsWrittenQword & BIT63 && lsWrittenQword & BIT62)
-                        {
-                            driveInfo->totalLBAsWritten = lsWrittenQword & MAX_48_BIT_LBA;
-                        }
-                        //logical sectors read
-                        uint64_t lsReadQword = M_BytesTo8ByteValue(logBuffer[47], logBuffer[46], logBuffer[45], logBuffer[44], logBuffer[43], logBuffer[42], logBuffer[41], logBuffer[40]);
-                        if (lsReadQword & BIT63 && lsReadQword & BIT62)
-                        {
-                            driveInfo->totalLBAsRead = lsReadQword & MAX_48_BIT_LBA;
-                        }
-                        //workload utilization
-                        uint64_t worloadUtilization = M_BytesTo8ByteValue(logBuffer[79], logBuffer[78], logBuffer[77], logBuffer[76], logBuffer[75], logBuffer[74], logBuffer[73], logBuffer[72]);
-                        if (worloadUtilization & BIT63 && worloadUtilization & BIT62)
-                        {
-                            driveInfo->deviceReportedUtilizationRate = C_CAST(double, M_Word0(worloadUtilization)) / 1000.0;
-                        }
+                        driveInfo->fwdlSupport.deferredSupported = true;
                     }
                 }
-                if (temperatureStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_TEMP, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+                //Utilization (IDK if we need anything from this log for this information)
+
+                //zoned capabilities
+                uint64_t zonedCapabilities = M_BytesTo8ByteValue(idDataLog[offset + 111], idDataLog[offset + 110], idDataLog[offset + 109], idDataLog[offset + 108], idDataLog[offset + 107], idDataLog[offset + 106], idDataLog[offset + 105], idDataLog[offset + 104]);
+                if (zonedCapabilities & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_TEMP && M_Word0(qword0) >= 0x0001)//validating we got the right page
-                    {
-                        //current temperature
-                        uint64_t currentTemp = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                        if (currentTemp & BIT63 && currentTemp & BIT62)
-                        {
-                            driveInfo->temperatureData.temperatureDataValid = true;
-                            driveInfo->temperatureData.currentTemperature = M_Byte0(currentTemp);
-                        }
-                        //highest temperature
-                        uint64_t highestTemp = M_BytesTo8ByteValue(logBuffer[39], logBuffer[38], logBuffer[37], logBuffer[36], logBuffer[35], logBuffer[34], logBuffer[33], logBuffer[32]);
-                        if (highestTemp & BIT63 && highestTemp & BIT62)
-                        {
-                            driveInfo->temperatureData.highestTemperature = M_Byte0(highestTemp);
-                            driveInfo->temperatureData.highestValid = true;
-                        }
-                        //lowest temperature
-                        uint64_t lowestTemp = M_BytesTo8ByteValue(logBuffer[47], logBuffer[46], logBuffer[45], logBuffer[44], logBuffer[43], logBuffer[42], logBuffer[41], logBuffer[40]);
-                        if (lowestTemp & BIT63 && lowestTemp & BIT62)
-                        {
-                            driveInfo->temperatureData.lowestTemperature = M_Byte0(lowestTemp);
-                            driveInfo->temperatureData.lowestValid = true;
-                        }
-                    }
+                    //we only need bits 1 & 2
+                    driveInfo->zonedDevice = zonedCapabilities & 0x3;
                 }
-                if (solidStateStatistics && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_SSD, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+
+                //depopulate storage element support
+                uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(idDataLog[offset + 159], idDataLog[offset + 158], idDataLog[offset + 157], idDataLog[offset + 156], idDataLog[offset + 155], idDataLog[offset + 154], idDataLog[offset + 153], idDataLog[offset + 152]);
+                if (supportedCapabilitiesQWord18 & ATA_ID_DATA_QWORD_VALID_BIT)//making sure this is set for "validity"
                 {
-                    uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_SSD && M_Word0(qword0) >= 0x0001)//validating we got the right page
+                    if (supportedCapabilitiesQWord18 & BIT1 && supportedCapabilitiesQWord18 & BIT0)//checking for both commands to be supported
                     {
-                        //percent used endurance
-                        uint64_t percentUsed = M_BytesTo8ByteValue(logBuffer[15], logBuffer[14], logBuffer[13], logBuffer[12], logBuffer[11], logBuffer[10], logBuffer[9], logBuffer[8]);
-                        if (percentUsed & BIT63 && percentUsed & BIT62)
+                        if (supportedCapabilitiesQWord18 & BIT2)
                         {
-                            driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
-                        }
-                    }
-                }
-            }
-            else if (smartErrorLoggingSupported)
-            {
-                //read first page for a list if supported pages
-                if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DEVICE_STATISTICS, logBuffer, LEGACY_DRIVE_SEC_SIZE))
-                {
-                    uint64_t header = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
-                    if (M_Word0(header) == 0x0001 && M_Byte2(header) == 0) //check page and version number
-                    {
-                        bool readFullLog = false;
-                        //check that pages 1, 5, and/or 7 are supported
-                        uint16_t numberOfEntries = logBuffer[8];
-                        for (uint16_t offset = 9; offset < (numberOfEntries + UINT8_C(8)); ++offset)
-                        {
-                            if (logBuffer[offset] == ATA_DEVICE_STATS_LOG_GENERAL || logBuffer[offset] == ATA_DEVICE_STATS_LOG_TEMP || logBuffer[offset] == ATA_DEVICE_STATS_LOG_SSD)
-                            {
-                                readFullLog = true;
-                                break;
-                            }
-                        }
-                        if (readFullLog)
-                        {
-                            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(logBuffer, 0, devStatsSize * sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (temp)
-                            {
-                                logBuffer = temp;
-                                logBufferSize = devStatsSize * sizeof(uint8_t);
-                                if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DEVICE_STATISTICS, logBuffer, logBufferSize))
-                                {
-                                    for (uint32_t offset = 0; offset < logBufferSize; offset += UINT32_C(512))
-                                    {
-                                        uint16_t revision = 0;
-                                        uint8_t pageNumber = 0;
-                                        header = M_BytesTo8ByteValue(logBuffer[offset + 7], logBuffer[offset + 6], logBuffer[offset + 5], logBuffer[offset + 4], logBuffer[offset + 3], logBuffer[offset + 2], logBuffer[offset + 1], logBuffer[offset + 0]);
-                                        revision = M_Word0(header);
-                                        pageNumber = M_Byte2(header);
-                                        switch (pageNumber)
-                                        {
-                                        case ATA_DEVICE_STATS_LOG_GENERAL:
-                                            if (revision >= 0x0001)
-                                            {
-                                                //power on hours
-                                                uint64_t pohQword = M_BytesTo8ByteValue(logBuffer[offset + 23], logBuffer[offset + 22], logBuffer[offset + 21], logBuffer[offset + 20], logBuffer[offset + 19], logBuffer[offset + 18], logBuffer[offset + 17], logBuffer[offset + 16]);
-                                                if (pohQword & BIT63 && pohQword & BIT62)
-                                                {
-                                                    driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
-                                                    driveInfo->powerOnMinutesValid = true;
-                                                }
-                                                //logical sectors written
-                                                uint64_t lsWrittenQword = M_BytesTo8ByteValue(logBuffer[offset + 31], logBuffer[offset + 30], logBuffer[offset + 29], logBuffer[offset + 28], logBuffer[offset + 27], logBuffer[offset + 26], logBuffer[offset + 25], logBuffer[offset + 24]);
-                                                if (lsWrittenQword & BIT63 && lsWrittenQword & BIT62)
-                                                {
-                                                    driveInfo->totalLBAsWritten = lsWrittenQword & MAX_48_BIT_LBA;
-                                                }
-                                                //logical sectors read
-                                                uint64_t lsReadQword = M_BytesTo8ByteValue(logBuffer[offset + 47], logBuffer[offset + 46], logBuffer[offset + 45], logBuffer[offset + 44], logBuffer[offset + 43], logBuffer[offset + 42], logBuffer[offset + 41], logBuffer[offset + 40]);
-                                                if (lsReadQword & BIT63 && lsReadQword & BIT62)
-                                                {
-                                                    driveInfo->totalLBAsRead = lsReadQword & MAX_48_BIT_LBA;
-                                                }
-                                                //workload utilization
-                                                uint64_t worloadUtilization = M_BytesTo8ByteValue(logBuffer[offset + 79], logBuffer[offset + 78], logBuffer[offset + 77], logBuffer[offset + 76], logBuffer[offset + 75], logBuffer[offset + 74], logBuffer[offset + 73], logBuffer[offset + 72]);
-                                                if (worloadUtilization & BIT63 && worloadUtilization & BIT62)
-                                                {
-                                                    driveInfo->deviceReportedUtilizationRate = C_CAST(double, M_Word0(worloadUtilization)) / 1000.0;
-                                                }
-                                            }
-                                            break;
-                                        case ATA_DEVICE_STATS_LOG_TEMP:
-                                            if (revision >= 0x0001)
-                                            {
-                                                //current temperature
-                                                uint64_t currentTemp = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
-                                                if (currentTemp & BIT63 && currentTemp & BIT62)
-                                                {
-                                                    driveInfo->temperatureData.temperatureDataValid = true;
-                                                    driveInfo->temperatureData.currentTemperature = M_Byte0(currentTemp);
-                                                }
-                                                //highest temperature
-                                                uint64_t highestTemp = M_BytesTo8ByteValue(logBuffer[offset + 39], logBuffer[offset + 38], logBuffer[offset + 37], logBuffer[offset + 36], logBuffer[offset + 35], logBuffer[offset + 34], logBuffer[offset + 33], logBuffer[offset + 32]);
-                                                if (highestTemp & BIT63 && highestTemp & BIT62)
-                                                {
-                                                    driveInfo->temperatureData.highestTemperature = M_Byte0(highestTemp);
-                                                    driveInfo->temperatureData.highestValid = true;
-                                                }
-                                                //lowest temperature
-                                                uint64_t lowestTemp = M_BytesTo8ByteValue(logBuffer[offset + 47], logBuffer[offset + 46], logBuffer[offset + 45], logBuffer[offset + 44], logBuffer[offset + 43], logBuffer[offset + 42], logBuffer[offset + 41], logBuffer[offset + 40]);
-                                                if (lowestTemp & BIT63 && lowestTemp & BIT62)
-                                                {
-                                                    driveInfo->temperatureData.lowestTemperature = M_Byte0(lowestTemp);
-                                                    driveInfo->temperatureData.lowestValid = true;
-                                                }
-                                            }
-                                            break;
-                                        case ATA_DEVICE_STATS_LOG_SSD:
-                                            if (revision >= 0x0001)
-                                            {
-                                                //percent used endurance
-                                                uint64_t percentUsed = M_BytesTo8ByteValue(logBuffer[offset + 15], logBuffer[offset + 14], logBuffer[offset + 13], logBuffer[offset + 12], logBuffer[offset + 11], logBuffer[offset + 10], logBuffer[offset + 9], logBuffer[offset + 8]);
-                                                if (percentUsed & BIT63 && percentUsed & BIT62)
-                                                {
-                                                    driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
-                                                }
-                                            }
-                                            break;
-                                        default://don't care about this page number right now
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (gplSupported && hybridInfoSize > 0)//GPL only. Page is also only a size of 1 512B block
-        {
-            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_HYBRID_INFORMATION, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-            {
-                driveInfo->hybridNANDSize = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]) * driveInfo->logicalSectorSize;
-            }
-        }
-        if (gplSupported && extSelfTest > 0)//GPL only
-        {
-            memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
-            //get the most recent result
-            //read the first page to get the pointer to the most recent result, then if that's on another page, read that page
-            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-            {
-                uint16_t selfTestIndex = M_BytesTo2ByteValue(logBuffer[3], logBuffer[2]);
-                if (selfTestIndex > 0)
-                {
-                    uint8_t descriptorLength = 26;
-                    uint16_t descriptorOffset = ((selfTestIndex * descriptorLength) - descriptorLength) + 4;
-                    uint16_t pageNumber = descriptorOffset / LEGACY_DRIVE_SEC_SIZE;
-                    bool mostRecentPageRead = true;
-                    if (pageNumber > 0)
-                    {
-                        //adjust the offset for when we read the correct page
-                        descriptorOffset = descriptorOffset - (LEGACY_DRIVE_SEC_SIZE * pageNumber);
-                        if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, pageNumber, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-                        {
-                            mostRecentPageRead = false;
-                        }
-                    }
-                    //if we made it to here, our data buffer now has the log page that contains the descriptor we are looking for
-                    if (mostRecentPageRead)
-                    {
-                        driveInfo->dstInfo.informationValid = true;
-                        driveInfo->dstInfo.powerOnHours = M_BytesTo2ByteValue(logBuffer[descriptorOffset + 3], logBuffer[descriptorOffset + 2]);
-                        driveInfo->dstInfo.resultOrStatus = M_Nibble1(logBuffer[descriptorOffset + 1]);
-                        driveInfo->dstInfo.testNumber = logBuffer[descriptorOffset];
-                        if (M_Nibble1(logBuffer[descriptorOffset + 1]) == 0x07)
-                        {
-                            //LBA is a valid entry
-                            driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(0, 0, \
-                                logBuffer[descriptorOffset + 10], logBuffer[descriptorOffset + 9], \
-                                logBuffer[descriptorOffset + 8], logBuffer[descriptorOffset + 7], \
-                                logBuffer[descriptorOffset + 6], logBuffer[descriptorOffset + 5]);
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation + Restore");
                         }
                         else
                         {
-                            driveInfo->dstInfo.errorLBA = UINT64_MAX;
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation");
                         }
                     }
                 }
-                else
+            }
+        }
+        if (ataCapabilities->supportedIDDataPages.currentSettings)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_CURRENT_SETTINGS;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_CURRENT_SETTINGS && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
+            {
+                uint64_t currentSettingsQWord = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
+                if (currentSettingsQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    //set to all 0's and error LBA to all Fs
-                    driveInfo->dstInfo.informationValid = true;
-                    driveInfo->dstInfo.powerOnHours = 0;
-                    driveInfo->dstInfo.resultOrStatus = 0;
-                    driveInfo->dstInfo.testNumber = 0;
-                    driveInfo->dstInfo.errorLBA = UINT64_MAX;
+                    if (currentSettingsQWord & BIT17)
+                    {
+                        dlcEnabled = true;
+                    }
                 }
             }
         }
-        else if (smartErrorLoggingSupported && smartSelfTest > 0)//SMART log only (only 1 sector in size)
+        if (dlcSupported)
         {
-            //get the most recent result
-            if (SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_SMART_SELF_TEST_LOG, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+            if (dlcEnabled)
             {
-                uint8_t selfTestIndex = logBuffer[508];
-                if (selfTestIndex > 0)
-                {
-                    uint8_t descriptorLength = 24;
-                    uint8_t descriptorOffset = ((selfTestIndex * descriptorLength) - descriptorLength) + 2;
-                    uint8_t executionStatusByte = logBuffer[descriptorOffset + 1];
-                    driveInfo->dstInfo.informationValid = true;
-                    driveInfo->dstInfo.powerOnHours = M_BytesTo2ByteValue(logBuffer[descriptorOffset + 3], logBuffer[descriptorOffset + 2]);
-                    driveInfo->dstInfo.resultOrStatus = M_Nibble1(logBuffer[descriptorOffset + 1]);
-                    driveInfo->dstInfo.testNumber = logBuffer[descriptorOffset];
-                    if (M_Nibble1(executionStatusByte) == 0x07)
-                    {
-                        //LBA is a valid entry
-                        driveInfo->dstInfo.errorLBA = C_CAST(uint64_t, M_BytesTo4ByteValue(logBuffer[descriptorOffset + 8], logBuffer[descriptorOffset + 7], \
-                            logBuffer[descriptorOffset + 6], logBuffer[descriptorOffset + 5]));
-                    }
-                    else
-                    {
-                        driveInfo->dstInfo.errorLBA = UINT64_MAX;
-                    }
-                }
-                else
-                {
-                    //set to all 0's and error LBA to all Fs
-                    driveInfo->dstInfo.informationValid = true;
-                    driveInfo->dstInfo.powerOnHours = 0;
-                    driveInfo->dstInfo.resultOrStatus = 0;
-                    driveInfo->dstInfo.testNumber = 0;
-                    driveInfo->dstInfo.errorLBA = UINT64_MAX;
-                }
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control [Enabled]");
+            }
+            else
+            {
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control");
             }
         }
-        bool readSCTStatusWithSMARTCommand = device->drive_info.passThroughHacks.ataPTHacks.smartCommandTransportWithSMARTLogCommandsOnly; //USB hack
-        if (sctSupported && sctStatus > 0)//GPL or SMART
+        /*if (ataCapabilities->supportedIDDataPages.strings)
         {
-            memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
-            //Read the SCT status log
-            bool sctStatusRead = false;
-            if (gplSupported && !readSCTStatusWithSMARTCommand && directoryFromGPL && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_SCT_COMMAND_STATUS, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ATA_STRINGS;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_ATA_STRINGS && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
-                sctStatusRead = true;
             }
-            else if (smartErrorLoggingSupported && SUCCESS == ata_SMART_Read_Log(device, ATA_SCT_COMMAND_STATUS, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+        }
+        if (ataCapabilities->supportedIDDataPages.security)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SECURITY;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_SECURITY && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
-                sctStatusRead = true;
             }
-            if (sctStatusRead)
+        }
+        if (ataCapabilities->supportedIDDataPages.parallelATA)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_PARALLEL_ATA;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_PARALLEL_ATA && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
-                uint16_t sctFormatVersion = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
-                if (sctFormatVersion > 1)//cannot find spec for revision 1 of this log, but we'll keep this safe until I find it with this check
+            }
+        }
+        if (ataCapabilities->supportedIDDataPages.serialATA)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SERIAL_ATA;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_SERIAL_ATA && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
+            {
+            }
+        }*/
+        if (ataCapabilities->supportedIDDataPages.zac2)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
+            {
+                uint64_t zonedSettingsQWord = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
+                uint64_t versionQWord = M_BytesTo8ByteValue(idDataLog[offset + 55], idDataLog[offset + 54], idDataLog[offset + 53], idDataLog[offset + 52], idDataLog[offset + 51], idDataLog[offset + 50], idDataLog[offset + 49], idDataLog[offset + 48]);
+                uint64_t zoneActCapQWord = M_BytesTo8ByteValue(idDataLog[offset + 63], idDataLog[offset + 62], idDataLog[offset + 61], idDataLog[offset + 60], idDataLog[offset + 59], idDataLog[offset + 58], idDataLog[offset + 57], idDataLog[offset + 56]);
+                if (zonedSettingsQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    if (!driveInfo->temperatureData.temperatureDataValid && logBuffer[200] != 0x80)
+                    if (zonedSettingsQWord & BIT1)
                     {
-                        driveInfo->temperatureData.temperatureDataValid = true;
-                        driveInfo->temperatureData.currentTemperature = C_CAST(int16_t, logBuffer[200]);
-                    }
-                    if (!driveInfo->temperatureData.highestValid && logBuffer[204] != 0x80)
-                    {
-                        driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, logBuffer[204]);
-                        driveInfo->temperatureData.highestValid = true;
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Remove Element And Modify Zones");
                     }
                 }
-                if (sctFormatVersion > 2)
+                if (versionQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    //version 3 and higher report current, min, and max temperatures
-                    //reading life min and max temperatures
-                    if (!driveInfo->temperatureData.lowestValid && logBuffer[203] != 0x80)
+                    switch (M_Word0(versionQWord))
                     {
-                        driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, logBuffer[203]);
-                        driveInfo->temperatureData.lowestValid = true;
-                    }
-                    uint16_t smartStatus = M_BytesTo2ByteValue(logBuffer[215], logBuffer[214]);
-                    //SMART status
-                    switch (smartStatus)
-                    {
-                    case 0xC24F:
-                        smartStatusFromSCTStatusLog = true;
-                        driveInfo->smartStatus = 0;
+                    case ZAC_MINOR_VERSION_NOT_REPORTED:
                         break;
-                    case 0x2CF4:
-                        smartStatusFromSCTStatusLog = true;
-                        driveInfo->smartStatus = 1;
+                    case ZAC_MINOR_VERSION_ZAC_REV_5:
+                        add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 5)");
+                        break;
+                    case ZAC_MINOR_VERSION_ZAC2_REV_15:
+                        add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 15)");
+                        break;
+                    case ZAC_MINOR_VERSION_ZAC2_REV_1B:
+                        add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 1B)");
+                        break;
+                    case ZAC_MINOR_VERSION_ZAC_REV_4:
+                        add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 4)");
+                        break;
+                    case ZAC_MINOR_VERSION_ZAC2_REV12:
+                        add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC-2 (Revision 12)");
+                        break;
+                    case ZAC_MINOR_VERSION_ZAC_REV_1:
+                        add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "ZAC (Revision 1)");
+                        break;
+                    case ZAC_MINOR_VERSION_NOT_REPORTED_2:
                         break;
                     default:
-                        driveInfo->smartStatus = 2;
+                        //add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
                         break;
                     }
                 }
-            }
-        }
-        if (gplSupported && concurrentRangesSize)
-        {
-            memset(logBuffer, 0, logBufferSize);
-            //NOTE: Only reading first 512B since this has the counter we need. Max log size is 1024 in ACS5 - TJE
-            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
-            {
-                driveInfo->concurrentPositioningRanges = logBuffer[0];
-            }
-        }
-        if (gplSupported && farmLogSize)
-        {
-            uint8_t* farmData = C_CAST(uint8_t*, calloc_aligned(16384, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (farmData)
-            {
-                //read "page 0" or first 4KB for header/top level information and verify this is in fact the FARM log
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, 0, farmData, 16384, 0))
+                if (zoneActCapQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    uint64_t farmSignature = M_BytesTo8ByteValue(farmData[7], farmData[6], farmData[5], farmData[4], farmData[3], farmData[2], farmData[1], farmData[0]);
-                    if (farmSignature & BIT63 && farmSignature & BIT62 && (farmSignature & UINT64_C(0x00FFFFFFFFFFFF)) == SEAGATE_FARM_LOG_SIGNATURE)
+                    if (zoneActCapQWord & BIT0)
                     {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Field Accessible Reliability Metrics (FARM)");
-                        //Now read the next page to get the DOM (and possibly other useful data)
-                        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, (UINT16_C(16384) / LEGACY_DRIVE_SEC_SIZE), farmData, 16384, 0))
-                        {
-                            //verify page number (first 8 bytes)
-                            uint64_t farmPage1ID = M_BytesTo8ByteValue(farmData[7], farmData[6], farmData[5], farmData[4], farmData[3], farmData[2], farmData[1], farmData[0]);
-                            if (farmSignature & BIT63 && farmSignature & BIT62 && (farmPage1ID & UINT64_C(0x00FFFFFFFFFFFF)) == 1)
-                            {
-                                uint64_t dateOfManufactureQWord = M_BytesTo8ByteValue(farmData[367], farmData[366], farmData[365], farmData[364], farmData[363], farmData[362], farmData[361], farmData[360]);
-                                if (dateOfManufactureQWord & BIT63 && dateOfManufactureQWord & BIT62)//supported and valid info
-                                {
-                                    char domWeekStr[3] = { farmData[362], farmData[363], 0 };
-                                    char domYearStr[3] = { farmData[360], farmData[361], 0 };
-                                    driveInfo->dateOfManufactureValid = true;
-                                    driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
-                                    driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10) + UINT16_C(2000));//year is 2 digits, but this log was not in existance until after 2018 or so
-                                }
-                            }
-                        }
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Domains");
+                    }
+                    if (zoneActCapQWord & BIT1)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Realms");
                     }
                 }
-                safe_Free_aligned(farmData)
             }
         }
+        if (ataCapabilities->supportedIDDataPages.copyOfIdentify && !ataCapabilities->processedStdIDData)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_COPY_OF_IDENTIFY_DATA;
+            //std identify data was not already processed, so process it here for anything not covered by the above code.
+            get_ATA_Drive_Info_From_Identify(driveInfo, ataCapabilities, &idDataLog[offset], ATA_LOG_PAGE_LEN_BYTES);
+        }
     }
-    safe_Free_aligned(logBuffer)
+    return ret;
+}
 
-    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-    if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
+//this function expects a complete ID data log, so the supported pages followed by all supported pages that were read.
+static int get_ATA_Drive_Info_From_Device_Statistics_Log(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* idDataLog, uint32_t dataLength)
+{
+    int ret = NOT_SUPPORTED;
+    uint8_t pageNumber = idDataLog[2];
+    uint16_t revision = M_BytesTo2ByteValue(idDataLog[1], idDataLog[0]);
+    M_USE_UNUSED(ataCapabilities);
+    if (pageNumber == C_CAST(uint8_t, ATA_DEVICE_STATS_LOG_LIST) && revision >= ATA_DEV_STATS_VERSION_1)
+    {
+        bool generalStatistics = false, freeFallStatistics = false, rotatingMediaStatistics = false, generalErrorStatistics = false, temperatureStatistics = false, transportStatistics = false, solidStateStatistics = false, zonedDeviceStatistics = false;
+        uint32_t offset = 0;
+        uint16_t iter = ATA_DEV_STATS_SUP_PG_LIST_OFFSET;
+        uint8_t numberOfEntries = idDataLog[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET];
+        ret = SUCCESS;
+        for (iter = ATA_DEV_STATS_SUP_PG_LIST_OFFSET; iter < (numberOfEntries + ATA_DEV_STATS_SUP_PG_LIST_OFFSET) && iter < ATA_LOG_PAGE_LEN_BYTES; ++iter)
+        {
+            switch (idDataLog[iter])
+            {
+            case ATA_DEVICE_STATS_LOG_LIST:
+                break;
+            case ATA_DEVICE_STATS_LOG_GENERAL:
+                generalStatistics = true;
+                break;
+            case ATA_DEVICE_STATS_LOG_FREE_FALL:
+                freeFallStatistics = true;
+                break;
+            case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA:
+                rotatingMediaStatistics = true;
+                break;
+            case ATA_DEVICE_STATS_LOG_GEN_ERR:
+                generalErrorStatistics = true;
+                break;
+            case ATA_DEVICE_STATS_LOG_TEMP:
+                temperatureStatistics = true;
+                break;
+            case ATA_DEVICE_STATS_LOG_TRANSPORT:
+                transportStatistics = true;
+                break;
+            case ATA_DEVICE_STATS_LOG_SSD:
+                solidStateStatistics = true;
+                break;
+            case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
+                zonedDeviceStatistics = true;
+            default:
+                break;
+            }
+        }
+        if (generalStatistics)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_GENERAL;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_GENERAL && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+            {
+                //power on hours
+                uint64_t pohQword = M_BytesTo8ByteValue(idDataLog[offset + 23], idDataLog[offset + 22], idDataLog[offset + 21], idDataLog[offset + 20], idDataLog[offset + 19], idDataLog[offset + 18], idDataLog[offset + 17], idDataLog[offset + 16]);
+                if (pohQword & ATA_DEV_STATS_QWORD_VALID_BIT && pohQword & BIT62)
+                {
+                    driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
+                    driveInfo->powerOnMinutesValid = true;
+                }
+                //logical sectors written
+                uint64_t lsWrittenQword = M_BytesTo8ByteValue(idDataLog[offset + 31], idDataLog[offset + 30], idDataLog[offset + 29], idDataLog[offset + 28], idDataLog[offset + 27], idDataLog[offset + 26], idDataLog[offset + 25], idDataLog[offset + 24]);
+                if (lsWrittenQword & ATA_DEV_STATS_QWORD_VALID_BIT && lsWrittenQword & BIT62)
+                {
+                    driveInfo->totalLBAsWritten = lsWrittenQword & MAX_48_BIT_LBA;
+                }
+                //logical sectors read
+                uint64_t lsReadQword = M_BytesTo8ByteValue(idDataLog[offset + 47], idDataLog[offset + 46], idDataLog[offset + 45], idDataLog[offset + 44], idDataLog[offset + 43], idDataLog[offset + 42], idDataLog[offset + 41], idDataLog[offset + 40]);
+                if (lsReadQword & ATA_DEV_STATS_QWORD_VALID_BIT && lsReadQword & BIT62)
+                {
+                    driveInfo->totalLBAsRead = lsReadQword & MAX_48_BIT_LBA;
+                }
+                //workload utilization
+                uint64_t worloadUtilization = M_BytesTo8ByteValue(idDataLog[offset + 79], idDataLog[offset + 78], idDataLog[offset + 77], idDataLog[offset + 76], idDataLog[offset + 75], idDataLog[offset + 74], idDataLog[offset + 73], idDataLog[offset + 72]);
+                if (worloadUtilization & ATA_DEV_STATS_QWORD_VALID_BIT && worloadUtilization & BIT62)
+                {
+                    driveInfo->deviceReportedUtilizationRate = C_CAST(double, M_Word0(worloadUtilization)) / 1000.0;
+                }
+            }
+        }
+        //if (freeFallStatistics)
+        //{
+        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_FREE_FALL;
+        //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+        //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_FREE_FALL && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+        //    {
+        //    }
+        //}
+        //if (rotatingMediaStatistics)
+        //{
+        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_ROTATING_MEDIA;
+        //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+        //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_ROTATING_MEDIA && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+        //    {
+        //    }
+        //}
+        //if (generalErrorStatistics)
+        //{
+        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_GEN_ERR;
+        //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+        //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_GEN_ERR && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+        //    {
+        //    }
+        //}
+        if (temperatureStatistics)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_TEMP;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_TEMP && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+            {
+                //current temperature
+                uint64_t currentTemp = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
+                if (currentTemp & ATA_DEV_STATS_QWORD_VALID_BIT && currentTemp & BIT62)
+                {
+                    driveInfo->temperatureData.temperatureDataValid = true;
+                    driveInfo->temperatureData.currentTemperature = M_Byte0(currentTemp);
+                }
+                //highest temperature
+                uint64_t highestTemp = M_BytesTo8ByteValue(idDataLog[offset + 39], idDataLog[offset + 38], idDataLog[offset + 37], idDataLog[offset + 36], idDataLog[offset + 35], idDataLog[offset + 34], idDataLog[offset + 33], idDataLog[offset + 32]);
+                if (highestTemp & ATA_DEV_STATS_QWORD_VALID_BIT && highestTemp & BIT62)
+                {
+                    driveInfo->temperatureData.highestTemperature = M_Byte0(highestTemp);
+                    driveInfo->temperatureData.highestValid = true;
+                }
+                //lowest temperature
+                uint64_t lowestTemp = M_BytesTo8ByteValue(idDataLog[offset + 47], idDataLog[offset + 46], idDataLog[offset + 45], idDataLog[offset + 44], idDataLog[offset + 43], idDataLog[offset + 42], idDataLog[offset + 41], idDataLog[offset + 40]);
+                if (lowestTemp & ATA_DEV_STATS_QWORD_VALID_BIT && lowestTemp & BIT62)
+                {
+                    driveInfo->temperatureData.lowestTemperature = M_Byte0(lowestTemp);
+                    driveInfo->temperatureData.lowestValid = true;
+                }
+            }
+        }
+        //if (transportStatistics)
+        //{
+        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_TRANSPORT;
+        //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+        //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_TRANSPORT && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+        //    {
+        //    }
+        //}
+        if (solidStateStatistics)
+        {
+            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_SSD;
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+            if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_SSD && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+            {
+                //percent used endurance
+                uint64_t percentUsed = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
+                if (percentUsed & ATA_DEV_STATS_QWORD_VALID_BIT && percentUsed & BIT62)
+                {
+                    driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
+                }
+            }
+        }
+        //if (zonedDeviceStatistics)
+        //{
+        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_ZONED_DEVICE;
+        //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
+        //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_ZONED_DEVICE && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
+        //    {
+        //    }
+        //}
+    }
+    return ret;
+}
+
+static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities,uint8_t *smartData, uint32_t dataLength)
+{
+    int ret = BAD_PARAMETER;
+    if (smartData && dataLength >= LEGACY_DRIVE_SEC_SIZE)
     {
         //get long DST time
         driveInfo->longDSTTimeMinutes = smartData[373];
@@ -2470,7 +1982,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
         //read temperature (194), poh (9) for all, then read 241, 242, and 231 for Seagate only
         ataSMARTAttribute currentAttribute;
         uint16_t smartIter = 0;
-        eSeagateFamily seagateFamily = is_Seagate_Family(device);
+        eSeagateFamily seagateFamily = ataCapabilities->seagateFamily;
         if (seagateFamily == SEAGATE)
         {
             //check IDD and Reman support
@@ -2531,7 +2043,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                 driveInfo->powerOnMinutesValid = true;
             }
             break;
-            case 194: 
+            case 194:
                 //Temperature (This attribute seems shared between vendors)
                 //NOTE: Not all vendors report this the same way!
                 //Will need to handle variations on a case by case basis.
@@ -2665,18 +2177,409 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
             }
         }
     }
+    return ret;
+}
+
+static int get_Security_Features_From_Security_Protocol(tDevice *device, securityProtocolInfo* info, uint8_t *securityProtocolList, uint32_t dataLength)
+{
+    int ret = BAD_PARAMETER;
+    if (device && info && securityProtocolList && dataLength > 8)
+    {
+        uint16_t length = M_BytesTo2ByteValue(securityProtocolList[6], securityProtocolList[7]);
+        uint32_t bufIter = 8;
+        //TODO: Check endianness. ATA is SUPPOSED to report little endian and SCSI/NVMe report big endian, but that doesn't seem like it's always followed.
+        //      So to check this, check the bytes after the length are all zero for either interpretation. 
+        //      One will be right, usually the shorter of the lengths.
+        //      This is necessary for any security protocol 0 (information) buffers as I've seen all kinds of weird combinations - TJE
+        //For now, just take the shorter value of the two lengths given....seems true for everything I've encountered so far.
+        uint16_t swappedLength = M_BytesTo2ByteValue(securityProtocolList[7], securityProtocolList[6]);
+        if (swappedLength < length)
+        {
+            length = swappedLength;
+        }
+        for (; (bufIter - 8) < length && (bufIter - 8) < dataLength; bufIter++)
+        {
+            switch (securityProtocolList[bufIter])
+            {
+            case SECURITY_PROTOCOL_INFORMATION:
+                //TODO: Read FIPS compliance descriptor (spspecific = 0002h)
+                //TODO: read certificates???
+                break;
+            case SECURITY_PROTOCOL_TCG_1:
+            case SECURITY_PROTOCOL_TCG_2:
+            case SECURITY_PROTOCOL_TCG_3:
+            case SECURITY_PROTOCOL_TCG_4:
+            case SECURITY_PROTOCOL_TCG_5:
+            case SECURITY_PROTOCOL_TCG_6:
+                //TODO: Level 0 discovery to look up which TCG feature(s) are being implemented.
+                //      This will also be better for determining encryption support.
+                info->tcg = true;
+                break;
+            case SECURITY_PROTOCOL_CbCS:
+                info->cbcs = true;
+                break;
+            case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
+                info->tapeEncryption = true;
+                break;
+            case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
+                info->dataEncryptionConfig = true;
+                break;
+            case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
+                info->saCreationCapabilities = true;
+                break;
+            case SECURITY_PROTOCOL_IKE_V2_SCSI:
+                info->ikev2scsi = true;
+                break;
+            case SECURITY_PROTOCOL_SD_ASSOCIATION:
+                info->sdAssociation = true;
+                break;
+            case SECURITY_PROTOCOL_DMTF_SECURITY_PROTOCOL_AND_DATA_MODEL:
+                info->dmtfSecurity = true;
+                break;
+            case SECURITY_PROTOCOL_NVM_EXPRESS_RESERVED:
+                info->nvmeReserved = true;
+                break;
+            case SECURITY_PROTOCOL_NVM_EXPRESS:
+                info->nvme = true;
+                break;
+            case SECURITY_PROTOCOL_SCSA:
+                info->scsa = true;
+                break;
+            case SECURITY_PROTOCOL_JEDEC_UFS:
+                info->jedecUFS = true;
+                break;
+            case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
+                info->sdTrustedFlash = true;
+                break;
+            case SECURITY_PROTOCOL_IEEE_1667:
+                info->ieee1667 = true;
+                break;
+            case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
+            {
+                info->ataDeviceServer = true;
+                //read the data from this page to set ATA security information
+                uint8_t ataSecurityInfo[16] = { 0 };
+                if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, 0, false, 16, ataSecurityInfo))
+                {
+
+                    info->ataSecurityInfo.securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]);
+                    info->ataSecurityInfo.enhancedSecurityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[4], ataSecurityInfo[5]);
+                    info->ataSecurityInfo.masterPasswordIdentifier = M_BytesTo2ByteValue(ataSecurityInfo[6], ataSecurityInfo[7]);
+                    //check the bits now
+                    if (ataSecurityInfo[8] & BIT0)
+                    {
+                        info->ataSecurityInfo.masterPasswordCapability = true;
+                    }
+                    if (ataSecurityInfo[9] & BIT5)
+                    {
+                        info->ataSecurityInfo.enhancedEraseSupported = true;
+                    }
+                    if (ataSecurityInfo[9] & BIT4)
+                    {
+                        info->ataSecurityInfo.securityCountExpired = true;
+                    }
+                    if (ataSecurityInfo[9] & BIT3)
+                    {
+                        info->ataSecurityInfo.securityFrozen = true;
+                    }
+                    if (ataSecurityInfo[9] & BIT2)
+                    {
+                        info->ataSecurityInfo.securityLocked = true;
+                    }
+                    if (ataSecurityInfo[9] & BIT1)
+                    {
+                        info->ataSecurityInfo.securityEnabled = true;
+                    }
+                    if (ataSecurityInfo[9] & BIT0)
+                    {
+                        info->ataSecurityInfo.securitySupported = true;
+                    }
+                }
+            }
+            break;
+            default:
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+{
+    int ret = SUCCESS;
+    bool smartStatusFromSCTStatusLog = false;
+    idDataCapabilitiesForDriveInfo ataCap;
+    memset(&ataCap, 0, sizeof(idDataCapabilitiesForDriveInfo));
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
+    memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
+    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
+    if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE))
+    {
+        get_ATA_Drive_Info_From_Identify(driveInfo, &ataCap, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE);
+    }
+    driveInfo->percentEnduranceUsed = -1;//start with this to filter out this value later if necessary
+
+    //Read Log data
+    uint32_t logBufferSize = LEGACY_DRIVE_SEC_SIZE;
+    uint8_t* logBuffer = C_CAST(uint8_t*, calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (!logBuffer)
+    {
+        return MEMORY_FAILURE;
+    }
+
+    bool gotLogDirectory = false;
+    bool directoryFromGPL = false;
+    if (ataCap.gplSupported && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+    {
+        gotLogDirectory = true;
+        directoryFromGPL = true;
+    }
+    else if (ataCap.smartErrorLoggingSupported && SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE))
+    {
+        gotLogDirectory = true;
+    }
+
+    if (gotLogDirectory || ataCap.smartErrorLoggingSupported)
+    {
+        //check for log sizes we are interested in
+        uint32_t devStatsSize = 0, idDataLogSize = 0, hybridInfoSize = 0, smartSelfTest = 0, extSelfTest = 0, hostlogging = 0, sctStatus = 0, concurrentRangesSize = 0, farmLogSize = 0;
+        if (gotLogDirectory)
+        {
+            devStatsSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2) + 1], logBuffer[(ATA_LOG_DEVICE_STATISTICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            idDataLogSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], logBuffer[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            hybridInfoSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2) + 1], logBuffer[(ATA_LOG_HYBRID_INFORMATION * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            smartSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            extSelfTest = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2) + 1], logBuffer[(ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            sctStatus = M_BytesTo2ByteValue(logBuffer[(ATA_SCT_COMMAND_STATUS * 2) + 1], logBuffer[(ATA_SCT_COMMAND_STATUS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            hostlogging = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_HOST_SPECIFIC_80H * 2) + 1], logBuffer[(ATA_LOG_HOST_SPECIFIC_80H * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            concurrentRangesSize = M_BytesTo2ByteValue(logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2) + 1], logBuffer[(ATA_LOG_CONCURRENT_POSITIONING_RANGES * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+            farmLogSize = M_BytesTo2ByteValue(logBuffer[(SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS * 2) + 1], logBuffer[(SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS * 2)]) * LEGACY_DRIVE_SEC_SIZE;
+        }
+        else
+        {
+            //This is a case for old drives. They will only support single sector logs when this is set like this
+            if (is_Self_Test_Supported(device))
+            {
+                smartSelfTest = ATA_LOG_PAGE_LEN_BYTES;
+            }
+            //The only other logs to look at in here are SMART error log (summary and comprehensive) and selective self test
+            // as these are the only other single sector logs that will show up on old drives like these
+        }
+        if (hostlogging == (UINT32_C(16) * ATA_LOG_PAGE_LEN_BYTES))
+        {
+            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Host Logging");
+        }
+        
+        if (idDataLogSize > 0)
+        {
+            uint8_t* idDataLog = C_CAST(uint8_t*, calloc_aligned(idDataLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (idDataLog)
+            {
+                if (SUCCESS == get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, NULL, NULL, true, true, true, idDataLog, idDataLogSize, NULL, 0, 0))
+                {
+                    //call function to fill in data from ID data log
+                    get_ATA_Drive_Info_From_ID_Data_Log(driveInfo, &ataCap, idDataLog, idDataLogSize);
+                }
+            }
+            safe_Free_aligned(idDataLog)
+        }
+        //read device statistics log (only some pages are needed)
+        if (devStatsSize > 0)//can come from GPL or SMART
+        {
+            uint8_t* devStats = C_CAST(uint8_t*, calloc_aligned(idDataLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (devStats)
+            {
+                if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, devStats, devStatsSize, NULL, 0, 0))
+                {
+                    //call function to fill in data from ID data log
+                    get_ATA_Drive_Info_From_Device_Statistics_Log(driveInfo, &ataCap, devStats, devStatsSize);
+                }
+            }
+            safe_Free_aligned(devStats)
+        }
+        if (ataCap.gplSupported && hybridInfoSize > 0)//GPL only. Page is also only a size of 1 512B block
+        {
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_HYBRID_INFORMATION, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+            {
+                driveInfo->hybridNANDSize = M_BytesTo8ByteValue(logBuffer[23], logBuffer[22], logBuffer[21], logBuffer[20], logBuffer[19], logBuffer[18], logBuffer[17], logBuffer[16]) * driveInfo->logicalSectorSize;
+            }
+        }
+        if (extSelfTest > 0 || smartSelfTest > 0)
+        {
+            dstLogEntries dstEntries;
+            memset(&dstEntries, 0, sizeof(dstLogEntries));
+            if (SUCCESS == get_DST_Log_Entries(device, &dstEntries))
+            {
+                //setup dst info from most recent dst log entry.
+                if (dstEntries.numberOfEntries > 0)
+                {
+                    driveInfo->dstInfo.informationValid = true;
+                    driveInfo->dstInfo.powerOnHours = dstEntries.dstEntry[0].powerOnHours;
+                    driveInfo->dstInfo.resultOrStatus = dstEntries.dstEntry[0].selfTestExecutionStatus;
+                    driveInfo->dstInfo.testNumber = dstEntries.dstEntry[0].selfTestRun;
+                    driveInfo->dstInfo.errorLBA = dstEntries.dstEntry[0].lbaOfFailure;
+                }
+                else
+                {
+                    //set to all 0's and error LBA to all Fs
+                    driveInfo->dstInfo.informationValid = true;
+                    driveInfo->dstInfo.powerOnHours = 0;
+                    driveInfo->dstInfo.resultOrStatus = 0;
+                    driveInfo->dstInfo.testNumber = 0;
+                    driveInfo->dstInfo.errorLBA = UINT64_MAX;
+                }
+            }
+        }
+        if (ataCap.sctSupported && sctStatus > 0)//GPL or SMART
+        {
+            memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
+            //Read the SCT status log
+            if (SUCCESS == get_ATA_Log(device, ATA_SCT_COMMAND_STATUS, NULL, NULL, true, true, true, logBuffer, ATA_LOG_PAGE_LEN_BYTES, NULL, 0, 0))
+            {
+                uint16_t sctFormatVersion = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
+                if (sctFormatVersion > 1)//cannot find spec for revision 1 of this log, but we'll keep this safe until I find it with this check
+                {
+                    if (!driveInfo->temperatureData.temperatureDataValid && logBuffer[200] != 0x80)
+                    {
+                        driveInfo->temperatureData.temperatureDataValid = true;
+                        driveInfo->temperatureData.currentTemperature = C_CAST(int16_t, logBuffer[200]);
+                    }
+                    if (!driveInfo->temperatureData.highestValid && logBuffer[204] != 0x80)
+                    {
+                        driveInfo->temperatureData.highestTemperature = C_CAST(int16_t, logBuffer[204]);
+                        driveInfo->temperatureData.highestValid = true;
+                    }
+                }
+                if (sctFormatVersion > 2)
+                {
+                    //version 3 and higher report current, min, and max temperatures
+                    //reading life min and max temperatures
+                    if (!driveInfo->temperatureData.lowestValid && logBuffer[203] != 0x80)
+                    {
+                        driveInfo->temperatureData.lowestTemperature = C_CAST(int16_t, logBuffer[203]);
+                        driveInfo->temperatureData.lowestValid = true;
+                    }
+                    uint16_t smartStatus = M_BytesTo2ByteValue(logBuffer[215], logBuffer[214]);
+                    //SMART status
+                    switch (smartStatus)
+                    {
+                    case 0xC24F:
+                        smartStatusFromSCTStatusLog = true;
+                        driveInfo->smartStatus = 0;
+                        break;
+                    case 0x2CF4:
+                        smartStatusFromSCTStatusLog = true;
+                        driveInfo->smartStatus = 1;
+                        break;
+                    default:
+                        driveInfo->smartStatus = 2;
+                        break;
+                    }
+                }
+            }
+        }
+        if (ataCap.gplSupported && concurrentRangesSize)
+        {
+            memset(logBuffer, 0, logBufferSize);
+            //NOTE: Only reading first 512B since this has the counter we need. Max log size is 1024 in ACS5 - TJE
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
+            {
+                driveInfo->concurrentPositioningRanges = logBuffer[0];
+            }
+        }
+        if (ataCap.gplSupported && farmLogSize)
+        {
+            uint8_t* farmData = C_CAST(uint8_t*, calloc_aligned(16384, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (farmData)
+            {
+                //read "page 0" or first 4KB for header/top level information and verify this is in fact the FARM log
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, 0, farmData, 16384, 0))
+                {
+                    uint64_t farmSignature = M_BytesTo8ByteValue(farmData[7], farmData[6], farmData[5], farmData[4], farmData[3], farmData[2], farmData[1], farmData[0]);
+                    if (farmSignature & BIT63 && farmSignature & BIT62 && (farmSignature & UINT64_C(0x00FFFFFFFFFFFF)) == SEAGATE_FARM_LOG_SIGNATURE)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Field Accessible Reliability Metrics (FARM)");
+                        //Now read the next page to get the DOM (and possibly other useful data)
+                        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, (UINT16_C(16384) / LEGACY_DRIVE_SEC_SIZE), farmData, 16384, 0))
+                        {
+                            //verify page number (first 8 bytes)
+                            uint64_t farmPage1ID = M_BytesTo8ByteValue(farmData[7], farmData[6], farmData[5], farmData[4], farmData[3], farmData[2], farmData[1], farmData[0]);
+                            if (farmSignature & BIT63 && farmSignature & BIT62 && (farmPage1ID & UINT64_C(0x00FFFFFFFFFFFF)) == 1)
+                            {
+                                uint64_t dateOfManufactureQWord = M_BytesTo8ByteValue(farmData[367], farmData[366], farmData[365], farmData[364], farmData[363], farmData[362], farmData[361], farmData[360]);
+                                if (dateOfManufactureQWord & BIT63 && dateOfManufactureQWord & BIT62)//supported and valid info
+                                {
+                                    char domWeekStr[3] = { farmData[362], farmData[363], 0 };
+                                    char domYearStr[3] = { farmData[360], farmData[361], 0 };
+                                    driveInfo->dateOfManufactureValid = true;
+                                    driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
+                                    driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10) + UINT16_C(2000));//year is 2 digits, but this log was not in existance until after 2018 or so
+                                }
+                            }
+                        }
+                    }
+                }
+                safe_Free_aligned(farmData)
+            }
+        }
+    }
+    safe_Free_aligned(logBuffer)
+
+    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+    if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
+    {
+        get_ATA_Drive_Info_From_SMART_Data(driveInfo, &ataCap, smartData, LEGACY_DRIVE_SEC_SIZE);
+    }
     //set total bytes read/written
     driveInfo->totalBytesRead = driveInfo->totalLBAsRead * driveInfo->logicalSectorSize;
     driveInfo->totalBytesWritten = driveInfo->totalLBAsWritten * driveInfo->logicalSectorSize;
-    //get the native maxLBA
-    int getMaxAddress = ata_Get_Native_Max_LBA(device, &driveInfo->nativeMaxLBA);
-    if (getMaxAddress != SUCCESS && device->drive_info.interface_type != SCSI_INTERFACE && device->drive_info.interface_type != IDE_INTERFACE) //TODO: add other interfaces here to filter out when we send a TUR
+
+    //get security protocol info
+    if (ataCap.tcgSupported)
     {
-        //Send a test unit ready to clear the error from failure to read this page. This is done mostly for USB interfaces that don't handle errors from commands well.
-        scsi_Test_Unit_Ready(device, NULL);
+        //TCG - SED drive (need to test a trusted command to see if it is being blocked or not)
+        if (SUCCESS != ata_Trusted_Non_Data(device, 0, true, 0))
+        {
+            driveInfo->trustedCommandsBeingBlocked = true;
+        }
+        else
+        {
+            //Read supported security protocol list
+            uint8_t* protocolList = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (protocolList)
+            {
+                if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0, protocolList, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    if (SUCCESS == get_Security_Features_From_Security_Protocol(device, &driveInfo->securityInfo, protocolList, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        if (driveInfo->securityInfo.tcg)
+                        {
+                            driveInfo->encryptionSupport = ENCRYPTION_SELF_ENCRYPTING;
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCG");
+                        }
+                        if (driveInfo->securityInfo.scsa)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCSA");
+                        }
+                        if (driveInfo->securityInfo.ieee1667)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IEEE 1667");
+                        }
+                    }
+                }
+                safe_Free_aligned(protocolList)
+            }
+        }
+        
     }
-    //bool skipSMARTCheckDueToTranslatorBug = !supports_ATA_Return_SMART_Status_Command(device);//USB hack
-    if (!smartStatusFromSCTStatusLog)// && !skipSMARTCheckDueToTranslatorBug)
+
+    //get the native maxLBA
+    ata_Get_Native_Max_LBA(device, &driveInfo->nativeMaxLBA);
+    if (!smartStatusFromSCTStatusLog)
     {
         //SMART status
         switch (ata_SMART_Check(device, NULL))

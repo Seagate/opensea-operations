@@ -142,6 +142,43 @@ extern "C"
         uint32_t currentCapacityInSectors;//Word 57:58
     }legacyCHSInfo;
 
+    #define MAX_COMPLIANCE_DESCRIPTORS 2
+    #define CRYPTO_MODULE_HARDWARE_VERSION_LENGTH 128
+    #define CRYPTO_MODULE_VERSION_LENGTH 128
+    #define CRYPTO_MODULE_MODULE_NAME_LENGTH 256
+    typedef struct _securityCompliance
+    {
+        bool valid;
+        char revision;//2 = FIPS 140-2, 3 = FIPS 140-3
+        char overallSecurityLevel;
+        char hardwareVersion[CRYPTO_MODULE_HARDWARE_VERSION_LENGTH + 1];
+        char version[CRYPTO_MODULE_VERSION_LENGTH + 1];
+        char moduleName[CRYPTO_MODULE_MODULE_NAME_LENGTH + 1];
+    }securityCompliance;
+
+    //to store common security protocol info from ATA, SCSI, NVMe
+    typedef struct _securityProtocolInfo
+    {
+        bool securityProtocolInfoValid;
+        bool tcg;//01-06
+        bool cbcs;//07
+        bool tapeEncryption;//20
+        bool dataEncryptionConfig;//21
+        bool saCreationCapabilities;//40
+        bool ikev2scsi;//41
+        bool sdAssociation;//E7
+        bool dmtfSecurity;//E8
+        bool nvmeReserved;//E9
+        bool nvme;//EA
+        bool scsa;//EB
+        bool jedecUFS;//EC
+        bool sdTrustedFlash;//ED
+        bool ieee1667;//EE
+        bool ataDeviceServer;//EFh from SAT
+        ataSecurityStatus ataSecurityInfo;//to report out info about ATA security for any interface supporting the security protocol.
+        securityCompliance cryptoModuleCompliance[MAX_COMPLIANCE_DESCRIPTORS];//setting to 2 for now...not sure there are more than 1 reported currently.
+    }securityProtocolInfo;
+
     #define MAX_FEATURES UINT8_C(50) //change this number if we need to capture more feature support
     #define MAX_FEATURE_LENGTH UINT8_C(50) //maximum number of characters to allow for use when storing feature names.
 
@@ -216,6 +253,7 @@ extern "C"
         bool dateOfManufactureValid;
         uint8_t manufactureWeek;
         uint16_t manufactureYear;
+        securityProtocolInfo securityInfo;//TCG, IEEE1667, etc
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe
@@ -292,6 +330,7 @@ extern "C"
             uint8_t numberOfNamespaceFeatures;
             char namespaceFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
         }namespaceData;
+        ataSecurityStatus ataSecurityInformation;//This is here because SOME NVMe drives from some manufacturers implemented this security protocol from SAT-TJE
     }driveInformationNVMe, *ptrDriveInformationNVMe;
 
     typedef enum _eDriveInfoType
