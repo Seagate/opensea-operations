@@ -107,7 +107,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //word 128
-        if (device->drive_info.IdentifyData.ata.Word128 != 0 && device->drive_info.IdentifyData.ata.Word128 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word128 & BIT0)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word128) && device->drive_info.IdentifyData.ata.Word128 & BIT0)
         {
             securityStatus->securitySupported = true;
             if (device->drive_info.IdentifyData.ata.Word128 & BIT1)
@@ -177,7 +177,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
             //word 92
             securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
         }
-        if (device->drive_info.IdentifyData.ata.Word069 != 0 && device->drive_info.IdentifyData.ata.Word069 != UINT16_MAX)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069))
         {
             securityStatus->encryptAll = device->drive_info.IdentifyData.ata.Word069 & BIT4;
         }
@@ -198,7 +198,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                     uint16_t revision = M_BytesTo2ByteValue(securityPage[1], securityPage[0]);
                     if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
                     {
-                        uint8_t listLen = securityPage[8];
+                        uint8_t listLen = securityPage[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
                         for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(512); ++iter)
                         {
                             bool foundSecurityPage = false;
