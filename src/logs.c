@@ -482,9 +482,18 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     int ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t modeLength = MODE_PARAMETER_HEADER_10_LEN;
     bool sixByte = false;
+    if (device->drive_info.passThroughHacks.scsiHacks.noModePages)
+    {
+        return NOT_SUPPORTED;
+    }
+    else if (subpage > 0 && device->drive_info.passThroughHacks.scsiHacks.noModeSubPages)
+    {
+        return NOT_SUPPORTED;
+    }
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2)
+    //Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS)
     {
         sixByte = true;
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -540,14 +549,28 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
 {
     int ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t modeLength = 0;
-    if (SUCCESS != get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modeLength))
+    if (device->drive_info.passThroughHacks.scsiHacks.noModePages)
+    {
+        return NOT_SUPPORTED;
+    }
+    else if (subpage > 0 && device->drive_info.passThroughHacks.scsiHacks.noModeSubPages)
+    {
+        return NOT_SUPPORTED;
+    }
+    if (toBuffer)
+    { 
+        modeLength = bufSize;
+        ret = SUCCESS;
+    }
+    else if (SUCCESS != get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modeLength))
     {
         return ret;
     }
     bool sixByte = false;
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2)
+    //Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS)
     {
         sixByte = true;
     }
@@ -1134,7 +1157,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
     printf("%s: -->\n", __FUNCTION__);
 #endif
 
-    if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
+    if (transferSizeBytes % ATA_LOG_PAGE_LEN_BYTES)
     {
         return BAD_PARAMETER;
     }
@@ -1144,7 +1167,19 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
         GPL = false;
     }
 
-    ret = get_ATA_Log_Size(device, logAddress, &logSize, GPL, SMART);
+    if (toBuffer)
+    {
+        ret = SUCCESS;
+        logSize = bufSize;
+        if (bufSize & ATA_LOG_PAGE_LEN_BYTES)
+        {
+            return BAD_PARAMETER;
+        }
+    }
+    else
+    {
+        ret = get_ATA_Log_Size(device, logAddress, &logSize, GPL, SMART);
+    }
     if (ret == SUCCESS)
     {
         bool logFromGPL = false;
@@ -1379,8 +1414,15 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
     uint8_t *logBuffer = NULL;
     char *fileNameUsed = &name[0];
 
-    ret = get_SCSI_Log_Size(device, logAddress, subpage, &pageLen);
-
+    if (toBuffer)
+    {
+        ret = SUCCESS;
+        pageLen = bufSize;
+    }
+    else
+    {
+        ret = get_SCSI_Log_Size(device, logAddress, subpage, &pageLen);
+    }
     if (ret == SUCCESS)
     {
         //If the user wants it in a buffer...just return. 
@@ -1455,7 +1497,15 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
 {
     int     ret = UNKNOWN;
     uint32_t vpdBufferLength = 0;
-    ret = get_SCSI_VPD_Page_Size(device, pageCode, &vpdBufferLength);
+    if (toBuffer)
+    {
+        ret = SUCCESS;
+        vpdBufferLength = bufSize;
+    }
+    else
+    {
+        ret = get_SCSI_VPD_Page_Size(device, pageCode, &vpdBufferLength);
+    }
     if (ret == SUCCESS)
     {
         FILE *fp_vpd = NULL;
