@@ -109,7 +109,14 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
 {
     int ret = SUCCESS;
     uint8_t* bytePtr = identify;
-    uint16_t* wordPtr = C_CAST(uint16_t*, &identify);
+    uint16_t* wordPtr = C_CAST(uint16_t*, identify);
+
+    if (dataLength != 512)
+    {
+        return BAD_PARAMETER;
+    }
+
+    ataCapabilities->processedStdIDData = true;
 
     fill_ATA_Strings_From_Identify_Data(bytePtr, driveInfo->modelNumber, driveInfo->serialNumber, driveInfo->firmwareRevision);
 
@@ -1591,9 +1598,9 @@ static int get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA drive
                 break;
             }
         }
-        if (ataCapabilities->supportedIDDataPages.capacity)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_CAPACITY;
+        if (ataCapabilities->supportedIDDataPages.capacity && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_CAPACITY;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_CAPACITY && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
@@ -1608,10 +1615,10 @@ static int get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA drive
                 }
             }
         }
-        if (ataCapabilities->supportedIDDataPages.supportedCapabilities)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES;
+        if (ataCapabilities->supportedIDDataPages.supportedCapabilities && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
             //supported capabilities
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
@@ -1672,9 +1679,9 @@ static int get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA drive
                 }
             }
         }
-        if (ataCapabilities->supportedIDDataPages.currentSettings)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_CURRENT_SETTINGS;
+        if (ataCapabilities->supportedIDDataPages.currentSettings && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_CURRENT_SETTINGS;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_CURRENT_SETTINGS && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
@@ -1699,41 +1706,41 @@ static int get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA drive
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control");
             }
         }
-        /*if (ataCapabilities->supportedIDDataPages.strings)
+        /*offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ATA_STRINGS;
+        if (ataCapabilities->supportedIDDataPages.strings && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ATA_STRINGS;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_ATA_STRINGS && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
             }
         }
-        if (ataCapabilities->supportedIDDataPages.security)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SECURITY;
+        if (ataCapabilities->supportedIDDataPages.security && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SECURITY;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_SECURITY && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
             }
         }
-        if (ataCapabilities->supportedIDDataPages.parallelATA)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_PARALLEL_ATA;
+        if (ataCapabilities->supportedIDDataPages.parallelATA && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_PARALLEL_ATA;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_PARALLEL_ATA && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
             }
         }
-        if (ataCapabilities->supportedIDDataPages.serialATA)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SERIAL_ATA;
+        if (ataCapabilities->supportedIDDataPages.serialATA && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_SERIAL_ATA;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_SERIAL_ATA && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
             }
         }*/
-        if (ataCapabilities->supportedIDDataPages.zac2)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION;
+        if (ataCapabilities->supportedIDDataPages.zac2 && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (qword0 & ATA_ID_DATA_QWORD_VALID_BIT && M_Byte2(qword0) == ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION && M_Word0(qword0) >= ATA_ID_DATA_VERSION_1)
             {
@@ -1810,7 +1817,14 @@ static int get_ATA_Drive_Info_From_Device_Statistics_Log(ptrDriveInformationSAS_
     M_USE_UNUSED(ataCapabilities);
     if (pageNumber == C_CAST(uint8_t, ATA_DEVICE_STATS_LOG_LIST) && revision >= ATA_DEV_STATS_VERSION_1)
     {
-        bool generalStatistics = false, freeFallStatistics = false, rotatingMediaStatistics = false, generalErrorStatistics = false, temperatureStatistics = false, transportStatistics = false, solidStateStatistics = false, zonedDeviceStatistics = false;
+        bool generalStatistics = false;
+        //bool freeFallStatistics = false;
+        //bool rotatingMediaStatistics = false;
+        //bool generalErrorStatistics = false;
+        bool temperatureStatistics = false;
+        //bool transportStatistics = false;
+        bool solidStateStatistics = false;
+        //bool zonedDeviceStatistics = false;
         uint32_t offset = 0;
         uint16_t iter = ATA_DEV_STATS_SUP_PG_LIST_OFFSET;
         uint8_t numberOfEntries = idDataLog[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET];
@@ -1825,140 +1839,140 @@ static int get_ATA_Drive_Info_From_Device_Statistics_Log(ptrDriveInformationSAS_
                 generalStatistics = true;
                 break;
             case ATA_DEVICE_STATS_LOG_FREE_FALL:
-                freeFallStatistics = true;
+                //freeFallStatistics = true;
                 break;
             case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA:
-                rotatingMediaStatistics = true;
+                //rotatingMediaStatistics = true;
                 break;
             case ATA_DEVICE_STATS_LOG_GEN_ERR:
-                generalErrorStatistics = true;
+                //generalErrorStatistics = true;
                 break;
             case ATA_DEVICE_STATS_LOG_TEMP:
                 temperatureStatistics = true;
                 break;
             case ATA_DEVICE_STATS_LOG_TRANSPORT:
-                transportStatistics = true;
+                //transportStatistics = true;
                 break;
             case ATA_DEVICE_STATS_LOG_SSD:
                 solidStateStatistics = true;
                 break;
             case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
-                zonedDeviceStatistics = true;
+                //zonedDeviceStatistics = true;
             default:
                 break;
             }
         }
-        if (generalStatistics)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_GENERAL;
+        if (generalStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_GENERAL;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_GENERAL && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
             {
                 //power on hours
                 uint64_t pohQword = M_BytesTo8ByteValue(idDataLog[offset + 23], idDataLog[offset + 22], idDataLog[offset + 21], idDataLog[offset + 20], idDataLog[offset + 19], idDataLog[offset + 18], idDataLog[offset + 17], idDataLog[offset + 16]);
-                if (pohQword & ATA_DEV_STATS_QWORD_VALID_BIT && pohQword & BIT62)
+                if (pohQword & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && pohQword & BIT62)
                 {
                     driveInfo->powerOnMinutes = C_CAST(uint64_t, M_DoubleWord0(pohQword)) * UINT64_C(60);
                     driveInfo->powerOnMinutesValid = true;
                 }
                 //logical sectors written
                 uint64_t lsWrittenQword = M_BytesTo8ByteValue(idDataLog[offset + 31], idDataLog[offset + 30], idDataLog[offset + 29], idDataLog[offset + 28], idDataLog[offset + 27], idDataLog[offset + 26], idDataLog[offset + 25], idDataLog[offset + 24]);
-                if (lsWrittenQword & ATA_DEV_STATS_QWORD_VALID_BIT && lsWrittenQword & BIT62)
+                if (lsWrittenQword & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && lsWrittenQword & BIT62)
                 {
                     driveInfo->totalLBAsWritten = lsWrittenQword & MAX_48_BIT_LBA;
                 }
                 //logical sectors read
                 uint64_t lsReadQword = M_BytesTo8ByteValue(idDataLog[offset + 47], idDataLog[offset + 46], idDataLog[offset + 45], idDataLog[offset + 44], idDataLog[offset + 43], idDataLog[offset + 42], idDataLog[offset + 41], idDataLog[offset + 40]);
-                if (lsReadQword & ATA_DEV_STATS_QWORD_VALID_BIT && lsReadQword & BIT62)
+                if (lsReadQword & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && lsReadQword & BIT62)
                 {
                     driveInfo->totalLBAsRead = lsReadQword & MAX_48_BIT_LBA;
                 }
                 //workload utilization
                 uint64_t worloadUtilization = M_BytesTo8ByteValue(idDataLog[offset + 79], idDataLog[offset + 78], idDataLog[offset + 77], idDataLog[offset + 76], idDataLog[offset + 75], idDataLog[offset + 74], idDataLog[offset + 73], idDataLog[offset + 72]);
-                if (worloadUtilization & ATA_DEV_STATS_QWORD_VALID_BIT && worloadUtilization & BIT62)
+                if (worloadUtilization & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && worloadUtilization & BIT62)
                 {
                     driveInfo->deviceReportedUtilizationRate = C_CAST(double, M_Word0(worloadUtilization)) / 1000.0;
                 }
             }
         }
-        //if (freeFallStatistics)
+        //offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_FREE_FALL;
+        //if (freeFallStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         //{
-        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_FREE_FALL;
         //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
         //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_FREE_FALL && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
         //    {
         //    }
         //}
-        //if (rotatingMediaStatistics)
+        //offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_ROTATING_MEDIA;
+        //if (rotatingMediaStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         //{
-        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_ROTATING_MEDIA;
         //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
         //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_ROTATING_MEDIA && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
         //    {
         //    }
         //}
-        //if (generalErrorStatistics)
+        //offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_GEN_ERR;
+        //if (generalErrorStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         //{
-        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_GEN_ERR;
         //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
         //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_GEN_ERR && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
         //    {
         //    }
         //}
-        if (temperatureStatistics)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_TEMP;
+        if (temperatureStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_TEMP;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_TEMP && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
             {
                 //current temperature
                 uint64_t currentTemp = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
-                if (currentTemp & ATA_DEV_STATS_QWORD_VALID_BIT && currentTemp & BIT62)
+                if (currentTemp & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && currentTemp & BIT62)
                 {
                     driveInfo->temperatureData.temperatureDataValid = true;
                     driveInfo->temperatureData.currentTemperature = M_Byte0(currentTemp);
                 }
                 //highest temperature
                 uint64_t highestTemp = M_BytesTo8ByteValue(idDataLog[offset + 39], idDataLog[offset + 38], idDataLog[offset + 37], idDataLog[offset + 36], idDataLog[offset + 35], idDataLog[offset + 34], idDataLog[offset + 33], idDataLog[offset + 32]);
-                if (highestTemp & ATA_DEV_STATS_QWORD_VALID_BIT && highestTemp & BIT62)
+                if (highestTemp & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && highestTemp & BIT62)
                 {
                     driveInfo->temperatureData.highestTemperature = M_Byte0(highestTemp);
                     driveInfo->temperatureData.highestValid = true;
                 }
                 //lowest temperature
                 uint64_t lowestTemp = M_BytesTo8ByteValue(idDataLog[offset + 47], idDataLog[offset + 46], idDataLog[offset + 45], idDataLog[offset + 44], idDataLog[offset + 43], idDataLog[offset + 42], idDataLog[offset + 41], idDataLog[offset + 40]);
-                if (lowestTemp & ATA_DEV_STATS_QWORD_VALID_BIT && lowestTemp & BIT62)
+                if (lowestTemp & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && lowestTemp & BIT62)
                 {
                     driveInfo->temperatureData.lowestTemperature = M_Byte0(lowestTemp);
                     driveInfo->temperatureData.lowestValid = true;
                 }
             }
         }
-        //if (transportStatistics)
+        //offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_TRANSPORT;
+        //if (transportStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         //{
-        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_TRANSPORT;
         //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
         //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_TRANSPORT && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
         //    {
         //    }
         //}
-        if (solidStateStatistics)
+        offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_SSD;
+        if (solidStateStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         {
-            offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_SSD;
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
             if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_SSD && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
             {
                 //percent used endurance
                 uint64_t percentUsed = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
-                if (percentUsed & ATA_DEV_STATS_QWORD_VALID_BIT && percentUsed & BIT62)
+                if (percentUsed & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && percentUsed & BIT62)
                 {
                     driveInfo->percentEnduranceUsed = M_Byte0(percentUsed);
                 }
             }
         }
-        //if (zonedDeviceStatistics)
+        //offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_ZONED_DEVICE;
+        //if (zonedDeviceStatistics && (offset + ATA_LOG_PAGE_LEN_BYTES) <= dataLength)
         //{
-        //    offset = ATA_LOG_PAGE_LEN_BYTES * ATA_DEVICE_STATS_LOG_ZONED_DEVICE;
         //    uint64_t qword0 = M_BytesTo8ByteValue(idDataLog[offset + 7], idDataLog[offset + 6], idDataLog[offset + 5], idDataLog[offset + 4], idDataLog[offset + 3], idDataLog[offset + 2], idDataLog[offset + 1], idDataLog[offset + 0]);
         //    if (M_Byte2(qword0) == ATA_DEVICE_STATS_LOG_ZONED_DEVICE && M_Word0(qword0) >= ATA_DEV_STATS_VERSION_1)//validating we got the right page
         //    {
@@ -1982,8 +1996,7 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
         //read temperature (194), poh (9) for all, then read 241, 242, and 231 for Seagate only
         ataSMARTAttribute currentAttribute;
         uint16_t smartIter = 0;
-        eSeagateFamily seagateFamily = ataCapabilities->seagateFamily;
-        if (seagateFamily == SEAGATE)
+        if (ataCapabilities->seagateFamily == SEAGATE)
         {
             //check IDD and Reman support
             bool iddSupported = false;
@@ -2053,9 +2066,9 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
                     driveInfo->temperatureData.currentTemperature = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute.rawData[1], currentAttribute.rawData[0]));
                 }
                 /* TODO: This can be improved with better filters/interpretations defined per vendor to read this attribute. */
-                if (seagateFamily != MAXTOR)
+                if (ataCapabilities->seagateFamily != MAXTOR)
                 {
-                    if (seagateFamily == SEAGATE_VENDOR_K)
+                    if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_K)
                     {
                         if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
                         {
@@ -2063,7 +2076,7 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
                             driveInfo->temperatureData.highestValid = true;
                         }
                     }
-                    else if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E)
+                    else if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_D || ataCapabilities->seagateFamily == SEAGATE_VENDOR_E)
                     {
                         if (!driveInfo->temperatureData.highestValid && currentAttribute.worstEver != ATA_SMART_ATTRIBUTE_WORST_COMMON_START)//Filter out 253 as that is an unreasonable measurement, and more likely corresponds to an unreported or unsupported value
                         {
@@ -2087,7 +2100,7 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
                 }
                 break;
             case 231: //SSD Endurance
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_C || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->percentEnduranceUsed < 0)
+                if ((ataCapabilities->seagateFamily == SEAGATE || ataCapabilities->seagateFamily == SEAGATE_VENDOR_D || ataCapabilities->seagateFamily == SEAGATE_VENDOR_E || ataCapabilities->seagateFamily == SEAGATE_VENDOR_C || ataCapabilities->seagateFamily == SEAGATE_VENDOR_F || ataCapabilities->seagateFamily == SEAGATE_VENDOR_G || ataCapabilities->seagateFamily == SEAGATE_VENDOR_K) && driveInfo->percentEnduranceUsed < 0)
                 {
                     // SCSI was implemented first, and it returns a value where 0 means 100% spares left, ATA is the opposite,
                     // so we need to subtract our number from 100
@@ -2119,13 +2132,13 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
                 }
                 break;
             case 233: //Lifetime Write to Flash (SSD)
-                if (seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_F)
+                if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_G || ataCapabilities->seagateFamily == SEAGATE_VENDOR_F)
                 {
                     driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     //convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
                     driveInfo->totalWritesToFlash = (driveInfo->totalWritesToFlash * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                 }
-                else if (seagateFamily == SEAGATE_VENDOR_K)
+                else if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_K)
                 {
                     driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     //units are in 32MB
@@ -2133,7 +2146,7 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
                 }
                 break;
             case 234: //Lifetime Write to Flash (SSD)
-                if (seagateFamily == SEAGATE || (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B))
+                if (ataCapabilities->seagateFamily == SEAGATE || (ataCapabilities->seagateFamily == SEAGATE_VENDOR_D || ataCapabilities->seagateFamily == SEAGATE_VENDOR_E || ataCapabilities->seagateFamily == SEAGATE_VENDOR_B))
                 {
                     driveInfo->totalWritesToFlash = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
                     //convert this to match what we're doing below since this is likely also in GiB written (BUT IDK BECAUSE IT ISN'T IN THE SMART SPEC!)
@@ -2141,15 +2154,15 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
                 }
                 break;
             case 241: //Total Bytes written (SSD) Total LBAs written (HDD)
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsWritten == 0)
+                if ((ataCapabilities->seagateFamily == SEAGATE || ataCapabilities->seagateFamily == SEAGATE_VENDOR_D || ataCapabilities->seagateFamily == SEAGATE_VENDOR_E || ataCapabilities->seagateFamily == SEAGATE_VENDOR_B || ataCapabilities->seagateFamily == SEAGATE_VENDOR_F || ataCapabilities->seagateFamily == SEAGATE_VENDOR_G || ataCapabilities->seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsWritten == 0)
                 {
                     driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
-                    if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
+                    if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_D || ataCapabilities->seagateFamily == SEAGATE_VENDOR_E || ataCapabilities->seagateFamily == SEAGATE_VENDOR_B || ataCapabilities->seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB written, so convert to LBAs
                         driveInfo->totalLBAsWritten = (driveInfo->totalLBAsWritten * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                     }
-                    else if (seagateFamily == SEAGATE_VENDOR_K)
+                    else if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_K)
                     {
                         //units are 32MB, so convert to LBAs
                         driveInfo->totalLBAsWritten = (driveInfo->totalLBAsWritten * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
@@ -2157,15 +2170,15 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
                 }
                 break;
             case 242: //Total Bytes read (SSD) Total LBAs read (HDD)
-                if ((seagateFamily == SEAGATE || seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F || seagateFamily == SEAGATE_VENDOR_G || seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsRead == 0)
+                if ((ataCapabilities->seagateFamily == SEAGATE || ataCapabilities->seagateFamily == SEAGATE_VENDOR_D || ataCapabilities->seagateFamily == SEAGATE_VENDOR_E || ataCapabilities->seagateFamily == SEAGATE_VENDOR_B || ataCapabilities->seagateFamily == SEAGATE_VENDOR_F || ataCapabilities->seagateFamily == SEAGATE_VENDOR_G || ataCapabilities->seagateFamily == SEAGATE_VENDOR_K) && driveInfo->totalLBAsRead == 0)
                 {
                     driveInfo->totalLBAsRead = M_BytesTo8ByteValue(0, currentAttribute.rawData[6], currentAttribute.rawData[5], currentAttribute.rawData[4], currentAttribute.rawData[3], currentAttribute.rawData[2], currentAttribute.rawData[1], currentAttribute.rawData[0]);
-                    if (seagateFamily == SEAGATE_VENDOR_D || seagateFamily == SEAGATE_VENDOR_E || seagateFamily == SEAGATE_VENDOR_B || seagateFamily == SEAGATE_VENDOR_F)
+                    if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_D || ataCapabilities->seagateFamily == SEAGATE_VENDOR_E || ataCapabilities->seagateFamily == SEAGATE_VENDOR_B || ataCapabilities->seagateFamily == SEAGATE_VENDOR_F)
                     {
                         //some Seagate SSD's report this as GiB read, so convert to LBAs
                         driveInfo->totalLBAsRead = (driveInfo->totalLBAsRead * 1024 * 1024 * 1024) / driveInfo->logicalSectorSize;
                     }
-                    else if (seagateFamily == SEAGATE_VENDOR_K)
+                    else if (ataCapabilities->seagateFamily == SEAGATE_VENDOR_K)
                     {
                         //units are 32MB, so convert to LBAs
                         driveInfo->totalLBAsRead = (driveInfo->totalLBAsRead * 1000 * 1000 * 32) / driveInfo->logicalSectorSize;
@@ -2196,6 +2209,10 @@ static int get_Security_Features_From_Security_Protocol(tDevice *device, securit
         if (swappedLength < length)
         {
             length = swappedLength;
+        }
+        if (length > 0)
+        {
+            info->securityProtocolInfoValid = true;
         }
         for (; (bufIter - 8) < length && (bufIter - 8) < dataLength; bufIter++)
         {
@@ -2317,6 +2334,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
     }
     memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
+    ataCap.seagateFamily = is_Seagate_Family(device);
     if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE))
     {
         get_ATA_Drive_Info_From_Identify(driveInfo, &ataCap, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE);
@@ -2332,11 +2350,9 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
     }
 
     bool gotLogDirectory = false;
-    bool directoryFromGPL = false;
     if (ataCap.gplSupported && SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
     {
         gotLogDirectory = true;
-        directoryFromGPL = true;
     }
     else if (ataCap.smartErrorLoggingSupported && SUCCESS == ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE))
     {
@@ -2390,7 +2406,7 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
         //read device statistics log (only some pages are needed)
         if (devStatsSize > 0)//can come from GPL or SMART
         {
-            uint8_t* devStats = C_CAST(uint8_t*, calloc_aligned(idDataLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* devStats = C_CAST(uint8_t*, calloc_aligned(devStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (devStats)
             {
                 if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, devStats, devStatsSize, NULL, 0, 0))
@@ -2604,47 +2620,45 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
     return ret;
 }
 
-int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+typedef struct _scsiIdentifyInfo
+{
+    uint8_t version;
+    uint8_t peripheralQualifier;
+    uint8_t peripheralDeviceType;
+    bool ccs;//scsi1, but reporting according to CCS (response format 1)
+    bool protectionSupported;
+    bool protectionType1Supported;
+    bool protectionType2Supported;
+    bool protectionType3Supported;
+    bool zoneDomainsOrRealms;
+}scsiIdentifyInfo, *ptrSCSIIdentifyInfo;
+
+static int get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo, uint8_t* inquiryData, uint32_t dataLength)
 {
     int ret = SUCCESS;
-    if (!driveInfo)
+    if (driveInfo && scsiInfo && inquiryData && dataLength >= INQ_RETURN_DATA_LENGTH_SCSI2)
     {
-        return BAD_PARAMETER;
-    }
-    memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
-    //start with standard inquiry data
-    uint8_t version = 0;
-    uint8_t peripheralQualifier = 0;
-    uint8_t peripheralDeviceType = 0;
-    uint8_t inquiryData[255] = { 0 };
-    uint8_t responseFormat = 0;
-    bool protectionSupported = false;
-    bool isSCSI1drive = false;
-    bool isSCSI2drive = false;
-    bool isSEAGATEVendorID = false;//matches SCSI/SAS/FC for Seagate
-    bool zoneDomainsOrRealms = false;
-    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
-    if (SUCCESS == scsi_Inquiry(device, inquiryData, 255, 0, false, false))
-    {
-        //copy the read data to the device struct
-        memcpy(device->drive_info.scsiVpdData.inquiryData, inquiryData, INQ_RETURN_DATA_LENGTH);
         //now parse the data
-        peripheralQualifier = (device->drive_info.scsiVpdData.inquiryData[0] & (BIT7 | BIT6 | BIT5)) >> 5;
-        peripheralDeviceType = device->drive_info.scsiVpdData.inquiryData[0] & (BIT4 | BIT3 | BIT2 | BIT1 | BIT0);
+        scsiInfo->peripheralQualifier = (inquiryData[0] & (BIT7 | BIT6 | BIT5)) >> 5;
+        scsiInfo->peripheralDeviceType = inquiryData[0] & (BIT4 | BIT3 | BIT2 | BIT1 | BIT0);
         //Vendor ID
-        memcpy(&driveInfo->vendorID, &device->drive_info.scsiVpdData.inquiryData[8], 8);
+        memcpy(&driveInfo->vendorID, &inquiryData[8], 8);
         //MN-product identification
-        memcpy(driveInfo->modelNumber, &device->drive_info.scsiVpdData.inquiryData[16], 16);
+        memcpy(driveInfo->modelNumber, &inquiryData[16], 16);
         //FWRev
-        memcpy(driveInfo->firmwareRevision, &device->drive_info.scsiVpdData.inquiryData[32], 4);
+        memcpy(driveInfo->firmwareRevision, &inquiryData[32], 4);
         //Version (SPC version device conforms to)
-        version = device->drive_info.scsiVpdData.inquiryData[2];
-        responseFormat = M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0);
-        switch (version)
+        scsiInfo->version = inquiryData[2];
+        uint8_t responseFormat = M_GETBITRANGE(inquiryData[3], 3, 0);
+        if (responseFormat == INQ_RESPONSE_FMT_CCS)
+        {
+            scsiInfo->ccs = true;
+        }
+        switch (scsiInfo->version)
         {
         case 0:
             /*add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "Does not conform to a SCSI standard");
-            
+
             break;*/
             //Note: Old SCSI/SPC standards may report multiple specifications supported in this byte
             //Codes 08-0Ch, 40-44h, 48-4Ch, & 88h-8Ch are skipped in there. These were valious ways to report ISO/ECMA/ANSI standard conformance seperately for the same SCSI-x specification.
@@ -2652,27 +2666,23 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
         case 0x81:
         case 0x01:
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "SCSI");
-            isSCSI1drive = true;
-            version = 1;
+            scsiInfo->version = 1;
             break;
         case 0x02:
         case 0x80:
         case 0x82:
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "SCSI-2");
-            isSCSI2drive = true;
-            version = 2;
+            scsiInfo->version = 2;
             break;
         case 0x83:
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "SPC");
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "SCSI-2");
-            isSCSI2drive = true;
-            version = 3;
+            scsiInfo->version = 3;
             break;
         case 0x84:
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "SPC-2");
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "SCSI-2");
-            isSCSI2drive = true;
-            version = 4;
+            scsiInfo->version = 4;
             break;
         case 0x03:
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "SPC");
@@ -2697,8 +2707,8 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             //response format of 1 means there is compliance with the Common Command Set specification, which is partial SCSI2 support.
             add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "CCS");
         }
-        protectionSupported = inquiryData[5] & BIT0;
-        if (version >= 4 && (inquiryData[4] + 4) > 57)
+        scsiInfo->protectionSupported = inquiryData[5] & BIT0;
+        if (scsiInfo->version >= 4 && (inquiryData[4] + 4) > 57)
         {
             //Version Descriptors 1-8 (SPC2 and up)
             uint16_t versionDescriptor = 0;
@@ -2706,518 +2716,1137 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             for (; versionIter < 8; versionIter++)
             {
                 versionDescriptor = 0;
-                versionDescriptor = M_BytesTo2ByteValue(device->drive_info.scsiVpdData.inquiryData[(versionIter * 2) + 58], device->drive_info.scsiVpdData.inquiryData[(versionIter * 2) + 59]);
+                versionDescriptor = M_BytesTo2ByteValue(inquiryData[(versionIter * 2) + 58], inquiryData[(versionIter * 2) + 59]);
                 if (versionDescriptor > 0)
                 {
-                    decypher_SCSI_Version_Descriptors(versionDescriptor, driveInfo->specificationsSupported[driveInfo->numberOfSpecificationsSupported]);
+                    char versionDescriptorString[MAX_VERSION_DESCRIPTOR_STRING_LENGTH + 1] = { 0 };
+                    decypher_SCSI_Version_Descriptors(versionDescriptor, versionDescriptorString);
+                    add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, versionDescriptorString);
                 }
             }
         }
         if (strcmp(driveInfo->vendorID, "SEAGATE ") == 0)
-        {
-            isSEAGATEVendorID = true;
-        }
-        if (isSEAGATEVendorID)
         {
             driveInfo->copyrightValid = true;
             memcpy(&driveInfo->copyrightInfo[0], &inquiryData[97], 48);
             driveInfo->copyrightInfo[49] = '\0';
         }
     }
+    return ret;
+}
 
-    //TODO: add checking peripheral device type as well to make sure it's only direct access and zoned block devices?
-    if ((device->drive_info.interface_type == SCSI_INTERFACE || device->drive_info.interface_type == RAID_INTERFACE) && (device->drive_info.drive_type != ATA_DRIVE && device->drive_info.drive_type != NVME_DRIVE))
+static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+{
+    int ret = SUCCESS;
+    if (device && driveInfo && scsiInfo)
     {
-        //send report luns to see how many luns are attached. This SHOULD be the way to detect multi-actuator drives for now. This could change in the future.
-        //TODO: Find a better way to remove the large check above which may not work out well in some cases, but should reduce false detection on USB among other interfaces
-        driveInfo->lunCount = get_LUN_Count(device);
-    }
-
-    //VPD pages (read list of supported pages...if we don't get anything back, we'll dummy up a list of things we are interested in trying to read...this is to work around crappy USB bridges
-    uint8_t* tempBuf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE * 2, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!tempBuf)
-    {
-        return MEMORY_FAILURE;
-    }
-    bool gotRotationRate = false;
-    bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
-    //some devices (external) don't support VPD pages or may have issue when trying to read them, so check if this hack is set before attempting to read them
-    if ((!device->drive_info.passThroughHacks.scsiHacks.noVPDPages || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) && (version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)) //VPD pages indroduced in SCSI 2...also a USB hack
-    {
-        bool dummyUpVPDSupport = false;
-        if (!device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
+        //VPD pages (read list of supported pages...if we don't get anything back, we'll dummy up a list of things we are interested in trying to read...this is to work around crappy USB bridges
+        uint8_t* tempBuf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE * 2, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (!tempBuf)
         {
-            //for whatever reason, this device didn't return support for the list of supported pages, so set a flag telling us to dummy up a list so that we can still attempt to issue commands to pages we do need to try and get (this is a workaround for some really stupid USB bridges)
-            dummyUpVPDSupport = true;
-        }
-        else if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)
-        {
-            dummyUpVPDSupport = true;
-        }
-        if (!dummyUpVPDSupport)
-        {
-            uint8_t zeroedMem[255] = { 0 };
-            if (memcmp(tempBuf, zeroedMem, 255) == 0)
-            {
-                //this case means that the command was successful, but we got nothing but zeros....which happens on some craptastic USB bridges
-                dummyUpVPDSupport = true;
-            }
-        }
-        if (dummyUpVPDSupport)
-        {
-            uint16_t offset = 4;
-            //in here we will set up a fake supported VPD pages buffer so that we try to read the unit serial number page, the SAT page, and device identification page
-            tempBuf[0] = peripheralQualifier << 5;
-            tempBuf[0] |= peripheralDeviceType;
-            //set page code
-            tempBuf[1] = 0x00;
-            if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)
-            {
-                //This is a hack for devices that will only support this page and MAYBE the device identification VPD page.
-                //Not adding the device ID page here because it almost always contains only a name string and/or a T10 string which isn't useful for the information being gathered in here today.
-                tempBuf[offset] = UNIT_SERIAL_NUMBER;//SCSI2
-                ++offset;
-            }
-            else
-            {
-                //now each byte will reference a supported VPD page we want to dummy up. These should be in ascending order
-                tempBuf[offset] = SUPPORTED_VPD_PAGES;//SCSI2
-                ++offset;
-                tempBuf[offset] = UNIT_SERIAL_NUMBER;//SCSI2
-                ++offset;
-                if (version >= 3)//SPC
-                {
-                    tempBuf[offset] = DEVICE_IDENTIFICATION;
-                    ++offset;
-                }
-                tempBuf[offset] = ATA_INFORMATION;//SAT. Going to leave this in here no matter what other version info is available since SATLs needing this dummy data may support this regardless of other version info
-                ++offset;
-                if (version >= 6)//SBC3 - SPC4
-                {
-                    if (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
-                    {
-                        tempBuf[offset] = BLOCK_DEVICE_CHARACTERISTICS;
-                        ++offset;
-                    }
-                }
-                //TODO: Add more pages to the dummy information as we need to. This may be useful to do in the future in case a device decides not to support a MANDATORY page or another page we care about
-            }
-            //set page length (n-3)
-            tempBuf[2] = M_Byte1(offset - 4);//msb
-            tempBuf[3] = M_Byte0(offset - 4);//lsb
-        }
-        //first, get the length of the supported pages
-        uint16_t supportedVPDPagesLength = M_BytesTo2ByteValue(tempBuf[2], tempBuf[3]);
-        uint8_t* supportedVPDPages = C_CAST(uint8_t*, calloc(supportedVPDPagesLength, sizeof(uint8_t)));
-        if (!supportedVPDPages)
-        {
-            perror("Error allocating memory for supported VPD pages!\n");
             return MEMORY_FAILURE;
         }
-        memcpy(supportedVPDPages, &tempBuf[4], supportedVPDPagesLength);
-        //now loop through and read pages as we need to, only reading the pages that we care about
-        uint16_t vpdIter = 0;
-        for (vpdIter = 0; vpdIter < supportedVPDPagesLength; vpdIter++)
+        bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
+        //some devices (external) don't support VPD pages or may have issue when trying to read them, so check if this hack is set before attempting to read them
+        if ((!device->drive_info.passThroughHacks.scsiHacks.noVPDPages || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) && (scsiInfo->version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)) //VPD pages indroduced in SCSI 2...also a USB hack
         {
-            switch (supportedVPDPages[vpdIter])
+            bool dummyUpVPDSupport = false;
+            if (!device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
             {
-            case UNIT_SERIAL_NUMBER:
-            {
-                uint8_t unitSerialNumberPageLength = SERIAL_NUM_LEN + 4;//adding 4 bytes extra for the header
-                uint8_t* unitSerialNumber = C_CAST(uint8_t*, calloc_aligned(unitSerialNumberPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!unitSerialNumber)
-                {
-                    perror("Error allocating memory to read the unit serial number");
-                    continue;//continue the loop
-                }
-                if (SUCCESS == scsi_Inquiry(device, unitSerialNumber, unitSerialNumberPageLength, supportedVPDPages[vpdIter], true, false))
-                {
-                    uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
-                    if (serialNumberLength > 0)
-                    {
-                        if (strncmp(driveInfo->vendorID, "SEAGATE", strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
-                        {
-                            //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
-                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
-                            driveInfo->serialNumber[8] = '\0';
-                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-                            //remaining is PCBA SN
-                            memcpy(driveInfo->pcbaSerialNumber, &unitSerialNumber[12], 12);
-                            driveInfo->pcbaSerialNumber[12] = '\0';
-                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-                        }
-                        else
-                        {
-                            memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
-                            driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
-                            remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
-                            for (uint8_t iter = 0; iter < SERIAL_NUM_LEN; ++iter)
-                            {
-                                if (!isprint(device->drive_info.serialNumber[iter]))
-                                {
-                                    device->drive_info.serialNumber[iter] = ' ';
-                                }
-                            }
-                            remove_Leading_And_Trailing_Whitespace(device->drive_info.serialNumber);
-                            //For Seagate and LaCie USB drives, need to remove leading or trailing zeroes.
-                            if (is_Seagate_USB_Vendor_ID(driveInfo->vendorID) || is_LaCie_USB_Vendor_ID(driveInfo->vendorID))
-                            {
-                                char* snPtr = driveInfo->serialNumber;
-                                const char* t10VIDPtr = driveInfo->vendorID;
-                                seagate_Serial_Number_Cleanup(t10VIDPtr, &snPtr, SERIAL_NUM_LEN + 1);
-                            }
-                        }
-                    }
-                }
-                safe_Free_aligned(unitSerialNumber)
-                break;
+                //for whatever reason, this device didn't return support for the list of supported pages, so set a flag telling us to dummy up a list so that we can still attempt to issue commands to pages we do need to try and get (this is a workaround for some really stupid USB bridges)
+                dummyUpVPDSupport = true;
             }
-            case DEVICE_IDENTIFICATION:
+            else if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)
             {
-                uint8_t* deviceIdentification = C_CAST(uint8_t*, calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!deviceIdentification)
+                dummyUpVPDSupport = true;
+            }
+            if (!dummyUpVPDSupport)
+            {
+                if (is_Empty(tempBuf, 255))
                 {
-                    perror("Error allocating memory to read device identification VPD page");
-                    continue;
+                    //this case means that the command was successful, but we got nothing but zeros....which happens on some craptastic USB bridges
+                    dummyUpVPDSupport = true;
                 }
-                if (SUCCESS == scsi_Inquiry(device, deviceIdentification, INQ_RETURN_DATA_LENGTH, DEVICE_IDENTIFICATION, true, false))
+            }
+            if (dummyUpVPDSupport)
+            {
+                uint16_t offset = 4;
+                //in here we will set up a fake supported VPD pages buffer so that we try to read the unit serial number page, the SAT page, and device identification page
+                tempBuf[0] = scsiInfo->peripheralQualifier << 5;
+                tempBuf[0] |= scsiInfo->peripheralDeviceType;
+                //set page code
+                tempBuf[1] = 0x00;
+                if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)
                 {
-                    uint16_t devIDPageLen = M_BytesTo2ByteValue(deviceIdentification[2], deviceIdentification[3]);
-                    if (devIDPageLen + 4 > INQ_RETURN_DATA_LENGTH)
+                    //This is a hack for devices that will only support this page and MAYBE the device identification VPD page.
+                    //Not adding the device ID page here because it almost always contains only a name string and/or a T10 string which isn't useful for the information being gathered in here today.
+                    tempBuf[offset] = UNIT_SERIAL_NUMBER;//SCSI2
+                    ++offset;
+                }
+                else
+                {
+                    //now each byte will reference a supported VPD page we want to dummy up. These should be in ascending order
+                    tempBuf[offset] = SUPPORTED_VPD_PAGES;//SCSI2
+                    ++offset;
+                    tempBuf[offset] = UNIT_SERIAL_NUMBER;//SCSI2
+                    ++offset;
+                    if (scsiInfo->version >= 3)//SPC
                     {
-                        //realloc and re-read the page with the larger pagelength
-                        uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(deviceIdentification, 0, devIDPageLen + 4, device->os_info.minimumAlignment));
-                        if (!temp)
+                        tempBuf[offset] = DEVICE_IDENTIFICATION;
+                        ++offset;
+                    }
+                    if (!device->drive_info.passThroughHacks.scsiHacks.noSATVPDPage)
+                    {
+                        tempBuf[offset] = ATA_INFORMATION;//SAT. Going to leave this in here no matter what other version info is available since SATLs needing this dummy data may support this regardless of other version info
+                        ++offset;
+                    }
+                    if (scsiInfo->version >= 6)//SBC3 - SPC4
+                    {
+                        if (scsiInfo->peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
                         {
-                            perror("Error trying to realloc for larget device identification VPD page data!\n");
-                            return 101;
-                        }
-                        deviceIdentification = temp;
-                        if (SUCCESS != scsi_Inquiry(device, deviceIdentification, devIDPageLen + 4, DEVICE_IDENTIFICATION, true, false))
-                        {
-                            //we had an error while trying to read the page...
+                            tempBuf[offset] = BLOCK_DEVICE_CHARACTERISTICS;
+                            ++offset;
                         }
                     }
-                    //TODO: change this for parallel and PCIe?
-                    driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0xFF;//set to something invalid
-                    //Below we loop through to the designator descriptors to find the WWN, and on SAS set the active port.
-                    //we get the active phy from the low byte of the WWN when we find the association field set to 01b
-                    uint64_t accotiatedWWN = 0;
-                    uint8_t association = 0;
-                    uint32_t deviceIdentificationIter = 4;
-                    uint16_t pageLength = M_BytesTo2ByteValue(deviceIdentification[2], deviceIdentification[3]);
-                    uint8_t designatorLength = 0;
-                    uint8_t protocolIdentifier = 0;
-                    uint8_t designatorType = 0;
-                    for (; deviceIdentificationIter < C_CAST(uint32_t, pageLength + UINT16_C(4)); deviceIdentificationIter += designatorLength)
+                    //TODO: Add more pages to the dummy information as we need to. This may be useful to do in the future in case a device decides not to support a MANDATORY page or another page we care about
+                }
+                //set page length (n-3)
+                tempBuf[2] = M_Byte1(offset - 4);//msb
+                tempBuf[3] = M_Byte0(offset - 4);//lsb
+            }
+            //first, get the length of the supported pages
+            uint16_t supportedVPDPagesLength = M_BytesTo2ByteValue(tempBuf[2], tempBuf[3]);
+            uint8_t* supportedVPDPages = C_CAST(uint8_t*, calloc(supportedVPDPagesLength, sizeof(uint8_t)));
+            if (!supportedVPDPages)
+            {
+                perror("Error allocating memory for supported VPD pages!\n");
+                return MEMORY_FAILURE;
+            }
+            memcpy(supportedVPDPages, &tempBuf[4], supportedVPDPagesLength);
+            //now loop through and read pages as we need to, only reading the pages that we care about
+            uint16_t vpdIter = 0;
+            for (vpdIter = 0; vpdIter < supportedVPDPagesLength; vpdIter++)
+            {
+                switch (supportedVPDPages[vpdIter])
+                {
+                case UNIT_SERIAL_NUMBER:
+                {
+                    uint8_t unitSerialNumberPageLength = SERIAL_NUM_LEN + 4;//adding 4 bytes extra for the header
+                    uint8_t* unitSerialNumber = C_CAST(uint8_t*, calloc_aligned(unitSerialNumberPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!unitSerialNumber)
                     {
-                        association = (deviceIdentification[deviceIdentificationIter + 1] >> 4) & 0x03;
-                        designatorLength = deviceIdentification[deviceIdentificationIter + 3] + 4;
-                        protocolIdentifier = M_Nibble1(deviceIdentification[deviceIdentificationIter]);
-                        designatorType = M_Nibble0(deviceIdentification[deviceIdentificationIter + 1]);
-                        switch (association)
+                        perror("Error allocating memory to read the unit serial number");
+                        continue;//continue the loop
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, unitSerialNumber, unitSerialNumberPageLength, supportedVPDPages[vpdIter], true, false))
+                    {
+                        uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
+                        if (serialNumberLength > 0)
                         {
-                        case 0://associated with the addressed logical unit
-                            if (designatorType == 0x03)
+                            if (strncmp(driveInfo->vendorID, "SEAGATE", strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
                             {
-                                driveInfo->worldWideNameSupported = true;
-                                //all NAA values other than 6 currently are 8 bytes long, so get all 8 of those bytes in.
-                                driveInfo->worldWideName = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 4], deviceIdentification[deviceIdentificationIter + 5], deviceIdentification[deviceIdentificationIter + 6],
-                                    deviceIdentification[deviceIdentificationIter + 7], deviceIdentification[deviceIdentificationIter + 8], deviceIdentification[deviceIdentificationIter + 9], deviceIdentification[deviceIdentificationIter + 10], deviceIdentification[deviceIdentificationIter + 11]);
-                                //check NAA to see if it's an extended WWN
-                                uint8_t naa = M_Nibble15(driveInfo->worldWideName);
-                                if (naa == 6)
+                                //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
+                                memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
+                                driveInfo->serialNumber[8] = '\0';
+                                remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                                //remaining is PCBA SN
+                                memcpy(driveInfo->pcbaSerialNumber, &unitSerialNumber[12], 12);
+                                driveInfo->pcbaSerialNumber[12] = '\0';
+                                remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                            }
+                            else
+                            {
+                                memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
+                                driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
+                                remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                                for (uint8_t iter = 0; iter < SERIAL_NUM_LEN; ++iter)
                                 {
-                                    //extension is valid, so get the next 8 bytes
-                                    driveInfo->worldWideNameExtensionValid = true;
-                                    driveInfo->worldWideNameExtension = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 12], deviceIdentification[deviceIdentificationIter + 13], deviceIdentification[deviceIdentificationIter + 14],
-                                        deviceIdentification[deviceIdentificationIter + 15], deviceIdentification[deviceIdentificationIter + 16], deviceIdentification[deviceIdentificationIter + 17], deviceIdentification[deviceIdentificationIter + 18], deviceIdentification[deviceIdentificationIter + 19]);
+                                    if (!isprint(device->drive_info.serialNumber[iter]))
+                                    {
+                                        device->drive_info.serialNumber[iter] = ' ';
+                                    }
+                                }
+                                remove_Leading_And_Trailing_Whitespace(device->drive_info.serialNumber);
+                                //For Seagate and LaCie USB drives, need to remove leading or trailing zeroes.
+                                if (is_Seagate_USB_Vendor_ID(driveInfo->vendorID) || is_LaCie_USB_Vendor_ID(driveInfo->vendorID))
+                                {
+                                    char* snPtr = driveInfo->serialNumber;
+                                    const char* t10VIDPtr = driveInfo->vendorID;
+                                    seagate_Serial_Number_Cleanup(t10VIDPtr, &snPtr, SERIAL_NUM_LEN + 1);
                                 }
                             }
-                            break;
-                        case 1://associated with the target port that received the command
-                            if (is_Seagate_Family(device))
+                        }
+                    }
+                    safe_Free_aligned(unitSerialNumber)
+                        break;
+                }
+                case DEVICE_IDENTIFICATION:
+                {
+                    uint8_t* deviceIdentification = C_CAST(uint8_t*, calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!deviceIdentification)
+                    {
+                        perror("Error allocating memory to read device identification VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, deviceIdentification, INQ_RETURN_DATA_LENGTH, DEVICE_IDENTIFICATION, true, false))
+                    {
+                        uint16_t devIDPageLen = M_BytesTo2ByteValue(deviceIdentification[2], deviceIdentification[3]);
+                        if (devIDPageLen + 4 > INQ_RETURN_DATA_LENGTH)
+                        {
+                            //realloc and re-read the page with the larger pagelength
+                            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(deviceIdentification, 0, devIDPageLen + 4, device->os_info.minimumAlignment));
+                            if (!temp)
                             {
-                                if (protocolIdentifier == 0x06 && designatorType == 0x03)//SAS->only place that getting a port number makes sense right now since we aren't gathering port speed for other interfaces since it isn't reported.
+                                perror("Error trying to realloc for larget device identification VPD page data!\n");
+                                return 101;
+                            }
+                            deviceIdentification = temp;
+                            if (SUCCESS != scsi_Inquiry(device, deviceIdentification, devIDPageLen + 4, DEVICE_IDENTIFICATION, true, false))
+                            {
+                                //we had an error while trying to read the page...
+                            }
+                        }
+                        //TODO: change this for parallel and PCIe?
+                        driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0xFF;//set to something invalid
+                        //Below we loop through to the designator descriptors to find the WWN, and on SAS set the active port.
+                        //we get the active phy from the low byte of the WWN when we find the association field set to 01b
+                        uint64_t accotiatedWWN = 0;
+                        uint8_t association = 0;
+                        uint32_t deviceIdentificationIter = 4;
+                        uint16_t pageLength = M_BytesTo2ByteValue(deviceIdentification[2], deviceIdentification[3]);
+                        uint8_t designatorLength = 0;
+                        uint8_t protocolIdentifier = 0;
+                        uint8_t designatorType = 0;
+                        for (; deviceIdentificationIter < C_CAST(uint32_t, pageLength + UINT16_C(4)); deviceIdentificationIter += designatorLength)
+                        {
+                            association = (deviceIdentification[deviceIdentificationIter + 1] >> 4) & 0x03;
+                            designatorLength = deviceIdentification[deviceIdentificationIter + 3] + 4;
+                            protocolIdentifier = M_Nibble1(deviceIdentification[deviceIdentificationIter]);
+                            designatorType = M_Nibble0(deviceIdentification[deviceIdentificationIter + 1]);
+                            switch (association)
+                            {
+                            case 0://associated with the addressed logical unit
+                                if (designatorType == 0x03)
                                 {
-                                    //we know we have found the right designator, so read the WWN, and check the lowest nibble for the port number
-                                    accotiatedWWN = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 4], deviceIdentification[deviceIdentificationIter + 5], deviceIdentification[deviceIdentificationIter + 6],
+                                    driveInfo->worldWideNameSupported = true;
+                                    //all NAA values other than 6 currently are 8 bytes long, so get all 8 of those bytes in.
+                                    driveInfo->worldWideName = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 4], deviceIdentification[deviceIdentificationIter + 5], deviceIdentification[deviceIdentificationIter + 6],
                                         deviceIdentification[deviceIdentificationIter + 7], deviceIdentification[deviceIdentificationIter + 8], deviceIdentification[deviceIdentificationIter + 9], deviceIdentification[deviceIdentificationIter + 10], deviceIdentification[deviceIdentificationIter + 11]);
-
-                                    uint8_t lowNibble = M_Nibble0(accotiatedWWN);
-                                    lowNibble &= 0x3;
-                                    if (lowNibble == 1)
+                                    //check NAA to see if it's an extended WWN
+                                    uint8_t naa = M_Nibble15(driveInfo->worldWideName);
+                                    if (naa == 6)
                                     {
-                                        driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0;
-                                    }
-                                    else if (lowNibble == 2)
-                                    {
-                                        driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 1;
+                                        //extension is valid, so get the next 8 bytes
+                                        driveInfo->worldWideNameExtensionValid = true;
+                                        driveInfo->worldWideNameExtension = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 12], deviceIdentification[deviceIdentificationIter + 13], deviceIdentification[deviceIdentificationIter + 14],
+                                            deviceIdentification[deviceIdentificationIter + 15], deviceIdentification[deviceIdentificationIter + 16], deviceIdentification[deviceIdentificationIter + 17], deviceIdentification[deviceIdentificationIter + 18], deviceIdentification[deviceIdentificationIter + 19]);
                                     }
                                 }
+                                break;
+                            case 1://associated with the target port that received the command
+                                if (is_Seagate_Family(device))
+                                {
+                                    if (protocolIdentifier == 0x06 && designatorType == 0x03)//SAS->only place that getting a port number makes sense right now since we aren't gathering port speed for other interfaces since it isn't reported.
+                                    {
+                                        //we know we have found the right designator, so read the WWN, and check the lowest nibble for the port number
+                                        accotiatedWWN = M_BytesTo8ByteValue(deviceIdentification[deviceIdentificationIter + 4], deviceIdentification[deviceIdentificationIter + 5], deviceIdentification[deviceIdentificationIter + 6],
+                                            deviceIdentification[deviceIdentificationIter + 7], deviceIdentification[deviceIdentificationIter + 8], deviceIdentification[deviceIdentificationIter + 9], deviceIdentification[deviceIdentificationIter + 10], deviceIdentification[deviceIdentificationIter + 11]);
+
+                                        uint8_t lowNibble = M_Nibble0(accotiatedWWN);
+                                        lowNibble &= 0x3;
+                                        if (lowNibble == 1)
+                                        {
+                                            driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0;
+                                        }
+                                        else if (lowNibble == 2)
+                                        {
+                                            driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 1;
+                                        }
+                                    }
+                                }
+                                break;
+                            case 2://associated with SCSI target device that contains the addressed logical unit
+                                break;
+                            case 3://reserved
+                            default:
+                                break;
                             }
+                        }
+                    }
+                    safe_Free_aligned(deviceIdentification)
+                        break;
+                }
+                case EXTENDED_INQUIRY_DATA:
+                {
+                    uint8_t* extendedInquiryData = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!extendedInquiryData)
+                    {
+                        perror("Error allocating memory to read extended inquiry VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, extendedInquiryData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+                    {
+                        //get nvCache supported
+                        driveInfo->nvCacheSupported = extendedInquiryData[6] & BIT1;
+                        //get longDST time since we read this page!
+                        driveInfo->longDSTTimeMinutes = M_BytesTo2ByteValue(extendedInquiryData[10], extendedInquiryData[11]);
+                        //get supported protection types
+                        switch (M_GETBITRANGE(extendedInquiryData[4], 5, 3))
+                        {
+                        case 0:
+                            protectionType1Supported = true;
                             break;
-                        case 2://associated with SCSI target device that contains the addressed logical unit
+                        case 1:
+                            protectionType1Supported = true;
+                            protectionType2Supported = true;
                             break;
-                        case 3://reserved
+                        case 2:
+                            protectionType2Supported = true;
+                            break;
+                        case 3:
+                            protectionType1Supported = true;
+                            protectionType3Supported = true;
+                            break;
+                        case 4:
+                            protectionType3Supported = true;
+                            break;
+                        case 5:
+                            protectionType2Supported = true;
+                            protectionType3Supported = true;
+                            break;
+                        case 6:
+                            //read supported lengths and protection types VPD page
+                        {
+                            uint16_t supportedBlockSizesAndProtectionTypesLength = 4;//reallocate in a minute when we know how much to read
+                            uint8_t* supportedBlockSizesAndProtectionTypes = C_CAST(uint8_t*, calloc_aligned(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (supportedBlockSizesAndProtectionTypes)
+                            {
+                                if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
+                                {
+                                    supportedBlockSizesAndProtectionTypesLength = M_BytesTo2ByteValue(supportedBlockSizesAndProtectionTypes[2], supportedBlockSizesAndProtectionTypes[3]);
+                                    uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(supportedBlockSizesAndProtectionTypes, 0, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t), device->os_info.minimumAlignment));
+                                    supportedBlockSizesAndProtectionTypes = temp;
+                                    if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
+                                    {
+                                        //loop through and find supported protection types...
+                                        for (uint32_t offset = UINT16_C(4); offset < C_CAST(uint32_t, supportedBlockSizesAndProtectionTypesLength + UINT16_C(4)); offset += UINT16_C(8))
+                                        {
+                                            if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
+                                            {
+                                                protectionType1Supported = true;
+                                            }
+                                            if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT2)
+                                            {
+                                                protectionType2Supported = true;
+                                            }
+                                            if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT3)
+                                            {
+                                                protectionType3Supported = true;
+                                            }
+                                            if (protectionType1Supported && protectionType2Supported && protectionType3Supported)
+                                            {
+                                                //all protection types supported so we can leave the loop
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                safe_Free_aligned(supportedBlockSizesAndProtectionTypes)
+                            }
+                            //no else...don't care that much right now...-TJE
+                        }
+                        break;
+                        case 7:
+                            protectionType1Supported = true;
+                            protectionType2Supported = true;
+                            protectionType3Supported = true;
+                            break;
+                        }
+                    }
+                    safe_Free_aligned(extendedInquiryData)
+                        break;
+                }
+                case BLOCK_DEVICE_CHARACTERISTICS:
+                {
+                    uint8_t* blockDeviceCharacteristics = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!blockDeviceCharacteristics)
+                    {
+                        perror("Error allocating memory to read block device characteistics VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                    {
+                        driveInfo->rotationRate = M_BytesTo2ByteValue(blockDeviceCharacteristics[4], blockDeviceCharacteristics[5]);
+                        driveInfo->formFactor = M_Nibble0(blockDeviceCharacteristics[7]);
+                        driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
+                    }
+                    safe_Free_aligned(blockDeviceCharacteristics)
+                        break;
+                }
+                case POWER_CONDITION:
+                    //reading this information has been moved to the mode pages below. - TJE
+                    //add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "EPC");
+                    break;
+                case POWER_CONSUMPTION:
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Power Consumption");
+                    break;
+                case LOGICAL_BLOCK_PROVISIONING:
+                {
+                    uint8_t* logicalBlockProvisioning = C_CAST(uint8_t*, calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!logicalBlockProvisioning)
+                    {
+                        perror("Error allocating memory to read logical block provisioning VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, logicalBlockProvisioning, VPD_LOGICAL_BLOCK_PROVISIONING_LEN, LOGICAL_BLOCK_PROVISIONING, true, false))
+                    {
+                        if (logicalBlockProvisioning[5] & BIT7)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "UNMAP");
+                        }
+                    }
+                    safe_Free_aligned(logicalBlockProvisioning)
+                        break;
+                }
+                case BLOCK_LIMITS:
+                {
+                    uint8_t* blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!blockLimits)
+                    {
+                        perror("Error allocating memory to read logical block provisioning VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, blockLimits, VPD_BLOCK_LIMITS_LEN, BLOCK_LIMITS, true, false))
+                    {
+                        uint64_t writeSameLength = M_BytesTo8ByteValue(blockLimits[36], blockLimits[37], blockLimits[38], blockLimits[39], blockLimits[40], blockLimits[41], blockLimits[42], blockLimits[43]);
+                        if (writeSameLength > 0)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write Same");
+                        }
+                    }
+                    safe_Free_aligned(blockLimits)
+                        break;
+                }
+                case ATA_INFORMATION:
+                {
+                    uint8_t* ataInformation = C_CAST(uint8_t*, calloc_aligned(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!ataInformation)
+                    {
+                        perror("Error allocating memory to read ATA Information VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, ataInformation, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SAT");
+                        memcpy(driveInfo->satVendorID, &ataInformation[8], 8);
+                        memcpy(driveInfo->satProductID, &ataInformation[16], 16);
+                        memcpy(driveInfo->satProductRevision, &ataInformation[32], 4);
+
+                    }
+                    safe_Free_aligned(ataInformation)
+                        break;
+                }
+                case CONCURRENT_POSITIONING_RANGES:
+                {
+                    uint32_t concurrentRangesLength = (15 * 32) + 64;//max of 15 ranges at 32 bytes each, plus 64 bytes that show ahead as a "header"
+                    uint8_t* concurrentRanges = C_CAST(uint8_t*, calloc_aligned(concurrentRangesLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!concurrentRanges)
+                    {
+                        perror("Error allocating memory to read concurrent positioning ranges VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, concurrentRanges, concurrentRangesLength, CONCURRENT_POSITIONING_RANGES, true, false))
+                    {
+                        //calculate how many ranges are being reported by the device.
+                        driveInfo->concurrentPositioningRanges = (M_BytesTo2ByteValue(concurrentRanges[2], concurrentRanges[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
+                    }
+                    safe_Free_aligned(concurrentRanges)
+                }
+                break;
+                case ZONED_BLOCK_DEVICE_CHARACTERISTICS:
+                {
+                    uint8_t* zbdCharacteristics = C_CAST(uint8_t*, calloc_aligned(VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!zbdCharacteristics)
+                    {
+                        perror("Error allocating memory to read zoned block device characteristics VPD page");
+                        continue;
+                    }
+                    if (SUCCESS == scsi_Inquiry(device, zbdCharacteristics, VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, ZONED_BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                    {
+                        switch (M_Nibble1(zbdCharacteristics[4]))
+                        {
+                        case 0:
+                            break;
+                        case 1://host aware
+                            break;
+                        case 2://domains and realms
+                            //add to features supported
+                            scsiInfo->zoneDomainsOrRealms = true;
+                            break;
                         default:
                             break;
                         }
                     }
+                    safe_Free_aligned(zbdCharacteristics)
                 }
-                safe_Free_aligned(deviceIdentification)
-                break;
+                default:
+                    break;
+                }
             }
-            case EXTENDED_INQUIRY_DATA:
+            safe_Free(supportedVPDPages)
+        }
+        else
+        {
+            //SCSI(1)/SASI/CCS don't have VPD pages. Try getting the SN from here (and that's all you get!)
+            memcpy(driveInfo->serialNumber, &device->drive_info.scsiVpdData.inquiryData[36], SERIAL_NUM_LEN);
+            device->drive_info.serialNumber[SERIAL_NUM_LEN] = '\0';
+        }
+    }
+    return ret;
+}
+
+static int get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+{
+    int ret = SUCCESS;
+    if (device && driveInfo && scsiInfo)
+    {
+        bool smartStatusRead = false;
+        if (scsiInfo->version >= 2 && scsiInfo->peripheralDeviceType != PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE && !device->drive_info.passThroughHacks.scsiHacks.noLogPages)//SCSI2 introduced log pages
+        {
+            bool dummyUpLogPages = false;
+            bool subpagesSupported = true;
+            //Check log pages for data->start with list of pages and subpages
+            uint8_t* scsiLogBuf = C_CAST(uint8_t*, calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (scsiLogBuf)
             {
-                uint8_t* extendedInquiryData = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!extendedInquiryData)
+                if (!device->drive_info.passThroughHacks.scsiHacks.noLogSubPages && SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, scsiLogBuf, 512))
                 {
-                    perror("Error allocating memory to read extended inquiry VPD page");
-                    continue;
+                    //either device doesn't support logs, or it just doesn't support subpages, so let's try reading the list of supported pages (no subpages) before saying we need to dummy up the list
+                    if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, scsiLogBuf, 512))
+                    {
+                        dummyUpLogPages = true;
+                    }
+                    else
+                    {
+                        subpagesSupported = false;
+                    }
                 }
-                if (SUCCESS == scsi_Inquiry(device, extendedInquiryData, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
+                else if (device->drive_info.passThroughHacks.scsiHacks.noLogSubPages)
                 {
-                    //get nvCache supported
-                    driveInfo->nvCacheSupported = extendedInquiryData[6] & BIT1;
-                    //get longDST time since we read this page!
-                    driveInfo->longDSTTimeMinutes = M_BytesTo2ByteValue(extendedInquiryData[10], extendedInquiryData[11]);
-                    //get supported protection types
-                    switch (M_GETBITRANGE(extendedInquiryData[4], 5, 3))
+                    //device doesn't support subpages, so read the list of pages without subpages before continuing.
+                    if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, scsiLogBuf, 512))
                     {
-                    case 0:
-                        protectionType1Supported = true;
-                        break;
-                    case 1:
-                        protectionType1Supported = true;
-                        protectionType2Supported = true;
-                        break;
-                    case 2:
-                        protectionType2Supported = true;
-                        break;
-                    case 3:
-                        protectionType1Supported = true;
-                        protectionType3Supported = true;
-                        break;
-                    case 4:
-                        protectionType3Supported = true;
-                        break;
-                    case 5:
-                        protectionType2Supported = true;
-                        protectionType3Supported = true;
-                        break;
-                    case 6:
-                        //read supported lengths and protection types VPD page
+                        dummyUpLogPages = true;
+                    }
+                    subpagesSupported = false;
+                }
+                if (!dummyUpLogPages)
+                {
+                    //memcmp to make sure we weren't given zeros
+                    if (is_Empty(scsiLogBuf, 512))
                     {
-                        uint16_t supportedBlockSizesAndProtectionTypesLength = 4;//reallocate in a minute when we know how much to read
-                        uint8_t* supportedBlockSizesAndProtectionTypes = C_CAST(uint8_t*, calloc_aligned(supportedBlockSizesAndProtectionTypesLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-                        if (supportedBlockSizesAndProtectionTypes)
+                        dummyUpLogPages = true;
+                    }
+                }
+                //this is really a work-around for USB drives since some DO support pages, but the don't actually list them (same as the VPD pages above). Most USB drives don't work though - TJE
+                if (dummyUpLogPages)
+                {
+                    uint16_t offset = 4;
+                    uint8_t increment = 1;//change to 2 for subpages (spc4 added subpages)
+                    if (scsiInfo->version >= 6)
+                    {
+                        subpagesSupported = true;
+                        increment = 2;
+                    }
+                    memset(scsiLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    scsiLogBuf[0] = 0;
+                    scsiLogBuf[1] = 0;
+
+                    //descriptors Need to be added based on support for subpages or not!
+                    scsiLogBuf[offset] = LP_SUPPORTED_LOG_PAGES;//just to be correct/accurate
+                    if (subpagesSupported)
+                    {
+                        scsiLogBuf[offset + 1] = 0;//subpage
+                        offset += increment;
+                        scsiLogBuf[offset] = LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES;//just to be correct/accurate
+                        scsiLogBuf[offset + 1] = 0xFF;//supported subpages
+                    }
+                    offset += increment;
+                    scsiLogBuf[offset] = LP_WRITE_ERROR_COUNTERS;//not likely available on USB
+                    offset += increment;
+                    scsiLogBuf[offset] = LP_READ_ERROR_COUNTERS;//not likely available on USB
+                    offset += increment;
+
+                    //if SBC3! (sequential access device page, so also check peripheral device type)
+                    if (scsiInfo->peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+                    {
+                        if (scsiInfo->version >= 6) //SBC3 is to be used in conjunction with SPC4. We may need to drop this one level later, but this should be ok
                         {
-                            if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
+                            scsiLogBuf[offset] = LP_LOGICAL_BLOCK_PROVISIONING;//SBC3
+                            offset += increment;
+                        }
+                    }
+
+                    if (scsiInfo->version >= 4)//SPC2
+                    {
+                        scsiLogBuf[offset] = LP_TEMPERATURE;//not likely available on USB
+                        offset += increment;
+                    }
+
+                    if (subpagesSupported && scsiInfo->version >= 7)
+                    {
+                        scsiLogBuf[offset] = LP_ENVIRONMENTAL_REPORTING;//not likely available on USB
+                        scsiLogBuf[offset + 1] = 0x01;//subpage (page number is same as temperature)
+                        offset += increment;
+                    }
+                    if (scsiInfo->version >= 4)//SPC2
+                    {
+                        scsiLogBuf[offset] = LP_START_STOP_CYCLE_COUNTER;//just to be correct, we're not reading this today
+                        offset += increment;
+                    }
+                    if (scsiInfo->version >= 7)//SBC4?
+                    {
+                        scsiLogBuf[offset] = LP_UTILIZATION;//not likely available on USB
+                        scsiLogBuf[offset + 1] = 0x01;//subpage
+                        offset += increment;
+                    }
+                    if (scsiInfo->version >= 4)//SPC2
+                    {
+                        scsiLogBuf[offset] = LP_APPLICATION_CLIENT;
+                        offset += increment;
+                        scsiLogBuf[offset] = LP_SELF_TEST_RESULTS;
+                        offset += increment;
+                    }
+
+                    if (scsiInfo->peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+                    {
+                        if (scsiInfo->version >= 6) //SBC3 is to be used in conjunction with SPC4. We may need to drop this one level later, but this should be ok
+                        {
+                            scsiLogBuf[offset] = LP_SOLID_STATE_MEDIA;//not likely available on USB
+                            offset += increment;
+                        }
+                    }
+
+                    if (scsiInfo->peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+                    {
+                        if (scsiInfo->version >= 6) //SBC3 is to be used in conjunction with SPC4. We may need to drop this one level later, but this should be ok
+                        {
+                            scsiLogBuf[offset] = LP_BACKGROUND_SCAN_RESULTS;//not likely available on USB
+                            offset += increment;
+                        }
+                    }
+
+                    if (scsiInfo->version >= 6)
+                    {
+                        scsiLogBuf[offset] = LP_GENERAL_STATISTICS_AND_PERFORMANCE;//not likely available on USB
+                        offset += increment;
+                    }
+
+                    if (scsiInfo->peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+                    {
+                        if (scsiInfo->version >= 5) //SBC2 is to be used in conjunction with SPC3. We may need to drop this one level later, but this should be ok
+                        {
+                            scsiLogBuf[offset] = LP_INFORMATION_EXCEPTIONS;
+                            offset += increment;
+                        }
+                    }
+
+                    //page length
+                    scsiLogBuf[2] = M_Byte1(offset - 4);
+                    scsiLogBuf[3] = M_Byte0(offset - 4);
+                }
+                //loop through log pages and read them:
+                uint16_t logPageIter = LOG_PAGE_HEADER_LENGTH;//log page descriptors start on offset 4 and are 2 bytes long each
+                uint16_t supportedPagesLength = M_BytesTo2ByteValue(scsiLogBuf[2], scsiLogBuf[3]);
+                uint8_t incrementAmount = subpagesSupported ? 2 : 1;
+                for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE); logPageIter += incrementAmount)
+                {
+                    uint8_t pageCode = scsiLogBuf[logPageIter] & 0x3F;//outer switch statement
+                    uint8_t subpageCode = 0;
+                    if (subpagesSupported)
+                    {
+                        subpageCode = scsiLogBuf[logPageIter + 1];//inner switch statement
+                    }
+                    switch (pageCode)
+                    {
+                    case LP_WRITE_ERROR_COUNTERS:
+                        if (subpageCode == 0)
+                        {
+                            //we need parameter code 5h (total bytes processed)
+                            //assume we only need to read 16 bytes to get this value
+                            uint8_t* writeErrorData = C_CAST(uint8_t*, calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!writeErrorData)
                             {
-                                supportedBlockSizesAndProtectionTypesLength = M_BytesTo2ByteValue(supportedBlockSizesAndProtectionTypes[2], supportedBlockSizesAndProtectionTypes[3]);
-                                uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(supportedBlockSizesAndProtectionTypes, 0, supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t), device->os_info.minimumAlignment));
-                                supportedBlockSizesAndProtectionTypes = temp;
-                                if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes, supportedBlockSizesAndProtectionTypesLength, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, true, false))
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0005, writeErrorData, 16))
+                            {
+                                //check the length before we start trying to read the number of bytes in.
+                                if (M_BytesTo2ByteValue(writeErrorData[4], writeErrorData[5]) == 0x0005)
                                 {
-                                    //loop through and find supported protection types...
-                                    for (uint32_t offset = UINT16_C(4); offset < C_CAST(uint32_t, supportedBlockSizesAndProtectionTypesLength + UINT16_C(4)); offset += UINT16_C(8))
+                                    uint8_t paramLength = writeErrorData[7];
+                                    switch (paramLength)
                                     {
-                                        if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
-                                        {
-                                            protectionType1Supported = true;
-                                        }
-                                        if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT2)
-                                        {
-                                            protectionType2Supported = true;
-                                        }
-                                        if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT3)
-                                        {
-                                            protectionType3Supported = true;
-                                        }
-                                        if (protectionType1Supported && protectionType2Supported && protectionType3Supported)
-                                        {
-                                            //all protection types supported so we can leave the loop
-                                            break;
-                                        }
+                                    case 1://single byte
+                                        driveInfo->totalBytesWritten = writeErrorData[8];
+                                        break;
+                                    case 2://word
+                                        driveInfo->totalBytesWritten = M_BytesTo2ByteValue(writeErrorData[8], writeErrorData[9]);
+                                        break;
+                                    case 4://double word
+                                        driveInfo->totalBytesWritten = M_BytesTo4ByteValue(writeErrorData[8], writeErrorData[9], writeErrorData[10], writeErrorData[11]);
+                                        break;
+                                    case 8://quad word
+                                        driveInfo->totalBytesWritten = M_BytesTo8ByteValue(writeErrorData[8], writeErrorData[9], writeErrorData[10], writeErrorData[11], writeErrorData[12], writeErrorData[13], writeErrorData[14], writeErrorData[15]);
+                                        break;
+                                    default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
+                                        break;
+                                    }
+                                    //now convert this to LBAs based on the logical sector size
+                                    if (driveInfo->logicalSectorSize)
+                                    {
+                                        driveInfo->totalLBAsWritten = driveInfo->totalBytesWritten / driveInfo->logicalSectorSize;
                                     }
                                 }
                             }
-                            safe_Free_aligned(supportedBlockSizesAndProtectionTypes)
+                            safe_Free_aligned(writeErrorData)
                         }
-                        //no else...don't care that much right now...-TJE
-                    }
-                    break;
-                    case 7:
-                        protectionType1Supported = true;
-                        protectionType2Supported = true;
-                        protectionType3Supported = true;
                         break;
-                    }
-                }
-                safe_Free_aligned(extendedInquiryData)
-                break;
-            }
-            case BLOCK_DEVICE_CHARACTERISTICS:
-            {
-                uint8_t* blockDeviceCharacteristics = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!blockDeviceCharacteristics)
-                {
-                    perror("Error allocating memory to read block device characteistics VPD page");
-                    continue;
-                }
-                if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, BLOCK_DEVICE_CHARACTERISTICS, true, false))
-                {
-                    driveInfo->rotationRate = M_BytesTo2ByteValue(blockDeviceCharacteristics[4], blockDeviceCharacteristics[5]);
-                    gotRotationRate = true;
-                    driveInfo->formFactor = M_Nibble0(blockDeviceCharacteristics[7]);
-                    driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
-                }
-                safe_Free_aligned(blockDeviceCharacteristics)
-                break;
-            }
-            case POWER_CONDITION:
-                //reading this information has been moved to the mode pages below. - TJE
-                //add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "EPC");
-                break;
-            case POWER_CONSUMPTION:
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Power Consumption");
-                break;
-            case LOGICAL_BLOCK_PROVISIONING:
-            {
-                uint8_t* logicalBlockProvisioning = C_CAST(uint8_t*, calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!logicalBlockProvisioning)
-                {
-                    perror("Error allocating memory to read logical block provisioning VPD page");
-                    continue;
-                }
-                if (SUCCESS == scsi_Inquiry(device, logicalBlockProvisioning, VPD_LOGICAL_BLOCK_PROVISIONING_LEN, LOGICAL_BLOCK_PROVISIONING, true, false))
-                {
-                    if (logicalBlockProvisioning[5] & BIT7)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "UNMAP");
-                    }
-                }
-                safe_Free_aligned(logicalBlockProvisioning)
-                break;
-            }
-            case BLOCK_LIMITS:
-            {
-                uint8_t* blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!blockLimits)
-                {
-                    perror("Error allocating memory to read logical block provisioning VPD page");
-                    continue;
-                }
-                if (SUCCESS == scsi_Inquiry(device, blockLimits, VPD_BLOCK_LIMITS_LEN, BLOCK_LIMITS, true, false))
-                {
-                    uint64_t writeSameLength = M_BytesTo8ByteValue(blockLimits[36], blockLimits[37], blockLimits[38], blockLimits[39], blockLimits[40], blockLimits[41], blockLimits[42], blockLimits[43]);
-                    if (writeSameLength > 0)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write Same");
-                    }
-                }
-                safe_Free_aligned(blockLimits)
-                break;
-            }
-            case ATA_INFORMATION:
-            {
-                uint8_t* ataInformation = C_CAST(uint8_t*, calloc_aligned(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!ataInformation)
-                {
-                    perror("Error allocating memory to read ATA Information VPD page");
-                    continue;
-                }
-                if (SUCCESS == scsi_Inquiry(device, ataInformation, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
-                {
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SAT");
-                    memcpy(driveInfo->satVendorID, &ataInformation[8], 8);
-                    memcpy(driveInfo->satProductID, &ataInformation[16], 16);
-                    memcpy(driveInfo->satProductRevision, &ataInformation[32], 4);
-                    
-                }
-                safe_Free_aligned(ataInformation)
-                break;
-            }
-            case CONCURRENT_POSITIONING_RANGES:
-            {
-                uint32_t concurrentRangesLength = (15 * 32) + 64;//max of 15 ranges at 32 bytes each, plus 64 bytes that show ahead as a "header"
-                uint8_t* concurrentRanges = C_CAST(uint8_t*, calloc_aligned(concurrentRangesLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!concurrentRanges)
-                {
-                    perror("Error allocating memory to read concurrent positioning ranges VPD page");
-                    continue;
-                }
-                if (SUCCESS == scsi_Inquiry(device, concurrentRanges, concurrentRangesLength, CONCURRENT_POSITIONING_RANGES, true, false))
-                {
-                    //calculate how many ranges are being reported by the device.
-                    driveInfo->concurrentPositioningRanges = (M_BytesTo2ByteValue(concurrentRanges[2], concurrentRanges[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
-                }
-                safe_Free_aligned(concurrentRanges)
-            }
-            break;
-            case ZONED_BLOCK_DEVICE_CHARACTERISTICS:
-            {
-                uint8_t* zbdCharacteristics = C_CAST(uint8_t*, calloc_aligned(VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!zbdCharacteristics)
-                {
-                    perror("Error allocating memory to read zoned block device characteristics VPD page");
-                    continue;
-                }
-                if (SUCCESS == scsi_Inquiry(device, zbdCharacteristics, VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, ZONED_BLOCK_DEVICE_CHARACTERISTICS, true, false))
-                {
-                    switch (M_Nibble1(zbdCharacteristics[4]))
-                    {
-                    case 0:
+                    case LP_READ_ERROR_COUNTERS:
+                        if (subpageCode == 0)
+                        {
+                            //we need parameter code 5h (total bytes processed)
+                            //assume we only need to read 16 bytes to get this value
+                            uint8_t* readErrorData = C_CAST(uint8_t*, calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!readErrorData)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0005, readErrorData, 16))
+                            {
+                                if (M_BytesTo2ByteValue(readErrorData[4], readErrorData[5]) == 0x0005)
+                                {
+                                    //check the length before we start trying to read the number of bytes in.
+                                    uint8_t paramLength = readErrorData[7];
+                                    switch (paramLength)
+                                    {
+                                    case 1://single byte
+                                        driveInfo->totalBytesRead = readErrorData[8];
+                                        break;
+                                    case 2://word
+                                        driveInfo->totalBytesRead = M_BytesTo2ByteValue(readErrorData[8], readErrorData[9]);
+                                        break;
+                                    case 4://double word
+                                        driveInfo->totalBytesRead = M_BytesTo4ByteValue(readErrorData[8], readErrorData[9], readErrorData[10], readErrorData[11]);
+                                        break;
+                                    case 8://quad word
+                                        driveInfo->totalBytesRead = M_BytesTo8ByteValue(readErrorData[8], readErrorData[9], readErrorData[10], readErrorData[11], readErrorData[12], readErrorData[13], readErrorData[14], readErrorData[15]);
+                                        break;
+                                    default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
+                                        break;
+                                    }
+                                    //now convert this to LBAs based on the logical sector size
+                                    if (driveInfo->logicalSectorSize)
+                                    {
+                                        driveInfo->totalLBAsRead = driveInfo->totalBytesRead / driveInfo->logicalSectorSize;
+                                    }
+                                }
+                            }
+                            safe_Free_aligned(readErrorData)
+                        }
                         break;
-                    case 1://host aware
+                    case LP_LOGICAL_BLOCK_PROVISIONING:
+                        /*if (subpageCode == 0)
+                        {
+
+                        }*/
                         break;
-                    case 2://domains and realms
-                        //add to features supported
-                        zoneDomainsOrRealms = true;
+                    case LP_TEMPERATURE://also environmental reporting
+                        switch (subpageCode)
+                        {
+                        case 0://temperature
+                        {
+                            uint8_t* temperatureData = C_CAST(uint8_t*, calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!temperatureData)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, temperatureData, 10))
+                            {
+                                driveInfo->temperatureData.temperatureDataValid = true;
+                                driveInfo->temperatureData.currentTemperature = temperatureData[9];
+                            }
+                            safe_Free_aligned(temperatureData)
+                        }
+                        break;
+                        case 1://environmental reporting
+                        {
+                            uint8_t* environmentReporting = C_CAST(uint8_t*, calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!environmentReporting)
+                            {
+                                break;
+                            }
+                            //get temperature data first
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, environmentReporting, 16))
+                            {
+                                driveInfo->temperatureData.temperatureDataValid = true;
+                                driveInfo->temperatureData.currentTemperature = C_CAST(int8_t, environmentReporting[9]);
+                                driveInfo->temperatureData.highestTemperature = C_CAST(int8_t, environmentReporting[10]);
+                                driveInfo->temperatureData.lowestTemperature = C_CAST(int8_t, environmentReporting[11]);
+                                driveInfo->temperatureData.highestValid = true;
+                                driveInfo->temperatureData.lowestValid = true;
+                            }
+                            //now get humidity data if available
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0100, environmentReporting, 16))
+                            {
+                                driveInfo->humidityData.humidityDataValid = true;
+                                driveInfo->humidityData.currentHumidity = environmentReporting[9];
+                                driveInfo->humidityData.highestHumidity = environmentReporting[10];
+                                driveInfo->humidityData.lowestHumidity = environmentReporting[11];
+                                driveInfo->humidityData.highestValid = true;
+                                driveInfo->humidityData.lowestValid = true;
+                            }
+                            safe_Free_aligned(environmentReporting)
+                        }
+                        break;
+                        default:
+                            break;
+                        }
+                        break;
+                    case LP_UTILIZATION://also start-stop cycle counter
+                        switch (subpageCode)
+                        {
+                        case 0x00://start-stop cycle count
+                        {
+                            uint8_t* startStopCounterLog = C_CAST(uint8_t*, calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!startStopCounterLog)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, startStopCounterLog, 14))
+                            {
+                                //check that we have the correct page
+                                if (!(startStopCounterLog[0] & BIT6) && M_GETBITRANGE(startStopCounterLog[0], 5, 0) == LP_START_STOP_CYCLE_COUNTER && startStopCounterLog[1] == 0)
+                                {
+                                    //check the parameter code in case a device/translator with this page is responding but did not give this parameter code
+                                    if (M_BytesTo2ByteValue(startStopCounterLog[4], startStopCounterLog[5]) == 0x0001)
+                                    {
+                                        //DOM found
+                                        char domWeekStr[3] = { startStopCounterLog[12], startStopCounterLog[13], 0 };
+                                        char domYearStr[5] = { startStopCounterLog[8], startStopCounterLog[9], startStopCounterLog[10], startStopCounterLog[11], 0 };
+                                        driveInfo->dateOfManufactureValid = true;
+                                        driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
+                                        driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10));
+                                    }
+                                }
+                            }
+                            safe_Free_aligned(startStopCounterLog);
+                        }
+                        break;
+                        case 0x01://utilization
+                        {
+                            uint8_t* utilizationData = C_CAST(uint8_t*, calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!utilizationData)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, utilizationData, 10))
+                            {
+                                //bytes 9 & 10
+                                driveInfo->deviceReportedUtilizationRate = C_CAST(double, M_BytesTo2ByteValue(utilizationData[8], utilizationData[9])) / 1000.0;
+                            }
+                            safe_Free_aligned(utilizationData)
+                        }
+                        break;
+                        default:
+                            break;
+                        }
+                        break;
+                    case LP_APPLICATION_CLIENT:
+                        switch (subpageCode)
+                        {
+                        case 0x00://application client
+                        {
+                            uint8_t* applicationClient = C_CAST(uint8_t*, calloc_aligned(4, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!applicationClient)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, applicationClient, 4))
+                            {
+                                //add "Application Client Logging" to supported features :)
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Application Client Logging");
+                            }
+                            safe_Free_aligned(applicationClient)
+                        }
+                        break;
+                        default:
+                            break;
+                        }
+                        break;
+                    case LP_SELF_TEST_RESULTS:
+                        if (subpageCode == 0)
+                        {
+                            uint8_t* selfTestResults = C_CAST(uint8_t*, calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!selfTestResults)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, selfTestResults, LP_SELF_TEST_RESULTS_LEN))
+                            {
+                                uint8_t parameterOffset = 4;
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Self Test");
+                                //get the last DST information (parameter code 1)
+                                driveInfo->dstInfo.informationValid = true;
+                                driveInfo->dstInfo.resultOrStatus = M_Nibble0(selfTestResults[parameterOffset + 4]);
+                                driveInfo->dstInfo.testNumber = M_Nibble1(selfTestResults[parameterOffset + 4]) >> 1;
+                                driveInfo->dstInfo.powerOnHours = M_BytesTo2ByteValue(selfTestResults[parameterOffset + 6], selfTestResults[parameterOffset + 7]);
+                                driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(selfTestResults[parameterOffset + 8], selfTestResults[parameterOffset + 9], selfTestResults[parameterOffset + 10], selfTestResults[parameterOffset + 11], selfTestResults[parameterOffset + 12], selfTestResults[parameterOffset + 13], selfTestResults[parameterOffset + 14], selfTestResults[parameterOffset + 15]);
+                            }
+                            safe_Free_aligned(selfTestResults)
+                        }
+                        break;
+                    case LP_SOLID_STATE_MEDIA:
+                        if (subpageCode == 0)
+                        {
+                            //need parameter 0001h
+                            uint8_t* ssdEnduranceData = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!ssdEnduranceData)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, ssdEnduranceData, 12))
+                            {
+                                //bytes 7 of parameter 1 (or byte 12)
+                                driveInfo->percentEnduranceUsed = C_CAST(double, ssdEnduranceData[11]);
+                            }
+                            safe_Free_aligned(ssdEnduranceData)
+                        }
+                        break;
+                    case LP_BACKGROUND_SCAN_RESULTS:
+                        if (subpageCode == 0)
+                        {
+                            //reading power on minutes from here
+                            uint8_t* backgroundScanResults = C_CAST(uint8_t*, calloc_aligned(19, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!backgroundScanResults)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, backgroundScanResults, 19))
+                            {
+                                //bytes 8 to 11
+                                driveInfo->powerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[8], backgroundScanResults[9], backgroundScanResults[10], backgroundScanResults[11]);
+                                driveInfo->powerOnMinutesValid = true;
+                            }
+                            safe_Free_aligned(backgroundScanResults)
+                        }
+                        break;
+                    case LP_GENERAL_STATISTICS_AND_PERFORMANCE:
+                        if (subpageCode == 0)
+                        {
+                            //parameter code 1 is what we're interested in for this one
+                            uint8_t* generalStatsAndPerformance = C_CAST(uint8_t*, calloc_aligned(72, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!generalStatsAndPerformance)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, generalStatsAndPerformance, 72))
+                            {
+                                //total lbas written (number of logical blocks received)
+                                driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(generalStatsAndPerformance[24], generalStatsAndPerformance[25], generalStatsAndPerformance[26], generalStatsAndPerformance[27], generalStatsAndPerformance[28], generalStatsAndPerformance[29], generalStatsAndPerformance[30], generalStatsAndPerformance[31]);
+                                //convert to bytes written
+                                driveInfo->totalBytesWritten = driveInfo->totalLBAsWritten * driveInfo->logicalSectorSize;
+                                //total lbas read (number of logical blocks transmitted)
+                                driveInfo->totalLBAsRead = M_BytesTo8ByteValue(generalStatsAndPerformance[32], generalStatsAndPerformance[33], generalStatsAndPerformance[34], generalStatsAndPerformance[35], generalStatsAndPerformance[36], generalStatsAndPerformance[37], generalStatsAndPerformance[38], generalStatsAndPerformance[39]);
+                                //convert to bytes written
+                                driveInfo->totalBytesRead = driveInfo->totalLBAsRead * driveInfo->logicalSectorSize;
+                            }
+                            safe_Free_aligned(generalStatsAndPerformance)
+                        }
+                        break;
+                    case LP_INFORMATION_EXCEPTIONS:
+                        if (subpageCode == 0)
+                        {
+                            uint8_t* informationExceptions = C_CAST(uint8_t*, calloc_aligned(11, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!informationExceptions)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, informationExceptions, 11))
+                            {
+                                smartStatusRead = true;
+                                if (informationExceptions[8] == 0)//if the ASC is 0, then no trip
+                                {
+                                    driveInfo->smartStatus = 0;
+                                }
+                                else//we have a trip condition...don't care what the specific trip is though
+                                {
+                                    driveInfo->smartStatus = 1;
+                                }
+                                if (!driveInfo->temperatureData.temperatureDataValid && informationExceptions[10] > 0)
+                                {
+                                    //temperature log page was not read, neither was environmental reporting, but we do have
+                                    //a current temperature reading here, so use it
+                                    driveInfo->temperatureData.temperatureDataValid = true;
+                                    driveInfo->temperatureData.currentTemperature = informationExceptions[10];
+                                }
+                            }
+                            else
+                            {
+                                driveInfo->smartStatus = 2;
+                            }
+                            safe_Free_aligned(informationExceptions)
+                        }
+                        break;
+                    case SEAGATE_LP_FARM:
+                        if (subpageCode == SEAGATE_FARM_SP_CURRENT)
+                        {
+                            //Currently only reading first parameter to check if this is the farm log.
+                            //TODO: Expand this to read more info out of FARM
+                            uint8_t* farmData = C_CAST(uint8_t*, calloc_aligned(76, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!farmData)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, farmData, 76))
+                            {
+                                uint64_t farmSignature = M_BytesTo8ByteValue(farmData[4], farmData[5], farmData[6], farmData[7], farmData[8], farmData[9], farmData[10], farmData[11]);
+                                if (farmSignature & BIT63 && farmSignature & BIT62 && (farmSignature & UINT64_C(0x00FFFFFFFFFFFF)) == SEAGATE_FARM_LOG_SIGNATURE)
+                                {
+                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Field Accessible Reliability Metrics (FARM)");
+                                }
+                                //TODO: If for any reason DOM was not already read from standard page, can read it here too
+                            }
+                            safe_Free_aligned(farmData)
+                        }
+                        break;
+                    case 0x3C://Vendor specific page. we're checking this page on Seagate drives for an enhanced usage indicator on SSDs (PPM value)
+                        if (is_Seagate_Family(device) == SEAGATE || is_Seagate_Family(device) == SEAGATE_VENDOR_A)
+                        {
+                            uint8_t* ssdUsage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            if (!ssdUsage)
+                            {
+                                break;
+                            }
+                            if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, 0, 0x8004, ssdUsage, 12))
+                            {
+                                driveInfo->percentEnduranceUsed = (C_CAST(double, M_BytesTo4ByteValue(ssdUsage[8], ssdUsage[9], ssdUsage[10], ssdUsage[11])) / 1000000.00) * 100.00;
+                            }
+                            safe_Free_aligned(ssdUsage)
+                        }
                         break;
                     default:
                         break;
                     }
                 }
-                safe_Free_aligned(zbdCharacteristics)
-            }
-            default:
-                break;
+                safe_Free_aligned(scsiLogBuf)
             }
         }
-        safe_Free(supportedVPDPages)
-    }
-    else
-    {
-        //SCSI(1)/SASI/CCS don't have VPD pages. Try getting the SN from here (and that's all you get!)
-        memcpy(driveInfo->serialNumber, &device->drive_info.scsiVpdData.inquiryData[36], SERIAL_NUM_LEN);
-        device->drive_info.serialNumber[SERIAL_NUM_LEN] = '\0';
-    }
-    uint8_t protectionTypeEnabled = 0;//default to type 0
-    //read capacity data - try read capacity 10 first, then do a read capacity 16. This is to work around some USB bridges passing the command and returning no data.
-    uint8_t* readCapBuf = C_CAST(uint8_t*, calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!readCapBuf)
-    {
-        safe_Free_aligned(tempBuf)
-        return MEMORY_FAILURE;
-    }
-    switch (peripheralDeviceType)
-    {
-    case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
-    case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
-    case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
-    case PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE:
-        if (SUCCESS == scsi_Read_Capacity_10(device, readCapBuf, READ_CAPACITY_10_LEN))
+        if (!smartStatusRead)
         {
-            copy_Read_Capacity_Info(&driveInfo->logicalSectorSize, &driveInfo->physicalSectorSize, &driveInfo->maxLBA, &driveInfo->sectorAlignment, readCapBuf, false);
-            if (version > 3)//SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
+            //we didn't read the informational exceptions log page, so we need to set this to SMART status unknown
+            driveInfo->smartStatus = 2;
+        }
+    }
+    return ret;
+}
+
+static int get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+{
+    int ret = SUCCESS;
+    if (device && driveInfo && scsiInfo)
+    {
+        uint8_t protectionTypeEnabled = 0;//default to type 0
+    //read capacity data - try read capacity 10 first, then do a read capacity 16. This is to work around some USB bridges passing the command and returning no data.
+        uint8_t* readCapBuf = C_CAST(uint8_t*, calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (!readCapBuf)
+        {
+            return MEMORY_FAILURE;
+        }
+        switch (scsiInfo->peripheralDeviceType)
+        {
+        case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
+        case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
+        case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
+        case PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE:
+            if (SUCCESS == scsi_Read_Capacity_10(device, readCapBuf, READ_CAPACITY_10_LEN))
             {
-                //try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a physical sector size whereas readcap10 data will not
-                uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!temp)
+                copy_Read_Capacity_Info(&driveInfo->logicalSectorSize, &driveInfo->physicalSectorSize, &driveInfo->maxLBA, &driveInfo->sectorAlignment, readCapBuf, false);
+                if (scsiInfo->version > 3)//SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
                 {
-                    safe_Free_aligned(tempBuf)
+                    //try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a physical sector size whereas readcap10 data will not
+                    uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!temp)
+                    {
+                        safe_Free_aligned(readCapBuf)
+                        return MEMORY_FAILURE;
+                    }
+                    readCapBuf = temp;
+                    memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
+                    if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
+                    {
+                        uint32_t logicalBlockSize = 0;
+                        uint32_t physicalBlockSize = 0;
+                        uint64_t maxLBA = 0;
+                        uint16_t sectorAlignment = 0;
+                        copy_Read_Capacity_Info(&logicalBlockSize, &physicalBlockSize, &maxLBA, &sectorAlignment, readCapBuf, true);
+                        //some USB drives will return success and no data, so check if this local var is 0 or not...if not, we can use this data
+                        if (maxLBA != 0)
+                        {
+                            driveInfo->logicalSectorSize = logicalBlockSize;
+                            driveInfo->physicalSectorSize = physicalBlockSize;
+                            driveInfo->maxLBA = maxLBA;
+                            driveInfo->sectorAlignment = sectorAlignment;
+                        }
+                        if (scsiInfo->protectionSupported && readCapBuf[12] & BIT0)//protection enabled
+                        {
+                            switch (M_GETBITRANGE(readCapBuf[12], 3, 1))
+                            {
+                            case 0:
+                                protectionTypeEnabled = 1;
+                                break;
+                            case 1:
+                                protectionTypeEnabled = 2;
+                                break;
+                            case 2:
+                                protectionTypeEnabled = 3;
+                                break;
+                            default:
+                                break;
+                            }
+                        }
+                    }
+                    //check for format corrupt
+                    uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                    get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                    if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+                    {
+                        if (!driveInfo->isFormatCorrupt)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Corrupt - not all features identifiable.");
+                        }
+                        driveInfo->isFormatCorrupt = true;
+                    }
+                }
+            }
+            else
+            {
+                //check for format corrupt first
+                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+                {
+                    if (!driveInfo->isFormatCorrupt)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Corrupt - not all features identifiable.");
+                    }
+                    driveInfo->isFormatCorrupt = true;
+                }
+
+                //try read capacity 16, if that fails we are done trying
+                uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (temp == NULL)
+                {
                     safe_Free_aligned(readCapBuf)
                     return MEMORY_FAILURE;
                 }
@@ -3225,20 +3854,8 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                 memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
                 if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
                 {
-                    uint32_t logicalBlockSize = 0;
-                    uint32_t physicalBlockSize = 0;
-                    uint64_t maxLBA = 0;
-                    uint16_t sectorAlignment = 0;
-                    copy_Read_Capacity_Info(&logicalBlockSize, &physicalBlockSize, &maxLBA, &sectorAlignment, readCapBuf, true);
-                    //some USB drives will return success and no data, so check if this local var is 0 or not...if not, we can use this data
-                    if (maxLBA != 0)
-                    {
-                        driveInfo->logicalSectorSize = logicalBlockSize;
-                        driveInfo->physicalSectorSize = physicalBlockSize;
-                        driveInfo->maxLBA = maxLBA;
-                        driveInfo->sectorAlignment = sectorAlignment;
-                    }
-                    if (protectionSupported && readCapBuf[12] & BIT0)//protection enabled
+                    copy_Read_Capacity_Info(&driveInfo->logicalSectorSize, &driveInfo->physicalSectorSize, &driveInfo->maxLBA, &driveInfo->sectorAlignment, readCapBuf, true);
+                    if (scsiInfo->protectionSupported && readCapBuf[12] & BIT0)//protection enabled
                     {
                         switch (M_GETBITRANGE(readCapBuf[12], 3, 1))
                         {
@@ -3256,8 +3873,11 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                         }
                     }
                 }
-                //check for format corrupt
-                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                //check for format corrupt first
+                senseKey = 0;
+                asc = 0;
+                ascq = 0;
+                fru = 0;
                 get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                 if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
                 {
@@ -3268,209 +3888,2191 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
                     driveInfo->isFormatCorrupt = true;
                 }
             }
+            break;
+        default:
+            break;
         }
-        else
+        safe_Free_aligned(readCapBuf)
+        if (scsiInfo->protectionSupported)
         {
-            //check for format corrupt first
-            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-            if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+            //set protection types supported up here.
+            if (scsiInfo->protectionType1Supported)
             {
-                if (!driveInfo->isFormatCorrupt)
+                if (protectionTypeEnabled == 1)
                 {
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Corrupt - not all features identifiable.");
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 1 [Enabled]");
                 }
-                driveInfo->isFormatCorrupt = true;
-            }
-
-            //try read capacity 16, if that fails we are done trying
-            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (temp == NULL)
-            {
-                safe_Free_aligned(tempBuf)
-                safe_Free_aligned(readCapBuf)
-                return MEMORY_FAILURE;
-            }
-            readCapBuf = temp;
-            memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
-            if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
-            {
-                copy_Read_Capacity_Info(&driveInfo->logicalSectorSize, &driveInfo->physicalSectorSize, &driveInfo->maxLBA, &driveInfo->sectorAlignment, readCapBuf, true);
-                if (protectionSupported && readCapBuf[12] & BIT0)//protection enabled
+                else
                 {
-                    switch (M_GETBITRANGE(readCapBuf[12], 3, 1))
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 1");
+                }
+
+            }
+            if (scsiInfo->protectionType2Supported)
+            {
+                if (protectionTypeEnabled == 2)
+                {
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 2 [Enabled]");
+                }
+                else
+                {
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 2");
+                }
+
+            }
+            if (scsiInfo->protectionType3Supported)
+            {
+                if (protectionTypeEnabled == 3)
+                {
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 3 [Enabled]");
+                }
+                else
+                {
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 3");
+                }
+
+            }
+        }
+    }
+    return ret;
+}
+
+static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+{
+    int ret = SUCCESS;
+    if (device && driveInfo && scsiInfo)
+    {
+        if (!device->drive_info.passThroughHacks.scsiHacks.noModePages && (scsiInfo->version >= 2 || scsiInfo->ccs))
+        {
+            uint16_t numberOfPages = 0;
+            uint16_t offset = 0;
+            //create a list of mode pages (and any subpages) we care about reading and go through that list reading each one
+            uint8_t listOfModePagesAndSubpages[512] = { 0 };//allow 10 entries in the list...update the loop condition below if this is adjusted
+            //format for page list is first byte = page, 2nd byte = subpage, then increment and look at the next page
+            listOfModePagesAndSubpages[offset] = MP_READ_WRITE_ERROR_RECOVERY;//AWRE, ARRE
+            offset += 2;
+            if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+            {
+                if (driveInfo->rotationRate == 0 && (scsiInfo->peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE || scsiInfo->peripheralDeviceType == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE))
+                {
+                    listOfModePagesAndSubpages[offset] = MP_RIGID_DISK_GEOMETRY;//To get medium rotation rate if we didn't already get it. This page is long obsolete
+                    offset += 2;
+                }
+            }
+            listOfModePagesAndSubpages[offset] = MP_CACHING;//WCE, DRA, NV_DIS?
+            offset += 2;
+            if (scsiInfo->version >= 4)//control mode page didn't get long DST info until SPC2
+            {
+                listOfModePagesAndSubpages[offset] = MP_CONTROL;//Long DST Time
+                offset += 2;
+            }
+            if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= 5)//SPC3 added subpage codes
+            {
+                listOfModePagesAndSubpages[offset] = MP_CONTROL;//DLC
+                listOfModePagesAndSubpages[offset + 1] = 0x01;
+                offset += 2;
+                if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+                {
+                    //IO Advice hints is in SBC4
+                    listOfModePagesAndSubpages[offset] = MP_CONTROL;//IO Advice Hints (can we read this page or not basically)
+                    listOfModePagesAndSubpages[offset + 1] = 0x05;
+                    offset += 2;
+                }
+                //From SAT spec
+                listOfModePagesAndSubpages[offset] = MP_CONTROL;//PATA control (can PATA transfer speeds be changed)
+                listOfModePagesAndSubpages[offset + 1] = 0xF1;
+                offset += 2;
+            }
+            if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+            {
+                if (scsiInfo->version >= 4)//SPC2 added this page
+                {
+                    listOfModePagesAndSubpages[offset] = MP_PROTOCOL_SPECIFIC_PORT;//get interface type
+                    listOfModePagesAndSubpages[offset + 1] = 0;
+                    offset += 2;
+                }
+                if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= 5)//SPC3 added subpage codes
+                {
+                    listOfModePagesAndSubpages[offset] = MP_PROTOCOL_SPECIFIC_PORT;//get SAS phy speed
+                    listOfModePagesAndSubpages[offset + 1] = 1;
+                    offset += 2;
+                }
+            }
+            if (scsiInfo->version >= 3)//SPC added this page
+            {
+                listOfModePagesAndSubpages[offset] = MP_POWER_CONDTION;//EPC and older standby/idle timers
+                listOfModePagesAndSubpages[offset + 1] = 0;
+                offset += 2;
+            }
+            if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= 5)//SPC3 added subpage codes
+            {
+                //ATA Advanced Power Management page from SAT2
+                listOfModePagesAndSubpages[offset] = MP_POWER_CONDTION;//ATA APM
+                listOfModePagesAndSubpages[offset + 1] = 0xF1;//reading this for the ATA APM settings (check if supported really)
+                offset += 2;
+            }
+            if (scsiInfo->version >= 3)//Added in SPC
+            {
+                listOfModePagesAndSubpages[offset] = MP_INFORMATION_EXCEPTIONS_CONTROL;//SMART/informational exceptions & MRIE value. Dexcept? Warnings?
+                listOfModePagesAndSubpages[offset + 1] = 0;
+                offset += 2;
+            }
+            if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+            {
+                if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= 5)//SPC3 added subpage codes
+                {
+                    listOfModePagesAndSubpages[offset] = MP_BACKGROUND_CONTROL;//EN_BMS, EN_PS
+                    listOfModePagesAndSubpages[offset + 1] = 0x01;
+                    offset += 2;
+                }
+            }
+            numberOfPages = offset / 2;
+            uint16_t modeIter = 0;
+            uint8_t protocolIdentifier = 0;
+            for (uint16_t pageCounter = 0; modeIter < offset && pageCounter < numberOfPages; modeIter += 2, ++pageCounter)
+            {
+                uint8_t pageCode = listOfModePagesAndSubpages[modeIter];
+                uint8_t subPageCode = listOfModePagesAndSubpages[modeIter + 1];
+                switch (pageCode)
+                {
+                case MP_READ_WRITE_ERROR_RECOVERY:
+                    switch (subPageCode)
                     {
                     case 0:
-                        protectionTypeEnabled = 1;
+                        //check if AWRE and ARRE are supported or can be changed before checking if they are enabled or not.
+                    {
+                        char* awreString = NULL;
+                        char* arreString = NULL;
+                        uint32_t awreStringLength = 0;
+                        uint32_t arreStringLength = 0;
+                        uint8_t readWriteErrorRecovery[12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, defaultsRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode,NULL, NULL, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            defaultsRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = readWriteErrorRecovery[2];
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(readWriteErrorRecovery[6], readWriteErrorRecovery[7]);
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        if (defaultsRead)
+                        {
+                            //awre
+                            if (readWriteErrorRecovery[headerLength + 2] & BIT7)
+                            {
+                                if (!awreString)
+                                {
+                                    awreStringLength = 30;
+                                    awreString = C_CAST(char*, calloc(awreStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    awreStringLength = 30;
+                                    char* temp = C_CAST(char*, realloc(awreString, awreStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        awreString = temp;
+                                        memset(awreString, 0, awreStringLength);
+                                    }
+                                }
+                                if (awreString && awreStringLength >= 30)
+                                {
+                                    snprintf(awreString, awreStringLength, "Automatic Write Reassignment");
+                                }
+                            }
+                            //arre
+                            if (readWriteErrorRecovery[headerLength + 2] & BIT6)
+                            {
+                                if (!arreString)
+                                {
+                                    arreStringLength = 30;
+                                    arreString = C_CAST(char*, calloc(arreStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    arreStringLength = 30;
+                                    char* temp = C_CAST(char*, realloc(arreString, arreStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        arreString = temp;
+                                        memset(arreString, 0, arreStringLength);
+                                    }
+                                }
+                                if (arreString && arreStringLength >= 30)
+                                {
+                                    snprintf(arreString, arreStringLength, "Automatic Read Reassignment");
+                                }
+                            }
+                        }
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = readWriteErrorRecovery[2];
+                                if (readWriteErrorRecovery[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(readWriteErrorRecovery[6], readWriteErrorRecovery[7]);
+                                if (readWriteErrorRecovery[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        if (pageRead)
+                        {
+                            //awre
+                            if (readWriteErrorRecovery[headerLength + 2] & BIT7)
+                            {
+                                if (!awreString)
+                                {
+                                    awreStringLength = 40;
+                                    awreString = C_CAST(char*, calloc(awreStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    awreStringLength = 40;
+                                    char* temp = C_CAST(char*, realloc(awreString, awreStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        awreString = temp;
+                                        memset(awreString, 0, awreStringLength);
+                                    }
+                                }
+                                if (awreString && awreStringLength >= 40)
+                                {
+                                    snprintf(awreString, awreStringLength, "Automatic Write Reassignment [Enabled]");
+                                }
+                            }
+                            //arre
+                            if (readWriteErrorRecovery[headerLength + 2] & BIT6)
+                            {
+                                if (!arreString)
+                                {
+                                    arreStringLength = 40;
+                                    arreString = C_CAST(char*, calloc(arreStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    arreStringLength = 40;
+                                    char* temp = C_CAST(char*, realloc(arreString, arreStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        arreString = temp;
+                                        memset(arreString, 0, arreStringLength);
+                                    }
+                                }
+                                if (arreString && arreStringLength >= 40)
+                                {
+                                    snprintf(arreString, arreStringLength, "Automatic Read Reassignment [Enabled]");
+                                }
+                            }
+                        }
+                        if (awreString)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, awreString);
+
+                        }
+                        if (arreString)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, arreString);
+
+                        }
+                        safe_Free(awreString)
+                        safe_Free(arreString)
+                    }
+                    break;
+                    default:
                         break;
-                    case 1:
-                        protectionTypeEnabled = 2;
-                        break;
-                    case 2:
-                        protectionTypeEnabled = 3;
+                    }
+                    break;
+                case MP_RIGID_DISK_GEOMETRY:
+                    switch (subPageCode)
+                    {
+                    case 0:
+                        if (driveInfo->rotationRate == 0)
+                        {
+                            uint8_t rigidGeometry[24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };
+                            bool pageRead = false, sixByte = false;
+                            uint16_t headerLength = 0;
+                            if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, rigidGeometry, 24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                            {
+                                uint16_t blockDescLen = 0;
+                                pageRead = true;
+                                if (sixByte)
+                                {
+                                    headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                    blockDescLen = rigidGeometry[2];
+                                    if (rigidGeometry[2] & BIT7)
+                                    {
+                                        driveInfo->isWriteProtected = true;
+                                    }
+                                }
+                                else
+                                {
+                                    headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                    blockDescLen = M_BytesTo2ByteValue(rigidGeometry[6], rigidGeometry[7]);
+                                    if (rigidGeometry[3] & BIT7)
+                                    {
+                                        driveInfo->isWriteProtected = true;
+                                    }
+                                }
+                                headerLength += blockDescLen;
+                            }
+                            if (pageRead)
+                            {
+                                driveInfo->rotationRate = M_BytesTo2ByteValue(rigidGeometry[headerLength + 20], rigidGeometry[headerLength + 21]);
+                            }
+                        }
                         break;
                     default:
                         break;
                     }
-                }
-            }
-            //check for format corrupt first
-            senseKey = 0;
-            asc = 0;
-            ascq = 0;
-            fru = 0;
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-            if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
-            {
-                if (!driveInfo->isFormatCorrupt)
-                {
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Corrupt - not all features identifiable.");
-                }
-                driveInfo->isFormatCorrupt = true;
-            }
-        }
-        break;
-    default:
-        break;
-    }
-    safe_Free_aligned(readCapBuf)
-    if (protectionSupported)
-    {
-        //set protection types supported up here.
-        if (protectionType1Supported)
-        {
-            if (protectionTypeEnabled == 1)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 1 [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 1");
-            }
-            
-        }
-        if (protectionType2Supported)
-        {
-            if (protectionTypeEnabled == 2)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 2 [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 2");
-            }
-            
-        }
-        if (protectionType3Supported)
-        {
-            if (protectionTypeEnabled == 3)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 3 [Enabled]");
-            }
-            else
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Protection Type 3");
-            }
-            
-        }
-    }
-    bool securityProtocolInSuccess = false;
-    if (version >= 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
-    {
-        securityProtocolInSuccess = true;
-        //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
-        memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-        if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 512, tempBuf))
-        {
-            bool tcgFeatureFound = false;
-            uint16_t length = M_BytesTo2ByteValue(tempBuf[6], tempBuf[7]);
-            uint16_t bufIter = 8;
-            for (; (bufIter - 8) < length && (bufIter - 8) < 512; bufIter++)
-            {
-                switch (tempBuf[bufIter])
-                {
-                case SECURITY_PROTOCOL_INFORMATION:
                     break;
-                case SECURITY_PROTOCOL_TCG_1:
-                case SECURITY_PROTOCOL_TCG_2:
-                case SECURITY_PROTOCOL_TCG_3:
-                case SECURITY_PROTOCOL_TCG_4:
-                case SECURITY_PROTOCOL_TCG_5:
-                case SECURITY_PROTOCOL_TCG_6:
-                    driveInfo->encryptionSupport = ENCRYPTION_SELF_ENCRYPTING;
-                    if (!tcgFeatureFound)
+                case MP_CACHING:
+                    switch (subPageCode)
                     {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCG");
-                        tcgFeatureFound = true;
+                    case 0:
+                    {
+                        uint8_t cachingPage[20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false;
+                        bool sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = cachingPage[2];
+                                if (cachingPage[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(cachingPage[6], cachingPage[7]);
+                                if (cachingPage[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        if (pageRead)
+                        {
+                            //NV_DIS
+                            driveInfo->nvCacheEnabled = !M_ToBool(cachingPage[headerLength + 13] & BIT0);//bit being set means disabled the cache, being set to 0 means cache is enabled.
+
+                            //WCE
+                            driveInfo->writeCacheEnabled = M_ToBool(cachingPage[headerLength + 2] & BIT2);
+                            if (driveInfo->writeCacheEnabled)
+                            {
+                                driveInfo->writeCacheSupported = true;
+                            }
+                            //DRA
+                            driveInfo->readLookAheadEnabled = !M_ToBool(cachingPage[headerLength + 12] & BIT5);
+                            if (driveInfo->readLookAheadEnabled)
+                            {
+                                driveInfo->readLookAheadSupported = true;
+                            }
+                            //check for supported if it's not already set
+                            if (!driveInfo->writeCacheSupported || !driveInfo->readLookAheadSupported)
+                            {
+                                //we didn't get is supported from above, so check the changable page
+                                memset(cachingPage, 0, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);
+                                pageRead = false;//reset to false before reading the changable values page
+                                if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CHANGABLE_VALUES, pageCode, subPageCode, NULL, NULL, true, cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                                {
+                                    uint16_t blockDescLen = 0;
+                                    pageRead = true;
+                                    if (sixByte)
+                                    {
+                                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                        blockDescLen = cachingPage[2];
+                                        if (cachingPage[2] & BIT7)
+                                        {
+                                            driveInfo->isWriteProtected = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                        blockDescLen = M_BytesTo2ByteValue(cachingPage[6], cachingPage[7]);
+                                        if (cachingPage[3] & BIT7)
+                                        {
+                                            driveInfo->isWriteProtected = true;
+                                        }
+                                    }
+                                    headerLength += blockDescLen;
+                                }
+                                if (pageRead)
+                                {
+                                    //changable dictates if a bit can be changed or not. So unlike above where it is indicating state, this indicates if it is supported or can be changed at all from the current state
+                                    driveInfo->writeCacheSupported = M_ToBool(cachingPage[headerLength + 2] & BIT2);
+                                    driveInfo->readLookAheadSupported = M_ToBool(cachingPage[headerLength + 12] & BIT5);
+                                }
+                            }
+                        }
                     }
                     break;
-                case SECURITY_PROTOCOL_CbCS:
-                case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
-                case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
-                case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
-                case SECURITY_PROTOCOL_IKE_V2_SCSI:
-                case SECURITY_PROTOCOL_NVM_EXPRESS:
+                    default:
+                        break;
+                    }
                     break;
-                case SECURITY_PROTOCOL_SCSA:
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCSA");
-                    break;
-                case SECURITY_PROTOCOL_JEDEC_UFS:
-                case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
-                    break;
-                case SECURITY_PROTOCOL_IEEE_1667:
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IEEE 1667");
-                    break;
-                case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
-                {
-                    //read the data from this page to set ATA security information
-                    uint8_t ataSecurityInfo[16] = { 0 };
-                    if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, 0, false, 16, ataSecurityInfo))
+                case MP_CONTROL:
+                    switch (subPageCode)
                     {
-                        driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]);
-                        driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[4], ataSecurityInfo[5]);
-                        driveInfo->ataSecurityInformation.masterPasswordIdentifier = M_BytesTo2ByteValue(ataSecurityInfo[6], ataSecurityInfo[7]);
-                        //check the bits now
-                        if (ataSecurityInfo[8] & BIT0)
+                    case 0://control mode page. No subpage
+                    {
+                        uint8_t controlPage[MP_CONTROL_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false;
+                        bool sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, controlPage, MP_CONTROL_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
                         {
-                            driveInfo->ataSecurityInformation.masterPasswordCapability = true;
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = controlPage[2];
+                                if (controlPage[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(controlPage[6], controlPage[7]);
+                                if (controlPage[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
                         }
-                        if (ataSecurityInfo[9] & BIT5)
+                        if (pageRead)
                         {
-                            driveInfo->ataSecurityInformation.enhancedEraseSupported = true;
-                        }
-                        if (ataSecurityInfo[9] & BIT4)
-                        {
-                            driveInfo->ataSecurityInformation.securityCountExpired = true;
-                        }
-                        if (ataSecurityInfo[9] & BIT3)
-                        {
-                            driveInfo->ataSecurityInformation.securityFrozen = true;
-                        }
-                        if (ataSecurityInfo[9] & BIT2)
-                        {
-                            driveInfo->ataSecurityInformation.securityLocked = true;
-                        }
-                        if (ataSecurityInfo[9] & BIT1)
-                        {
-                            driveInfo->ataSecurityInformation.securityEnabled = true;
-                        }
-                        if (ataSecurityInfo[9] & BIT0)
-                        {
-                            driveInfo->ataSecurityInformation.securitySupported = true;
+                            //check the page code and page length
+                            if (M_GETBITRANGE(controlPage[headerLength + 0], 5, 0) == MP_CONTROL)
+                            {
+                                //check length since the page needs to be long enough for this data. Earlier specs this page was shorter
+                                if (controlPage[headerLength + 1] == 0x0A)
+                                {
+                                    if (driveInfo->longDSTTimeMinutes == 0)//checking for zero since we may have already gotten this from the Extended Inquiry VPD page
+                                    {
+                                        driveInfo->longDSTTimeMinutes = ((M_BytesTo2ByteValue(controlPage[headerLength + 10], controlPage[headerLength + 11]) + 60) - 1) / 60;//rounding up to nearest minute
+                                    }
+                                }
+                            }
                         }
                     }
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Security");
-                }
-                break;
+                    break;
+                    case 1://controlExtension
+                    {
+                        //check if DLC is supported or can be changed before checking if they are enabled or not.
+                        char* dlcString = NULL;
+                        uint32_t dlcStringLength = 0;
+                        uint8_t controlExtensionPage[MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, defaultsRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            defaultsRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = controlExtensionPage[2];
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(controlExtensionPage[6], controlExtensionPage[7]);
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (controlExtensionPage[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (controlExtensionPage[headerLength + 1] != 0x01)
+                            {
+                                defaultsRead = false;
+                            }
+                        }
+                        else
+                        {
+                            defaultsRead = false;
+                        }
+                        if (defaultsRead)
+                        {
+                            //dlc
+                            if (controlExtensionPage[headerLength + 4] & BIT3)
+                            {
+                                if (!dlcString)
+                                {
+                                    dlcStringLength = 50;
+                                    dlcString = C_CAST(char*, calloc(dlcStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    dlcStringLength = 50;
+                                    char* temp = C_CAST(char*, realloc(dlcString, dlcStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        dlcString = temp;
+                                        memset(dlcString, 0, 50);
+                                    }
+                                }
+                                if (dlcString && dlcStringLength >= 50)
+                                {
+                                    snprintf(dlcString, dlcStringLength, "Device Life Control");
+                                }
+                            }
+                        }
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = controlExtensionPage[2];
+                                if (controlExtensionPage[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(controlExtensionPage[6], controlExtensionPage[7]);
+                                if (controlExtensionPage[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (controlExtensionPage[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (controlExtensionPage[headerLength + 1] != 0x01)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            //dlc
+                            if (controlExtensionPage[headerLength + 4] & BIT3)
+                            {
+                                if (!dlcString)
+                                {
+                                    dlcStringLength = 50;
+                                    dlcString = C_CAST(char*, calloc(dlcStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    dlcStringLength = 50;
+                                    char* temp = C_CAST(char*, realloc(dlcString, dlcStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        dlcString = temp;
+                                        memset(dlcString, 0, 50);
+                                    }
+                                }
+                                if (dlcString && dlcStringLength >= 50)
+                                {
+                                    snprintf(dlcString, dlcStringLength, "Device Life Control [Enabled]");
+                                }
+                            }
+                        }
+                        if (dlcString)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, dlcString);
+                        }
+                        safe_Free(dlcString)
+                    }
+                    break;
+                    case 0x05://IO Advice Hints
+                    {
+                        uint8_t ioAdviceHints[1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, ioAdviceHints, 1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = ioAdviceHints[2];
+                                if (ioAdviceHints[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(ioAdviceHints[6], ioAdviceHints[7]);
+                                if (ioAdviceHints[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (ioAdviceHints[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (ioAdviceHints[headerLength + 1] != 0x05)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            //check if any of the Hints valid bits are set so we know it is enabled. TODO: add checking for the cache enabled bit?
+                            bool valid = false;
+                            for (uint16_t iter = headerLength + 15; iter < (1040 + headerLength); iter += 16)
+                            {
+                                uint8_t hintsMode = (ioAdviceHints[0] & 0xC0) >> 6;
+                                if (hintsMode == 0)
+                                {
+                                    valid = true;
+                                    break;//we found at least one, so get out of the loop.
+                                }
+                            }
+                            if (valid)
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IO Advice Hints [Enabled]");
+                            }
+                            else
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IO Advice Hints");
+
+                            }
+                        }
+                    }
+                    break;
+                    case 0xF1://PATA control
+                        //if we can read this page, then the device supports PATA Control
+                    {
+                        uint8_t pataControl[8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, pataControl, 8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = pataControl[2];
+                                if (pataControl[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(pataControl[6], pataControl[7]);
+                                if (pataControl[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (pataControl[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (pataControl[headerLength + 1] != 0xF1)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PATA Control");
+                        }
+                    }
+                    break;
+                    default:
+                        break;
+                    }
+                    break;
+                case MP_PROTOCOL_SPECIFIC_PORT:
+                    switch (subPageCode)
+                    {
+                    case 0x00://Protocol specific port (Use this to get whether SAS or FC or SCSI, etc)
+                    {
+                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = protocolSpecificPort[2];
+                                if (protocolSpecificPort[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                if (protocolSpecificPort[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        if (pageRead)
+                        {
+                            protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 2]);
+                        }
+                    }
+                    break;
+                    case 0x01://Phy control and discover mode page (SAS)
+                    {
+                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = protocolSpecificPort[2];
+                                if (protocolSpecificPort[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                if (protocolSpecificPort[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (protocolSpecificPort[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (protocolSpecificPort[headerLength + 1] != 0x01)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 5]);
+                            switch (protocolIdentifier)
+                            {
+                            case 0x0://Fiber Channel
+                                driveInfo->interfaceSpeedInfo.speedIsValid = true;
+                                driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_FIBRE;
+                                break;
+                            case 0x1://parallel scsi
+                            case 0x2://serial storage architecture scsi-3 protocol
+                            case 0x3://IEEE 1394
+                            case 0x4://RDMA 
+                            case 0x5://iSCSI
+                                break;
+                            case 0x6:
+                            {
+                                driveInfo->interfaceSpeedInfo.speedIsValid = true;
+                                driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_SERIAL;
+                                uint16_t phyDescriptorIter = headerLength + 8;
+                                uint16_t phyPageLen = M_BytesTo2ByteValue(protocolSpecificPort[headerLength + 2], protocolSpecificPort[headerLength + 3]);
+                                driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts = protocolSpecificPort[headerLength + 7];
+                                uint8_t phyCount = 0;
+                                //now we need to go through the descriptors for each phy
+                                for (; phyDescriptorIter < C_CAST(uint16_t, M_Min(C_CAST(uint16_t, phyPageLen + headerLength), C_CAST(uint16_t, LEGACY_DRIVE_SEC_SIZE + headerLength))) && phyCount < C_CAST(uint8_t, MAX_PORTS); phyDescriptorIter += 48, phyCount++)
+                                {
+                                    //uint8_t phyIdentifier = modePages[phyDescriptorIter + 1];
+                                    switch (M_Nibble0(protocolSpecificPort[phyDescriptorIter + 5]))
+                                    {
+                                    case 0x8://1.5 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 1;
+                                        break;
+                                    case 0x9://3.0 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 2;
+                                        break;
+                                    case 0xA://6.0 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 3;
+                                        break;
+                                    case 0xB://12.0 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 4;
+                                        break;
+                                    case 0xC:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 5;
+                                        break;
+                                    case 0xD:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 6;
+                                        break;
+                                    case 0xE:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 7;
+                                        break;
+                                    case 0xF:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 8;
+                                        break;
+                                    default:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 0;
+                                        break;
+                                    }
+                                    switch (M_Nibble0(protocolSpecificPort[phyDescriptorIter + 33]))
+                                    {
+                                    case 0x8://1.5 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 1;
+                                        break;
+                                    case 0x9://3.0 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 2;
+                                        break;
+                                    case 0xA://6.0 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 3;
+                                        break;
+                                    case 0xB://12.0 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 4;
+                                        break;
+                                    case 0xC://22.5 Gb/s
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 5;
+                                        break;
+                                    case 0xD:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 6;
+                                        break;
+                                    case 0xE:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 7;
+                                        break;
+                                    case 0xF:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 8;
+                                        break;
+                                    default:
+                                        driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 0;
+                                        break;
+                                    }
+                                }
+                            }
+                            break;
+                            case 0x7://automation/drive interface transport
+                            case 0x8://AT Attachement interface
+                            case 0x9://UAS
+                            case 0xA://SCSI over PCI Express
+                            case 0xB://PCI Express protocols
+                            case 0xF://No specific protocol
+                            default://reserved
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                    case 0x03://Negotiated Settings (Parallel SCSI)
+                    {
+                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = protocolSpecificPort[2];
+                                if (protocolSpecificPort[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                if (protocolSpecificPort[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (protocolSpecificPort[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (protocolSpecificPort[headerLength + 1] != 0x01)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 5]);
+                            switch (protocolIdentifier)
+                            {
+                            case 0x0://Fiber Channel
+                                break;
+                            case 0x1://parallel scsi
+                            {
+                                //get the negotiated speed
+                                uint16_t scalingMultiplier = 0;
+                                uint8_t transferPeriodFactor = protocolSpecificPort[headerLength + 6];
+                                uint8_t transferWidthExponent = protocolSpecificPort[headerLength + 9];
+                                switch (transferPeriodFactor)
+                                {
+                                case 0x07:
+                                    scalingMultiplier = 320;
+                                    break;
+                                case 0x08:
+                                    scalingMultiplier = 160;
+                                    break;
+                                case 0x09:
+                                    scalingMultiplier = 80;
+                                    break;
+                                case 0x0A:
+                                    scalingMultiplier = 40;
+                                    break;
+                                case 0x0B:
+                                    scalingMultiplier = 40;
+                                    break;
+                                case 0x0C:
+                                    scalingMultiplier = 20;
+                                    break;
+                                default:
+                                    //need to do an if here...
+                                    if (transferPeriodFactor >= 0x0D && transferPeriodFactor <= 0x18)
+                                    {
+                                        scalingMultiplier = 20;
+                                    }
+                                    else if (transferPeriodFactor >= 0x19 && transferPeriodFactor <= 0x31)
+                                    {
+                                        scalingMultiplier = 10;
+                                    }
+                                    else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
+                                    {
+                                        scalingMultiplier = 5;
+                                    }
+                                    break;
+                                }
+                                if (scalingMultiplier > 0)
+                                {
+                                    driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
+                                    driveInfo->interfaceSpeedInfo.speedIsValid = true;
+                                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
+                                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = C_CAST(uint32_t, scalingMultiplier) * (C_CAST(uint32_t, transferWidthExponent) + UINT32_C(1));
+                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
+                                    driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                                }
+                            }
+                            break;
+                            case 0x2://serial storage architecture scsi-3 protocol
+                            case 0x3://IEEE 1394
+                            case 0x4://RDMA 
+                            case 0x5://iSCSI
+                            case 0x6:
+                            default:
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                    case 0x04://Report Transfer Capabilities (Parallel SCSI)
+                    {
+                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = protocolSpecificPort[2];
+                                if (protocolSpecificPort[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                if (protocolSpecificPort[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (protocolSpecificPort[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (protocolSpecificPort[headerLength + 1] != 0x01)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 5]);
+                            switch (protocolIdentifier)
+                            {
+                            case 0x0://Fiber Channel
+                                break;
+                            case 0x1://parallel scsi
+                            {
+                                //get the max speed
+                                uint16_t scalingMultiplier = 0;
+                                uint8_t transferPeriodFactor = protocolSpecificPort[headerLength + 6];
+                                uint8_t transferWidthExponent = protocolSpecificPort[headerLength + 9];
+                                switch (transferPeriodFactor)
+                                {
+                                case 0x07:
+                                    scalingMultiplier = 320;
+                                    break;
+                                case 0x08:
+                                    scalingMultiplier = 160;
+                                    break;
+                                case 0x09:
+                                    scalingMultiplier = 80;
+                                    break;
+                                case 0x0A:
+                                    scalingMultiplier = 40;
+                                    break;
+                                case 0x0B:
+                                    scalingMultiplier = 40;
+                                    break;
+                                case 0x0C:
+                                    scalingMultiplier = 20;
+                                    break;
+                                default:
+                                    //need to do an if here...
+                                    if (transferPeriodFactor >= 0x0D && transferPeriodFactor <= 0x18)
+                                    {
+                                        scalingMultiplier = 20;
+                                    }
+                                    else if (transferPeriodFactor >= 0x19 && transferPeriodFactor <= 0x31)
+                                    {
+                                        scalingMultiplier = 10;
+                                    }
+                                    else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
+                                    {
+                                        scalingMultiplier = 5;
+                                    }
+                                    break;
+                                }
+                                if (scalingMultiplier > 0)
+                                {
+                                    driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
+                                    driveInfo->interfaceSpeedInfo.speedIsValid = true;
+                                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = C_CAST(uint32_t, scalingMultiplier) * (C_CAST(uint32_t, transferWidthExponent) + UINT32_C(1));
+                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
+                                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                                }
+                            }
+                            break;
+                            case 0x2://serial storage architecture scsi-3 protocol
+                            case 0x3://IEEE 1394
+                            case 0x4://RDMA 
+                            case 0x5://iSCSI
+                            case 0x6:
+                            default:
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                    default:
+                        break;
+                    }
+                    break;
+                case MP_POWER_CONDTION:
+                    switch (subPageCode)
+                    {
+                    case 0x00://EPC
+                    {
+                        char* epcFeatureString = NULL;
+                        uint32_t epcFeatureStringLength = 0;
+                        //read the default values to check if it's supported...then try the current page...
+                        bool defaultsRead = false, sixByte = false;
+                        uint8_t powerConditions[40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            defaultsRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = powerConditions[2];
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(powerConditions[6], powerConditions[7]);
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        if (defaultsRead)
+                        {
+                            if (powerConditions[1 + headerLength] > 0x0A)
+                            {
+                                if (!epcFeatureString)
+                                {
+                                    epcFeatureStringLength = 4;
+                                    epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    epcFeatureStringLength = 4;
+                                    char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        epcFeatureString = temp;
+                                        memset(epcFeatureString, 0, epcFeatureStringLength);
+                                    }
+                                }
+                                if (epcFeatureString && epcFeatureStringLength >= 4)
+                                {
+                                    snprintf(epcFeatureString, epcFeatureStringLength, "EPC");
+                                }
+                            }
+                            else
+                            {
+                                if (!epcFeatureString)
+                                {
+                                    epcFeatureStringLength = 17;
+                                    epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    epcFeatureStringLength = 17;
+                                    char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        epcFeatureString = temp;
+                                        memset(epcFeatureString, 0, epcFeatureStringLength);
+                                    }
+                                }
+                                if (epcFeatureString && epcFeatureStringLength >= 17)
+                                {
+                                    snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions");
+                                }
+                            }
+                        }
+                        //Now read the current page to see if it's more than just supported :)
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = powerConditions[2];
+                                if (powerConditions[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(powerConditions[6], powerConditions[7]);
+                                if (powerConditions[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        if (pageRead)
+                        {
+                            if (powerConditions[1 + headerLength] > 0x0A &&
+                                (powerConditions[2 + headerLength] & BIT0 ||
+                                    powerConditions[3 + headerLength] & BIT0 ||
+                                    powerConditions[3 + headerLength] & BIT1 ||
+                                    powerConditions[3 + headerLength] & BIT2 ||
+                                    powerConditions[3 + headerLength] & BIT3
+                                    )
+                                )
+                            {
+                                if (!epcFeatureString)
+                                {
+                                    epcFeatureStringLength = 14;
+                                    epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    epcFeatureStringLength = 14;
+                                    char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        epcFeatureString = temp;
+                                        memset(epcFeatureString, 0, epcFeatureStringLength);
+                                    }
+                                }
+                                if (epcFeatureString && epcFeatureStringLength >= 14)
+                                {
+                                    snprintf(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]");
+                                }
+                            }
+                            else if (powerConditions[3 + headerLength] & BIT0 || powerConditions[3 + headerLength] & BIT1)
+                            {
+                                if (!epcFeatureString)
+                                {
+                                    epcFeatureStringLength = 27;
+                                    epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    epcFeatureStringLength = 27;
+                                    char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        epcFeatureString = temp;
+                                        memset(epcFeatureString, 0, 27);
+                                    }
+                                }
+                                if (epcFeatureString && epcFeatureStringLength >= 27)
+                                {
+                                    snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions [Enabled]");
+                                }
+                            }
+                        }
+                        if (epcFeatureString)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, epcFeatureString);
+                        }
+                        safe_Free(epcFeatureString)
+                    }
+                    break;
+                    case 0xF1://ata power conditions
+                    {
+                        uint8_t ataPowerConditions[16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, ataPowerConditions, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = ataPowerConditions[2];
+                                if (ataPowerConditions[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(ataPowerConditions[6], ataPowerConditions[7]);
+                                if (ataPowerConditions[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (ataPowerConditions[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (ataPowerConditions[headerLength + 1] != 0xF1)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            if (ataPowerConditions[headerLength + 0x05] & BIT0)
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM [Enabled]");
+                            }
+                            else
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM");
+                            }
+                        }
+                    }
+                    break;
+                    default:
+                        break;
+                    }
+                    break;
+                case MP_INFORMATION_EXCEPTIONS_CONTROL:
+                    switch (subPageCode)
+                    {
+                    case 0:
+                    {
+                        uint8_t informationalExceptions[12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, informationalExceptions, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = informationalExceptions[2];
+                                if (informationalExceptions[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(informationalExceptions[6], informationalExceptions[7]);
+                                if (informationalExceptions[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        if (pageRead)
+                        {
+                            char temp[MAX_FEATURE_LENGTH] = { 0 };
+                            snprintf(temp, MAX_FEATURE_LENGTH, "Informational Exceptions [Mode %"PRIu8"]", M_Nibble0(informationalExceptions[headerLength + 3]));
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, temp);
+
+                        }
+                    }
+                    break;
+                    case 0x01://Background control
+                    {
+                        //check if DLC is supported or can be changed before checking if they are enabled or not.
+                        char* bmsString = NULL;
+                        char* bmsPSString = NULL;
+                        uint32_t bmsStringLength = 0;
+                        uint32_t bmsPSStringLength = 0;
+                        uint8_t backgroundControl[16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        bool pageRead = false, defaultsRead = false, sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            defaultsRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = backgroundControl[2];
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(backgroundControl[6], backgroundControl[7]);
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (backgroundControl[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (backgroundControl[headerLength + 1] != 0xF1)
+                            {
+                                defaultsRead = false;
+                            }
+                        }
+                        else
+                        {
+                            defaultsRead = false;
+                        }
+                        if (defaultsRead)
+                        {
+                            //bms
+                            if (backgroundControl[headerLength + 4] & BIT0)
+                            {
+                                if (!bmsString)
+                                {
+                                    bmsStringLength = 50;
+                                    bmsString = C_CAST(char*, calloc(bmsStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    bmsStringLength = 50;
+                                    char* temp = C_CAST(char*, realloc(bmsString, bmsStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        bmsString = temp;
+                                        memset(bmsString, 0, bmsStringLength);
+                                    }
+                                }
+                                if (bmsString && bmsStringLength >= 50)
+                                {
+                                    snprintf(bmsString, bmsStringLength, "Background Media Scan");
+                                }
+                            }
+                            //bms-ps
+                            if (backgroundControl[headerLength + 5] & BIT0)
+                            {
+                                if (!bmsPSString)
+                                {
+                                    bmsPSStringLength = 50;
+                                    bmsPSString = C_CAST(char*, calloc(bmsPSStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    bmsPSStringLength = 50;
+                                    char* temp = C_CAST(char*, realloc(bmsPSString, bmsPSStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        bmsPSString = temp;
+                                        memset(bmsPSString, 0, bmsPSStringLength);
+                                    }
+                                }
+                                if (bmsPSString && bmsPSStringLength >= 50)
+                                {
+                                    snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan");
+                                }
+                            }
+                        }
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = backgroundControl[2];
+                                if (backgroundControl[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(backgroundControl[6], backgroundControl[7]);
+                                if (backgroundControl[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                        }
+                        //make sure we got the expected format!
+                        if (backgroundControl[headerLength + 0] & BIT6)
+                        {
+                            //subpage format valid!
+                            //check subpage code is valid!
+                            if (backgroundControl[headerLength + 1] != 0xF1)
+                            {
+                                pageRead = false;
+                            }
+                        }
+                        else
+                        {
+                            pageRead = false;
+                        }
+                        if (pageRead)
+                        {
+                            //bms
+                            if (backgroundControl[headerLength + 4] & BIT0)
+                            {
+                                if (!bmsString)
+                                {
+                                    bmsStringLength = 50;
+                                    bmsString = C_CAST(char*, calloc(bmsStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    bmsStringLength = 50;
+                                    char* temp = C_CAST(char*, realloc(bmsString, bmsStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        bmsString = temp;
+                                        memset(bmsString, 0, bmsStringLength);
+                                    }
+                                }
+                                if (bmsString && bmsStringLength >= 50)
+                                {
+                                    snprintf(bmsString, bmsStringLength, "Background Media Scan [Enabled]");
+                                }
+                            }
+                            //bms-ps
+                            if (backgroundControl[headerLength + 5] & BIT0)
+                            {
+                                if (!bmsPSString)
+                                {
+                                    bmsPSStringLength = 50;
+                                    bmsPSString = C_CAST(char*, calloc(bmsPSStringLength, sizeof(char)));
+                                }
+                                else
+                                {
+                                    bmsPSStringLength = 50;
+                                    char* temp = C_CAST(char*, realloc(bmsPSString, bmsPSStringLength * sizeof(char)));
+                                    if (temp)
+                                    {
+                                        bmsPSString = temp;
+                                        memset(bmsPSString, 0, bmsPSStringLength);
+                                    }
+                                }
+                                if (bmsPSString && bmsPSStringLength >= 50)
+                                {
+                                    snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan [Enabled]");
+                                }
+                            }
+                        }
+                        if (bmsString)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, bmsString);
+                        }
+                        if (bmsPSString)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, bmsPSString);
+                        }
+                        safe_Free(bmsString)
+                            safe_Free(bmsPSString)
+                    }
+                    break;
+                    default:
+                        break;
+                    }
+                    break;
                 default:
                     break;
                 }
             }
         }
     }
+    return ret;
+}
+
+//which diag pages are suppored to add to features list
+static int get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+{
+    int ret = SUCCESS;
+    if (device && driveInfo && scsiInfo)
+    {
+        //skip diag pages on USB/IEEE1394 as it is extremly unlikely these requests will be handled properly and unlikely that any standard diag pages will be supported.-TJE
+        if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+        {
+            //Read supported Diagnostic parameters and check for rebuild assist. (need SCSI2 and higher since before that, this is all vendor unique)
+            uint8_t* supportedDiagnostics = C_CAST(uint8_t*, calloc_aligned(1024, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (supportedDiagnostics)
+            {
+                bool pageCodeValid = false;
+                uint8_t pageCode = 0;
+                if (scsiInfo->version >= 3)//PCV bit and page code fields introduced in SPC specification
+                {
+                    pageCodeValid = true;
+                    pageCode = DIAG_PAGE_SUPPORTED_PAGES;
+                }
+                //transfer only 4 bytes to the drive for the page format data so we can read the supported pages, then read back the supported list with the receive diagnostics command
+                if (scsiInfo->version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
+                {
+                    uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
+                    for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)); ++iter)
+                    {
+                        switch (supportedDiagnostics[iter])
+                        {
+                            //Add more diagnostic pages in here if we want to check them for supported features.
+                        case DIAG_PAGE_TRANSLATE_ADDRESS:
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Translate Address");
+                            break;
+                        case DIAG_PAGE_REBUILD_ASSIST:
+                            //TODO: check and see if the rebuild assist feature is enabled.
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Rebuild Assist");
+                            break;
+                        case 0x90:
+                            if (is_Seagate_Family(device) == SEAGATE)
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate Remanufacture");
+                                break;
+                            }
+                            break;
+                        case 0x98:
+                            if (is_Seagate_Family(device) == SEAGATE)
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate In Drive Diagnostics (IDD)");
+                                break;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+                safe_Free_aligned(supportedDiagnostics)
+            }
+        }
+    }
+    return ret;
+}
+
+//report supported operation codes to figure out additional features.
+//TODO: early exit if report supported opcodes returns invalid operation code
+//TODO: cmdDT early exit if invalid field in CDB
+static int get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+{
+    int ret = SUCCESS;
+    if (device && driveInfo && scsiInfo)
+    {
+        if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)//mostly for USB devices to prevent sending commands that don't usually work in the first place.
+        {
+            uint8_t* supportedCommands = C_CAST(uint8_t*, calloc_aligned(36, sizeof(uint8_t), device->os_info.minimumAlignment));
+            //allocating 36 bytes for 4 byte header + max length of 32B for the CDB
+            if (supportedCommands)
+            {
+                //Most SAT devices won't report all at once, so try asking for individual commands that are supported
+                //one at a time instead of asking for everything all at once.
+                //Format unit
+                bool formatSupported = false;
+                bool fastFormatSupported = false;
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_UNIT_CMD, 0, 10, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        formatSupported = true;
+                        //now check for fast format support
+                        if (!(supportedCommands[7] == 0xFF && supportedCommands[8] == 0xFF))//if both these bytes are FFh, then the drive conforms to SCSI2 where this was the "interleave" field
+                        {
+                            if (supportedCommands[8] & 0x03)//checks that fast format bits are available for use.
+                            {
+                                fastFormatSupported = true;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else if (scsiInfo->version >= 3 && scsiInfo->version < 5 && SUCCESS == scsi_Inquiry(device, supportedCommands, 12, SCSI_FORMAT_UNIT_CMD, false, true))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        formatSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else
+                {
+                    //failed to check command support (for one reason or another)
+                    //for CMD DT, just return not supported.
+                    //for report op codes, set hacks flag and return
+                    if (scsiInfo->version >= 5)
+                    {
+                        device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations = true;
+                    }
+                    safe_Free_aligned(supportedCommands)
+                    return NOT_SUPPORTED;
+                }
+                //check for format corrupt
+                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+                if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
+                {
+                    if (!driveInfo->isFormatCorrupt)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Corrupt - not all features identifiable.");
+                    }
+                }
+                if (formatSupported)
+                {
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Unit");
+                }
+                if (fastFormatSupported)
+                {
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Fast Format");
+                }
+                memset(supportedCommands, 0, 1024);
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_WITH_PRESET_CMD, 0, 14, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format With Preset");
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                memset(supportedCommands, 0, 1024);
+                //Sanitize (need to check each service action to make sure at least one is supported.
+                bool sanitizeSupported = false;
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        sanitizeSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        sanitizeSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE, 14, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        sanitizeSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_EXIT_FAILURE_MODE, 14, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        sanitizeSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                if (sanitizeSupported)
+                {
+                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sanitize");
+                }
+                //storage element depopulation
+                bool getElementStatusSupported = false;
+                bool removeAndTruncateSupported = false;
+                bool restoreElementsSupported = false;
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x17, 20, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        getElementStatusSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x18, 20, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        removeAndTruncateSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x19, 20, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        restoreElementsSupported = true;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                if (removeAndTruncateSupported && getElementStatusSupported)
+                {
+                    if (restoreElementsSupported)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation + Restore");
+                    }
+                    else
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation");
+                    }
+                }
+                //Add checking that this is zbd first?
+                if (scsiInfo->version >= 5 && scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x1A, 20, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific manor in same format as case 3
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Remove Element and Modify Zones");
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                if (scsiInfo->zoneDomainsOrRealms && scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
+                {
+                    if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x95, 0x07, 20, supportedCommands))
+                    {
+                        switch (supportedCommands[1] & 0x07)
+                        {
+                        case 0: //not available right now...so not supported
+                        case 1://not supported
+                            break;
+                        case 3://supported according to spec
+                        case 5://supported in vendor specific manor in same format as case 3
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Domains");
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+
+                    if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x95, 0x06, 20, supportedCommands))
+                    {
+                        switch (supportedCommands[1] & 0x07)
+                        {
+                        case 0: //not available right now...so not supported
+                        case 1://not supported
+                            break;
+                        case 3://supported according to spec
+                        case 5://supported in vendor specific manor in same format as case 3
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Realms");
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+
+                if (!driveInfo->securityInfo.securityProtocolInfoValid)
+                {
+                    //Check security protocol in case the earlier attempt did not work to detect when the OS/driver/HBA are blocking these commands
+                    if (scsiInfo->version >= 6 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, 0xA2, 0, 16, supportedCommands))
+                    {
+                        switch (supportedCommands[1] & 0x07)
+                        {
+                        case 0: //not available right now...so not supported
+                        case 1://not supported
+                            break;
+                        case 3://supported according to spec
+                        case 5://supported in vendor specific manor in same format as case 3
+                            driveInfo->trustedCommandsBeingBlocked = true;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+
+                //check write buffer (firmware download) call info firmware download.h for this information.
+                supportedDLModes supportedDLModes;
+                memset(&supportedDLModes, 0, sizeof(supportedDLModes));
+                supportedDLModes.size = sizeof(supportedDLModes);
+                supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
+                //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
+                int tempDevType = device->drive_info.drive_type;
+                device->drive_info.drive_type = SCSI_DRIVE;
+                if (SUCCESS == get_Supported_FWDL_Modes(device, &supportedDLModes))
+                {
+                    driveInfo->fwdlSupport.downloadSupported = supportedDLModes.downloadMicrocodeSupported;
+                    driveInfo->fwdlSupport.segmentedSupported = supportedDLModes.segmented;
+                    driveInfo->fwdlSupport.deferredSupported = supportedDLModes.deferred;
+                    driveInfo->fwdlSupport.dmaModeSupported = supportedDLModes.firmwareDownloadDMACommandSupported;
+                    driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = supportedDLModes.seagateDeferredPowerCycleActivate;
+                }
+                device->drive_info.drive_type = tempDevType;
+                //ATA Passthrough commands
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_12, 0, 16, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        //TODO: make sure this isn't the "blank" command being supported by a MMC device.
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Pass-Through 12");
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_16, 0, 20, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Pass-Through 16");
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x7F, 0x1FF0, 36, supportedCommands))
+                {
+                    switch (supportedCommands[1] & 0x07)
+                    {
+                    case 0: //not available right now...so not supported
+                    case 1://not supported
+                        break;
+                    case 3://supported according to spec
+                    case 5://supported in vendor specific mannor in same format as case 3
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Pass-Through 32");
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                safe_Free_aligned(supportedCommands)
+            }
+        }
+    }
+    return ret;
+}
+
+int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+{
+    int ret = SUCCESS;
+    if (!driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
+    memset(driveInfo, 0, sizeof(driveInformationSAS_SATA));
+    scsiIdentifyInfo scsiInfo;
+    memset(&scsiInfo, 0, sizeof(scsiIdentifyInfo));
+    //start with standard inquiry data
+    uint8_t* inquiryData = C_CAST(uint8_t*, calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (inquiryData)
+    {
+        if (SUCCESS == scsi_Inquiry(device, inquiryData, 255, 0, false, false))
+        {
+            get_SCSI_Inquiry_Data(driveInfo, &scsiInfo, inquiryData, 255);
+        }
+        safe_Free_aligned(inquiryData)
+    }
+    memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
+
+    //TODO: add checking peripheral device type as well to make sure it's only direct access and zoned block devices?
+    if ((device->drive_info.interface_type == SCSI_INTERFACE || device->drive_info.interface_type == RAID_INTERFACE) && (device->drive_info.drive_type != ATA_DRIVE && device->drive_info.drive_type != NVME_DRIVE))
+    {
+        //send report luns to see how many luns are attached. This SHOULD be the way to detect multi-actuator drives for now. This could change in the future.
+        //TODO: Find a better way to remove the large check above which may not work out well in some cases, but should reduce false detection on USB among other interfaces
+        driveInfo->lunCount = get_LUN_Count(device);
+    }
+
+    get_SCSI_VPD_Data(device, driveInfo, &scsiInfo);
+    
+    get_SCSI_Read_Capacity_Data(device, driveInfo, &scsiInfo);
+    
+    if (scsiInfo.version == 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
+    {
+        //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
+        uint8_t* securityProtocols = C_CAST(uint8_t*, calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (securityProtocols)
+        {
+            if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 512, securityProtocols))
+            {
+                if (SUCCESS == get_Security_Features_From_Security_Protocol(device, &driveInfo->securityInfo, securityProtocols, 512))
+                {
+                    if (driveInfo->securityInfo.tcg)
+                    {
+                        driveInfo->encryptionSupport = ENCRYPTION_SELF_ENCRYPTING;
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TCG");
+                    }
+                    if (driveInfo->securityInfo.cbcs)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "CbCS");
+                    }
+                    if (driveInfo->securityInfo.tapeEncryption)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Tape Encryption");
+                    }
+                    if (driveInfo->securityInfo.dataEncryptionConfig)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Data Encryption Configuration");
+                    }
+                    if (driveInfo->securityInfo.saCreationCapabilities)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SA Creation Capabilities");
+                    }
+                    if (driveInfo->securityInfo.ikev2scsi)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IKE V2 SCSI");
+                    }
+                    if (driveInfo->securityInfo.sdAssociation)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SD Association");
+                    }
+                    if (driveInfo->securityInfo.dmtfSecurity)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DMTF Security");
+                    }
+                    if (driveInfo->securityInfo.nvmeReserved)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NVMe Reserved");
+                    }
+                    if (driveInfo->securityInfo.nvme)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "NVMe RPMB");
+                    }
+                    if (driveInfo->securityInfo.scsa)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SCSA");
+                    }
+                    if (driveInfo->securityInfo.jedecUFS)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "JEDEC UFS");
+                    }
+                    if (driveInfo->securityInfo.sdTrustedFlash)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SD Trusted Flash");
+                    }
+                    if (driveInfo->securityInfo.ieee1667)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IEEE 1667");
+                    }
+                    if (driveInfo->securityInfo.ataDeviceServer)
+                    {
+                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Security");
+                        memcpy(&driveInfo->ataSecurityInformation, &driveInfo->securityInfo.ataSecurityInfo, sizeof(ataSecurityStatus));
+                    }
+                }
+            }
+            safe_Free_aligned(securityProtocols)
+        }
+    }
     driveInfo->percentEnduranceUsed = -1;//set to this to filter out later
 
-    if (version >= 2)
+    if (scsiInfo.version == 2)
     {
         //Check for persistent reservation support
         if (SUCCESS == scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 0, NULL))
@@ -3479,1955 +6081,14 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
         }
     }
 
-    bool smartStatusRead = false;
-    if (version >= 2 && peripheralDeviceType != PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE && !device->drive_info.passThroughHacks.scsiHacks.noLogPages)//SCSI2 introduced log pages
-    {
-        bool dummyUpLogPages = false;
-        bool subpagesSupported = true;
-        //Check log pages for data->start with list of pages and subpages
-        memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-        if (!device->drive_info.passThroughHacks.scsiHacks.noLogSubPages && SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, tempBuf, LEGACY_DRIVE_SEC_SIZE))
-        {
-            //either device doesn't support logs, or it just doesn't support subpages, so let's try reading the list of supported pages (no subpages) before saying we need to dummy up the list
-            if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, tempBuf, LEGACY_DRIVE_SEC_SIZE))
-            {
-                dummyUpLogPages = true;
-            }
-            else
-            {
-                subpagesSupported = false;
-            }
-        }
-        else if (device->drive_info.passThroughHacks.scsiHacks.noLogSubPages)
-        {
-            //device doesn't support subpages, so read the list of pages without subpages before continuing.
-            if (SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0, tempBuf, LEGACY_DRIVE_SEC_SIZE))
-            {
-                dummyUpLogPages = true;
-            }
-            subpagesSupported = false;
-        }
-        if (!dummyUpLogPages)
-        {
-            //memcmp to make sure we weren't given zeros
-            uint8_t zeroMem[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (memcmp(zeroMem, tempBuf, LEGACY_DRIVE_SEC_SIZE) == 0)
-            {
-                dummyUpLogPages = true;
-            }
-        }
-        //this is really a work-around for USB drives since some DO support pages, but the don't actually list them (same as the VPD pages above). Most USB drives don't work though - TJE
-        if (dummyUpLogPages)
-        {
-            uint16_t offset = 4;
-            uint8_t increment = 1;//change to 2 for subpages (spc4 added subpages)
-            if (version >= 6)
-            {
-                subpagesSupported = true;
-                increment = 2;
-            }
-            memset(tempBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-            tempBuf[0] = 0;
-            tempBuf[1] = 0;
+    get_SCSI_Log_Data(device, driveInfo, &scsiInfo);
 
-            //descriptors Need to be added based on support for subpages or not!
-            tempBuf[offset] = LP_SUPPORTED_LOG_PAGES;//just to be correct/accurate
-            if (subpagesSupported)
-            {
-                tempBuf[offset + 1] = 0;//subpage
-                offset += increment;
-                tempBuf[offset] = LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES;//just to be correct/accurate
-                tempBuf[offset + 1] = 0xFF;//supported subpages
-            }
-            offset += increment;
-            tempBuf[offset] = LP_WRITE_ERROR_COUNTERS;//not likely available on USB
-            offset += increment;
-            tempBuf[offset] = LP_READ_ERROR_COUNTERS;//not likely available on USB
-            offset += increment;
+    get_SCSI_Mode_Data(device, driveInfo, &scsiInfo);
 
-            //if SBC3! (sequential access device page, so also check peripheral device type)
-            if (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
-            {
-                if (version >= 6) //SBC3 is to be used in conjunction with SPC4. We may need to drop this one level later, but this should be ok
-                {
-                    tempBuf[offset] = LP_LOGICAL_BLOCK_PROVISIONING;//SBC3
-                    offset += increment;
-                }
-            }
-
-            if (version >= 4)//SPC2
-            {
-                tempBuf[offset] = LP_TEMPERATURE;//not likely available on USB
-                offset += increment;
-            }
-
-            if (subpagesSupported && version >= 7)
-            {
-                tempBuf[offset] = LP_ENVIRONMENTAL_REPORTING;//not likely available on USB
-                tempBuf[offset + 1] = 0x01;//subpage (page number is same as temperature)
-                offset += increment;
-            }
-            if (version >= 4)//SPC2
-            {
-                tempBuf[offset] = LP_START_STOP_CYCLE_COUNTER;//just to be correct, we're not reading this today
-                offset += increment;
-            }
-            if (version >= 7)//SBC4?
-            {
-                tempBuf[offset] = LP_UTILIZATION;//not likely available on USB
-                tempBuf[offset + 1] = 0x01;//subpage
-                offset += increment;
-            }
-            if (version >= 4)//SPC2
-            {
-                tempBuf[offset] = LP_APPLICATION_CLIENT;
-                offset += increment;
-                tempBuf[offset] = LP_SELF_TEST_RESULTS;
-                offset += increment;
-            }
-
-            if (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
-            {
-                if (version >= 6) //SBC3 is to be used in conjunction with SPC4. We may need to drop this one level later, but this should be ok
-                {
-                    tempBuf[offset] = LP_SOLID_STATE_MEDIA;//not likely available on USB
-                    offset += increment;
-                }
-            }
-
-            if (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
-            {
-                if (version >= 6) //SBC3 is to be used in conjunction with SPC4. We may need to drop this one level later, but this should be ok
-                {
-                    tempBuf[offset] = LP_BACKGROUND_SCAN_RESULTS;//not likely available on USB
-                    offset += increment;
-                }
-            }
-
-            if (version >= 6)
-            {
-                tempBuf[offset] = LP_GENERAL_STATISTICS_AND_PERFORMANCE;//not likely available on USB
-                offset += increment;
-            }
-
-            if (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
-            {
-                if (version >= 5) //SBC2 is to be used in conjunction with SPC3. We may need to drop this one level later, but this should be ok
-                {
-                    tempBuf[offset] = LP_INFORMATION_EXCEPTIONS;
-                    offset += increment;
-                }
-            }
-
-            //page length
-            tempBuf[2] = M_Byte1(offset - 4);
-            tempBuf[3] = M_Byte0(offset - 4);
-        }
-        //loop through log pages and read them:
-        uint16_t logPageIter = LOG_PAGE_HEADER_LENGTH;//log page descriptors start on offset 4 and are 2 bytes long each
-        uint16_t supportedPagesLength = M_BytesTo2ByteValue(tempBuf[2], tempBuf[3]);
-        uint8_t incrementAmount = subpagesSupported ? 2 : 1;
-        for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE); logPageIter += incrementAmount)
-        {
-            uint8_t pageCode = tempBuf[logPageIter] & 0x3F;//outer switch statement
-            uint8_t subpageCode = 0;
-            if (subpagesSupported)
-            {
-                subpageCode = tempBuf[logPageIter + 1];//inner switch statement
-            }
-            switch (pageCode)
-            {
-            case LP_WRITE_ERROR_COUNTERS:
-                if (subpageCode == 0)
-                {
-                    //we need parameter code 5h (total bytes processed)
-                    //assume we only need to read 16 bytes to get this value
-                    uint8_t* writeErrorData = C_CAST(uint8_t*, calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!writeErrorData)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0005, writeErrorData, 16))
-                    {
-                        //check the length before we start trying to read the number of bytes in.
-                        if (M_BytesTo2ByteValue(writeErrorData[4], writeErrorData[5]) == 0x0005)
-                        {
-                            uint8_t paramLength = writeErrorData[7];
-                            switch (paramLength)
-                            {
-                            case 1://single byte
-                                driveInfo->totalBytesWritten = writeErrorData[8];
-                                break;
-                            case 2://word
-                                driveInfo->totalBytesWritten = M_BytesTo2ByteValue(writeErrorData[8], writeErrorData[9]);
-                                break;
-                            case 4://double word
-                                driveInfo->totalBytesWritten = M_BytesTo4ByteValue(writeErrorData[8], writeErrorData[9], writeErrorData[10], writeErrorData[11]);
-                                break;
-                            case 8://quad word
-                                driveInfo->totalBytesWritten = M_BytesTo8ByteValue(writeErrorData[8], writeErrorData[9], writeErrorData[10], writeErrorData[11], writeErrorData[12], writeErrorData[13], writeErrorData[14], writeErrorData[15]);
-                                break;
-                            default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                break;
-                            }
-                            //now convert this to LBAs based on the logical sector size
-                            if (driveInfo->logicalSectorSize)
-                            {
-                                driveInfo->totalLBAsWritten = driveInfo->totalBytesWritten / driveInfo->logicalSectorSize;
-                            }
-                        }
-                    }
-                    safe_Free_aligned(writeErrorData)
-                }
-                break;
-            case LP_READ_ERROR_COUNTERS:
-                if (subpageCode == 0)
-                {
-                    //we need parameter code 5h (total bytes processed)
-                    //assume we only need to read 16 bytes to get this value
-                    uint8_t* readErrorData = C_CAST(uint8_t*, calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!readErrorData)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0005, readErrorData, 16))
-                    {
-                        if (M_BytesTo2ByteValue(readErrorData[4], readErrorData[5]) == 0x0005)
-                        {
-                            //check the length before we start trying to read the number of bytes in.
-                            uint8_t paramLength = readErrorData[7];
-                            switch (paramLength)
-                            {
-                            case 1://single byte
-                                driveInfo->totalBytesRead = readErrorData[8];
-                                break;
-                            case 2://word
-                                driveInfo->totalBytesRead = M_BytesTo2ByteValue(readErrorData[8], readErrorData[9]);
-                                break;
-                            case 4://double word
-                                driveInfo->totalBytesRead = M_BytesTo4ByteValue(readErrorData[8], readErrorData[9], readErrorData[10], readErrorData[11]);
-                                break;
-                            case 8://quad word
-                                driveInfo->totalBytesRead = M_BytesTo8ByteValue(readErrorData[8], readErrorData[9], readErrorData[10], readErrorData[11], readErrorData[12], readErrorData[13], readErrorData[14], readErrorData[15]);
-                                break;
-                            default://don't bother trying to read the data since it's in a more complicated format to read than we care to handle in this code right now
-                                break;
-                            }
-                            //now convert this to LBAs based on the logical sector size
-                            if (driveInfo->logicalSectorSize)
-                            {
-                                driveInfo->totalLBAsRead = driveInfo->totalBytesRead / driveInfo->logicalSectorSize;
-                            }
-                        }
-                    }
-                    safe_Free_aligned(readErrorData)
-                }
-                break;
-            case LP_LOGICAL_BLOCK_PROVISIONING:
-                /*if (subpageCode == 0)
-                {
-
-                }*/
-                break;
-            case LP_TEMPERATURE://also environmental reporting
-                switch (subpageCode)
-                {
-                case 0://temperature
-                {
-                    uint8_t* temperatureData = C_CAST(uint8_t*, calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!temperatureData)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, temperatureData, 10))
-                    {
-                        driveInfo->temperatureData.temperatureDataValid = true;
-                        driveInfo->temperatureData.currentTemperature = temperatureData[9];
-                    }
-                    safe_Free_aligned(temperatureData)
-                }
-                break;
-                case 1://environmental reporting
-                {
-                    uint8_t* environmentReporting = C_CAST(uint8_t*, calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!environmentReporting)
-                    {
-                        break;
-                    }
-                    //get temperature data first
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, environmentReporting, 16))
-                    {
-                        driveInfo->temperatureData.temperatureDataValid = true;
-                        driveInfo->temperatureData.currentTemperature = C_CAST(int8_t, environmentReporting[9]);
-                        driveInfo->temperatureData.highestTemperature = C_CAST(int8_t, environmentReporting[10]);
-                        driveInfo->temperatureData.lowestTemperature = C_CAST(int8_t, environmentReporting[11]);
-                        driveInfo->temperatureData.highestValid = true;
-                        driveInfo->temperatureData.lowestValid = true;
-                    }
-                    //now get humidity data if available
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0100, environmentReporting, 16))
-                    {
-                        driveInfo->humidityData.humidityDataValid = true;
-                        driveInfo->humidityData.currentHumidity = environmentReporting[9];
-                        driveInfo->humidityData.highestHumidity = environmentReporting[10];
-                        driveInfo->humidityData.lowestHumidity = environmentReporting[11];
-                        driveInfo->humidityData.highestValid = true;
-                        driveInfo->humidityData.lowestValid = true;
-                    }
-                    safe_Free_aligned(environmentReporting)
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case LP_UTILIZATION://also start-stop cycle counter
-                switch (subpageCode)
-                {
-                case 0x00://start-stop cycle count
-                {
-                    uint8_t* startStopCounterLog = C_CAST(uint8_t*, calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!startStopCounterLog)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, startStopCounterLog, 14))
-                    {
-                        //check that we have the correct page
-                        if (!(startStopCounterLog[0] & BIT6) && M_GETBITRANGE(startStopCounterLog[0], 5, 0) == LP_START_STOP_CYCLE_COUNTER && startStopCounterLog[1] == 0)
-                        {
-                            //check the parameter code in case a device/translator with this page is responding but did not give this parameter code
-                            if (M_BytesTo2ByteValue(startStopCounterLog[4], startStopCounterLog[5]) == 0x0001)
-                            {
-                                //DOM found
-                                char domWeekStr[3] = { startStopCounterLog[12], startStopCounterLog[13], 0 };
-                                char domYearStr[5] = { startStopCounterLog[8], startStopCounterLog[9], startStopCounterLog[10], startStopCounterLog[11], 0 };
-                                driveInfo->dateOfManufactureValid = true;
-                                driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
-                                driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10));
-                            }
-                        }
-                    }
-                    safe_Free_aligned(startStopCounterLog);
-                }
-                break;
-                case 0x01://utilization
-                {
-                    uint8_t* utilizationData = C_CAST(uint8_t*, calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!utilizationData)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, utilizationData, 10))
-                    {
-                        //bytes 9 & 10
-                        driveInfo->deviceReportedUtilizationRate = C_CAST(double, M_BytesTo2ByteValue(utilizationData[8], utilizationData[9])) / 1000.0;
-                    }
-                    safe_Free_aligned(utilizationData)
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case LP_APPLICATION_CLIENT:
-                switch (subpageCode)
-                {
-                case 0x00://application client
-                {
-                    uint8_t* applicationClient = C_CAST(uint8_t*, calloc_aligned(4, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!applicationClient)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, applicationClient, 4))
-                    {
-                        //add "Application Client Logging" to supported features :)
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Application Client Logging");
-                    }
-                    safe_Free_aligned(applicationClient)
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case LP_SELF_TEST_RESULTS:
-                if (subpageCode == 0)
-                {
-                    uint8_t* selfTestResults = C_CAST(uint8_t*, calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!selfTestResults)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, selfTestResults, LP_SELF_TEST_RESULTS_LEN))
-                    {
-                        uint8_t parameterOffset = 4;
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Self Test");
-                        //get the last DST information (parameter code 1)
-                        driveInfo->dstInfo.informationValid = true;
-                        driveInfo->dstInfo.resultOrStatus = M_Nibble0(selfTestResults[parameterOffset + 4]);
-                        driveInfo->dstInfo.testNumber = M_Nibble1(selfTestResults[parameterOffset + 4]) >> 1;
-                        driveInfo->dstInfo.powerOnHours = M_BytesTo2ByteValue(selfTestResults[parameterOffset + 6], selfTestResults[parameterOffset + 7]);
-                        driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(selfTestResults[parameterOffset + 8], selfTestResults[parameterOffset + 9], selfTestResults[parameterOffset + 10], selfTestResults[parameterOffset + 11], selfTestResults[parameterOffset + 12], selfTestResults[parameterOffset + 13], selfTestResults[parameterOffset + 14], selfTestResults[parameterOffset + 15]);
-                    }
-                    safe_Free_aligned(selfTestResults)
-                }
-                break;
-            case LP_SOLID_STATE_MEDIA:
-                if (subpageCode == 0)
-                {
-                    //need parameter 0001h
-                    uint8_t* ssdEnduranceData = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!ssdEnduranceData)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, ssdEnduranceData, 12))
-                    {
-                        //bytes 7 of parameter 1 (or byte 12)
-                        driveInfo->percentEnduranceUsed = C_CAST(double, ssdEnduranceData[11]);
-                    }
-                    safe_Free_aligned(ssdEnduranceData)
-                }
-                break;
-            case LP_BACKGROUND_SCAN_RESULTS:
-                if (subpageCode == 0)
-                {
-                    //reading power on minutes from here
-                    uint8_t* backgroundScanResults = C_CAST(uint8_t*, calloc_aligned(19, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!backgroundScanResults)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, backgroundScanResults, 19))
-                    {
-                        //bytes 8 to 11
-                        driveInfo->powerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[8], backgroundScanResults[9], backgroundScanResults[10], backgroundScanResults[11]);
-                        driveInfo->powerOnMinutesValid = true;
-                    }
-                    safe_Free_aligned(backgroundScanResults)
-                }
-                break;
-            case LP_GENERAL_STATISTICS_AND_PERFORMANCE:
-                if (subpageCode == 0)
-                {
-                    //parameter code 1 is what we're interested in for this one
-                    uint8_t* generalStatsAndPerformance = C_CAST(uint8_t*, calloc_aligned(72, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!generalStatsAndPerformance)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, generalStatsAndPerformance, 72))
-                    {
-                        //total lbas written (number of logical blocks received)
-                        driveInfo->totalLBAsWritten = M_BytesTo8ByteValue(generalStatsAndPerformance[24], generalStatsAndPerformance[25], generalStatsAndPerformance[26], generalStatsAndPerformance[27], generalStatsAndPerformance[28], generalStatsAndPerformance[29], generalStatsAndPerformance[30], generalStatsAndPerformance[31]);
-                        //convert to bytes written
-                        driveInfo->totalBytesWritten = driveInfo->totalLBAsWritten * driveInfo->logicalSectorSize;
-                        //total lbas read (number of logical blocks transmitted)
-                        driveInfo->totalLBAsRead = M_BytesTo8ByteValue(generalStatsAndPerformance[32], generalStatsAndPerformance[33], generalStatsAndPerformance[34], generalStatsAndPerformance[35], generalStatsAndPerformance[36], generalStatsAndPerformance[37], generalStatsAndPerformance[38], generalStatsAndPerformance[39]);
-                        //convert to bytes written
-                        driveInfo->totalBytesRead = driveInfo->totalLBAsRead * driveInfo->logicalSectorSize;
-                    }
-                    safe_Free_aligned(generalStatsAndPerformance)
-                }
-                break;
-            case LP_INFORMATION_EXCEPTIONS:
-                if (subpageCode == 0)
-                {
-                    uint8_t* informationExceptions = C_CAST(uint8_t*, calloc_aligned(11, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!informationExceptions)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, informationExceptions, 11))
-                    {
-                        smartStatusRead = true;
-                        if (informationExceptions[8] == 0)//if the ASC is 0, then no trip
-                        {
-                            driveInfo->smartStatus = 0;
-                        }
-                        else//we have a trip condition...don't care what the specific trip is though
-                        {
-                            driveInfo->smartStatus = 1;
-                        }
-                        if (!driveInfo->temperatureData.temperatureDataValid && informationExceptions[10] > 0)
-                        {
-                            //temperature log page was not read, neither was environmental reporting, but we do have
-                            //a current temperature reading here, so use it
-                            driveInfo->temperatureData.temperatureDataValid = true;
-                            driveInfo->temperatureData.currentTemperature = informationExceptions[10];
-                        }
-                    }
-                    else
-                    {
-                        driveInfo->smartStatus = 2;
-                    }
-                    safe_Free_aligned(informationExceptions)
-                }
-                break;
-            case SEAGATE_LP_FARM:
-                if (subpageCode == SEAGATE_FARM_SP_CURRENT)
-                {
-                    //Currently only reading first parameter to check if this is the farm log.
-                    //TODO: Expand this to read more info out of FARM
-                    uint8_t* farmData = C_CAST(uint8_t*, calloc_aligned(76, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!farmData)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0, farmData, 76))
-                    {
-                        uint64_t farmSignature = M_BytesTo8ByteValue(farmData[4], farmData[5], farmData[6], farmData[7], farmData[8], farmData[9], farmData[10], farmData[11]);
-                        if (farmSignature & BIT63 && farmSignature & BIT62 && (farmSignature & UINT64_C(0x00FFFFFFFFFFFF)) == SEAGATE_FARM_LOG_SIGNATURE)
-                        {
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Field Accessible Reliability Metrics (FARM)");
-                        }
-                        //TODO: If for any reason DOM was not already read from standard page, can read it here too
-                    }
-                    safe_Free_aligned(farmData)
-                }
-                break;
-            case 0x3C://Vendor specific page. we're checking this page on Seagate drives for an enhanced usage indicator on SSDs (PPM value)
-                if (is_Seagate_Family(device) == SEAGATE || is_Seagate_Family(device) == SEAGATE_VENDOR_A)
-                {
-                    uint8_t* ssdUsage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!ssdUsage)
-                    {
-                        break;
-                    }
-                    if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, 0, 0x8004, ssdUsage, 12))
-                    {
-                        driveInfo->percentEnduranceUsed = (C_CAST(double, M_BytesTo4ByteValue(ssdUsage[8], ssdUsage[9], ssdUsage[10], ssdUsage[11])) / 1000000.00) * 100.00;
-                    }
-                    safe_Free_aligned(ssdUsage)
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-    if (!smartStatusRead)
-    {
-        //we didn't read the informational exceptions log page, so we need to set this to SMART status unknown
-        driveInfo->smartStatus = 2;
-    }
-
-    if (!device->drive_info.passThroughHacks.scsiHacks.noModePages && (version >= 2 || responseFormat == 1))
-    {
-        uint16_t numberOfPages = 0;
-        uint16_t offset = 0;
-        //create a list of mode pages (and any subpages) we care about reading and go through that list reading each one
-        uint8_t listOfModePagesAndSubpages[512] = { 0 };//allow 10 entries in the list...update the loop condition below if this is adjusted
-        //format for page list is first byte = page, 2nd byte = subpage, then increment and look at the next page
-        listOfModePagesAndSubpages[offset] = MP_READ_WRITE_ERROR_RECOVERY;//AWRE, ARRE
-        offset += 2;
-        if (!gotRotationRate && (peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE || peripheralDeviceType == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE))
-        {
-            listOfModePagesAndSubpages[offset] = MP_RIGID_DISK_GEOMETRY;//To get medium rotation rate if we didn't already get it. This page is long obsolete
-            offset += 2;
-        }
-        listOfModePagesAndSubpages[offset] = MP_CACHING;//WCE, DRA, NV_DIS?
-        offset += 2;
-        if (version >= 4)//control mode page didn't get long DST info until SPC2
-        {
-            listOfModePagesAndSubpages[offset] = MP_CONTROL;//Long DST Time
-            offset += 2;
-        }
-        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
-        {
-            listOfModePagesAndSubpages[offset] = MP_CONTROL;//DLC
-            listOfModePagesAndSubpages[offset + 1] = 0x01;
-            offset += 2;
-            //IO Advice hints is in SBC4
-            listOfModePagesAndSubpages[offset] = MP_CONTROL;//IO Advice Hints (can we read this page or not basically)
-            listOfModePagesAndSubpages[offset + 1] = 0x05;
-            offset += 2;
-            //From SAT spec
-            listOfModePagesAndSubpages[offset] = MP_CONTROL;//PATA control (can PATA transfer speeds be changed)
-            listOfModePagesAndSubpages[offset + 1] = 0xF1;
-            offset += 2;
-        }
-        if (version >= 4)//SPC2 added this page
-        {
-            listOfModePagesAndSubpages[offset] = MP_PROTOCOL_SPECIFIC_PORT;//get interface type
-            listOfModePagesAndSubpages[offset + 1] = 0;
-            offset += 2;
-        }
-        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
-        {
-            listOfModePagesAndSubpages[offset] = MP_PROTOCOL_SPECIFIC_PORT;//get SAS phy speed
-            listOfModePagesAndSubpages[offset + 1] = 1;
-            offset += 2;
-        }
-        if (version >= 3)//SPC added this page
-        {
-            listOfModePagesAndSubpages[offset] = MP_POWER_CONDTION;//EPC and older standby/idle timers
-            listOfModePagesAndSubpages[offset + 1] = 0;
-            offset += 2;
-        }
-        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
-        {
-            //ATA Advanced Power Management page from SAT2
-            listOfModePagesAndSubpages[offset] = MP_POWER_CONDTION;//ATA APM
-            listOfModePagesAndSubpages[offset + 1] = 0xF1;//reading this for the ATA APM settings (check if supported really)
-            offset += 2;
-        }
-        if (version >= 3)//Added in SPC
-        {
-            listOfModePagesAndSubpages[offset] = MP_INFORMATION_EXCEPTIONS_CONTROL;//SMART/informational exceptions & MRIE value. Dexcept? Warnings?
-            listOfModePagesAndSubpages[offset + 1] = 0;
-            offset += 2;
-        }
-        if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && version >= 5)//SPC3 added subpage codes
-        {
-            listOfModePagesAndSubpages[offset] = MP_BACKGROUND_CONTROL;//EN_BMS, EN_PS
-            listOfModePagesAndSubpages[offset + 1] = 0x01;
-            offset += 2;
-        }
-        numberOfPages = offset / 2;
-        uint16_t modeIter = 0;
-        uint8_t protocolIdentifier = 0;
-        for (uint16_t pageCounter = 0; modeIter < offset && pageCounter < numberOfPages; modeIter += 2, ++pageCounter)
-        {
-            uint8_t pageCode = listOfModePagesAndSubpages[modeIter];
-            uint8_t subPageCode = listOfModePagesAndSubpages[modeIter + 1];
-            switch (pageCode)
-            {
-            case MP_READ_WRITE_ERROR_RECOVERY:
-                switch (subPageCode)
-                {
-                case 0:
-                    //check if AWRE and ARRE are supported or can be changed before checking if they are enabled or not.
-                {
-                    char* awreString = NULL;
-                    char* arreString = NULL;
-                    uint32_t awreStringLength = 0;
-                    uint32_t arreStringLength = 0;
-                    uint8_t readWriteErrorRecovery[12 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false, defaultsRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 12 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, readWriteErrorRecovery))
-                    {
-                        defaultsRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, readWriteErrorRecovery))
-                    {
-                        defaultsRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                    }
-                    if (defaultsRead)
-                    {
-                        //awre
-                        if (readWriteErrorRecovery[headerLength + 2] & BIT7)
-                        {
-                            if (!awreString)
-                            {
-                                awreStringLength = 30;
-                                awreString = C_CAST(char*, calloc(awreStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                awreStringLength = 30;
-                                char* temp = C_CAST(char*, realloc(awreString, awreStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    awreString = temp;
-                                    memset(awreString, 0, awreStringLength);
-                                }
-                            }
-                            if (awreString && awreStringLength >= 30)
-                            {
-                                snprintf(awreString, awreStringLength, "Automatic Write Reassignment");
-                            }
-                        }
-                        //arre
-                        if (readWriteErrorRecovery[headerLength + 2] & BIT6)
-                        {
-                            if (!arreString)
-                            {
-                                arreStringLength = 30;
-                                arreString = C_CAST(char*, calloc(arreStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                arreStringLength = 30;
-                                char* temp = C_CAST(char*, realloc(arreString, arreStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    arreString = temp;
-                                    memset(arreString, 0, arreStringLength);
-                                }
-                            }
-                            if (arreString && arreStringLength >= 30)
-                            {
-                                snprintf(arreString, arreStringLength, "Automatic Read Reassignment");
-                            }
-                        }
-                    }
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 12 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, readWriteErrorRecovery))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (readWriteErrorRecovery[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, readWriteErrorRecovery))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (readWriteErrorRecovery[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    if (pageRead)
-                    {
-                        //awre
-                        if (readWriteErrorRecovery[headerLength + 2] & BIT7)
-                        {
-                            if (!awreString)
-                            {
-                                awreStringLength = 40;
-                                awreString = C_CAST(char*, calloc(awreStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                awreStringLength = 40;
-                                char* temp = C_CAST(char*, realloc(awreString, awreStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    awreString = temp;
-                                    memset(awreString, 0, awreStringLength);
-                                }
-                            }
-                            if (awreString && awreStringLength >= 40)
-                            {
-                                snprintf(awreString, awreStringLength, "Automatic Write Reassignment [Enabled]");
-                            }
-                        }
-                        //arre
-                        if (readWriteErrorRecovery[headerLength + 2] & BIT6)
-                        {
-                            if (!arreString)
-                            {
-                                arreStringLength = 40;
-                                arreString = C_CAST(char*, calloc(arreStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                arreStringLength = 40;
-                                char* temp = C_CAST(char*, realloc(arreString, arreStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    arreString = temp;
-                                    memset(arreString, 0, arreStringLength);
-                                }
-                            }
-                            if (arreString && arreStringLength >= 40)
-                            {
-                                snprintf(arreString, arreStringLength, "Automatic Read Reassignment [Enabled]");
-                            }
-                        }
-                    }
-                    if (awreString)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, awreString);
-                        
-                    }
-                    if (arreString)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, arreString);
-                        
-                    }
-                    safe_Free(awreString)
-                    safe_Free(arreString)
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case MP_RIGID_DISK_GEOMETRY:
-                switch (subPageCode)
-                {
-                case 0:
-                    if (!gotRotationRate)
-                    {
-                        uint8_t rigidGeometry[24 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                        bool pageRead = false;
-                        uint8_t headerLength = 0;
-                        if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 24 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, rigidGeometry))
-                        {
-                            pageRead = true;
-                            headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                            if (rigidGeometry[3] & BIT7)
-                            {
-                                driveInfo->isWriteProtected = true;
-                            }
-                        }
-                        else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 24 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, rigidGeometry))
-                        {
-                            pageRead = true;
-                            headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                            if (rigidGeometry[2] & BIT7)
-                            {
-                                driveInfo->isWriteProtected = true;
-                            }
-
-                        }
-                        if (pageRead)
-                        {
-                            driveInfo->rotationRate = M_BytesTo2ByteValue(rigidGeometry[headerLength + 20], rigidGeometry[headerLength + 21]);
-                        }
-                    }
-                    break;
-                default:
-                    break;
-                }
-                break;
-            case MP_CACHING:
-                switch (subPageCode)
-                {
-                case 0:
-                {
-                    uint8_t cachingPage[20 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 20 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, cachingPage))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (cachingPage[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 20 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, cachingPage))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (cachingPage[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    if (pageRead)
-                    {
-                        //NV_DIS
-                        driveInfo->nvCacheEnabled = !M_ToBool(cachingPage[headerLength + 13] & BIT0);//bit being set means disabled the cache, being set to 0 means cache is enabled.
-
-                        //WCE
-                        driveInfo->writeCacheEnabled = M_ToBool(cachingPage[headerLength + 2] & BIT2);
-                        if (driveInfo->writeCacheEnabled)
-                        {
-                            driveInfo->writeCacheSupported = true;
-                        }
-                        //DRA
-                        driveInfo->readLookAheadEnabled = !M_ToBool(cachingPage[headerLength + 12] & BIT5);
-                        if (driveInfo->readLookAheadEnabled)
-                        {
-                            driveInfo->readLookAheadSupported = true;
-                        }
-                        //check for supported if it's not already set
-                        if (!driveInfo->writeCacheSupported || !driveInfo->readLookAheadSupported)
-                        {
-                            //we didn't get is supported from above, so check the changable page
-                            memset(cachingPage, 0, 20 + MODE_PARAMETER_HEADER_10_LEN);
-                            pageRead = false;//reset to false before reading the changable values page
-                            if (version >= 2 && headerLength == MODE_PARAMETER_HEADER_10_LEN && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 20 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CHANGABLE_VALUES, cachingPage))
-                            {
-                                pageRead = true;
-                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                            }
-                            else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 20 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CHANGABLE_VALUES, cachingPage))
-                            {
-                                pageRead = true;
-                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                            }
-                            if (pageRead)
-                            {
-                                //changable dictates if a bit can be changed or not. So unlike above where it is indicating state, this indicates if it is supported or can be changed at all from the current state
-                                driveInfo->writeCacheSupported = M_ToBool(cachingPage[headerLength + 2] & BIT2);
-                                driveInfo->readLookAheadSupported = M_ToBool(cachingPage[headerLength + 12] & BIT5);
-                            }
-                        }
-                    }
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case MP_CONTROL:
-                switch (subPageCode)
-                {
-                case 0://control mode page. No subpage
-                {
-                    uint8_t controlPage[MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, controlPage))
-                    {
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        pageRead = true;
-                        if (controlPage[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, controlPage))
-                    {
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        pageRead = true;
-                        if (controlPage[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    if (pageRead)
-                    {
-                        //check the page code and page length
-                        if (M_GETBITRANGE(controlPage[headerLength + 0], 5, 0) == MP_CONTROL)
-                        {
-                            //check length since the page needs to be long enough for this data. Earlier specs this page was shorter
-                            if (controlPage[headerLength + 1] == 0x0A)
-                            {
-                                if (driveInfo->longDSTTimeMinutes == 0)//checking for zero since we may have already gotten this from the Extended Inquiry VPD page
-                                {
-                                    driveInfo->longDSTTimeMinutes = ((M_BytesTo2ByteValue(controlPage[headerLength + 10], controlPage[headerLength + 11]) + 60) - 1) / 60;//rounding up to nearest minute
-                                }
-                            }
-                        }
-                    }
-                }
-                break;
-                case 1://controlExtension
-                {
-                    //check if DLC is supported or can be changed before checking if they are enabled or not.
-                    char* dlcString = NULL;
-                    uint32_t dlcStringLength = 0;
-                    uint8_t controlExtensionPage[MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false, defaultsRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, controlExtensionPage))
-                    {
-                        defaultsRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, controlExtensionPage))
-                    {
-                        defaultsRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                    }
-                    //make sure we got the expected format!
-                    if (controlExtensionPage[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (controlExtensionPage[headerLength + 1] != 0x01)
-                        {
-                            defaultsRead = false;
-                        }
-                    }
-                    else
-                    {
-                        defaultsRead = false;
-                    }
-                    if (defaultsRead)
-                    {
-                        //dlc
-                        if (controlExtensionPage[headerLength + 4] & BIT3)
-                        {
-                            if (!dlcString)
-                            {
-                                dlcStringLength = 50;
-                                dlcString = C_CAST(char*, calloc(dlcStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                dlcStringLength = 50;
-                                char* temp = C_CAST(char*, realloc(dlcString, dlcStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    dlcString = temp;
-                                    memset(dlcString, 0, 50);
-                                }
-                            }
-                            if (dlcString && dlcStringLength >= 50)
-                            {
-                                snprintf(dlcString, dlcStringLength, "Device Life Control");
-                            }
-                        }
-                    }
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, controlExtensionPage))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (controlExtensionPage[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, MP_CONTROL_EXTENSION_LEN + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, controlExtensionPage))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (controlExtensionPage[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    //make sure we got the expected format!
-                    if (controlExtensionPage[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (controlExtensionPage[headerLength + 1] != 0x01)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        //dlc
-                        if (controlExtensionPage[headerLength + 4] & BIT3)
-                        {
-                            if (!dlcString)
-                            {
-                                dlcStringLength = 50;
-                                dlcString = C_CAST(char*, calloc(dlcStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                dlcStringLength = 50;
-                                char* temp = C_CAST(char*, realloc(dlcString, dlcStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    dlcString = temp;
-                                    memset(dlcString, 0, 50);
-                                }
-                            }
-                            if (dlcString && dlcStringLength >= 50)
-                            {
-                                snprintf(dlcString, dlcStringLength, "Device Life Control [Enabled]");
-                            }
-                        }
-                    }
-                    if (dlcString)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, dlcString);
-                    }
-                    safe_Free(dlcString)
-                }
-                break;
-                case 0x05://IO Advice Hints
-                {
-                    uint8_t ioAdviceHints[1040 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 1040 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, ioAdviceHints))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (ioAdviceHints[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    //make sure we got the expected format!
-                    if (ioAdviceHints[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (ioAdviceHints[headerLength + 1] != 0x05)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        //check if any of the Hints valid bits are set so we know it is enabled. TODO: add checking for the cache enabled bit?
-                        bool valid = false;
-                        for (uint16_t iter = headerLength + 15; iter < (1040 + headerLength); iter += 16)
-                        {
-                            uint8_t hintsMode = (ioAdviceHints[0] & 0xC0) >> 6;
-                            if (hintsMode == 0)
-                            {
-                                valid = true;
-                                break;//we found at least one, so get out of the loop.
-                            }
-                        }
-                        if (valid)
-                        {
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IO Advice Hints [Enabled]");
-                        }
-                        else
-                        {
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "IO Advice Hints");
-                            
-                        }
-                    }
-                }
-                break;
-                case 0xF1://PATA control
-                    //if we can read this page, then the device supports PATA Control
-                {
-                    uint8_t pataControl[8 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 8 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, pataControl))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 8 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, pataControl))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                    }
-                    //make sure we got the expected format!
-                    if (pataControl[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (pataControl[headerLength + 1] != 0xF1)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PATA Control");
-                    }
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case MP_PROTOCOL_SPECIFIC_PORT:
-                switch (subPageCode)
-                {
-                case 0x00://Protocol specific port (Use this to get whether SAS or FC or SCSI, etc)
-                {
-                    uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (protocolSpecificPort[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (protocolSpecificPort[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    if (pageRead)
-                    {
-                        protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 2]);
-                    }
-                }
-                break;
-                case 0x01://Phy control and discover mode page (SAS)
-                {
-                    uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (protocolSpecificPort[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (protocolSpecificPort[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    //make sure we got the expected format!
-                    if (protocolSpecificPort[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (protocolSpecificPort[headerLength + 1] != 0x01)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 5]);
-                        switch (protocolIdentifier)
-                        {
-                        case 0x0://Fiber Channel
-                            driveInfo->interfaceSpeedInfo.speedIsValid = true;
-                            driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_FIBRE;
-                            break;
-                        case 0x1://parallel scsi
-                        case 0x2://serial storage architecture scsi-3 protocol
-                        case 0x3://IEEE 1394
-                        case 0x4://RDMA 
-                        case 0x5://iSCSI
-                            break;
-                        case 0x6:
-                        {
-                            driveInfo->interfaceSpeedInfo.speedIsValid = true;
-                            driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_SERIAL;
-                            uint16_t phyDescriptorIter = headerLength + 8;
-                            uint16_t phyPageLen = M_BytesTo2ByteValue(protocolSpecificPort[headerLength + 2], protocolSpecificPort[headerLength + 3]);
-                            driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts = protocolSpecificPort[headerLength + 7];
-                            uint8_t phyCount = 0;
-                            //now we need to go through the descriptors for each phy
-                            for (; phyDescriptorIter < C_CAST(uint16_t, M_Min(C_CAST(uint16_t, phyPageLen + headerLength), C_CAST(uint16_t, LEGACY_DRIVE_SEC_SIZE + headerLength))) && phyCount < C_CAST(uint8_t, MAX_PORTS); phyDescriptorIter += 48, phyCount++)
-                            {
-                                //uint8_t phyIdentifier = modePages[phyDescriptorIter + 1];
-                                switch (M_Nibble0(protocolSpecificPort[phyDescriptorIter + 5]))
-                                {
-                                case 0x8://1.5 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 1;
-                                    break;
-                                case 0x9://3.0 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 2;
-                                    break;
-                                case 0xA://6.0 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 3;
-                                    break;
-                                case 0xB://12.0 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 4;
-                                    break;
-                                case 0xC:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 5;
-                                    break;
-                                case 0xD:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 6;
-                                    break;
-                                case 0xE:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 7;
-                                    break;
-                                case 0xF:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 8;
-                                    break;
-                                default:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[phyCount] = 0;
-                                    break;
-                                }
-                                switch (M_Nibble0(protocolSpecificPort[phyDescriptorIter + 33]))
-                                {
-                                case 0x8://1.5 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 1;
-                                    break;
-                                case 0x9://3.0 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 2;
-                                    break;
-                                case 0xA://6.0 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 3;
-                                    break;
-                                case 0xB://12.0 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 4;
-                                    break;
-                                case 0xC://22.5 Gb/s
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 5;
-                                    break;
-                                case 0xD:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 6;
-                                    break;
-                                case 0xE:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 7;
-                                    break;
-                                case 0xF:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 8;
-                                    break;
-                                default:
-                                    driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[phyCount] = 0;
-                                    break;
-                                }
-                            }
-                        }
-                        break;
-                        case 0x7://automation/drive interface transport
-                        case 0x8://AT Attachement interface
-                        case 0x9://UAS
-                        case 0xA://SCSI over PCI Express
-                        case 0xB://PCI Express protocols
-                        case 0xF://No specific protocol
-                        default://reserved
-                            break;
-                        }
-                    }
-                }
-                break;
-                case 0x03://Negotiated Settings (Parallel SCSI)
-                {
-                    uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (protocolSpecificPort[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (protocolSpecificPort[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    //make sure we got the expected format!
-                    if (protocolSpecificPort[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (protocolSpecificPort[headerLength + 1] != 0x01)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 5]);
-                        switch (protocolIdentifier)
-                        {
-                        case 0x0://Fiber Channel
-                            break;
-                        case 0x1://parallel scsi
-                        {
-                            //get the negotiated speed
-                            uint16_t scalingMultiplier = 0;
-                            uint8_t transferPeriodFactor = protocolSpecificPort[headerLength + 6];
-                            uint8_t transferWidthExponent = protocolSpecificPort[headerLength + 9];
-                            switch (transferPeriodFactor)
-                            {
-                            case 0x07:
-                                scalingMultiplier = 320;
-                                break;
-                            case 0x08:
-                                scalingMultiplier = 160;
-                                break;
-                            case 0x09:
-                                scalingMultiplier = 80;
-                                break;
-                            case 0x0A:
-                                scalingMultiplier = 40;
-                                break;
-                            case 0x0B:
-                                scalingMultiplier = 40;
-                                break;
-                            case 0x0C:
-                                scalingMultiplier = 20;
-                                break;
-                            default:
-                                //need to do an if here...
-                                if (transferPeriodFactor >= 0x0D && transferPeriodFactor <= 0x18)
-                                {
-                                    scalingMultiplier = 20;
-                                }
-                                else if (transferPeriodFactor >= 0x19 && transferPeriodFactor <= 0x31)
-                                {
-                                    scalingMultiplier = 10;
-                                }
-                                else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
-                                {
-                                    scalingMultiplier = 5;
-                                }
-                                break;
-                            }
-                            if (scalingMultiplier > 0)
-                            {
-                                driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
-                                driveInfo->interfaceSpeedInfo.speedIsValid = true;
-                                driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-                                driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = C_CAST(uint32_t, scalingMultiplier) * (C_CAST(uint32_t, transferWidthExponent) + UINT32_C(1));
-                                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
-                                driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                            }
-                        }
-                        break;
-                        case 0x2://serial storage architecture scsi-3 protocol
-                        case 0x3://IEEE 1394
-                        case 0x4://RDMA 
-                        case 0x5://iSCSI
-                        case 0x6:
-                        default:
-                            break;
-                        }
-                    }
-                }
-                break;
-                case 0x04://Report Transfer Capabilities (Parallel SCSI)
-                {
-                    uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, LEGACY_DRIVE_SEC_SIZE + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (protocolSpecificPort[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, UINT8_MAX, subPageCode, true, MPC_CURRENT_VALUES, protocolSpecificPort))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (protocolSpecificPort[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    //make sure we got the expected format!
-                    if (protocolSpecificPort[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (protocolSpecificPort[headerLength + 1] != 0x01)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 5]);
-                        switch (protocolIdentifier)
-                        {
-                        case 0x0://Fiber Channel
-                            break;
-                        case 0x1://parallel scsi
-                        {
-                            //get the max speed
-                            uint16_t scalingMultiplier = 0;
-                            uint8_t transferPeriodFactor = protocolSpecificPort[headerLength + 6];
-                            uint8_t transferWidthExponent = protocolSpecificPort[headerLength + 9];
-                            switch (transferPeriodFactor)
-                            {
-                            case 0x07:
-                                scalingMultiplier = 320;
-                                break;
-                            case 0x08:
-                                scalingMultiplier = 160;
-                                break;
-                            case 0x09:
-                                scalingMultiplier = 80;
-                                break;
-                            case 0x0A:
-                                scalingMultiplier = 40;
-                                break;
-                            case 0x0B:
-                                scalingMultiplier = 40;
-                                break;
-                            case 0x0C:
-                                scalingMultiplier = 20;
-                                break;
-                            default:
-                                //need to do an if here...
-                                if (transferPeriodFactor >= 0x0D && transferPeriodFactor <= 0x18)
-                                {
-                                    scalingMultiplier = 20;
-                                }
-                                else if (transferPeriodFactor >= 0x19 && transferPeriodFactor <= 0x31)
-                                {
-                                    scalingMultiplier = 10;
-                                }
-                                else if (transferPeriodFactor >= 0x32 /* && transferPeriodFactor <= 0xFF */)
-                                {
-                                    scalingMultiplier = 5;
-                                }
-                                break;
-                            }
-                            if (scalingMultiplier > 0)
-                            {
-                                driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
-                                driveInfo->interfaceSpeedInfo.speedIsValid = true;
-                                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = C_CAST(uint32_t, scalingMultiplier) * (C_CAST(uint32_t, transferWidthExponent) + UINT32_C(1));
-                                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
-                                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                            }
-                        }
-                        break;
-                        case 0x2://serial storage architecture scsi-3 protocol
-                        case 0x3://IEEE 1394
-                        case 0x4://RDMA 
-                        case 0x5://iSCSI
-                        case 0x6:
-                        default:
-                            break;
-                        }
-                    }
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case MP_POWER_CONDTION:
-                switch (subPageCode)
-                {
-                case 0x00://EPC
-                {
-                    char* epcFeatureString = NULL;
-                    uint32_t epcFeatureStringLength = 0;
-                    //read the default values to check if it's supported...then try the current page...
-                    bool readDefaults = false;
-                    uint8_t powerConditions[40 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t mpHeaderLen = MODE_PARAMETER_HEADER_10_LEN;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 40 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, powerConditions))
-                    {
-                        readDefaults = true;
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 40 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, powerConditions))
-                    {
-                        mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
-                        readDefaults = true;
-                    }
-                    if (readDefaults)
-                    {
-                        if (powerConditions[1 + mpHeaderLen] > 0x0A)
-                        {
-                            if (!epcFeatureString)
-                            {
-                                epcFeatureStringLength = 4;
-                                epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                epcFeatureStringLength = 4;
-                                char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    epcFeatureString = temp;
-                                    memset(epcFeatureString, 0, epcFeatureStringLength);
-                                }
-                            }
-                            if (epcFeatureString && epcFeatureStringLength >= 4)
-                            {
-                                snprintf(epcFeatureString, epcFeatureStringLength, "EPC");
-                            }
-                        }
-                        else
-                        {
-                            if (!epcFeatureString)
-                            {
-                                epcFeatureStringLength = 17;
-                                epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                epcFeatureStringLength = 17;
-                                char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    epcFeatureString = temp;
-                                    memset(epcFeatureString, 0, epcFeatureStringLength);
-                                }
-                            }
-                            if (epcFeatureString && epcFeatureStringLength >= 17)
-                            {
-                                snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions");
-                            }
-                        }
-                    }
-                    //Now read the current page to see if it's more than just supported :)
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 40 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, powerConditions))
-                    {
-                        pageRead = true;
-                        if (powerConditions[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 40 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, powerConditions))
-                    {
-                        mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
-                        pageRead = true;
-                        if (powerConditions[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    if (pageRead)
-                    {
-                        if (powerConditions[1 + mpHeaderLen] > 0x0A &&
-                            (powerConditions[2 + mpHeaderLen] & BIT0 ||
-                                powerConditions[3 + mpHeaderLen] & BIT0 ||
-                                powerConditions[3 + mpHeaderLen] & BIT1 ||
-                                powerConditions[3 + mpHeaderLen] & BIT2 ||
-                                powerConditions[3 + mpHeaderLen] & BIT3
-                                )
-                            )
-                        {
-                            if (!epcFeatureString)
-                            {
-                                epcFeatureStringLength = 14;
-                                epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                epcFeatureStringLength = 14;
-                                char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    epcFeatureString = temp;
-                                    memset(epcFeatureString, 0, epcFeatureStringLength);
-                                }
-                            }
-                            if (epcFeatureString && epcFeatureStringLength >= 14)
-                            {
-                                snprintf(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]");
-                            }
-                        }
-                        else if (powerConditions[3 + mpHeaderLen] & BIT0 || powerConditions[3 + mpHeaderLen] & BIT1)
-                        {
-                            if (!epcFeatureString)
-                            {
-                                epcFeatureStringLength = 27;
-                                epcFeatureString = C_CAST(char*, calloc(epcFeatureStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                epcFeatureStringLength = 27;
-                                char* temp = C_CAST(char*, realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    epcFeatureString = temp;
-                                    memset(epcFeatureString, 0, 27);
-                                }
-                            }
-                            if (epcFeatureString && epcFeatureStringLength >= 27)
-                            {
-                                snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions [Enabled]");
-                            }
-                        }
-                    }
-                    if (epcFeatureString)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, epcFeatureString);
-                    }
-                    safe_Free(epcFeatureString)
-                }
-                break;
-                case 0xF1://ata power conditions
-                {
-                    uint8_t ataPowerConditions[16 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t mpHeaderLen = MODE_PARAMETER_HEADER_10_LEN;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 16 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, ataPowerConditions))
-                    {
-                        pageRead = true;
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 16 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, ataPowerConditions))
-                    {
-                        mpHeaderLen = MODE_PARAMETER_HEADER_6_LEN;
-                        pageRead = true;
-                    }
-                    //make sure we got the expected format!
-                    if (ataPowerConditions[mpHeaderLen + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (ataPowerConditions[mpHeaderLen + 1] != 0xF1)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        if (ataPowerConditions[mpHeaderLen + 0x05] & BIT0)
-                        {
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM [Enabled]");
-                        }
-                        else
-                        {
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "APM");
-                        }
-                    }
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            case MP_INFORMATION_EXCEPTIONS_CONTROL:
-                switch (subPageCode)
-                {
-                case 0:
-                {
-                    uint8_t informationalExceptions[12 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 12 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, informationalExceptions))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (informationalExceptions[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 12 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, informationalExceptions))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (informationalExceptions[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    if (pageRead)
-                    {
-                        char temp[MAX_FEATURE_LENGTH] = { 0 };
-                        snprintf(temp, MAX_FEATURE_LENGTH, "Informational Exceptions [Mode %"PRIu8"]", M_Nibble0(informationalExceptions[headerLength + 3]));
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, temp);
-                        
-                    }
-                }
-                break;
-                case 0x01://Background control
-                {
-                    //check if DLC is supported or can be changed before checking if they are enabled or not.
-                    char* bmsString = NULL;
-                    char* bmsPSString = NULL;
-                    uint32_t bmsStringLength = 0;
-                    uint32_t bmsPSStringLength = 0;
-                    uint8_t backgroundControl[16 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };//need to include header length in this
-                    bool pageRead = false, defaultsRead = false;
-                    uint8_t headerLength = 0;
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 16 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_DEFAULT_VALUES, backgroundControl))
-                    {
-                        defaultsRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 16 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_DEFAULT_VALUES, backgroundControl))
-                    {
-                        defaultsRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                    }
-                    //make sure we got the expected format!
-                    if (backgroundControl[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (backgroundControl[headerLength + 1] != 0xF1)
-                        {
-                            defaultsRead = false;
-                        }
-                    }
-                    else
-                    {
-                        defaultsRead = false;
-                    }
-                    if (defaultsRead)
-                    {
-                        //bms
-                        if (backgroundControl[headerLength + 4] & BIT0)
-                        {
-                            if (!bmsString)
-                            {
-                                bmsStringLength = 50;
-                                bmsString = C_CAST(char*, calloc(bmsStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                bmsStringLength = 50;
-                                char* temp = C_CAST(char*, realloc(bmsString, bmsStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    bmsString = temp;
-                                    memset(bmsString, 0, bmsStringLength);
-                                }
-                            }
-                            if (bmsString && bmsStringLength >= 50)
-                            {
-                                snprintf(bmsString, bmsStringLength, "Background Media Scan");
-                            }
-                        }
-                        //bms-ps
-                        if (backgroundControl[headerLength + 5] & BIT0)
-                        {
-                            if (!bmsPSString)
-                            {
-                                bmsPSStringLength = 50;
-                                bmsPSString = C_CAST(char*, calloc(bmsPSStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                bmsPSStringLength = 50;
-                                char* temp = C_CAST(char*, realloc(bmsPSString, bmsPSStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    bmsPSString = temp;
-                                    memset(bmsPSString, 0, bmsPSStringLength);
-                                }
-                            }
-                            if (bmsPSString && bmsPSStringLength >= 50)
-                            {
-                                snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan");
-                            }
-                        }
-                    }
-                    if (version >= 2 && SUCCESS == scsi_Mode_Sense_10(device, pageCode, 16 + MODE_PARAMETER_HEADER_10_LEN, subPageCode, true, false, MPC_CURRENT_VALUES, backgroundControl))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                        if (backgroundControl[3] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    else if (SUCCESS == scsi_Mode_Sense_6(device, pageCode, 16 + MODE_PARAMETER_HEADER_6_LEN, subPageCode, true, MPC_CURRENT_VALUES, backgroundControl))
-                    {
-                        pageRead = true;
-                        headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                        if (backgroundControl[2] & BIT7)
-                        {
-                            driveInfo->isWriteProtected = true;
-                        }
-                    }
-                    //make sure we got the expected format!
-                    if (backgroundControl[headerLength + 0] & BIT6)
-                    {
-                        //subpage format valid!
-                        //check subpage code is valid!
-                        if (backgroundControl[headerLength + 1] != 0xF1)
-                        {
-                            pageRead = false;
-                        }
-                    }
-                    else
-                    {
-                        pageRead = false;
-                    }
-                    if (pageRead)
-                    {
-                        //bms
-                        if (backgroundControl[headerLength + 4] & BIT0)
-                        {
-                            if (!bmsString)
-                            {
-                                bmsStringLength = 50;
-                                bmsString = C_CAST(char*, calloc(bmsStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                bmsStringLength = 50;
-                                char* temp = C_CAST(char*, realloc(bmsString, bmsStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    bmsString = temp;
-                                    memset(bmsString, 0, bmsStringLength);
-                                }
-                            }
-                            if (bmsString && bmsStringLength >= 50)
-                            {
-                                snprintf(bmsString, bmsStringLength, "Background Media Scan [Enabled]");
-                            }
-                        }
-                        //bms-ps
-                        if (backgroundControl[headerLength + 5] & BIT0)
-                        {
-                            if (!bmsPSString)
-                            {
-                                bmsPSStringLength = 50;
-                                bmsPSString = C_CAST(char*, calloc(bmsPSStringLength, sizeof(char)));
-                            }
-                            else
-                            {
-                                bmsPSStringLength = 50;
-                                char* temp = C_CAST(char*, realloc(bmsPSString, bmsPSStringLength * sizeof(char)));
-                                if (temp)
-                                {
-                                    bmsPSString = temp;
-                                    memset(bmsPSString, 0, bmsPSStringLength);
-                                }
-                            }
-                            if (bmsPSString && bmsPSStringLength >= 50)
-                            {
-                                snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan [Enabled]");
-                            }
-                        }
-                    }
-                    if (bmsString)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, bmsString);
-                    }
-                    if (bmsPSString)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, bmsPSString);
-                    }
-                    safe_Free(bmsString)
-                        safe_Free(bmsPSString)
-                }
-                break;
-                default:
-                    break;
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
     if (!driveInfo->interfaceSpeedInfo.speedIsValid)
     {
         //these old standards didn't report it, but we can reasonably guess the speed
-        if (isSCSI1drive)
+        if (scsiInfo.version == 1)
         {
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
             driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
@@ -5435,7 +6096,7 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
             snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-5");
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
         }
-        if (isSCSI2drive)
+        else if (scsiInfo.version >= 2 && scsiInfo.version <= 4)
         {
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
             driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
@@ -5445,404 +6106,431 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
         }
     }
 
-    //skip diag pages on USB/IEEE1394 as it is extremly unlikely these requests will be handled properly and unlikely that any standard diag pages will be supported.-TJE
-    if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+    get_SCSI_Diagnostic_Data(device, driveInfo, &scsiInfo);
+
+    get_SCSI_Report_Op_Codes_Data(device, driveInfo, &scsiInfo);
+
+    driveInfo->lowCurrentSpinupValid = false;
+    return ret;
+}
+
+//currently using the bitfields in here, other commands are sometimes run to read additional information
+//may need to reorganize more in the future to eliminate needing to pass in tDevice -TJE
+static int get_NVMe_Controller_Identify_Data(tDevice *device, ptrDriveInformationNVMe driveInfo, uint8_t* nvmeIdentifyData, uint32_t identifyDataLength)
+{
+    int ret = SUCCESS;
+    if (!device || !driveInfo || !nvmeIdentifyData || identifyDataLength != NVME_IDENTIFY_DATA_LEN)
     {
-        //Read supported Diagnostic parameters and check for rebuild assist. (need SCSI2 and higher since before that, this is all vendor unique)
-        uint8_t* supportedDiagnostics = tempBuf;
-        memset(supportedDiagnostics, 0, 1024);
-        bool pageCodeValid = false;
-        uint8_t pageCode = 0;
-        if (version >= 3)//PCV bit and page code fields introduced in SPC specification
+        return BAD_PARAMETER;
+    }
+    //MN
+    memcpy(driveInfo->controllerData.modelNumber, &nvmeIdentifyData[24], 40);
+    remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.modelNumber);
+    //SN
+    memcpy(driveInfo->controllerData.serialNumber, &nvmeIdentifyData[4], 20);
+    remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.serialNumber);
+    //FW
+    memcpy(driveInfo->controllerData.firmwareRevision, &nvmeIdentifyData[64], 8);
+    remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.firmwareRevision);
+    //vid
+    driveInfo->controllerData.pciVendorID = M_BytesTo2ByteValue(nvmeIdentifyData[1], nvmeIdentifyData[0]);
+    //ssvid
+    driveInfo->controllerData.pciSubsystemVendorID = M_BytesTo2ByteValue(nvmeIdentifyData[3], nvmeIdentifyData[2]);
+    //IEEE OUI
+    driveInfo->controllerData.ieeeOUI = M_BytesTo4ByteValue(0, nvmeIdentifyData[75], nvmeIdentifyData[74], nvmeIdentifyData[73]);
+    //controller ID
+    driveInfo->controllerData.controllerID = M_BytesTo2ByteValue(nvmeIdentifyData[79], nvmeIdentifyData[78]);
+    //version
+    driveInfo->controllerData.majorVersion = M_BytesTo2ByteValue(nvmeIdentifyData[83], nvmeIdentifyData[82]);
+    driveInfo->controllerData.minorVersion = nvmeIdentifyData[81];
+    driveInfo->controllerData.tertiaryVersion = nvmeIdentifyData[80];
+    driveInfo->controllerData.numberOfPowerStatesSupported = nvmeIdentifyData[263] + 1;
+    if (nvmeIdentifyData[96] & BIT0)
+    {
+        driveInfo->controllerData.hostIdentifierSupported = true;
+        //host identifier is supported
+        nvmeFeaturesCmdOpt getHostIdentifier;
+        memset(&getHostIdentifier, 0, sizeof(nvmeFeaturesCmdOpt));
+        getHostIdentifier.fid = 0x81;
+        getHostIdentifier.sel = 0;//current data
+        uint8_t hostIdentifier[16] = { 0 };
+        getHostIdentifier.dataPtr = hostIdentifier;
+        getHostIdentifier.dataLength = 16;
+        //TODO: Need to debug why this doesn't work right now - TJE
+        if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
         {
-            pageCodeValid = true;
-            pageCode = DIAG_PAGE_SUPPORTED_PAGES;
-        }
-        //transfer only 4 bytes to the drive for the page format data so we can read the supported pages, then read back the supported list with the receive diagnostics command
-        if (version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
-        {
-            uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
-            for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)); ++iter)
+            memcpy(&driveInfo->controllerData.hostIdentifier, hostIdentifier, 16);
+            if (getHostIdentifier.featSetGetValue & BIT0)
             {
-                switch (supportedDiagnostics[iter])
+                driveInfo->controllerData.hostIdentifierIs128Bits = true;
+            }
+        }
+    }
+    //fguid (This field is big endian)
+    driveInfo->controllerData.fguid[0] = nvmeIdentifyData[112];
+    driveInfo->controllerData.fguid[1] = nvmeIdentifyData[113];
+    driveInfo->controllerData.fguid[2] = nvmeIdentifyData[114];
+    driveInfo->controllerData.fguid[3] = nvmeIdentifyData[115];
+    driveInfo->controllerData.fguid[4] = nvmeIdentifyData[116];
+    driveInfo->controllerData.fguid[5] = nvmeIdentifyData[117];
+    driveInfo->controllerData.fguid[6] = nvmeIdentifyData[118];
+    driveInfo->controllerData.fguid[7] = nvmeIdentifyData[119];
+    driveInfo->controllerData.fguid[8] = nvmeIdentifyData[120];
+    driveInfo->controllerData.fguid[9] = nvmeIdentifyData[121];
+    driveInfo->controllerData.fguid[10] = nvmeIdentifyData[122];
+    driveInfo->controllerData.fguid[11] = nvmeIdentifyData[123];
+    driveInfo->controllerData.fguid[12] = nvmeIdentifyData[124];
+    driveInfo->controllerData.fguid[13] = nvmeIdentifyData[125];
+    driveInfo->controllerData.fguid[14] = nvmeIdentifyData[126];
+    driveInfo->controllerData.fguid[15] = nvmeIdentifyData[127];
+    //warning composite temperature
+    driveInfo->controllerData.warningCompositeTemperatureThreshold = M_BytesTo2ByteValue(nvmeIdentifyData[267], nvmeIdentifyData[266]);
+    //critical composite temperature
+    driveInfo->controllerData.criticalCompositeTemperatureThreshold = M_BytesTo2ByteValue(nvmeIdentifyData[269], nvmeIdentifyData[268]);
+    //total nvm capacity
+    for (uint8_t i = 0; i < 16; ++i)
+    {
+        driveInfo->controllerData.totalNVMCapacity[i] = nvmeIdentifyData[295 + i];
+    }
+    driveInfo->controllerData.totalNVMCapacityD = convert_128bit_to_double(&driveInfo->controllerData.totalNVMCapacity[0]);
+    //unallocated nvm capacity
+    for (uint8_t i = 0; i < 16; ++i)
+    {
+        driveInfo->controllerData.unallocatedNVMCapacity[i] = nvmeIdentifyData[296 + i];
+    }
+    driveInfo->controllerData.unallocatedNVMCapacityD = convert_128bit_to_double(&driveInfo->controllerData.unallocatedNVMCapacity[0]);
+    //DST info
+    if (nvmeIdentifyData[256] & BIT4)//DST command is supported
+    {
+        //set Long DST Time before reading the log
+        driveInfo->controllerData.longDSTTimeMinutes = M_BytesTo2ByteValue(nvmeIdentifyData[317], nvmeIdentifyData[316]);
+        //Read the NVMe DST log
+        uint8_t nvmeDSTLog[564] = { 0 };
+        nvmeGetLogPageCmdOpts dstLogOpts;
+        memset(&dstLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+        dstLogOpts.addr = nvmeDSTLog;
+        dstLogOpts.dataLen = 564;
+        dstLogOpts.lid = 6;
+        dstLogOpts.nsid = 0;//controller data
+        if (SUCCESS == nvme_Get_Log_Page(device, &dstLogOpts))
+        {
+            driveInfo->dstInfo.informationValid = true;
+            //Bytes 31:4 hold the latest DST run information
+            uint32_t latestDSTOffset = 4;
+            uint8_t status = M_Nibble0(nvmeDSTLog[latestDSTOffset + 0]);
+            if (status != 0x0F)//a status of F means this is an unused entry
+            {
+                driveInfo->dstInfo.resultOrStatus = status;
+                driveInfo->dstInfo.testNumber = M_Nibble1(nvmeDSTLog[latestDSTOffset + 0]);
+                driveInfo->dstInfo.powerOnHours = M_BytesTo8ByteValue(nvmeDSTLog[latestDSTOffset + 11], nvmeDSTLog[latestDSTOffset + 10], nvmeDSTLog[latestDSTOffset + 9], nvmeDSTLog[latestDSTOffset + 8], nvmeDSTLog[latestDSTOffset + 7], nvmeDSTLog[latestDSTOffset + 6], nvmeDSTLog[latestDSTOffset + 5], nvmeDSTLog[latestDSTOffset + 4]);
+                if (nvmeDSTLog[latestDSTOffset + 2] & BIT1)
                 {
-                    //Add more diagnostic pages in here if we want to check them for supported features.
-                case DIAG_PAGE_TRANSLATE_ADDRESS:
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Translate Address");
-                    break;
-                case DIAG_PAGE_REBUILD_ASSIST:
-                    //TODO: check and see if the rebuild assist feature is enabled.
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Rebuild Assist");
-                    break;
-                case 0x90:
-                    if (is_Seagate_Family(device) == SEAGATE)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate Remanufacture");
-                        break;
-                    }
-                    break;
-                case 0x98:
-                    if (is_Seagate_Family(device) == SEAGATE)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate In Drive Diagnostics (IDD)");
-                        break;
-                    }
-                    break;
-                default:
-                    break;
+                    //TODO: namespace with the error?
+                    driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(nvmeDSTLog[latestDSTOffset + 23], nvmeDSTLog[latestDSTOffset + 22], nvmeDSTLog[latestDSTOffset + 12], nvmeDSTLog[latestDSTOffset + 20], nvmeDSTLog[latestDSTOffset + 19], nvmeDSTLog[latestDSTOffset + 18], nvmeDSTLog[latestDSTOffset + 17], nvmeDSTLog[latestDSTOffset + 16]);
+                }
+                else
+                {
+                    driveInfo->dstInfo.errorLBA = UINT64_MAX;
                 }
             }
         }
     }
-
-    if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)//mostly for USB devices to prevent sending commands that don't usually work in the first place.
+    //Sanitize
+    if (nvmeIdentifyData[328] & BIT0)//Sanitize supported
     {
-        uint8_t* supportedCommands = tempBuf;
-        memset(supportedCommands, 0, 1024);
-
-        //Most SAT devices won't report all at once, so try asking for individual commands that are supported
-        //one at a time instead of asking for everything all at once.
-        //Format unit
-        bool formatSupported = false;
-        bool fastFormatSupported = false;
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_UNIT_CMD, 0, 10, supportedCommands))
+        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Sanitize");
+    }
+    //max namespaces
+    driveInfo->controllerData.maxNumberOfNamespaces = M_BytesTo4ByteValue(nvmeIdentifyData[519], nvmeIdentifyData[518], nvmeIdentifyData[517], nvmeIdentifyData[516]);
+    //volatile write cache
+    if (nvmeIdentifyData[525] & BIT0)
+    {
+        driveInfo->controllerData.volatileWriteCacheSupported = true;
+        nvmeFeaturesCmdOpt getWriteCache;
+        memset(&getWriteCache, 0, sizeof(nvmeFeaturesCmdOpt));
+        getWriteCache.fid = 0x06;
+        getWriteCache.sel = 0;//current data
+        if (SUCCESS == nvme_Get_Features(device, &getWriteCache))
         {
-            switch (supportedCommands[1] & 0x07)
+            if (getWriteCache.featSetGetValue & BIT0)
             {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                formatSupported = true;
-                //now check for fast format support
-                if (!(supportedCommands[7] == 0xFF && supportedCommands[8] == 0xFF))//if both these bytes are FFh, then the drive conforms to SCSI2 where this was the "interleave" field
-                {
-                    if (supportedCommands[8] & 0x03)//checks that fast format bits are available for use.
-                    {
-                        fastFormatSupported = true;
-                    }
-                }
-                break;
-            default:
-                break;
-            }
-        }
-        else if (version >= 3 && version < 5 && SUCCESS == scsi_Inquiry(device, supportedCommands, 12, SCSI_FORMAT_UNIT_CMD, false, true))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                formatSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        //check for format corrupt
-        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-        if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
-        {
-            if (!driveInfo->isFormatCorrupt)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Corrupt - not all features identifiable.");
-            }
-        }
-        if (formatSupported)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format Unit");
-        }
-        if (fastFormatSupported)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Fast Format");
-        }
-        memset(supportedCommands, 0, 1024);
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_WITH_PRESET_CMD, 0, 14, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Format With Preset");
-                break;
-            default:
-                break;
-            }
-        }
-        memset(supportedCommands, 0, 1024);
-        //Sanitize (need to check each service action to make sure at least one is supported.
-        bool sanitizeSupported = false;
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                sanitizeSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                sanitizeSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE, 14, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                sanitizeSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        else if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_EXIT_FAILURE_MODE, 14, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                sanitizeSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        if (sanitizeSupported)
-        {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Sanitize");
-        }
-        //storage element depopulation
-        bool getElementStatusSupported = false;
-        bool removeAndTruncateSupported = false;
-        bool restoreElementsSupported = false;
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x17, 20, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                getElementStatusSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x18, 20, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                removeAndTruncateSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x19, 20, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                restoreElementsSupported = true;
-                break;
-            default:
-                break;
-            }
-        }
-        if (removeAndTruncateSupported && getElementStatusSupported)
-        {
-            if (restoreElementsSupported)
-            {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation + Restore");
+                driveInfo->controllerData.volatileWriteCacheEnabled = true;
             }
             else
             {
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Storage Element Depopulation");
+                driveInfo->controllerData.volatileWriteCacheEnabled = false;
             }
         }
-        //Add checking that this is zbd first?
-        if (version >= 5 && peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x1A, 20, supportedCommands))
+        else
         {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific manor in same format as case 3
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Remove Element and Modify Zones");
-                break;
-            default:
-                break;
-            }
-        }
-        if (zoneDomainsOrRealms && peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
-        {
-            if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x95, 0x07, 20, supportedCommands))
-            {
-                switch (supportedCommands[1] & 0x07)
-                {
-                case 0: //not available right now...so not supported
-                case 1://not supported
-                    break;
-                case 3://supported according to spec
-                case 5://supported in vendor specific manor in same format as case 3
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Domains");
-                    break;
-                default:
-                    break;
-                }
-            }
-
-            if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x95, 0x06, 20, supportedCommands))
-            {
-                switch (supportedCommands[1] & 0x07)
-                {
-                case 0: //not available right now...so not supported
-                case 1://not supported
-                    break;
-                case 3://supported according to spec
-                case 5://supported in vendor specific manor in same format as case 3
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Zone Realms");
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-
-        if (!securityProtocolInSuccess)
-        {
-            //Check security protocol in case the earlier attempt did not work to detect when the OS/driver/HBA are blocking these commands
-            if (version >= 6 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, 0xA2, 0, 16, supportedCommands))
-            {
-                switch (supportedCommands[1] & 0x07)
-                {
-                case 0: //not available right now...so not supported
-                case 1://not supported
-                    break;
-                case 3://supported according to spec
-                case 5://supported in vendor specific manor in same format as case 3
-                    driveInfo->trustedCommandsBeingBlocked = true;
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-
-        //check write buffer (firmware download) call info firmware download.h for this information.
-        supportedDLModes supportedDLModes;
-        memset(&supportedDLModes, 0, sizeof(supportedDLModes));
-        supportedDLModes.size = sizeof(supportedDLModes);
-        supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
-        //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
-        int tempDevType = device->drive_info.drive_type;
-        device->drive_info.drive_type = SCSI_DRIVE;
-        if (SUCCESS == get_Supported_FWDL_Modes(device, &supportedDLModes))
-        {
-            driveInfo->fwdlSupport.downloadSupported = supportedDLModes.downloadMicrocodeSupported;
-            driveInfo->fwdlSupport.segmentedSupported = supportedDLModes.segmented;
-            driveInfo->fwdlSupport.deferredSupported = supportedDLModes.deferred;
-            driveInfo->fwdlSupport.dmaModeSupported = supportedDLModes.firmwareDownloadDMACommandSupported;
-            driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = supportedDLModes.seagateDeferredPowerCycleActivate;
-        }
-        device->drive_info.drive_type = tempDevType;
-        //ATA Passthrough commands
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_12, 0, 16, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                //TODO: make sure this isn't the "blank" command being supported by a MMC device.
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Pass-Through 12");
-                break;
-            default:
-                break;
-            }
-        }
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, ATA_PASS_THROUGH_16, 0, 20, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Pass-Through 16");
-                break;
-            default:
-                break;
-            }
-        }
-        if (version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x7F, 0x1FF0, 36, supportedCommands))
-        {
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "ATA Pass-Through 32");
-                break;
-            default:
-                break;
-            }
+            driveInfo->controllerData.volatileWriteCacheSupported = false;
         }
     }
-    driveInfo->lowCurrentSpinupValid = false;
-    safe_Free_aligned(tempBuf)
-        return ret;
+    //nvm subsystem qualified name
+    memcpy(driveInfo->controllerData.nvmSubsystemNVMeQualifiedName, &nvmeIdentifyData[768], 256);
+    //firmware slots
+    driveInfo->controllerData.numberOfFirmwareSlots = M_GETBITRANGE(nvmeIdentifyData[260], 3, 1);
+    //TODO: Add in other controller "Features"
+    if (nvmeIdentifyData[256] & BIT0)
+    {
+        //Supports security send/receive. Check for TCG and other security protocols
+        uint8_t supportedSecurityProtocols[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        if (SUCCESS == nvme_Security_Receive(device, SECURITY_PROTOCOL_INFORMATION, 0, 0, supportedSecurityProtocols, 512))
+        {
+            if (SUCCESS == get_Security_Features_From_Security_Protocol(device, &driveInfo->securityInfo, supportedSecurityProtocols, 512))
+            {
+                if (driveInfo->securityInfo.tcg)
+                {
+                    driveInfo->controllerData.encryptionSupport = ENCRYPTION_SELF_ENCRYPTING;
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "TCG");
+                }
+                if (driveInfo->securityInfo.cbcs)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "CbCS");
+                }
+                if (driveInfo->securityInfo.tapeEncryption)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Tape Encryption");
+                }
+                if (driveInfo->securityInfo.dataEncryptionConfig)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Data Encryption Configuration");
+                }
+                if (driveInfo->securityInfo.saCreationCapabilities)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "SA Creation Capabilities");
+                }
+                if (driveInfo->securityInfo.ikev2scsi)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "IKE V2 SCSI");
+                }
+                if (driveInfo->securityInfo.sdAssociation)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "SD Association");
+                }
+                if (driveInfo->securityInfo.dmtfSecurity)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "DMTF Security");
+                }
+                if (driveInfo->securityInfo.nvmeReserved)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "NVMe Reserved");
+                }
+                if (driveInfo->securityInfo.nvme)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "NVMe RPMB");
+                }
+                if (driveInfo->securityInfo.scsa)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "SCSA");
+                }
+                if (driveInfo->securityInfo.jedecUFS)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "JEDEC UFS");
+                }
+                if (driveInfo->securityInfo.sdTrustedFlash)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "SD Trusted Flash");
+                }
+                if (driveInfo->securityInfo.ieee1667)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "IEEE 1667");
+                }
+                if (driveInfo->securityInfo.ataDeviceServer)
+                {
+                    add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "ATA Security");
+                }
+            }
+        }
+        else
+        {
+            //TODO: For whatever reason the security commands did not complete despite the drive supporting them to read the list of supported protocols
+            //set the "blocked commaands" flag
+            // This is not currently enabled as it has not been observed in any system yet like it has for ATA and SCSI
+            //driveInfo->trustedCommandsBeingBlocked = true;
+        }
+    }
+    if (nvmeIdentifyData[256] & BIT1)
+    {
+        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Format NVM");
+    }
+    if (nvmeIdentifyData[256] & BIT2)
+    {
+        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Firmware Update");
+    }
+    if (nvmeIdentifyData[256] & BIT3)
+    {
+        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Namespace Management");
+    }
+    if (nvmeIdentifyData[256] & BIT4)
+    {
+        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Device Self Test");
+    }
+    if (nvmeIdentifyData[256] & BIT7)
+    {
+        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Virtualization Management");
+    }
+    if (nvmeIdentifyData[257] & BIT1)
+    {
+        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Doorbell Buffer Config");
+    }
+
+    //Before we memset the identify data, add some namespace features
+    if (nvmeIdentifyData[520] & BIT1)
+    {
+        add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Write Uncorrectable");
+    }
+    if (nvmeIdentifyData[520] & BIT2)
+    {
+        add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Dataset Management");
+    }
+    if (nvmeIdentifyData[520] & BIT3)
+    {
+        add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Write Zeros");
+    }
+    if (nvmeIdentifyData[520] & BIT5)
+    {
+        add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Persistent Reservations");
+    }
+    return ret;
+}
+
+static int get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe driveInfo, uint8_t* nvmeIdentifyData, uint32_t identifyDataLength)
+{
+    int ret = SUCCESS;
+    if (!driveInfo || !nvmeIdentifyData || identifyDataLength != NVME_IDENTIFY_DATA_LEN)
+    {
+        return BAD_PARAMETER;
+    }
+    driveInfo->namespaceData.valid = true;
+    driveInfo->namespaceData.namespaceSize = M_BytesTo8ByteValue(nvmeIdentifyData[7], nvmeIdentifyData[6], nvmeIdentifyData[5], nvmeIdentifyData[4], nvmeIdentifyData[3], nvmeIdentifyData[2], nvmeIdentifyData[1], nvmeIdentifyData[0]) - 1;//spec says this is 0 to (n-1)!
+    driveInfo->namespaceData.namespaceCapacity = M_BytesTo8ByteValue(nvmeIdentifyData[15], nvmeIdentifyData[14], nvmeIdentifyData[13], nvmeIdentifyData[12], nvmeIdentifyData[11], nvmeIdentifyData[10], nvmeIdentifyData[9], nvmeIdentifyData[8]);
+    driveInfo->namespaceData.namespaceUtilization = M_BytesTo8ByteValue(nvmeIdentifyData[23], nvmeIdentifyData[22], nvmeIdentifyData[21], nvmeIdentifyData[20], nvmeIdentifyData[19], nvmeIdentifyData[18], nvmeIdentifyData[17], nvmeIdentifyData[16]);
+    //lba size & relative performance
+    uint8_t lbaFormatIdentifier = M_Nibble0(nvmeIdentifyData[26]);
+    //lba formats start at byte 128, and are 4 bytes in size each
+    uint32_t lbaFormatOffset = 128 + (lbaFormatIdentifier * 4);
+    uint32_t lbaFormatData = M_BytesTo4ByteValue(nvmeIdentifyData[lbaFormatOffset + 3], nvmeIdentifyData[lbaFormatOffset + 2], nvmeIdentifyData[lbaFormatOffset + 1], nvmeIdentifyData[lbaFormatOffset + 0]);
+    driveInfo->namespaceData.formattedLBASizeBytes = C_CAST(uint32_t, power_Of_Two(M_GETBITRANGE(lbaFormatData, 23, 16)));
+    driveInfo->namespaceData.relativeFormatPerformance = M_GETBITRANGE(lbaFormatData, 25, 24);
+    //nvm capacity
+    for (uint8_t i = 0; i < 16; ++i)
+    {
+        driveInfo->namespaceData.nvmCapacity[i] = nvmeIdentifyData[48 + i];
+    }
+    driveInfo->namespaceData.nvmCapacityD = convert_128bit_to_double(&driveInfo->namespaceData.nvmCapacity[0]);
+    //NGUID
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[0] = nvmeIdentifyData[104];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[1] = nvmeIdentifyData[105];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[2] = nvmeIdentifyData[106];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[3] = nvmeIdentifyData[107];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[4] = nvmeIdentifyData[108];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[5] = nvmeIdentifyData[109];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[6] = nvmeIdentifyData[110];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[7] = nvmeIdentifyData[111];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[8] = nvmeIdentifyData[112];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[9] = nvmeIdentifyData[113];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[10] = nvmeIdentifyData[114];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[11] = nvmeIdentifyData[115];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[12] = nvmeIdentifyData[116];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[13] = nvmeIdentifyData[117];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[14] = nvmeIdentifyData[118];
+    driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[15] = nvmeIdentifyData[119];
+    //EUI64
+    driveInfo->namespaceData.ieeeExtendedUniqueIdentifier = M_BytesTo8ByteValue(nvmeIdentifyData[120], nvmeIdentifyData[121], nvmeIdentifyData[122], nvmeIdentifyData[123], nvmeIdentifyData[124], nvmeIdentifyData[125], nvmeIdentifyData[126], nvmeIdentifyData[127]);
+    //TODO: Namespace "features"
+    uint8_t protectionEnabled = M_GETBITRANGE(nvmeIdentifyData[29], 2, 0);
+    if (nvmeIdentifyData[28] & BIT0)
+    {
+        if (protectionEnabled == 1)
+        {
+            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 1 [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 1");
+        }
+    }
+    if (nvmeIdentifyData[28] & BIT1)
+    {
+        if (protectionEnabled == 2)
+        {
+            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 2 [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 2");
+        }
+    }
+    if (nvmeIdentifyData[28] & BIT2)
+    {
+        if (protectionEnabled == 3)
+        {
+            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 3 [Enabled]");
+        }
+        else
+        {
+            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 3");
+        }
+    }
+    if (nvmeIdentifyData[30] & BIT0)
+    {
+        add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Namespace Sharing");
+    }
+    return ret;
+}
+
+//TODO: Move code in controller data reading DST log to here
+static int get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe driveInfo)
+{
+    int ret = SUCCESS;
+    if (!device || !driveInfo)
+    {
+        return BAD_PARAMETER;
+    }
+    //Data from SMART log page
+    uint8_t nvmeSMARTData[512] = { 0 };
+    nvmeGetLogPageCmdOpts smartLogOpts;
+    memset(&smartLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+    smartLogOpts.addr = nvmeSMARTData;
+    smartLogOpts.dataLen = 512;
+    smartLogOpts.lid = 2;
+    smartLogOpts.nsid = NVME_ALL_NAMESPACES;//controller data
+    if (SUCCESS == nvme_Get_Log_Page(device, &smartLogOpts))
+    {
+        driveInfo->smartData.valid = true;
+        if (nvmeSMARTData[0] == 0)
+        {
+            driveInfo->smartData.smartStatus = 0;
+        }
+        else
+        {
+            driveInfo->smartData.smartStatus = 1;
+        }
+        if (nvmeSMARTData[0] & BIT3)
+        {
+            driveInfo->smartData.mediumIsReadOnly = true;
+        }
+        driveInfo->smartData.compositeTemperatureKelvin = M_BytesTo2ByteValue(nvmeSMARTData[2], nvmeSMARTData[1]);
+        driveInfo->smartData.availableSpacePercent = nvmeSMARTData[3];
+        driveInfo->smartData.availableSpaceThresholdPercent = nvmeSMARTData[4];
+        driveInfo->smartData.percentageUsed = nvmeSMARTData[5];
+        //data units read/written
+        for (uint8_t i = 0; i < 16; ++i)
+        {
+            driveInfo->smartData.dataUnitsRead[i] = nvmeSMARTData[32 + i];
+            driveInfo->smartData.dataUnitsWritten[i] = nvmeSMARTData[48 + i];
+            driveInfo->smartData.powerOnHours[i] = nvmeSMARTData[128 + i];
+        }
+        driveInfo->smartData.dataUnitsReadD = convert_128bit_to_double(driveInfo->smartData.dataUnitsRead);
+        driveInfo->smartData.dataUnitsWrittenD = convert_128bit_to_double(driveInfo->smartData.dataUnitsWritten);
+        driveInfo->smartData.powerOnHoursD = convert_128bit_to_double(driveInfo->smartData.powerOnHours);
+    }
+    else
+    {
+        driveInfo->smartData.smartStatus = 2;
+    }
+    return ret;
 }
 
 int get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo)
@@ -5860,427 +6548,17 @@ int get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInf
     {
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, 0, 1))
+    if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, 0, NVME_IDENTIFY_CTRL))
     {
-        //MN
-        memcpy(driveInfo->controllerData.modelNumber, &nvmeIdentifyData[24], 40);
-        remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.modelNumber);
-        //SN
-        memcpy(driveInfo->controllerData.serialNumber, &nvmeIdentifyData[4], 20);
-        remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.serialNumber);
-        //FW
-        memcpy(driveInfo->controllerData.firmwareRevision, &nvmeIdentifyData[64], 8);
-        remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.firmwareRevision);
-        //vid
-        driveInfo->controllerData.pciVendorID = M_BytesTo2ByteValue(nvmeIdentifyData[1], nvmeIdentifyData[0]);
-        //ssvid
-        driveInfo->controllerData.pciSubsystemVendorID = M_BytesTo2ByteValue(nvmeIdentifyData[3], nvmeIdentifyData[2]);
-        //IEEE OUI
-        driveInfo->controllerData.ieeeOUI = M_BytesTo4ByteValue(0, nvmeIdentifyData[75], nvmeIdentifyData[74], nvmeIdentifyData[73]);
-        //controller ID
-        driveInfo->controllerData.controllerID = M_BytesTo2ByteValue(nvmeIdentifyData[79], nvmeIdentifyData[78]);
-        //version
-        driveInfo->controllerData.majorVersion = M_BytesTo2ByteValue(nvmeIdentifyData[83], nvmeIdentifyData[82]);
-        driveInfo->controllerData.minorVersion = nvmeIdentifyData[81];
-        driveInfo->controllerData.tertiaryVersion = nvmeIdentifyData[80];
-        driveInfo->controllerData.numberOfPowerStatesSupported = nvmeIdentifyData[263] + 1;
-        if (nvmeIdentifyData[96] & BIT0)
-        {
-            driveInfo->controllerData.hostIdentifierSupported = true;
-            //host identifier is supported
-            nvmeFeaturesCmdOpt getHostIdentifier;
-            memset(&getHostIdentifier, 0, sizeof(nvmeFeaturesCmdOpt));
-            getHostIdentifier.fid = 0x81;
-            getHostIdentifier.sel = 0;//current data
-            uint8_t hostIdentifier[16] = { 0 };
-            getHostIdentifier.dataPtr = hostIdentifier;
-            getHostIdentifier.dataLength = 16;
-            //TODO: Need to debug why this doesn't work right now - TJE
-            if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
-            {
-                memcpy(&driveInfo->controllerData.hostIdentifier, hostIdentifier, 16);
-                if (getHostIdentifier.featSetGetValue & BIT0)
-                {
-                    driveInfo->controllerData.hostIdentifierIs128Bits = true;
-                }
-            }
-        }
-        //fguid (This field is big endian)
-        driveInfo->controllerData.fguid[0] = nvmeIdentifyData[112];
-        driveInfo->controllerData.fguid[1] = nvmeIdentifyData[113];
-        driveInfo->controllerData.fguid[2] = nvmeIdentifyData[114];
-        driveInfo->controllerData.fguid[3] = nvmeIdentifyData[115];
-        driveInfo->controllerData.fguid[4] = nvmeIdentifyData[116];
-        driveInfo->controllerData.fguid[5] = nvmeIdentifyData[117];
-        driveInfo->controllerData.fguid[6] = nvmeIdentifyData[118];
-        driveInfo->controllerData.fguid[7] = nvmeIdentifyData[119];
-        driveInfo->controllerData.fguid[8] = nvmeIdentifyData[120];
-        driveInfo->controllerData.fguid[9] = nvmeIdentifyData[121];
-        driveInfo->controllerData.fguid[10] = nvmeIdentifyData[122];
-        driveInfo->controllerData.fguid[11] = nvmeIdentifyData[123];
-        driveInfo->controllerData.fguid[12] = nvmeIdentifyData[124];
-        driveInfo->controllerData.fguid[13] = nvmeIdentifyData[125];
-        driveInfo->controllerData.fguid[14] = nvmeIdentifyData[126];
-        driveInfo->controllerData.fguid[15] = nvmeIdentifyData[127];
-        //warning composite temperature
-        driveInfo->controllerData.warningCompositeTemperatureThreshold = M_BytesTo2ByteValue(nvmeIdentifyData[267], nvmeIdentifyData[266]);
-        //critical composite temperature
-        driveInfo->controllerData.criticalCompositeTemperatureThreshold = M_BytesTo2ByteValue(nvmeIdentifyData[269], nvmeIdentifyData[268]);
-        //total nvm capacity
-        for (uint8_t i = 0; i < 16; ++i)
-        {
-            driveInfo->controllerData.totalNVMCapacity[i] = nvmeIdentifyData[295 + i];
-        }
-        driveInfo->controllerData.totalNVMCapacityD = convert_128bit_to_double(&driveInfo->controllerData.totalNVMCapacity[0]);
-        //unallocated nvm capacity
-        for (uint8_t i = 0; i < 16; ++i)
-        {
-            driveInfo->controllerData.unallocatedNVMCapacity[i] = nvmeIdentifyData[296 + i];
-        }
-        driveInfo->controllerData.unallocatedNVMCapacityD = convert_128bit_to_double(&driveInfo->controllerData.unallocatedNVMCapacity[0]);
-        //DST info
-        if (nvmeIdentifyData[256] & BIT4)//DST command is supported
-        {
-            //set Long DST Time before reading the log
-            driveInfo->controllerData.longDSTTimeMinutes = M_BytesTo2ByteValue(nvmeIdentifyData[317], nvmeIdentifyData[316]);
-            //Read the NVMe DST log
-            uint8_t nvmeDSTLog[564] = { 0 };
-            nvmeGetLogPageCmdOpts dstLogOpts;
-            memset(&dstLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-            dstLogOpts.addr = nvmeDSTLog;
-            dstLogOpts.dataLen = 564;
-            dstLogOpts.lid = 6;
-            dstLogOpts.nsid = 0;//controller data
-            if (SUCCESS == nvme_Get_Log_Page(device, &dstLogOpts))
-            {
-                driveInfo->dstInfo.informationValid = true;
-                //Bytes 31:4 hold the latest DST run information
-                uint32_t latestDSTOffset = 4;
-                uint8_t status = M_Nibble0(nvmeDSTLog[latestDSTOffset + 0]);
-                if (status != 0x0F)//a status of F means this is an unused entry
-                {
-                    driveInfo->dstInfo.resultOrStatus = status;
-                    driveInfo->dstInfo.testNumber = M_Nibble1(nvmeDSTLog[latestDSTOffset + 0]);
-                    driveInfo->dstInfo.powerOnHours = M_BytesTo8ByteValue(nvmeDSTLog[latestDSTOffset + 11], nvmeDSTLog[latestDSTOffset + 10], nvmeDSTLog[latestDSTOffset + 9], nvmeDSTLog[latestDSTOffset + 8], nvmeDSTLog[latestDSTOffset + 7], nvmeDSTLog[latestDSTOffset + 6], nvmeDSTLog[latestDSTOffset + 5], nvmeDSTLog[latestDSTOffset + 4]);
-                    if (nvmeDSTLog[latestDSTOffset + 2] & BIT1)
-                    {
-                        //TODO: namespace with the error?
-                        driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(nvmeDSTLog[latestDSTOffset + 23], nvmeDSTLog[latestDSTOffset + 22], nvmeDSTLog[latestDSTOffset + 12], nvmeDSTLog[latestDSTOffset + 20], nvmeDSTLog[latestDSTOffset + 19], nvmeDSTLog[latestDSTOffset + 18], nvmeDSTLog[latestDSTOffset + 17], nvmeDSTLog[latestDSTOffset + 16]);
-                    }
-                    else
-                    {
-                        driveInfo->dstInfo.errorLBA = UINT64_MAX;
-                    }
-                }
-            }
-        }
-        //Sanitize
-        if (nvmeIdentifyData[328] & BIT0)//Sanitize supported
-        {
-            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Sanitize");
-        }
-        //max namespaces
-        driveInfo->controllerData.maxNumberOfNamespaces = M_BytesTo4ByteValue(nvmeIdentifyData[519], nvmeIdentifyData[518], nvmeIdentifyData[517], nvmeIdentifyData[516]);
-        //volatile write cache
-        if (nvmeIdentifyData[525] & BIT0)
-        {
-            driveInfo->controllerData.volatileWriteCacheSupported = true;
-            nvmeFeaturesCmdOpt getWriteCache;
-            memset(&getWriteCache, 0, sizeof(nvmeFeaturesCmdOpt));
-            getWriteCache.fid = 0x06;
-            getWriteCache.sel = 0;//current data
-            if (SUCCESS == nvme_Get_Features(device, &getWriteCache))
-            {
-                if (getWriteCache.featSetGetValue & BIT0)
-                {
-                    driveInfo->controllerData.volatileWriteCacheEnabled = true;
-                }
-                else
-                {
-                    driveInfo->controllerData.volatileWriteCacheEnabled = false;
-                }
-            }
-            else
-            {
-                driveInfo->controllerData.volatileWriteCacheSupported = false;
-            }
-        }
-        //nvm subsystem qualified name
-        memcpy(driveInfo->controllerData.nvmSubsystemNVMeQualifiedName, &nvmeIdentifyData[768], 256);
-        //firmware slots
-        driveInfo->controllerData.numberOfFirmwareSlots = M_GETBITRANGE(nvmeIdentifyData[260], 3, 1);
-        //TODO: Add in other controller "Features"
-        if (nvmeIdentifyData[256] & BIT0)
-        {
-            //Supports security send/receive. Check for TCG and other security protocols
-            uint8_t supportedSecurityProtocols[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == nvme_Security_Receive(device, SECURITY_PROTOCOL_INFORMATION, 0, 0, supportedSecurityProtocols, 512))
-            {
-                bool tcgFeatureFound = false;
-                uint16_t length = M_BytesTo2ByteValue(supportedSecurityProtocols[6], supportedSecurityProtocols[7]);
-                uint16_t bufIter = 8;
-                for (; (bufIter - 8) < length; bufIter++)
-                {
-                    switch (supportedSecurityProtocols[bufIter])
-                    {
-                    case SECURITY_PROTOCOL_INFORMATION:
-                        break;
-                    case SECURITY_PROTOCOL_TCG_1:
-                    case SECURITY_PROTOCOL_TCG_2:
-                    case SECURITY_PROTOCOL_TCG_3:
-                    case SECURITY_PROTOCOL_TCG_4:
-                    case SECURITY_PROTOCOL_TCG_5:
-                    case SECURITY_PROTOCOL_TCG_6:
-                        driveInfo->controllerData.encryptionSupport = ENCRYPTION_SELF_ENCRYPTING;
-                        if (!tcgFeatureFound)
-                        {
-                            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "TCG");
-                            tcgFeatureFound = true;
-                        }
-                        break;
-                    case SECURITY_PROTOCOL_CbCS:
-                    case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
-                    case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
-                    case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
-                    case SECURITY_PROTOCOL_IKE_V2_SCSI:
-                    case SECURITY_PROTOCOL_NVM_EXPRESS:
-                        break;
-                    case SECURITY_PROTOCOL_SCSA:
-                        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "SCSA");
-                        break;
-                    case SECURITY_PROTOCOL_JEDEC_UFS:
-                    case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
-                        break;
-                    case SECURITY_PROTOCOL_IEEE_1667:
-                        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "IEEE1667");
-                        break;
-                    case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
-                    {
-                        //We shouldn't see the ATA security protocol on NVMe, but according to some internet searches, some NVMe drive have implemented this. I'll just leave it commented out since it is definitely outside of the standard. - TJE
-                        ////read the data from this page to set ATA security information
-                        //uint8_t ataSecurityInfo[16] = { 0 };
-                        //if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, 0, false, 16, ataSecurityInfo))
-                        //{
-                        //    driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]);
-                        //    driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[4], ataSecurityInfo[5]);
-                        //    driveInfo->ataSecurityInformation.masterPasswordIdentifier = M_BytesTo2ByteValue(ataSecurityInfo[6], ataSecurityInfo[7]);
-                        //    //check the bits now
-                        //    if (ataSecurityInfo[8] & BIT0)
-                        //    {
-                        //        driveInfo->ataSecurityInformation.masterPasswordCapability = true;
-                        //    }
-                        //    if (ataSecurityInfo[9] & BIT5)
-                        //    {
-                        //        driveInfo->ataSecurityInformation.enhancedEraseSupported = true;
-                        //    }
-                        //    if (ataSecurityInfo[9] & BIT4)
-                        //    {
-                        //        driveInfo->ataSecurityInformation.securityCountExpired = true;
-                        //    }
-                        //    if (ataSecurityInfo[9] & BIT3)
-                        //    {
-                        //        driveInfo->ataSecurityInformation.securityFrozen = true;
-                        //    }
-                        //    if (ataSecurityInfo[9] & BIT2)
-                        //    {
-                        //        driveInfo->ataSecurityInformation.securityLocked = true;
-                        //    }
-                        //    if (ataSecurityInfo[9] & BIT1)
-                        //    {
-                        //        driveInfo->ataSecurityInformation.securityEnabled = true;
-                        //    }
-                        //    if (ataSecurityInfo[9] & BIT0)
-                        //    {
-                        //        driveInfo->ataSecurityInformation.securitySupported = true;
-                        //    }
-                        //}
-                        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "ATA Security");
-                    }
-                    break;
-                    default:
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                //TODO: For whatever reason the security commands did not complete despite the drive supporting them to read the list of supported protocols
-                //set the "blocked commaands" flag
-                // This is not currently enabled as it has not been observed in any system yet like it has for ATA and SCSI
-                //driveInfo->trustedCommandsBeingBlocked = true;
-            }
-        }
-        if (nvmeIdentifyData[256] & BIT1)
-        {
-            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Format NVM");
-        }
-        if (nvmeIdentifyData[256] & BIT2)
-        {
-            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Firmware Update");
-        }
-        if (nvmeIdentifyData[256] & BIT3)
-        {
-            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Namespace Management");
-        }
-        if (nvmeIdentifyData[256] & BIT4)
-        {
-            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Device Self Test");
-        }
-        if (nvmeIdentifyData[256] & BIT7)
-        {
-            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Virtualization Management");
-        }
-        if (nvmeIdentifyData[257] & BIT1)
-        {
-            add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported, &driveInfo->controllerData.numberOfControllerFeatures, "Doorbell Buffer Config");
-        }
-
-        //Before we memset the identify data, add some namespace features
-        if (nvmeIdentifyData[520] & BIT1)
-        {
-            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Write Uncorrectable");
-        }
-        if (nvmeIdentifyData[520] & BIT2)
-        {
-            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Dataset Management");
-        }
-        if (nvmeIdentifyData[520] & BIT3)
-        {
-            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Write Zeros");
-        }
-        if (nvmeIdentifyData[520] & BIT5)
-        {
-            add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Persistent Reservations");
-        }
-
-
-        memset(nvmeIdentifyData, 0, NVME_IDENTIFY_DATA_LEN);
-        if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.namespaceID, 0))
-        {
-            driveInfo->namespaceData.valid = true;
-            driveInfo->namespaceData.namespaceSize = M_BytesTo8ByteValue(nvmeIdentifyData[7], nvmeIdentifyData[6], nvmeIdentifyData[5], nvmeIdentifyData[4], nvmeIdentifyData[3], nvmeIdentifyData[2], nvmeIdentifyData[1], nvmeIdentifyData[0]) - 1;//spec says this is 0 to (n-1)!
-            driveInfo->namespaceData.namespaceCapacity = M_BytesTo8ByteValue(nvmeIdentifyData[15], nvmeIdentifyData[14], nvmeIdentifyData[13], nvmeIdentifyData[12], nvmeIdentifyData[11], nvmeIdentifyData[10], nvmeIdentifyData[9], nvmeIdentifyData[8]);
-            driveInfo->namespaceData.namespaceUtilization = M_BytesTo8ByteValue(nvmeIdentifyData[23], nvmeIdentifyData[22], nvmeIdentifyData[21], nvmeIdentifyData[20], nvmeIdentifyData[19], nvmeIdentifyData[18], nvmeIdentifyData[17], nvmeIdentifyData[16]);
-            //lba size & relative performance
-            uint8_t lbaFormatIdentifier = M_Nibble0(nvmeIdentifyData[26]);
-            //lba formats start at byte 128, and are 4 bytes in size each
-            uint32_t lbaFormatOffset = 128 + (lbaFormatIdentifier * 4);
-            uint32_t lbaFormatData = M_BytesTo4ByteValue(nvmeIdentifyData[lbaFormatOffset + 3], nvmeIdentifyData[lbaFormatOffset + 2], nvmeIdentifyData[lbaFormatOffset + 1], nvmeIdentifyData[lbaFormatOffset + 0]);
-            driveInfo->namespaceData.formattedLBASizeBytes = C_CAST(uint32_t, power_Of_Two(M_GETBITRANGE(lbaFormatData, 23, 16)));
-            driveInfo->namespaceData.relativeFormatPerformance = M_GETBITRANGE(lbaFormatData, 25, 24);
-            //nvm capacity
-            for (uint8_t i = 0; i < 16; ++i)
-            {
-                driveInfo->namespaceData.nvmCapacity[i] = nvmeIdentifyData[48 + i];
-            }
-            driveInfo->namespaceData.nvmCapacityD = convert_128bit_to_double(&driveInfo->namespaceData.nvmCapacity[0]);
-            //NGUID
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[0] = nvmeIdentifyData[104];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[1] = nvmeIdentifyData[105];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[2] = nvmeIdentifyData[106];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[3] = nvmeIdentifyData[107];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[4] = nvmeIdentifyData[108];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[5] = nvmeIdentifyData[109];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[6] = nvmeIdentifyData[110];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[7] = nvmeIdentifyData[111];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[8] = nvmeIdentifyData[112];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[9] = nvmeIdentifyData[113];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[10] = nvmeIdentifyData[114];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[11] = nvmeIdentifyData[115];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[12] = nvmeIdentifyData[116];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[13] = nvmeIdentifyData[117];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[14] = nvmeIdentifyData[118];
-            driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[15] = nvmeIdentifyData[119];
-            //EUI64
-            driveInfo->namespaceData.ieeeExtendedUniqueIdentifier = M_BytesTo8ByteValue(nvmeIdentifyData[120], nvmeIdentifyData[121], nvmeIdentifyData[122], nvmeIdentifyData[123], nvmeIdentifyData[124], nvmeIdentifyData[125], nvmeIdentifyData[126], nvmeIdentifyData[127]);
-            //TODO: Namespace "features"
-            uint8_t protectionEnabled = M_GETBITRANGE(nvmeIdentifyData[29], 2, 0);
-            if (nvmeIdentifyData[28] & BIT0)
-            {
-                if (protectionEnabled == 1)
-                {
-                    add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 1 [Enabled]");
-                }
-                else
-                {
-                    add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 1");
-                }
-            }
-            if (nvmeIdentifyData[28] & BIT1)
-            {
-                if (protectionEnabled == 2)
-                {
-                    add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 2 [Enabled]");
-                }
-                else
-                {
-                    add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 2");
-                }
-            }
-            if (nvmeIdentifyData[28] & BIT2)
-            {
-                if (protectionEnabled == 3)
-                {
-                    add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 3 [Enabled]");
-                }
-                else
-                {
-                    add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Protection Type 3");
-                }
-            }
-            if (nvmeIdentifyData[30] & BIT0)
-            {
-                add_Feature_To_Supported_List(driveInfo->namespaceData.namespaceFeaturesSupported, &driveInfo->namespaceData.numberOfNamespaceFeatures, "Namespace Sharing");
-            }
-        }
-        //Data from SMART log page
-        uint8_t nvmeSMARTData[512] = { 0 };
-        nvmeGetLogPageCmdOpts smartLogOpts;
-        memset(&smartLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
-        smartLogOpts.addr = nvmeSMARTData;
-        smartLogOpts.dataLen = 512;
-        smartLogOpts.lid = 2;
-        smartLogOpts.nsid = NVME_ALL_NAMESPACES;//controller data
-        if (SUCCESS == nvme_Get_Log_Page(device, &smartLogOpts))
-        {
-            driveInfo->smartData.valid = true;
-            if (nvmeSMARTData[0] == 0)
-            {
-                driveInfo->smartData.smartStatus = 0;
-            }
-            else
-            {
-                driveInfo->smartData.smartStatus = 1;
-            }
-            if (nvmeSMARTData[0] & BIT3)
-            {
-                driveInfo->smartData.mediumIsReadOnly = true;
-            }
-            driveInfo->smartData.compositeTemperatureKelvin = M_BytesTo2ByteValue(nvmeSMARTData[2], nvmeSMARTData[1]);
-            driveInfo->smartData.availableSpacePercent = nvmeSMARTData[3];
-            driveInfo->smartData.availableSpaceThresholdPercent = nvmeSMARTData[4];
-            driveInfo->smartData.percentageUsed = nvmeSMARTData[5];
-            //data units read/written
-            for (uint8_t i = 0; i < 16; ++i)
-            {
-                driveInfo->smartData.dataUnitsRead[i] = nvmeSMARTData[32 + i];
-                driveInfo->smartData.dataUnitsWritten[i] = nvmeSMARTData[48 + i];
-                driveInfo->smartData.powerOnHours[i] = nvmeSMARTData[128 + i];
-            }
-            driveInfo->smartData.dataUnitsReadD = convert_128bit_to_double(driveInfo->smartData.dataUnitsRead);
-            driveInfo->smartData.dataUnitsWrittenD = convert_128bit_to_double(driveInfo->smartData.dataUnitsWritten);
-            driveInfo->smartData.powerOnHoursD = convert_128bit_to_double(driveInfo->smartData.powerOnHours);
-        }
-        else
-        {
-            driveInfo->smartData.smartStatus = 2;
-        }
-        safe_Free_aligned(nvmeIdentifyData)
+        get_NVMe_Controller_Identify_Data(device, driveInfo, nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN);   
     }
-    else
+    memset(nvmeIdentifyData, 0, NVME_IDENTIFY_DATA_LEN);
+    if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.namespaceID, NVME_IDENTIFY_NS))
     {
-        ret = FAILURE;
+        get_NVMe_Namespace_Identify_Data(driveInfo, nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN);
     }
+    safe_Free_aligned(nvmeIdentifyData)
+    get_NVMe_Log_Data(device, driveInfo);
     return ret;
 }
 

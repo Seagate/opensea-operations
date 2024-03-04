@@ -330,7 +330,7 @@ extern "C"
             uint8_t numberOfNamespaceFeatures;
             char namespaceFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
         }namespaceData;
-        ataSecurityStatus ataSecurityInformation;//This is here because SOME NVMe drives from some manufacturers implemented this security protocol from SAT-TJE
+        securityProtocolInfo securityInfo;//TCG, IEEE1667, etc
     }driveInformationNVMe, *ptrDriveInformationNVMe;
 
     typedef enum _eDriveInfoType
