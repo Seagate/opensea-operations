@@ -493,7 +493,7 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
     //Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS)
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS || device->drive_info.passThroughHacks.scsiHacks.mode6bytes)
     {
         sixByte = true;
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -570,7 +570,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
     //Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS)
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS || device->drive_info.passThroughHacks.scsiHacks.mode6bytes)
     {
         sixByte = true;
     }
@@ -1171,7 +1171,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
     {
         ret = SUCCESS;
         logSize = bufSize;
-        if (bufSize & ATA_LOG_PAGE_LEN_BYTES)
+        if (bufSize % ATA_LOG_PAGE_LEN_BYTES)
         {
             return BAD_PARAMETER;
         }
@@ -1230,6 +1230,60 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             {
                 ret = SUCCESS;//assume success
                 pagesToReadNow = M_Min(numberOfLogPages - currentPage, pagesToReadAtATime);
+                if (currentPage > 0 && (logAddress == ATA_LOG_IDENTIFY_DEVICE_DATA || logAddress == ATA_LOG_DEVICE_STATISTICS))
+                {
+                    //special case to allow skipping reading unavailable pages. Need to have already read page 0
+                    //Both of these logs use the same structure in the first 512B to indicate a list of supported pages.
+                    //If reading either of these logs, we can skip a drive request when the page will come back as zeroes anyways
+                    //This can be especially helpful for USB devices reading single sectors at a time on logs like device statistics.
+                    bool skipAhead = true;
+                    bool doneChecking = false;
+                    for (uint8_t pageIter = 0; !doneChecking && pageIter < logBuffer[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET]; ++pageIter)
+                    {
+                        //offset = deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter] * LEGACY_DRIVE_SEC_SIZE;
+                        //check if the current page is in the list PLUS additional transfer length if reading more than a single page at a time!
+                        for (uint16_t pageCheck = currentPage; !doneChecking && pageCheck < (currentPage + pagesToReadAtATime); pageCheck += 1)
+                        {
+                            if (pageCheck == logBuffer[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter])
+                            {
+                                skipAhead = false;
+                                doneChecking = true;
+                            }
+                        }
+                    }
+                    if (skipAhead)
+                    {
+                        if (fileOpened)
+                        {
+                            //write out to a file
+                            if ((fwrite(&logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], sizeof(uint8_t), C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE, fp_log) != (C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE)) || ferror(fp_log))
+                            {
+                                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                                {
+                                    perror("Error writing a file!\n");
+                                }
+                                fclose(fp_log);
+                                fileOpened = false;
+                                safe_Free_aligned(logBuffer)
+                                safe_Free(fileNameUsed)
+                                return ERROR_WRITING_FILE;
+                            }
+                            ret = SUCCESS;
+                        }
+                        if (toBuffer)
+                        {
+                            if (bufSize >= logSize)
+                            {
+                                memset(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], 0, C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE);
+                            }
+                            else
+                            {
+                                return BAD_PARAMETER;
+                            }
+                        }
+                        continue;
+                    }
+                }
                 //loop and read each page or set of pages, then save to a file
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, featureRegister))
                 {
