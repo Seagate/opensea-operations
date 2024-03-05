@@ -1344,10 +1344,9 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\n");
                 if (!toBuffer)
                 {
-                    printf("Binary log saved to: %s\n", fileNameUsed);
+                    printf("\nBinary log saved to: %s\n", fileNameUsed);
                 }
             }
         }
