@@ -480,8 +480,9 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
 int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize)
 {
     int ret = NOT_SUPPORTED;//assume the page is not supported
-    uint32_t modeLength = MODE_PARAMETER_HEADER_10_LEN;
+    uint32_t modeLength = MODE_PARAMETER_HEADER_10_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
     bool sixByte = false;
+    bool retriedMP6 = false;//only for automatic hack
     if (device->drive_info.passThroughHacks.scsiHacks.noModePages)
     {
         return NOT_SUPPORTED;
@@ -493,7 +494,11 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
     //Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS || device->drive_info.passThroughHacks.scsiHacks.mode6bytes)
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2
+        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE
+        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS
+        || device->drive_info.passThroughHacks.scsiHacks.mode6bytes
+        || (device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
     {
         sixByte = true;
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -510,27 +515,88 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     *modePageSize = 0;
     if (!sixByte)
     {
-        if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, true, true, mpc, modeBuffer))
+        bool longlba = false;
+        if (device->drive_info.deviceMaxLba > UINT32_MAX)
         {
-            *modePageSize = M_BytesTo2ByteValue(modeBuffer[0], modeBuffer[1]) + 2;
-            ret = SUCCESS;
+            longlba = true;
+        }
+        if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, false, longlba, mpc, modeBuffer))
+        {
+            //validate the correct page was returned!
+            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[6], modeBuffer[7]);
+            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+            {
+                if (subpage > 0)
+                {
+                    //validate we received a subpage correctly
+                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
+                    {
+                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
+                        {
+                            //subpage value does not match the request
+                            ret = FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        ret = FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                //page code already does not match!
+                //consider this a failure!
+                ret = FAILURE;
+            }
+            if (ret != FAILURE)
+            {
+                *modePageSize = M_BytesTo2ByteValue(modeBuffer[0], modeBuffer[1]) + 2;
+                ret = SUCCESS;
+            }
         }
         else
         {
             //if invalid operation code, then we should retry
-            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)//checking for invalid operation code
+            senseDataFields senseFields;
+            memset(&senseFields, 0, sizeof(senseDataFields));
+            get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
+            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x20 && senseFields.scsiStatusCodes.ascq == 0x00)//checking for invalid operation code
             {
                 sixByte = true;
                 modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
                 //reallocate memory!
-                uint8_t *temp = C_CAST(uint8_t*, realloc(modeBuffer, modeLength));
+                uint8_t* temp = C_CAST(uint8_t*, realloc(modeBuffer, modeLength));
                 if (!temp)
                 {
                     return MEMORY_FAILURE;
                 }
                 modeBuffer = temp;
+            }
+            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x24 && senseFields.scsiStatusCodes.ascq == 0x00)//invalid field in CDB
+            {
+                //could be a mode page is not supported, or MPC is not a correct value, among other errors
+                //Try checking sense key speciic
+                if (senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_FIELD_POINTER)
+                {
+                    //if we are getting a sense key specific field pointer, this is a SAS drive and there is no need to retry anthing.
+                    //set this hack to valid as there is no need to retry the 6 byte command
+                    device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
+                }
+                else if (subpage == 0 && !device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid)
+                {
+                    //this hack has not already been tested for, so retry with mode sense 6
+                    sixByte = true;
+                    retriedMP6 = true;
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
+            }
+            else
+            {
+                ret = FAILURE;
             }
         }
     }
@@ -538,8 +604,45 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     {
         if (SUCCESS == scsi_Mode_Sense_6(device, modePage, C_CAST(uint8_t, modeLength), subpage, false, mpc, modeBuffer))//don't disable block descriptors here since this is mostly to support old drives.
         {
-            *modePageSize = modeBuffer[0] + 1;
+            //validate the correct page was returned!
+            uint8_t blockDescLen = modeBuffer[2];
+            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+            {
+                if (subpage > 0)
+                {
+                    //validate we received a subpage correctly
+                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
+                    {
+                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
+                        {
+                            //subpage value does not match the request
+                            ret = FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        ret = FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                //page code already does not match!
+                //consider this a failure!
+                ret = FAILURE;
+            }
+            if (ret != FAILURE)
+            {
+                *modePageSize = modeBuffer[0] + 1;
+                ret = SUCCESS;
+            }
         }
+    }
+    //if we are here and this hack has not already been validated, then validate it to skip future retries.
+    if (!device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && retriedMP6 && ret == SUCCESS && !is_Empty(modeBuffer, modeLength))
+    {
+        device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
+        device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
     }
     safe_Free_aligned(modeBuffer)
     return ret;
@@ -549,6 +652,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
 {
     int ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t modeLength = 0;
+    bool retriedMP6 = false;//only for automatic hack
     if (device->drive_info.passThroughHacks.scsiHacks.noModePages)
     {
         return NOT_SUPPORTED;
@@ -570,7 +674,11 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
     //Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS || device->drive_info.passThroughHacks.scsiHacks.mode6bytes)
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 
+        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE 
+        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS 
+        || device->drive_info.passThroughHacks.scsiHacks.mode6bytes
+        || (device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
     {
         sixByte = true;
     }
@@ -585,13 +693,46 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
     }
     if (!sixByte)
     {
-        if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, true, true, mpc, modeBuffer))
+        //do not disable block descriptor for consistency between mode sense 6 and 10.
+        bool longlba = false;
+        if (device->drive_info.deviceMaxLba > UINT32_MAX)
+        {
+            longlba = true;
+        }
+        if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, false, longlba, mpc, modeBuffer))
         {
             FILE *fpmp = NULL;
             bool fileOpened = false;
             if (used6ByteCmd)
             {
                 *used6ByteCmd = false;
+            }
+            //validate the correct page was returned!
+            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[6], modeBuffer[7]);
+            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+            {
+                if (subpage > 0)
+                {
+                    //validate we received a subpage correctly
+                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
+                    {
+                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
+                        {
+                            //subpage value does not match the request
+                            ret = FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        ret = FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                //page code already does not match!
+                //consider this a failure!
+                ret = FAILURE;
             }
             if (!toBuffer && !fileOpened && ret != FAILURE)
             {
@@ -650,9 +791,10 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
         else
         {
             //if invalid operation code, then we should retry
-            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)//checking for invalid operation code
+            senseDataFields senseFields;
+            memset(&senseFields, 0, sizeof(senseDataFields));
+            get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
+            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x20 && senseFields.scsiStatusCodes.ascq == 0x00)//checking for invalid operation code
             {
                 sixByte = true;
                 modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -663,6 +805,27 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
                     return MEMORY_FAILURE;
                 }
                 modeBuffer = temp;
+            }
+            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x24 && senseFields.scsiStatusCodes.ascq == 0x00)//invalid field in CDB
+            {
+                //could be a mode page is not supported, or MPC is not a correct value, among other errors
+                //Try checking sense key speciic
+                if (senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_FIELD_POINTER)
+                {
+                    //if we are getting a sense key specific field pointer, this is a SAS drive and there is no need to retry anthing.
+                    //set this hack to valid as there is no need to retry the 6 byte command
+                    device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
+                }
+                else if (subpage == 0 && !device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid)
+                {
+                    //this hack has not already been tested for, so retry with mode sense 6
+                    sixByte = true;
+                    retriedMP6 = true;
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
             }
             else
             {
@@ -679,6 +842,33 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
             if (used6ByteCmd)
             {
                 *used6ByteCmd = true;
+            }
+            //validate the correct page was returned!
+            uint8_t blockDescLen = modeBuffer[2];
+            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+            {
+                if (subpage > 0)
+                {
+                    //validate we received a subpage correctly
+                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
+                    {
+                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
+                        {
+                            //subpage value does not match the request
+                            ret = FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        ret = FAILURE;
+                    }
+                }
+            }
+            else
+            {
+                //page code already does not match!
+                //consider this a failure!
+                ret = FAILURE;
             }
             if (!toBuffer && !fileOpened && ret != FAILURE)
             {
@@ -735,6 +925,12 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
         {
             ret = FAILURE;
         }
+    }
+    //if we are here and this hack has not already been validated, then validate it to skip future retries.
+    if (!device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && retriedMP6 && ret == SUCCESS && !is_Empty(modeBuffer, modeLength))
+    {
+        device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
+        device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
     }
     safe_Free_aligned(modeBuffer)
     return ret;
@@ -1539,7 +1735,23 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
         }
         else
         {
-            ret = FAILURE;
+            senseDataFields senseFields;
+            memset(&senseFields, 0, sizeof(senseDataFields));
+            get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
+            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x20 && senseFields.scsiStatusCodes.ascq == 0x00)
+            {
+                device->drive_info.passThroughHacks.scsiHacks.noLogPages = true;
+                ret = FAILURE;
+            }
+            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x24 && senseFields.scsiStatusCodes.ascq == 0x00)
+            {
+                ret = NOT_SUPPORTED;
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            
         }
         safe_Free_aligned(logBuffer)
     }
