@@ -179,10 +179,10 @@ extern "C"
         securityCompliance cryptoModuleCompliance[MAX_COMPLIANCE_DESCRIPTORS];//setting to 2 for now...not sure there are more than 1 reported currently.
     }securityProtocolInfo;
 
-    #define MAX_FEATURES UINT8_C(50) //change this number if we need to capture more feature support
+    #define MAX_FEATURES UINT8_C(60) //change this number if we need to capture more feature support
     #define MAX_FEATURE_LENGTH UINT8_C(50) //maximum number of characters to allow for use when storing feature names.
 
-    #define MAX_SPECS UINT8_C(30)
+    #define MAX_SPECS UINT8_C(40)
     #define MAX_SPEC_LENGTH UINT8_C(40)
 
     typedef struct _driveInformationSAS_SATA
