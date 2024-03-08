@@ -85,6 +85,21 @@ extern "C"
         uint8_t portSpeedsNegotiated[MAX_PORTS];//0 = not reported, 1 = gen 1 (1.5Gb/s), 2 = gen 2 (3.0Gb/s), 3 = gen 3 (6.0Gb/s), 4 = gen 4 (12.0Gb/s)
     }ifSerialSpeed;
 
+    typedef enum _eCablingInfoType
+    {
+        CABLING_INFO_NONE,
+        CABLING_INFO_ATA,
+    }eCablingInfoType;
+
+    typedef struct _ataCablingInfo
+    {
+        bool cablingInfoValid;//ATA ID word 93 was valid.
+        bool ata80PinCableDetected;//80 pin grounded cabling detected
+        bool device1;
+        uint8_t deviceNumberDetermined;//0 = reserved, 1 = jumper, 2 = cable select, 3 = other unknown method
+        bool dev0RespondsForDev1;
+    }ataCablingInfo;
+
 #define PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH 20
 
     typedef struct _ifParallelSpeed
@@ -96,6 +111,10 @@ extern "C"
         char negModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
         bool maxModeNameValid;
         char maxModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
+        eCablingInfoType cableInfoType;
+        union {
+            ataCablingInfo ataCableInfo;
+        };
     }ifParallelSpeed;
     typedef struct _ifFibreSpeed
     {

@@ -1405,9 +1405,49 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
             }
         }
     }
+
     if (is_ATA_Identify_Word_Valid(wordPtr[92]))
     {
         driveInfo->ataSecurityInformation.masterPasswordIdentifier = wordPtr[92];
+    }
+
+    //get ATA cabling info for pata devices. SATA should clear this to zero
+    //NOTE: In ATA8-APT there is table36 which goes over how to determine the cabling type.
+    //      This table is mean to help a host know which speed to use at most based on results
+    //      from both drive 0 and drive 1. In here we do not have this information, but we will report what
+    //      this individual device is reporting.
+    //      Annex A gives additional detail of a non-standard way to determine it, but it is not recommended.
+    //TLDR: The drive may not detect this properly in certain cases...see ATA8-APT for details
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[93]))
+    {
+        if (driveInfo->interfaceSpeedInfo.speedType == INTERFACE_SPEED_PARALLEL)
+        {
+            driveInfo->interfaceSpeedInfo.parallelSpeed.cableInfoType = CABLING_INFO_ATA;
+            driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.cablingInfoValid = true;
+            if (wordPtr[93] & BIT13)
+            {
+                driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.ata80PinCableDetected = true;
+            }
+            if (M_GETBITRANGE(wordPtr[93], 12, 8) > 0 && wordPtr[93] & BIT8)
+            {
+                driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = true;
+                driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.dev0RespondsForDev1 = false;//only valid for drive 0 information
+                driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined = M_GETBITRANGE(wordPtr[93], 10, 9);
+            }
+            else if (M_GETBITRANGE(wordPtr[93], 7, 0) > 0 && wordPtr[93] & BIT0)
+            {
+                driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = false;
+                if (wordPtr[93] & BIT6)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.dev0RespondsForDev1 = true;
+                }
+                else
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.dev0RespondsForDev1 = false;
+                }
+                driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined = M_GETBITRANGE(wordPtr[93], 2, 1);
+            }
+        }
     }
 
     if (lbaModeSupported && driveInfo->maxLBA == MAX_28BIT)
@@ -3169,7 +3209,7 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                         if (devIDPageLen + 4 > INQ_RETURN_DATA_LENGTH)
                         {
                             //realloc and re-read the page with the larger pagelength
-                            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(deviceIdentification, 0, devIDPageLen + 4, device->os_info.minimumAlignment));
+                            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(deviceIdentification, 0, C_CAST(size_t, devIDPageLen) + 4, device->os_info.minimumAlignment));
                             if (!temp)
                             {
                                 perror("Error trying to realloc for larget device identification VPD page data!\n");
@@ -5211,7 +5251,7 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                     driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
                                     driveInfo->interfaceSpeedInfo.speedIsValid = true;
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-                                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = C_CAST(uint32_t, scalingMultiplier) * (C_CAST(uint32_t, transferWidthExponent) + UINT32_C(1));
+                                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = C_CAST(double, scalingMultiplier) * (C_CAST(double, transferWidthExponent) + UINT32_C(1));
                                     snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
                                 }
@@ -5324,7 +5364,7 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 {
                                     driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
                                     driveInfo->interfaceSpeedInfo.speedIsValid = true;
-                                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = C_CAST(uint32_t, scalingMultiplier) * (C_CAST(uint32_t, transferWidthExponent) + UINT32_C(1));
+                                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = C_CAST(double, scalingMultiplier) * (C_CAST(double, transferWidthExponent) + UINT32_C(1));
                                     snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
                                 }
@@ -7662,6 +7702,33 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             else
             {
                 printf("Not Reported\n");
+            }
+            if (driveInfo->interfaceSpeedInfo.parallelSpeed.cableInfoType == CABLING_INFO_ATA && driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.cablingInfoValid)
+            {
+                printf("\t\tCabling Detected: ");
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.ata80PinCableDetected)
+                {
+                    printf("80-pin Cable\n");
+                }
+                else
+                {
+                    printf("40-pin Cable\n");
+                }
+                printf("\t\tDevice Number: %" PRIu8 "\n", driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 ? UINT8_C(1) : UINT8_C(0));
+                printf("\t\tDevice Set by: ");
+                switch (driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined)
+                {
+                case 1:
+                    printf("Jumper\n");
+                    break;
+                case 2:
+                    printf("Cable Select\n");
+                    break;
+                default:
+                    printf("Unknown\n");
+                    break;
+                }
+                //TODO: dev0RespondsForDev1
             }
         }
         else if (driveInfo->interfaceSpeedInfo.speedType == INTERFACE_SPEED_ANCIENT)
