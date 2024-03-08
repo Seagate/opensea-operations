@@ -361,7 +361,6 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
         //SWDMA (obsolete since MW is so much faster...) (word 52 also holds the max supported value, but is also long obsolete...it can be checked if word 62 is not supported)
         uint8_t swdmaSupported = M_GETBITRANGE(wordPtr[62], 2, 0);
         uint8_t swdmaSelected = M_GETBITRANGE(wordPtr[62], 10, 8);
-        bool swdmaWordSupported = false;
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             memset(&driveInfo->interfaceSpeedInfo, 0, sizeof(interfaceSpeed));//clear anything we've set so far
@@ -371,7 +370,6 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
         if (swdmaSupported > 0 && swdmaSupported < UINT8_MAX)
         {
             int8_t counter = INT8_C(-1);
-            swdmaWordSupported = true;
             while (swdmaSupported > 0)
             {
                 swdmaSupported = swdmaSupported >> 1;
@@ -3096,6 +3094,7 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
             if (!supportedVPDPages)
             {
                 perror("Error allocating memory for supported VPD pages!\n");
+                safe_Free_aligned(tempBuf)
                 return MEMORY_FAILURE;
             }
             memcpy(supportedVPDPages, &tempBuf[4], supportedVPDPagesLength);
@@ -3477,6 +3476,7 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
             memcpy(driveInfo->serialNumber, &device->drive_info.scsiVpdData.inquiryData[36], SERIAL_NUM_LEN);
             device->drive_info.serialNumber[SERIAL_NUM_LEN] = '\0';
         }
+        safe_Free_aligned(tempBuf)
     }
     return ret;
 }
@@ -3520,6 +3520,7 @@ static int get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                 {
                     //trying to read the list of supported pages can trigger this to show up due to invalid operation code
                     //when this happens, just return to save the time and effort.
+                    safe_Free_aligned(scsiLogBuf)
                     return NOT_SUPPORTED;
                 }
                 if (!dummyUpLogPages)
@@ -5956,7 +5957,7 @@ static int get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS
                 {
                     add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Fast Format");
                 }
-                memset(supportedCommands, 0, 1024);
+                memset(supportedCommands, 0, 36);
                 if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, SCSI_FORMAT_WITH_PRESET_CMD, 0, 14, supportedCommands))
                 {
                     switch (supportedCommands[1] & 0x07)
@@ -5972,7 +5973,7 @@ static int get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS
                         break;
                     }
                 }
-                memset(supportedCommands, 0, 1024);
+                memset(supportedCommands, 0, 36);
                 //Sanitize (need to check each service action to make sure at least one is supported.
                 bool sanitizeSupported = false;
                 if (scsiInfo->version >= 5 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
