@@ -8242,12 +8242,16 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
 {
     int ret = SUCCESS;
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
+#if defined (DEBUG_DRIVE_INFO_TIME)
     seatimer_t ataTime, scsiTime, nvmeTime;
+#endif //DEBUG_DRIVE_INFO_TIME
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
     scsiDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));
     if (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe)
     {
+#if defined (DEBUG_DRIVE_INFO_TIME)
         start_Timer(&ataTime);
+#endif //DEBUG_DRIVE_INFO_TIME
         //allocate ataDriveInfo since this is an ATA drive
         ataDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));
         if (ataDriveInfo)
@@ -8255,11 +8259,15 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
             ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
             ret = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
         }
+#if defined (DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&ataTime);
+#endif //DEBUG_DRIVE_INFO_TIME
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
+#if defined (DEBUG_DRIVE_INFO_TIME)
         start_Timer(&nvmeTime);
+#endif //DEBUG_DRIVE_INFO_TIME
         //allocate nvmeDriveInfo since this is an NVMe drive
         nvmeDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));
         if (nvmeDriveInfo)
@@ -8267,17 +8275,23 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
             nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
             ret = get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
         }
+#if defined (DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&nvmeTime);
+#endif //DEBUG_DRIVE_INFO_TIME
     }
     if (scsiDriveInfo)
     {
+#if defined (DEBUG_DRIVE_INFO_TIME)
         start_Timer(&scsiTime);
+#endif //DEBUG_DRIVE_INFO_TIME
         //now that we have software translation always get the scsi data.
         scsiDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
         ret = get_SCSI_Drive_Information(device, &scsiDriveInfo->sasSata);
+#if defined (DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&scsiTime);
+#endif //DEBUG_DRIVE_INFO_TIME
     }
-
+#if defined (DEBUG_DRIVE_INFO_TIME)
     printf("Discovery Times:\n");
     uint8_t hours = 0, minutes = 0, seconds = 0;
     uint64_t ataSeconds = 0, nvmeSeconds = 0;
@@ -8307,6 +8321,7 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
     convert_Seconds_To_Displayable_Time(scsiSeconds, NULL, NULL, &hours, &minutes, &seconds);
     print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
     printf("\n");
+#endif //DEBUG_DRIVE_INFO_TIME
 
     if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
     {
