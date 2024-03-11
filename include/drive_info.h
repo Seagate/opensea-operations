@@ -97,7 +97,6 @@ extern "C"
         bool ata80PinCableDetected;//80 pin grounded cabling detected
         bool device1;
         uint8_t deviceNumberDetermined;//0 = reserved, 1 = jumper, 2 = cable select, 3 = other unknown method
-        bool dev0RespondsForDev1;
     }ataCablingInfo;
 
 #define PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH 20

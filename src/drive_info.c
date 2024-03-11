@@ -1431,20 +1431,11 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
             if (M_GETBITRANGE(wordPtr[93], 12, 8) > 0 && wordPtr[93] & BIT8)
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = true;
-                driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.dev0RespondsForDev1 = false;//only valid for drive 0 information
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined = M_GETBITRANGE(wordPtr[93], 10, 9);
             }
             else if (M_GETBITRANGE(wordPtr[93], 7, 0) > 0 && wordPtr[93] & BIT0)
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = false;
-                if (wordPtr[93] & BIT6)
-                {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.dev0RespondsForDev1 = true;
-                }
-                else
-                {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.dev0RespondsForDev1 = false;
-                }
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined = M_GETBITRANGE(wordPtr[93], 2, 1);
             }
         }
@@ -7728,7 +7719,6 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                     printf("Unknown\n");
                     break;
                 }
-                //TODO: dev0RespondsForDev1
             }
         }
         else if (driveInfo->interfaceSpeedInfo.speedType == INTERFACE_SPEED_ANCIENT)
