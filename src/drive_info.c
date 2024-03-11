@@ -149,7 +149,7 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
     }
 
     //Check if CHS words are non-zero to see if the information is valid.
-    if (!(is_ATA_Identify_Word_Valid(wordPtr[1]) || is_ATA_Identify_Word_Valid(wordPtr[3]) || is_ATA_Identify_Word_Valid(wordPtr[6])))
+    if (is_ATA_Identify_Word_Valid(wordPtr[1]) && is_ATA_Identify_Word_Valid(wordPtr[3]) && is_ATA_Identify_Word_Valid(wordPtr[6]))
     {
         driveInfo->ataLegacyCHSInfo.legacyCHSValid = true;
         driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders = wordPtr[1];
