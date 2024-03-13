@@ -703,6 +703,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
         {
             FILE *fpmp = NULL;
             bool fileOpened = false;
+            ret = SUCCESS;
             if (used6ByteCmd)
             {
                 *used6ByteCmd = false;
@@ -786,7 +787,6 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
                 fclose(fpmp);
                 fileOpened = false;
             }
-            ret = SUCCESS;
         }
         else
         {
@@ -839,6 +839,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
         {
             FILE *fpmp = NULL;
             bool fileOpened = false;
+            ret = SUCCESS;
             if (used6ByteCmd)
             {
                 *used6ByteCmd = true;
