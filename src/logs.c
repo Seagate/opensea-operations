@@ -799,7 +799,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
                 sixByte = true;
                 modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
                 //reallocate memory!
-                uint8_t *temp = C_CAST(uint8_t*, realloc(modeBuffer, modeLength));
+                uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(modeBuffer, 0, modeLength, device->os_info.minimumAlignment));
                 if (!temp)
                 {
                     return MEMORY_FAILURE;
@@ -1740,7 +1740,6 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
             get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
             if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x20 && senseFields.scsiStatusCodes.ascq == 0x00)
             {
-                device->drive_info.passThroughHacks.scsiHacks.noLogPages = true;
                 ret = FAILURE;
             }
             else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x24 && senseFields.scsiStatusCodes.ascq == 0x00)
