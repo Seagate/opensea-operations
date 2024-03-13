@@ -348,8 +348,9 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
     }
 
     //28bit max LBA...start with this and adjust to larger size later as needed
-    if (lbaModeSupported && (is_ATA_Identify_Word_Valid(wordPtr[60]) || is_ATA_Identify_Word_Valid(wordPtr[61])))
+    if (lbaModeSupported || (is_ATA_Identify_Word_Valid(wordPtr[60]) || is_ATA_Identify_Word_Valid(wordPtr[61])))
     {
+        lbaModeSupported = true;//workaround for some devices that may not have set the earlier LBA mode bit
         driveInfo->maxLBA = M_BytesTo4ByteValue(bytePtr[123], bytePtr[122], bytePtr[121], bytePtr[120]);
     }
 
@@ -1214,7 +1215,7 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
     }
     if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[87]))
     {
-        word84Valid = true;
+        word87Valid = true;
     }
     
     if ((word84Valid && wordPtr[84] & BIT8) || (word87Valid && wordPtr[87] & BIT8))
@@ -7392,7 +7393,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("\tDefault CHS: %" PRIu16 " | %" PRIu8 " | %" PRIu8 "\n", driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders, driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads, driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack);
         printf("\tCurrent CHS: %" PRIu16 " | %" PRIu8 " | %" PRIu8 "\n", driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders, driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads, driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack);
         uint32_t simMaxLBA = 0;
-        if (driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid)
+        if (driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid && driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders > 0 && driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads > 0 && driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack > 0)
         {
             simMaxLBA = driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack;
         }
