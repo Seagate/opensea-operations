@@ -498,7 +498,7 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
         || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE
         || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS
         || device->drive_info.passThroughHacks.scsiHacks.mode6bytes
-        || (device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
+        || (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
     {
         sixByte = true;
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -581,9 +581,9 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
                 {
                     //if we are getting a sense key specific field pointer, this is a SAS drive and there is no need to retry anthing.
                     //set this hack to valid as there is no need to retry the 6 byte command
-                    device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
+                    ret = NOT_SUPPORTED;
                 }
-                else if (subpage == 0 && !device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid)
+                else if (subpage == 0 && !device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && device->drive_info.passThroughHacks.scsiHacks.mp6sp0Success == 0)
                 {
                     //this hack has not already been tested for, so retry with mode sense 6
                     sixByte = true;
@@ -639,10 +639,9 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
         }
     }
     //if we are here and this hack has not already been validated, then validate it to skip future retries.
-    if (!device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && retriedMP6 && ret == SUCCESS && !is_Empty(modeBuffer, modeLength))
+    if (retriedMP6 && ret == SUCCESS && device->drive_info.passThroughHacks.scsiHacks.mp6sp0Success > 0 && !is_Empty(modeBuffer, modeLength))
     {
         device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
-        device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
     }
     safe_Free_aligned(modeBuffer)
     return ret;
@@ -678,7 +677,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
         || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE 
         || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS 
         || device->drive_info.passThroughHacks.scsiHacks.mode6bytes
-        || (device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
+        || (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
     {
         sixByte = true;
     }
@@ -814,9 +813,9 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
                 {
                     //if we are getting a sense key specific field pointer, this is a SAS drive and there is no need to retry anthing.
                     //set this hack to valid as there is no need to retry the 6 byte command
-                    device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
+                    ret = NOT_SUPPORTED;
                 }
-                else if (subpage == 0 && !device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid)
+                else if (subpage == 0 && !device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && device->drive_info.passThroughHacks.scsiHacks.mp6sp0Success == 0)
                 {
                     //this hack has not already been tested for, so retry with mode sense 6
                     sixByte = true;
@@ -928,10 +927,9 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
         }
     }
     //if we are here and this hack has not already been validated, then validate it to skip future retries.
-    if (!device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid && retriedMP6 && ret == SUCCESS && !is_Empty(modeBuffer, modeLength))
+    if (device->drive_info.passThroughHacks.scsiHacks.mp6sp0Success > 0 && retriedMP6 && ret == SUCCESS && !is_Empty(modeBuffer, modeLength))
     {
         device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
-        device->drive_info.passThroughHacks.scsiHacks.mode6BSPZValid = true;
     }
     safe_Free_aligned(modeBuffer)
     return ret;
@@ -941,7 +939,7 @@ bool is_SCSI_Read_Buffer_16_Supported(tDevice *device)
 {
     bool supported = false;
     uint8_t reportSupportedOperationCode[20] = { 0 };
-    if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, READ_BUFFER_16_CMD, 0, 20, reportSupportedOperationCode))
+    if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, READ_BUFFER_16_CMD, 0, 20, reportSupportedOperationCode))
     {
         if (M_GETBITRANGE(reportSupportedOperationCode[1], 2, 0) == 3)//matches the spec
         {
@@ -3458,7 +3456,7 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
         //TODO: Instead of a scope, this should be a function.
         //First, setting up bools for GPL and SMART logging features based on drive capabilities
         bool gpl = device->drive_info.ata_Options.generalPurposeLoggingSupported;
-        bool smart = (is_SMART_Enabled(device) && (device->drive_info.IdentifyData.ata.Word084 & BIT0 || device->drive_info.IdentifyData.ata.Word087 & BIT0));
+        bool smart = (is_SMART_Enabled(device) && (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT0) || (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT0));
         //Now, using switch case to handle KNOWN logs from ATA spec. Only flipping certain logs as most every modern drive uses GPL 
         //and most logs are GPL access now (but it wasn't always that way, and this works around some bugs in drive firmware!!!)
         switch (logNum)
