@@ -21,20 +21,14 @@ static bool are_Buffer_Commands_Available(tDevice *device)
     //Check if read/write buffer commands are supported on SATA and SAS
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((device->drive_info.IdentifyData.ata.Word082 != 0xFFFF && device->drive_info.IdentifyData.ata.Word082 != 0 //make sure word 82 is valid
-            &&
-            device->drive_info.IdentifyData.ata.Word082 & BIT13 && device->drive_info.IdentifyData.ata.Word082 & BIT12)//check support bits
-            ||
-            (device->drive_info.IdentifyData.ata.Word085 != 0xFFFF && device->drive_info.IdentifyData.ata.Word085 != 0 //make sure word 85 is valid
-            &&
-            device->drive_info.IdentifyData.ata.Word085 & BIT13 && device->drive_info.IdentifyData.ata.Word085 & BIT12//check support bits
-            )
-           )
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT13 && device->drive_info.IdentifyData.ata.Word082 & BIT12)
+            || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT13 && device->drive_info.IdentifyData.ata.Word085 & BIT12))
         {
             //PIO commands
             supported = true;
         }
-        if (device->drive_info.IdentifyData.ata.Word069 & BIT11 && device->drive_info.IdentifyData.ata.Word069 & BIT10)
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT11 && device->drive_info.IdentifyData.ata.Word069 & BIT10))
         {
             //DMA commands
             supported = true;
@@ -47,11 +41,11 @@ static bool are_Buffer_Commands_Available(tDevice *device)
         //Only asking about read buffer command, since write buffer will likely be implemented for at least FWDL, so if this is supported, the equivalent write buffer command should also be supported
         bool driveReportedSupport = false;
         uint8_t supportedCommandData[16] = { 0 };
-        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, READ_BUFFER_CMD, 0x02, 14, supportedCommandData))//trying w/ service action (newer SPC spec allows this)
+        if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, READ_BUFFER_CMD, 0x02, 14, supportedCommandData))//trying w/ service action (newer SPC spec allows this)
         {
             driveReportedSupport = true;
         }
-        else if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, READ_BUFFER_CMD, 0, 14, supportedCommandData))//older SPC3
+        else if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, READ_BUFFER_CMD, 0, 14, supportedCommandData))//older SPC3
         {
             //NOTE: we are just going to assume that if this gives us success, that this mode is supported, even though we don't know for sure...it SHOULD be supported if we got that this command is supported, which is good enough
             driveReportedSupport = true;
@@ -497,6 +491,14 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
     safe_Free_aligned(patternBuffer)
     safe_Free_aligned(returnBuffer)
 }
+
+//SATA Phy event counters: CRC = definitely bad
+//                         R_ERR = mulltiple possible causes from bad connection to bad cable. Recommend redoing the connection or replacing cable.
+//SATA Device statistics: CRC = definitely bad
+//                        ASR events = bad cable as well. (asynchronous signal recovery)
+//SAS SPL error counters: Invalid Dword = definitely bad
+//                        Running disparity or loss of sync = mulltiple possible causes from bad connection to bad cable. Recommend redoing the connection or replacing cable.
+//Slower interface speed = longer test time to get a confident result.
 
 //master function for the whole test.
 int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)

@@ -245,10 +245,9 @@ int show_Sanitize_Progress(tDevice *device)
 int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOptions)
 {
     int ret = FAILURE;
-    uint16_t *word_ptr = (uint16_t *)&device->drive_info.IdentifyData.ata.Word000;
     if (device->drive_info.IdentifyData.ata.Word255 == 0)
     {
-        ret = ata_Identify(device, (uint8_t *)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
+        ret = ata_Identify(device, C_CAST(uint8_t *, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
     }
     else
     {
@@ -256,19 +255,19 @@ int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported 
     }
     if (ret == SUCCESS)
     {
-        if (word_ptr[ATA_IDENTIFY_SANITIZE_INDEX] & ATA_IDENTIFY_SANITIZE_SUPPORTED)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word059) && device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_SANITIZE_SUPPORTED)
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->exitFailMode = true;
-            if (word_ptr[ATA_IDENTIFY_SANITIZE_INDEX] & ATA_IDENTIFY_CRYPTO_SUPPORTED)
+            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_CRYPTO_SUPPORTED)
             {
                 sanitizeOptions->crypto = true;
             }
-            if (word_ptr[ATA_IDENTIFY_SANITIZE_INDEX] & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
+            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
             {
                 sanitizeOptions->overwrite = true;
             }
-            if (word_ptr[ATA_IDENTIFY_SANITIZE_INDEX] & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
+            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
             {
                 sanitizeOptions->blockErase = true;
             }

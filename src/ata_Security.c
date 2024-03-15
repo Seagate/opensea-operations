@@ -135,49 +135,59 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 securityStatus->masterPasswordCapability = true;
             }
             //word 89
-            if (device->drive_info.IdentifyData.ata.Word089 & BIT15)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word089))
             {
-                securityStatus->extendedTimeFormat = true;
-                //bits 14:0
-                securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * 2;
-                if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+                if (device->drive_info.IdentifyData.ata.Word089 & BIT15)
                 {
-                    securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    securityStatus->extendedTimeFormat = true;
+                    //bits 14:0
+                    securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * 2;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+                    {
+                        securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
-            }
-            else
-            {
-                //bits 7:0
-                securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * 2;
-                if (securityStatus->securityEraseUnitTimeMinutes == (255 * 2))
+                else
                 {
-                    securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    //bits 7:0
+                    securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * 2;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (255 * 2))
+                    {
+                        securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
             }
             //word 90
-            if (device->drive_info.IdentifyData.ata.Word090 & BIT15)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word090))
             {
-                securityStatus->extendedTimeFormat = true;
-                //bits 14:0
-                securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * 2;
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+                if (device->drive_info.IdentifyData.ata.Word090 & BIT15)
                 {
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    securityStatus->extendedTimeFormat = true;
+                    //bits 14:0
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * 2;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+                    {
+                        securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
-            }
-            else
-            {
-                //bits 7:0
-                securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * 2;
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
+                else
                 {
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    //bits 7:0
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * 2;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
+                    {
+                        securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
             }
             //word 92
-            securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word092))
+            {
+                securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
+            }
         }
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069))
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT12))
         {
             securityStatus->encryptAll = device->drive_info.IdentifyData.ata.Word069 & BIT4;
         }

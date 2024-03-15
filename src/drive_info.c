@@ -531,6 +531,9 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
         }
     }
 
+    bool extendedLBAFieldValid = false;
+    bool deterministicTrim = false;
+    bool zeroesAfterTrim = false;
     if (words64to70Valid)
     {
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
@@ -613,38 +616,45 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
                 break;
             }
         }
+        if (is_ATA_Identify_Word_Valid(wordPtr[69]))
+        {
+            if (wordPtr[69] & BIT15)
+            {
+                //CFast supported
+                add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "CFast");
+            }
+            if (wordPtr[69] & BIT14)
+            {
+                deterministicTrim = true;
+            }
+            if (wordPtr[69] & BIT8)
+            {
+                driveInfo->fwdlSupport.dmaModeSupported = true;
+            }
+            if (wordPtr[69] & BIT7)
+            {
+                ataCapabilities->ieee1667Supported = true;
+            }
+            if (wordPtr[69] & BIT6)
+            {
+                zeroesAfterTrim = true;
+            }
+            //get if it's FDE/TCG
+            if (wordPtr[69] & BIT4)
+            {
+                //FDE
+                driveInfo->encryptionSupport = ENCRYPTION_FULL_DISK;
+                driveInfo->ataSecurityInformation.encryptAll = true;
+            }
+            if (wordPtr[69] & BIT3)
+            {
+                extendedLBAFieldValid = true;
+            }
+            //zoned capabilities (ACS4)
+            driveInfo->zonedDevice = C_CAST(uint8_t, wordPtr[69] & (BIT0 | BIT1));
+        }
     }
-
-    bool extendedLBAFieldValid = false;
-    if (is_ATA_Identify_Word_Valid(wordPtr[69]))
-    {
-        if (wordPtr[69] & BIT15)
-        {
-            //CFast supported
-            add_Specification_To_Supported_List(driveInfo->specificationsSupported, &driveInfo->numberOfSpecificationsSupported, "CFast");
-        }
-        if (wordPtr[69] & BIT8)
-        {
-            driveInfo->fwdlSupport.dmaModeSupported = true;
-        }
-        if (wordPtr[69] & BIT7)
-        {
-            ataCapabilities->ieee1667Supported = true;
-        }
-        //get if it's FDE/TCG
-        if (wordPtr[69] & BIT4)
-        {
-            //FDE
-            driveInfo->encryptionSupport = ENCRYPTION_FULL_DISK;
-            driveInfo->ataSecurityInformation.encryptAll = true;
-        }
-        if (wordPtr[69] & BIT3)
-        {
-            extendedLBAFieldValid = true;
-        }
-        //zoned capabilities (ACS4)
-        driveInfo->zonedDevice = C_CAST(uint8_t, wordPtr[69] & (BIT0 | BIT1));
-    }
+    
     uint8_t queueDepth = 1;//minimum queue depth for any device is 1
     if (is_ATA_Identify_Word_Valid(wordPtr[75]))
     {
@@ -1585,7 +1595,28 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
     {
         if (wordPtr[169] & BIT0)
         {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TRIM");
+            //add additional info for deterministic and zeroes
+            char trimDetails[30] = { 0 };
+            if (deterministicTrim || zeroesAfterTrim)
+            {
+                if (deterministicTrim && zeroesAfterTrim)
+                {
+                    snprintf(trimDetails, 30, "TRIM [Deterministic, Zeroes]");
+                }
+                else if (deterministicTrim)
+                {
+                    snprintf(trimDetails, 30, "TRIM [Deterministic]");
+                }
+                else if (zeroesAfterTrim)
+                {
+                    snprintf(trimDetails, 30, "TRIM [Zeroes]");
+                }
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, trimDetails);
+            }
+            else
+            {
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "TRIM");
+            }
         }
     }
     if (is_ATA_Identify_Word_Valid(wordPtr[206]))
@@ -3132,7 +3163,7 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
             memcpy(supportedVPDPages, &tempBuf[4], supportedVPDPagesLength);
             //now loop through and read pages as we need to, only reading the pages that we care about
             uint16_t vpdIter = 0;
-            for (vpdIter = 0; vpdIter < supportedVPDPagesLength; vpdIter++)
+            for (vpdIter = 0; vpdIter < supportedVPDPagesLength && !device->drive_info.passThroughHacks.scsiHacks.noVPDPages; vpdIter++)
             {
                 switch (supportedVPDPages[vpdIter])
                 {
@@ -3409,7 +3440,38 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                     {
                         if (logicalBlockProvisioning[5] & BIT7)
                         {
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "UNMAP");
+                            char unmapDetails[48] = { 0 };
+                            uint8_t lbprz = M_GETBITRANGE(logicalBlockProvisioning[5], 4, 2);
+                            if (logicalBlockProvisioning[5] & BIT1 || lbprz)
+                            {
+                                char lbprzStr[22] = { 0 };
+                                if (lbprz == 0)
+                                {
+                                    //vendor unique
+                                    snprintf(lbprzStr, 22, "Vendor Pattern");
+                                }
+                                else if (lbprz & BIT0)
+                                {
+                                    snprintf(lbprzStr, 22, "Zeros");
+                                }
+                                else if (lbprz == 0x02)
+                                {
+                                    snprintf(lbprzStr, 22, "Provisioning Pattern");
+                                }
+                                if (logicalBlockProvisioning[5] & BIT1)
+                                {
+                                    snprintf(unmapDetails, 48, "UNMAP [Deterministic, %s]", lbprzStr);
+                                }
+                                else if (strlen(lbprzStr))
+                                {
+                                    snprintf(unmapDetails, 48, "UNMAP [%s]", lbprzStr);
+                                }
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, unmapDetails);
+                            }
+                            else
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "UNMAP");
+                            }
                         }
                     }
                     safe_Free_aligned(logicalBlockProvisioning)
@@ -3674,7 +3736,7 @@ static int get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                 uint16_t logPageIter = LOG_PAGE_HEADER_LENGTH;//log page descriptors start on offset 4 and are 2 bytes long each
                 uint16_t supportedPagesLength = M_BytesTo2ByteValue(scsiLogBuf[2], scsiLogBuf[3]);
                 uint8_t incrementAmount = subpagesSupported ? 2 : 1;
-                for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE); logPageIter += incrementAmount)
+                for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE) && !device->drive_info.passThroughHacks.scsiHacks.noLogPages; logPageIter += incrementAmount)
                 {
                     uint8_t pageCode = scsiLogBuf[logPageIter] & 0x3F;//outer switch statement
                     uint8_t subpageCode = 0;
@@ -4344,7 +4406,7 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
             numberOfPages = offset / 2;
             uint16_t modeIter = 0;
             uint8_t protocolIdentifier = 0;
-            for (uint16_t pageCounter = 0; modeIter < offset && pageCounter < numberOfPages; modeIter += 2, ++pageCounter)
+            for (uint16_t pageCounter = 0; modeIter < offset && pageCounter < numberOfPages && !device->drive_info.passThroughHacks.scsiHacks.noModePages; modeIter += 2, ++pageCounter)
             {
                 uint8_t pageCode = listOfModePagesAndSubpages[modeIter];
                 uint8_t subPageCode = listOfModePagesAndSubpages[modeIter + 1];
@@ -8303,6 +8365,9 @@ int print_Drive_Information(tDevice* device, bool showChildInformation)
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
 #if defined (DEBUG_DRIVE_INFO_TIME)
     seatimer_t ataTime, scsiTime, nvmeTime;
+    memset(&ataTime, 0, sizeof(seatimer_t));
+    memset(&scsiTime, 0, sizeof(seatimer_t));
+    memset(&nvmeTime, 0, sizeof(seatimer_t));
 #endif //DEBUG_DRIVE_INFO_TIME
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
     scsiDriveInfo = C_CAST(ptrDriveInformation, calloc(1, sizeof(driveInformation)));

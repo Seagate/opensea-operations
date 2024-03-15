@@ -195,7 +195,7 @@ int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t ph
     {
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            if (device->drive_info.IdentifyData.ata.Word206 & BIT7 && !is_SSD(device))
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT7 && !is_SSD(device))
             {
                 if (phySpeedGen > 3)
                 {
@@ -239,7 +239,7 @@ bool is_SCT_Low_Current_Spinup_Supported(tDevice *device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
     {
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT4)
         {
             uint16_t optionFlags = 0x0000;
             uint16_t state = 0x0000;
@@ -258,7 +258,7 @@ int is_Low_Current_Spin_Up_Enabled(tDevice *device, bool sctCommandSupported)
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
     {
         //first try the SCT feature control command to get it's state
-        if ((device->drive_info.IdentifyData.ata.Word206 & BIT4) && sctCommandSupported)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && (device->drive_info.IdentifyData.ata.Word206 & BIT4) && sctCommandSupported)
         {
             uint16_t optionFlags = 0x0000;
             uint16_t state = 0x0000;
@@ -270,8 +270,8 @@ int is_Low_Current_Spin_Up_Enabled(tDevice *device, bool sctCommandSupported)
         else if (!sctCommandSupported)//check the identify data for a bit (2.5" drives only I think) - TJE
         {
             //refresh Identify data
-            ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
-            if (device->drive_info.IdentifyData.ata.Word155 & BIT1)
+            ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word155) && device->drive_info.IdentifyData.ata.Word155 & BIT1)
             {
                 lowPowerSpinUpEnabled = 1;
             }
@@ -283,7 +283,7 @@ int is_Low_Current_Spin_Up_Enabled(tDevice *device, bool sctCommandSupported)
 int seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLevel)
 {
     int ret = NOT_SUPPORTED;
-    if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT4)
     {
         uint16_t saveToDrive = 0x0001;//always set this because this feature requires saving for it to even work.
         uint16_t state = C_CAST(uint16_t, spinupLevel);
@@ -336,7 +336,7 @@ int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode)
     {
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT4)
             {
                 uint16_t state = C_CAST(uint16_t, mode);
                 uint16_t saveToDrive = 0x0001;
@@ -369,7 +369,7 @@ int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode)
     {
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            if (device->drive_info.IdentifyData.ata.Word206 & BIT4)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT4)
             {
                 uint16_t state = 0;
                 uint16_t saveToDrive = 0;
@@ -601,7 +601,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
             {
                 //BIT8 for older products with this feature. EX: ST10000NM*
                 //Bit10 for newwer products with this feature. EX: ST12000NM*
-                if (device->drive_info.IdentifyData.ata.Word149 & BIT8 || device->drive_info.IdentifyData.ata.Word149 & BIT10)
+                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word149) && (device->drive_info.IdentifyData.ata.Word149 & BIT8 || device->drive_info.IdentifyData.ata.Word149 & BIT10))
                 {
                     *supported = true;
                 }
@@ -614,7 +614,7 @@ int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled)
             {
                 //BIT9 for older products with this feature. EX: ST10000NM*
                 //Bit11 for newwer products with this feature. EX: ST12000NM*
-                if (device->drive_info.IdentifyData.ata.Word149 & BIT9 || device->drive_info.IdentifyData.ata.Word149 & BIT11)
+                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word149) && (device->drive_info.IdentifyData.ata.Word149 & BIT9 || device->drive_info.IdentifyData.ata.Word149 & BIT11))
                 {
                     *enabled = true;
                 }
