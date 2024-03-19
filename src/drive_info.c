@@ -5773,7 +5773,7 @@ static int get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformationSAS_SATA
         if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
         {
             //Read supported Diagnostic parameters and check for rebuild assist. (need SCSI2 and higher since before that, this is all vendor unique)
-            uint32_t supportedDiagsLength = UINT32_C(512);
+            uint16_t supportedDiagsLength = UINT16_C(512);
             uint8_t* supportedDiagnostics = C_CAST(uint8_t*, calloc_aligned(supportedDiagsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (supportedDiagnostics)
             {
