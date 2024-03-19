@@ -3615,6 +3615,7 @@ static int get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                     //trying to read the list of supported pages can trigger this to show up due to invalid operation code
                     //when this happens, just return to save the time and effort.
                     safe_Free_aligned(scsiLogBuf)
+                    driveInfo->smartStatus = 2;
                     return NOT_SUPPORTED;
                 }
                 if (!dummyUpLogPages)
@@ -5912,48 +5913,70 @@ static int get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformationSAS_SATA
         if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
         {
             //Read supported Diagnostic parameters and check for rebuild assist. (need SCSI2 and higher since before that, this is all vendor unique)
-            uint8_t* supportedDiagnostics = C_CAST(uint8_t*, calloc_aligned(1024, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint32_t supportedDiagsLength = UINT32_C(512);
+            uint8_t* supportedDiagnostics = C_CAST(uint8_t*, calloc_aligned(supportedDiagsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (supportedDiagnostics)
             {
-                bool pageCodeValid = false;
-                uint8_t pageCode = 0;
+                bool gotDiagData = false;
                 if (scsiInfo->version >= 3)//PCV bit and page code fields introduced in SPC specification
                 {
-                    pageCodeValid = true;
-                    pageCode = DIAG_PAGE_SUPPORTED_PAGES;
-                }
-                //transfer only 4 bytes to the drive for the page format data so we can read the supported pages, then read back the supported list with the receive diagnostics command
-                if (scsiInfo->version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, pageCodeValid, pageCode, 1024, supportedDiagnostics, 15))
-                {
-                    uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
-                    for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)); ++iter)
+                    //try this request first. If it fails, then most likely we need to use the SCSI 2 method below instead
+                    if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, DIAG_PAGE_SUPPORTED_PAGES, supportedDiagsLength, supportedDiagnostics, 15))
                     {
-                        switch (supportedDiagnostics[iter])
+                        if (supportedDiagnostics[0] == DIAG_PAGE_SUPPORTED_PAGES && supportedDiagnostics[1] == 0) //validate returned page data
                         {
-                            //Add more diagnostic pages in here if we want to check them for supported features.
-                        case DIAG_PAGE_TRANSLATE_ADDRESS:
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Translate Address");
-                            break;
-                        case DIAG_PAGE_REBUILD_ASSIST:
-                            //TODO: check and see if the rebuild assist feature is enabled.
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Rebuild Assist");
-                            break;
-                        case 0x90:
-                            if (is_Seagate_Family(device) == SEAGATE)
+                            gotDiagData = true;
+                        }
+                    }
+                }
+                if (!gotDiagData)
+                {
+                    //old backwards compatible way to request the diag data is to send a send diagnostic with all zeroes to request the supported pages in the subsequent receive
+                    memset(supportedDiagnostics, 0, supportedDiagsLength);
+                    if (scsiInfo->version >= 2 && SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15))
+                    {
+                        if (SUCCESS == scsi_Receive_Diagnostic_Results(device, false, 0, supportedDiagsLength, supportedDiagnostics, 15))
+                        {
+                            gotDiagData = true;
+                        }
+                    }
+                }
+                if (gotDiagData)
+                {
+                    //confirm the page code in case old devices did not respond correctly due to not supporting the page format bit.
+                    //confirm the list of supported pages by checking the page code and byte 1 are both set to zero
+                    if (supportedDiagnostics[0] == DIAG_PAGE_SUPPORTED_PAGES && supportedDiagnostics[1] == 0)
+                    {
+                        uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnostics[2], supportedDiagnostics[3]);
+                        for (uint32_t iter = UINT16_C(4); iter < C_CAST(uint32_t, pageLength + UINT16_C(4)) && iter < supportedDiagsLength; ++iter)
+                        {
+                            switch (supportedDiagnostics[iter])
                             {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate Remanufacture");
+                                //Add more diagnostic pages in here if we want to check them for supported features.
+                            case DIAG_PAGE_TRANSLATE_ADDRESS:
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Translate Address");
+                                break;
+                            case DIAG_PAGE_REBUILD_ASSIST:
+                                //TODO: check and see if the rebuild assist feature is enabled.
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Rebuild Assist");
+                                break;
+                            case 0x90:
+                                if (is_Seagate_Family(device) == SEAGATE)
+                                {
+                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate Remanufacture");
+                                    break;
+                                }
+                                break;
+                            case 0x98:
+                                if (is_Seagate_Family(device) == SEAGATE)
+                                {
+                                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate In Drive Diagnostics (IDD)");
+                                    break;
+                                }
+                                break;
+                            default:
                                 break;
                             }
-                            break;
-                        case 0x98:
-                            if (is_Seagate_Family(device) == SEAGATE)
-                            {
-                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Seagate In Drive Diagnostics (IDD)");
-                                break;
-                            }
-                            break;
-                        default:
-                            break;
                         }
                     }
                 }
