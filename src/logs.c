@@ -3716,6 +3716,10 @@ int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transfe
                     {
                         ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_WLTR);
                     }
+                    else if (issueFactory == 4)
+                    {
+                        ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_NEURAL_NW);
+                    }
                     else
                     {
                         ret = get_ATA_Log(device, logAddress, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, logSize, SEAGATE_FARM_TIME_SERIES_DISC);
@@ -3744,6 +3748,7 @@ int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transfe
                 //1 (feature register 0) - Default: Report all FARM frames from disc (~250ms) (SATA only)
                 //2 (feature register 1) - Report all FARM data (~250ms)(SATA only)
                 //3 (feature register 2) - Return WLTR data (SATA only)
+                //4 (feature register 3) - Return Neural N/W data (SATA only)
                 if (issueFactory == 2)
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_TIME_SERIES_FLASH", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH);
@@ -3751,6 +3756,10 @@ int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transfe
                 else if (issueFactory == 3)
                 {
                     ret = get_ATA_Log(device, logAddress, "FARM_WLTR", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR);
+                }
+                else if (issueFactory == 4)
+                {
+                    ret = get_ATA_Log(device, logAddress, "FARM_NEURAL_NW", "bin", true, false, false, NULL, 0, filePath, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_NEURAL_NW);
                 }
                 else
                 {
