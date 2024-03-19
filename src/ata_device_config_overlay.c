@@ -32,7 +32,9 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
             supported = true;
             if (dmaSupport)
             {
-                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT12)
+                *dmaSupport = false;
+                if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+                    && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT12))
                 {
                     *dmaSupport = true;
                 }

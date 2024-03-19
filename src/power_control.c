@@ -330,8 +330,8 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             ret = ata_Idle_Immediate(device, false);
             break;
         case PWR_CND_IDLE_UNLOAD://send idle immediate - unload
-            if ((device->drive_info.IdentifyData.ata.Word084 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word084 != 0 && device->drive_info.IdentifyData.ata.Word084 & BIT13) ||
-                (device->drive_info.IdentifyData.ata.Word087 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word087 != 0 && device->drive_info.IdentifyData.ata.Word087 & BIT13)
+            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT13) ||
+                (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT13)
                 )
             {
                 ret = ata_Idle_Immediate(device, true);
@@ -1137,67 +1137,70 @@ static int scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefau
 static int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
     int ret = NOT_SUPPORTED;
-    if (device->drive_info.IdentifyData.ata.Word119 & BIT7)
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)//words 119, 120 valid
     {
-        //TODO: Should each of the settings be validated that it is supported before issuing to the drive???
-        if (restoreAllToDefaults)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT7)
         {
-            powerConditionSettings allSettings;
-            memset(&allSettings, 0, sizeof(powerConditionSettings));
-            allSettings.powerConditionValid = true;
-            allSettings.restoreToDefault = true;
-            ret = ata_Set_EPC_Power_Mode(device, PWR_CND_ALL, &allSettings);
-        }
-        else
-        {
-            if (powerConditions)
+            //TODO: Should each of the settings be validated that it is supported before issuing to the drive???
+            if (restoreAllToDefaults)
             {
-                //go through each and every power condition and for each valid one, pass it to the ATA function. If unsuccessful, return immediately
-                //This does it in the same top-down order as the SCSI mode page to keep things working "the same" between the two
-                if (powerConditions->idle_a.powerConditionValid)
-                {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_A, &powerConditions->idle_a);
-                    if (ret != SUCCESS)
-                    {
-                        return ret;
-                    }
-                }
-                if (powerConditions->standby_z.powerConditionValid)
-                {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Z, &powerConditions->standby_z);
-                    if (ret != SUCCESS)
-                    {
-                        return ret;
-                    }
-                }
-                if (powerConditions->idle_b.powerConditionValid)
-                {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_B, &powerConditions->idle_b);
-                    if (ret != SUCCESS)
-                    {
-                        return ret;
-                    }
-                }
-                if (powerConditions->idle_c.powerConditionValid)
-                {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_C, &powerConditions->idle_c);
-                    if (ret != SUCCESS)
-                    {
-                        return ret;
-                    }
-                }
-                if (powerConditions->standby_y.powerConditionValid)
-                {
-                    ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Y, &powerConditions->standby_y);
-                    if (ret != SUCCESS)
-                    {
-                        return ret;
-                    }
-                }
+                powerConditionSettings allSettings;
+                memset(&allSettings, 0, sizeof(powerConditionSettings));
+                allSettings.powerConditionValid = true;
+                allSettings.restoreToDefault = true;
+                ret = ata_Set_EPC_Power_Mode(device, PWR_CND_ALL, &allSettings);
             }
             else
             {
-                ret = BAD_PARAMETER;
+                if (powerConditions)
+                {
+                    //go through each and every power condition and for each valid one, pass it to the ATA function. If unsuccessful, return immediately
+                    //This does it in the same top-down order as the SCSI mode page to keep things working "the same" between the two
+                    if (powerConditions->idle_a.powerConditionValid)
+                    {
+                        ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_A, &powerConditions->idle_a);
+                        if (ret != SUCCESS)
+                        {
+                            return ret;
+                        }
+                    }
+                    if (powerConditions->standby_z.powerConditionValid)
+                    {
+                        ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Z, &powerConditions->standby_z);
+                        if (ret != SUCCESS)
+                        {
+                            return ret;
+                        }
+                    }
+                    if (powerConditions->idle_b.powerConditionValid)
+                    {
+                        ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_B, &powerConditions->idle_b);
+                        if (ret != SUCCESS)
+                        {
+                            return ret;
+                        }
+                    }
+                    if (powerConditions->idle_c.powerConditionValid)
+                    {
+                        ret = ata_Set_EPC_Power_Mode(device, PWR_CND_IDLE_C, &powerConditions->idle_c);
+                        if (ret != SUCCESS)
+                        {
+                            return ret;
+                        }
+                    }
+                    if (powerConditions->standby_y.powerConditionValid)
+                    {
+                        ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Y, &powerConditions->standby_y);
+                        if (ret != SUCCESS)
+                        {
+                            return ret;
+                        }
+                    }
+                }
+                else
+                {
+                    ret = BAD_PARAMETER;
+                }
             }
         }
     }
@@ -1939,7 +1942,7 @@ int enable_Disable_APM_Feature(tDevice *device, bool enable)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT3)
         {
             if (enable)
             {
@@ -1973,7 +1976,7 @@ int set_APM_Level(tDevice *device, uint8_t apmLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT3)
         {
             //subcommand 05 with the apmLevel in the count field
             ret = ata_Set_Features(device, SF_ENABLE_APM_FEATURE, apmLevel, 0, 0, 0);
@@ -1988,11 +1991,18 @@ int get_APM_Level(tDevice *device, uint8_t *apmLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT3)
         {
             //get it from identify device word 91
             ret = SUCCESS;
-            *apmLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word091);
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word091))
+            {
+                *apmLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word091);
+            }
+            else
+            {
+                *apmLevel = UINT8_MAX;//invalid value
+            }
         }
     }
     return ret;
@@ -2406,7 +2416,7 @@ int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults,
 static int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements)
 {
     int ret = NOT_SUPPORTED;
-    if (device->drive_info.IdentifyData.ata.Word049 & BIT13)//this is the only bit across all ATA standards that will most likely work. Prior to ATA3, there was no other support bit for the power management feature set.
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word049) && device->drive_info.IdentifyData.ata.Word049 & BIT13)//this is the only bit across all ATA standards that will most likely work. Prior to ATA3, there was no other support bit for the power management feature set.
     {
         uint8_t standbyTimer = 0;
         uint8_t currentPowerMode = 0;
@@ -2544,7 +2554,7 @@ int sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device,
         ret = SUCCESS;
         if (supported)
         {
-            if (!(device->drive_info.IdentifyData.ata.Word078 & BIT0) && device->drive_info.IdentifyData.ata.Word078 & BIT3)
+            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word078) && device->drive_info.IdentifyData.ata.Word078 & BIT3)
             {
                 *supported = true;
             }
@@ -2555,7 +2565,7 @@ int sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device,
         }
         if (enabled)
         {
-            if (!(device->drive_info.IdentifyData.ata.Word079 & BIT0) && device->drive_info.IdentifyData.ata.Word079 & BIT3)
+            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word079) && device->drive_info.IdentifyData.ata.Word079 & BIT3)
             {
                 *enabled = true;
             }
@@ -2588,11 +2598,11 @@ int sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice *device,
             //Issue an identify to update the identify data...
             if (device->drive_info.drive_type == ATA_DRIVE)
             {
-                ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
+                ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
             }
             else if (device->drive_info.drive_type == ATAPI_DRIVE)
             {
-                ata_Identify_Packet_Device(device, (uint8_t*)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
+                ata_Identify_Packet_Device(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
             }
         }
     }
@@ -2608,7 +2618,7 @@ int sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, 
         ret = SUCCESS;
         if (supported)
         {
-            if (!(device->drive_info.IdentifyData.ata.Word076 & BIT0) && device->drive_info.IdentifyData.ata.Word076 & BIT14)
+            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word076) && device->drive_info.IdentifyData.ata.Word076 & BIT14)
             {
                 *supported = true;
             }
@@ -2619,7 +2629,7 @@ int sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, 
         }
         if (enabled)
         {
-            if (!(device->drive_info.IdentifyData.ata.Word079 & BIT0) && device->drive_info.IdentifyData.ata.Word079 & BIT7)
+            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word079) && device->drive_info.IdentifyData.ata.Word079 & BIT7)
             {
                 *enabled = true;
             }
@@ -2655,11 +2665,11 @@ int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, 
                 //Issue an identify to update the identify data...
                 if (device->drive_info.drive_type == ATA_DRIVE)
                 {
-                    ata_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
+                    ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
                 }
                 else if (device->drive_info.drive_type == ATAPI_DRIVE)
                 {
-                    ata_Identify_Packet_Device(device, (uint8_t*)&device->drive_info.IdentifyData.ata.Word000, LEGACY_DRIVE_SEC_SIZE);
+                    ata_Identify_Packet_Device(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
                 }
             }
         }
@@ -2726,7 +2736,8 @@ int transition_To_Idle(tDevice *device, bool unload)
     {
         if (unload)
         {
-            if (device->drive_info.IdentifyData.ata.Word084 & BIT13 || device->drive_info.IdentifyData.ata.Word087 & BIT13)
+            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT13)
+                || (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT13))
             {
                 //send the command since it supports the unload feature...otherwise we return NOT_SUPPORTED
                 ret = ata_Idle_Immediate(device, true);
@@ -3066,15 +3077,16 @@ int get_PUIS_Info(tDevice* device, ptrPuisInfo info)
         info->puisSupported = false;
         info->puisEnabled = false;
         info->spinupCommandRequired = false;
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT5)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT5)
         {
             info->puisSupported = true;
         }
-        if (device->drive_info.IdentifyData.ata.Word086 & BIT5)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT5)
         {
             info->puisEnabled = true;
         }
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT6 || device->drive_info.IdentifyData.ata.Word086 & BIT6)
+        if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT6)
+            || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT6))
         {
             info->spinupCommandRequired = true;
         }
@@ -3088,7 +3100,7 @@ int enable_Disable_PUIS_Feature(tDevice* device, bool enable)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure PUIS is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT5)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT5)
         {
             if (enable)
             {
@@ -3109,7 +3121,7 @@ int puis_Spinup(tDevice* device)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure PUIS is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT5 && device->drive_info.IdentifyData.ata.Word083 & BIT6)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT5 && device->drive_info.IdentifyData.ata.Word083 & BIT6)
         {
             ret = ata_Set_Features(device, SF_PUIS_DEVICE_SPIN_UP, 0, 0, 0, 0);
         }

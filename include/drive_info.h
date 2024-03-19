@@ -85,6 +85,20 @@ extern "C"
         uint8_t portSpeedsNegotiated[MAX_PORTS];//0 = not reported, 1 = gen 1 (1.5Gb/s), 2 = gen 2 (3.0Gb/s), 3 = gen 3 (6.0Gb/s), 4 = gen 4 (12.0Gb/s)
     }ifSerialSpeed;
 
+    typedef enum _eCablingInfoType
+    {
+        CABLING_INFO_NONE,
+        CABLING_INFO_ATA,
+    }eCablingInfoType;
+
+    typedef struct _ataCablingInfo
+    {
+        bool cablingInfoValid;//ATA ID word 93 was valid.
+        bool ata80PinCableDetected;//80 pin grounded cabling detected
+        bool device1;
+        uint8_t deviceNumberDetermined;//0 = reserved, 1 = jumper, 2 = cable select, 3 = other unknown method
+    }ataCablingInfo;
+
 #define PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH 20
 
     typedef struct _ifParallelSpeed
@@ -96,6 +110,10 @@ extern "C"
         char negModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
         bool maxModeNameValid;
         char maxModeName[PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH];//Hold something like UDMA6, or FAST320, etc
+        eCablingInfoType cableInfoType;
+        union {
+            ataCablingInfo ataCableInfo;
+        };
     }ifParallelSpeed;
     typedef struct _ifFibreSpeed
     {
@@ -142,10 +160,47 @@ extern "C"
         uint32_t currentCapacityInSectors;//Word 57:58
     }legacyCHSInfo;
 
-    #define MAX_FEATURES UINT8_C(50) //change this number if we need to capture more feature support
+    #define MAX_COMPLIANCE_DESCRIPTORS 2
+    #define CRYPTO_MODULE_HARDWARE_VERSION_LENGTH 128
+    #define CRYPTO_MODULE_VERSION_LENGTH 128
+    #define CRYPTO_MODULE_MODULE_NAME_LENGTH 256
+    typedef struct _securityCompliance
+    {
+        bool valid;
+        char revision;//2 = FIPS 140-2, 3 = FIPS 140-3
+        char overallSecurityLevel;
+        char hardwareVersion[CRYPTO_MODULE_HARDWARE_VERSION_LENGTH + 1];
+        char version[CRYPTO_MODULE_VERSION_LENGTH + 1];
+        char moduleName[CRYPTO_MODULE_MODULE_NAME_LENGTH + 1];
+    }securityCompliance;
+
+    //to store common security protocol info from ATA, SCSI, NVMe
+    typedef struct _securityProtocolInfo
+    {
+        bool securityProtocolInfoValid;
+        bool tcg;//01-06
+        bool cbcs;//07
+        bool tapeEncryption;//20
+        bool dataEncryptionConfig;//21
+        bool saCreationCapabilities;//40
+        bool ikev2scsi;//41
+        bool sdAssociation;//E7
+        bool dmtfSecurity;//E8
+        bool nvmeReserved;//E9
+        bool nvme;//EA
+        bool scsa;//EB
+        bool jedecUFS;//EC
+        bool sdTrustedFlash;//ED
+        bool ieee1667;//EE
+        bool ataDeviceServer;//EFh from SAT
+        ataSecurityStatus ataSecurityInfo;//to report out info about ATA security for any interface supporting the security protocol.
+        securityCompliance cryptoModuleCompliance[MAX_COMPLIANCE_DESCRIPTORS];//setting to 2 for now...not sure there are more than 1 reported currently.
+    }securityProtocolInfo;
+
+    #define MAX_FEATURES UINT8_C(60) //change this number if we need to capture more feature support
     #define MAX_FEATURE_LENGTH UINT8_C(50) //maximum number of characters to allow for use when storing feature names.
 
-    #define MAX_SPECS UINT8_C(30)
+    #define MAX_SPECS UINT8_C(40)
     #define MAX_SPEC_LENGTH UINT8_C(40)
 
     typedef struct _driveInformationSAS_SATA
@@ -216,6 +271,7 @@ extern "C"
         bool dateOfManufactureValid;
         uint8_t manufactureWeek;
         uint16_t manufactureYear;
+        securityProtocolInfo securityInfo;//TCG, IEEE1667, etc
     }driveInformationSAS_SATA, *ptrDriveInformationSAS_SATA;
 
     typedef struct _driveInformationNVMe
@@ -251,7 +307,8 @@ extern "C"
             uint8_t numberOfFirmwareSlots;
             uint8_t nvmSubsystemNVMeQualifiedName[257];//This is a UTF8 string!
             eEncryptionSupport encryptionSupport;
-            uint16_t numberOfControllerFeatures;
+            uint8_t reserved;//previously part of numberOfControllerFeatures as a word, but changed to a byte
+            uint8_t numberOfControllerFeatures;
             char controllerFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
             uint64_t longDSTTimeMinutes;
             uint8_t numberOfPowerStatesSupported;
@@ -287,9 +344,11 @@ extern "C"
             uint8_t namespaceGloballyUniqueIdentifier[16];
             uint64_t ieeeExtendedUniqueIdentifier;
             //Namespace features will include protection information types, and security protocols supported
-            uint16_t numberOfNamespaceFeatures;
+            uint8_t reserved;//previously part of numberOfControllerFeatures as a word, but changed to a byte
+            uint8_t numberOfNamespaceFeatures;
             char namespaceFeaturesSupported[MAX_FEATURES][MAX_FEATURE_LENGTH];//max of 50 different features, 50 characters allowed for each feature name
         }namespaceData;
+        securityProtocolInfo securityInfo;//TCG, IEEE1667, etc
     }driveInformationNVMe, *ptrDriveInformationNVMe;
 
     typedef enum _eDriveInfoType
