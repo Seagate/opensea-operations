@@ -4793,20 +4793,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                             }
                             headerLength += blockDescLen;
                         }
-                        //make sure we got the expected format!
-                        if (controlExtensionPage[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (controlExtensionPage[headerLength + 1] != 0x01)
-                            {
-                                defaultsRead = false;
-                            }
-                        }
-                        else
-                        {
-                            defaultsRead = false;
-                        }
                         if (defaultsRead)
                         {
                             //dlc
@@ -4856,20 +4842,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 }
                             }
                             headerLength += blockDescLen;
-                        }
-                        //make sure we got the expected format!
-                        if (controlExtensionPage[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (controlExtensionPage[headerLength + 1] != 0x01)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
                         }
                         if (pageRead)
                         {
@@ -4933,20 +4905,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                             }
                             headerLength += blockDescLen;
                         }
-                        //make sure we got the expected format!
-                        if (ioAdviceHints[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (ioAdviceHints[headerLength + 1] != 0x05)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
-                        }
                         if (pageRead)
                         {
                             //check if any of the Hints valid bits are set so we know it is enabled. TODO: add checking for the cache enabled bit?
@@ -5001,20 +4959,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 }
                             }
                             headerLength += blockDescLen;
-                        }
-                        //make sure we got the expected format!
-                        if (pataControl[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (pataControl[headerLength + 1] != 0xF1)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
                         }
                         if (pageRead)
                         {
@@ -5092,20 +5036,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 }
                             }
                             headerLength += blockDescLen;
-                        }
-                        //make sure we got the expected format!
-                        if (protocolSpecificPort[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (protocolSpecificPort[headerLength + 1] != 0x01)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
                         }
                         if (pageRead)
                         {
@@ -5238,20 +5168,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                             }
                             headerLength += blockDescLen;
                         }
-                        //make sure we got the expected format!
-                        if (protocolSpecificPort[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (protocolSpecificPort[headerLength + 1] != 0x01)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
-                        }
                         if (pageRead)
                         {
                             protocolIdentifier = M_Nibble0(protocolSpecificPort[headerLength + 5]);
@@ -5351,20 +5267,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 }
                             }
                             headerLength += blockDescLen;
-                        }
-                        //make sure we got the expected format!
-                        if (protocolSpecificPort[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (protocolSpecificPort[headerLength + 1] != 0x01)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
                         }
                         if (pageRead)
                         {
@@ -5630,20 +5532,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                             }
                             headerLength += blockDescLen;
                         }
-                        //make sure we got the expected format!
-                        if (ataPowerConditions[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (ataPowerConditions[headerLength + 1] != 0xF1)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
-                        }
                         if (pageRead)
                         {
                             if (ataPowerConditions[headerLength + 0x05] & BIT0)
@@ -5728,20 +5616,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                             }
                             headerLength += blockDescLen;
                         }
-                        //make sure we got the expected format!
-                        if (backgroundControl[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (backgroundControl[headerLength + 1] != 0xF1)
-                            {
-                                defaultsRead = false;
-                            }
-                        }
-                        else
-                        {
-                            defaultsRead = false;
-                        }
                         if (defaultsRead)
                         {
                             //bms
@@ -5814,20 +5688,6 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 }
                             }
                             headerLength += blockDescLen;
-                        }
-                        //make sure we got the expected format!
-                        if (backgroundControl[headerLength + 0] & BIT6)
-                        {
-                            //subpage format valid!
-                            //check subpage code is valid!
-                            if (backgroundControl[headerLength + 1] != 0xF1)
-                            {
-                                pageRead = false;
-                            }
-                        }
-                        else
-                        {
-                            pageRead = false;
                         }
                         if (pageRead)
                         {
