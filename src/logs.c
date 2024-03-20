@@ -1437,7 +1437,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     {
                         //offset = deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter] * LEGACY_DRIVE_SEC_SIZE;
                         //check if the current page is in the list PLUS additional transfer length if reading more than a single page at a time!
-                        for (uint32_t pageCheck = currentPage; !doneChecking && pageCheck < (currentPage + pagesToReadAtATime); pageCheck += 1)
+                        for (uint32_t pageCheck = currentPage; !doneChecking && pageCheck < C_CAST(uint32_t, (currentPage + pagesToReadAtATime)); pageCheck += 1)
                         {
                             if (pageCheck == logBuffer[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter])
                             {

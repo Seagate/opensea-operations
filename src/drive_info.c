@@ -4909,7 +4909,7 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                         {
                             //check if any of the Hints valid bits are set so we know it is enabled. TODO: add checking for the cache enabled bit?
                             bool valid = false;
-                            for (uint32_t iter = headerLength + 15; iter < (UINT16_C(1040) + headerLength); iter += 16)
+                            for (uint32_t iter = headerLength + 15; iter < C_CAST(uint32_t, (UINT16_C(1040) + headerLength)); iter += 16)
                             {
                                 uint8_t hintsMode = (ioAdviceHints[0] & 0xC0) >> 6;
                                 if (hintsMode == 0)
