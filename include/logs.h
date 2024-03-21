@@ -650,6 +650,10 @@ extern "C" {
 
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
 
+    //if using this and not sure if the 6byte or 10 byte command will be used, use this length when allocating your buffer: SCSI_MODE_PAGE_MIN_HEADER_LENGTH + length of mode page from standard
+    //This is only needed if not calling the get_SCSI_Mode_Page_Size as that will already take this into account
+    #define SCSI_MODE_PAGE_MIN_HEADER_LENGTH (M_Max(MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN, MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN))
+
     OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
 
     //This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes should be passed as 0 unless you know the length you want to pull.

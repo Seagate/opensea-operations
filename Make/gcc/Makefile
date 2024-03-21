@@ -131,7 +131,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)nvme_operations.c\
 	$(SRC_DIR)reservations.c\
 	$(SRC_DIR)partition_info.c\
-	$(SRC_DIR)ata_device_config_overlay.c
+	$(SRC_DIR)ata_device_config_overlay.c\
+	$(SRC_DIR)sata_phy.c
 
 UNAME := $(shell uname)
 

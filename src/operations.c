@@ -415,7 +415,7 @@ bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
 bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
 {
     bool supported = false;
-    if (device->drive_info.IdentifyData.ata.Word082 & BIT6)
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT6)
     {
         supported = true;
     }
@@ -529,7 +529,7 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
 bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device)
 {
     bool enabled = false;
-    if (device->drive_info.IdentifyData.ata.Word085 & BIT6)
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT6)
     {
         enabled = true;
     }
@@ -598,7 +598,7 @@ bool scsi_Is_Write_Cache_Supported(tDevice *device)
 bool ata_Is_Write_Cache_Supported(tDevice *device)
 {
     bool supported = false;
-    if (device->drive_info.IdentifyData.ata.Word082 & BIT5)
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT5)
     {
         supported = true;
     }
@@ -669,7 +669,7 @@ bool scsi_Is_Write_Cache_Enabled(tDevice *device)
 bool ata_Is_Write_Cache_Enabled(tDevice *device)
 {
     bool enabled = false;
-    if (device->drive_info.IdentifyData.ata.Word085 & BIT5)
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT5)
     {
         enabled = true;
     }
@@ -786,7 +786,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
         if (ataSecurityInfo.securityEnabled)
         {
-            snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Provide the password used to enable the security or disable it via BIOS/UEFI first.");
+            snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
         }
         else
         {
@@ -862,7 +862,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
             if (ataSecurityInfo.securityEnabled)
             {
-                snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Provide the password used to enable the security or disable it via BIOS/UEFI first.");
+                snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
             }
             else
             {
@@ -1128,13 +1128,20 @@ int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensit
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)
         {
-            *sensitivity = UINT16_MAX;//this can be used to filter out invalid value, a.k.a. feature is not enabled, but is supported.
-            if (device->drive_info.IdentifyData.ata.Word120 & BIT5)//enabled
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
             {
-                //Word 53, bits 15:8
-                *sensitivity = M_Byte1(device->drive_info.IdentifyData.ata.Word053);
+                ret = SUCCESS;
+                *sensitivity = UINT16_MAX;//this can be used to filter out invalid value, a.k.a. feature is not enabled, but is supported.
+                if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word120) && device->drive_info.IdentifyData.ata.Word120 & BIT5)//enabled
+                {
+                    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053))
+                    {
+                        //Word 53, bits 15:8
+                        *sensitivity = M_Byte1(device->drive_info.IdentifyData.ata.Word053);
+                    }
+                }
             }
         }
     }
@@ -1146,9 +1153,12 @@ int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity)
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)
         {
-            ret = ata_Set_Features(device, SF_ENABLE_FREE_FALL_CONTROL_FEATURE, sensitivity, 0, 0, 0);
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+            {
+                ret = ata_Set_Features(device, SF_ENABLE_FREE_FALL_CONTROL_FEATURE, sensitivity, 0, 0, 0);
+            }
         }
     }
     return ret;
@@ -1159,9 +1169,12 @@ int disable_Free_Fall_Control_Feature(tDevice *device)
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported //TODO: Check if it's enabled first as well? Do this if this command is aborting when already disabled, otherwise this should be ok
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)
         {
-            ret = ata_Set_Features(device, SF_DISABLE_FREE_FALL_CONTROL_FEATURE, 0, 0, 0, 0);
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT5)//supported
+            {
+                ret = ata_Set_Features(device, SF_DISABLE_FREE_FALL_CONTROL_FEATURE, 0, 0, 0, 0);
+            }
         }
     }
     return ret;
@@ -1192,13 +1205,17 @@ int enable_Disable_AAM_Feature(tDevice *device, bool enable)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT9)
         {
             if (enable)
             {
                 //set value to the vendor recommended value reported in identify data when requesting an enable operation
-                //TODO: Should we set max performance instead by default?
-                ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, M_Byte1(device->drive_info.IdentifyData.ata.Word094), 0, 0, 0);
+                uint8_t enableValue = 128;
+                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word094))
+                {
+                    enableValue = M_Byte1(device->drive_info.IdentifyData.ata.Word094);
+                }
+                ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, enableValue, 0, 0, 0);
             }
             else
             {
@@ -1226,7 +1243,7 @@ int set_AAM_Level(tDevice *device, uint8_t apmLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT9)
         {
             //subcommand 42 with the aamLevel in the count field
             ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, apmLevel, 0, 0, 0);
@@ -1241,11 +1258,18 @@ int get_AAM_Level(tDevice *device, uint8_t *aamLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure AAM is supported.
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT9)//word 86 says "enabled". We may or may not want to check for that.
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT9)//word 86 says "enabled". We may or may not want to check for that.
         {
             //get it from identify device word 94
             ret = SUCCESS;
-            *aamLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word094);
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word094))
+            {
+                *aamLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word094);
+            }
+            else
+            {
+                *aamLevel = UINT8_MAX;//invalid value since the identify word was invalid
+            }
         }
     }
     return ret;
@@ -2581,4 +2605,176 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     {
         printf("ERROR: Incompatible concurrent ranges data structure. Cannot print the data.\n");
     }
+}
+
+int get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
+{
+    int ret = NOT_SUPPORTED;
+    if (!device || !info)
+    {
+        return BAD_PARAMETER;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = SUCCESS;
+        //check identify data
+        info->bytesBeingVerified = 0;//start by setting to zero
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)//words 119, 120 valid
+        {
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT1)//supported
+            {
+                info->supported = true;
+                if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word120) && device->drive_info.IdentifyData.ata.Word120 & BIT1)
+                {
+                    info->enabled = true;
+                }
+                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word220))
+                {
+                    info->currentWRVMode = M_Byte0(device->drive_info.IdentifyData.ata.Word220);
+                }
+                //filling in remaining data because it is possible some drives will report valid data for these other modes even if not enabled.
+                if (info->currentWRVMode == ATA_WRV_MODE_USER && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word211) && is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word210)))
+                {
+                    info->wrv3sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word211, device->drive_info.IdentifyData.ata.Word210);
+                }
+                if (info->currentWRVMode == ATA_WRV_MODE_VENDOR && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word213) && is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word212)))
+                {
+                    info->wrv2sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word213, device->drive_info.IdentifyData.ata.Word212);
+                }
+
+                if (info->enabled)
+                {
+                    switch (info->currentWRVMode)
+                    {
+                    case ATA_WRV_MODE_ALL:
+                        info->bytesBeingVerified = UINT64_MAX;
+                        break;
+                    case ATA_WRV_MODE_65536:
+                        info->bytesBeingVerified = UINT64_C(65536) * device->drive_info.deviceBlockSize;
+                        break;
+                    case ATA_WRV_MODE_VENDOR:
+                        info->bytesBeingVerified = C_CAST(uint64_t, info->wrv2sectorCount) * device->drive_info.deviceBlockSize;
+                        break;
+                    case ATA_WRV_MODE_USER:
+                        info->bytesBeingVerified = C_CAST(uint64_t, info->wrv3sectorCount) * device->drive_info.deviceBlockSize;
+                        break;
+                    default://handle any case not currently defined in the specifications.
+                        info->bytesBeingVerified = 0;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+void print_Write_Read_Verify_Info(ptrWRVInfo info)
+{
+    if (info)
+    {
+        printf("\n=====Write-Read-Verify=====\n");
+        if (info->supported)
+        {
+            if (info->enabled)
+            {
+                char capUnitarry[UNIT_STRING_LENGTH] = { 0 };
+                char metUnitarry[UNIT_STRING_LENGTH] = { 0 };
+                char* capUnit = &capUnitarry[0];
+                char* metUnit = &metUnitarry[0];
+                double capD = C_CAST(double, info->bytesBeingVerified), metD = C_CAST(double, info->bytesBeingVerified);
+                printf("Enabled\n");
+                printf("Mode: ");
+                if (info->bytesBeingVerified > 0 && info->bytesBeingVerified != UINT64_MAX)
+                {
+                    capacity_Unit_Convert(&capD, &capUnit);
+                    metric_Unit_Convert(&metD, &metUnit);
+                }
+                else
+                {
+                    snprintf(capUnit, UNIT_STRING_LENGTH, "B");
+                    snprintf(metUnit, UNIT_STRING_LENGTH, "B");
+                }
+                switch (info->currentWRVMode)
+                {
+                case ATA_WRV_MODE_ALL:
+                    printf("0\nVerifying: All Sectors\n");
+                    break;
+                case ATA_WRV_MODE_65536:
+                    printf("1\nVerifying: First 65536 written sectors.\n");
+                    printf("Verify Capacity (%s/%s): %0.02f/%0.02f\n", capUnit, metUnit, capD, metD);
+                    break;
+                case ATA_WRV_MODE_VENDOR:
+                    printf("2\nVerifying: First %" PRIu32 " written sectors.\n", info->wrv2sectorCount);
+                    printf("Verify Capacity (%s/%s): %0.02f/%0.02f\n", capUnit, metUnit, capD, metD);
+                    break;
+                case ATA_WRV_MODE_USER:
+                    printf("3\nVerifying: First %" PRIu32 " written sectors.\n", info->wrv3sectorCount);
+                    printf("Verify Capacity (%s/%s): %0.02f/%0.02f\n", capUnit, metUnit, capD, metD);
+                    break;
+                }
+            }
+            else
+            {
+                printf("Supported, but not Enabled\n");
+            }
+        }
+        else
+        {
+            printf("Not Supported\n");
+        }
+    }
+}
+
+int disable_Write_Read_Verify(tDevice* device)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Set_Features(device, SF_DISABLE_WRITE_READ_VERIFY_FEATURE, 0, 0, 0, 0);
+    }
+    return ret;
+}
+
+int set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (all && vendorSpecific)
+        {
+            return BAD_PARAMETER;
+        }
+        else if (all)
+        {
+            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_ALL, 0, 0);
+        }
+        else if (vendorSpecific)
+        {
+            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_VENDOR, 0, 0);
+        }
+        else if (wrvSectorCount == 65536)//Detecting this very specific number to make this mode since it is in the spec and this is probably what would be wanted in this case.
+        {
+            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_65536, 0, 0);
+        }
+        else
+        {
+            //divide the incoming value by 1024 to set the count register.
+            //Before doing the devision, round up to nearest. If this would overflow, set count to maximum
+            uint8_t count = 0;
+            if (wrvSectorCount >= MAX_WRV_USER_SECTORS)
+            {
+                count = UINT8_MAX;//FFh
+            }
+            else
+            {
+                //this math is rounding up.
+                //If someone selected a value not evenly divisible by 1024, they likely want at LEAST that many
+                //sectors being verified rather than not enough, so rounding up here makes the most sense -TJE
+                count = C_CAST(uint8_t, ((wrvSectorCount + (WRV_USER_MULTIPLIER - 1)) / WRV_USER_MULTIPLIER));
+            }
+            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, count, ATA_WRV_MODE_USER, 0, 0);
+        }
+    }
+    return ret;
 }

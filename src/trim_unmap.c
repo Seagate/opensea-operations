@@ -29,8 +29,8 @@ static bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
             if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
             {
                 //data is valid, so figure out supported pages
-                uint8_t listLen = logBuffer[8];
-                for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
+                uint8_t listLen = logBuffer[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
+                for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < LEGACY_DRIVE_SEC_SIZE; ++iter)
                 {
                     switch (logBuffer[iter])
                     {
@@ -83,13 +83,20 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
-        if (device->drive_info.IdentifyData.ata.Word169 & BIT0)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word169) && device->drive_info.IdentifyData.ata.Word169 & BIT0)
         {
             supported = true;
         }
         if (NULL != maxTrimOrUnmapBlockDescriptors)
         {
-            *maxTrimOrUnmapBlockDescriptors = device->drive_info.IdentifyData.ata.Word105 * 64;//multiple by 64 since you can fit a maximum of 64 descriptors in each 512 byte block
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word105))
+            {
+                *maxTrimOrUnmapBlockDescriptors = device->drive_info.IdentifyData.ata.Word105 * 64;//multiple by 64 since you can fit a maximum of 64 descriptors in each 512 byte block
+            }
+            else
+            {
+                *maxTrimOrUnmapBlockDescriptors = 64;//assume 1 512B block is supported since we didn't get a valid value otherwise.
+            }
         }
         break;
     case NVME_DRIVE:

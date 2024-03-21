@@ -17,6 +17,7 @@
 #include "logs.h"
 #include "common_platform.h"
 #include "platform_helper.h"
+#include "power_control.h"
 
 //In order to be able to validate the data on any CPU, we don't want to hardcode any lengths in case things get packed or aligned differently.
 //So define each struct version here internally so we can do sizeof(v1), etc to check it.
@@ -213,6 +214,22 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
             if (device->drive_info.passThroughHacks.scsiHacks.writeBufferNoDeferredDownload)
             {
                 options->dlMode = FWDL_UPDATE_MODE_SEGMENTED;
+            }
+        }
+
+        //send test unit ready to determine if spinup command is required. If it is, send the SCSI start-stop unit command to do the spinup.
+        scsiStatus turStatus;
+        memset(&turStatus, 0, sizeof(scsiStatus));
+        scsi_Test_Unit_Ready(device, &turStatus);//Note: Not checking for success because we want to evaluate the received sense data ourselves in this case-TJE
+        if (turStatus.senseKey == SENSE_KEY_NOT_READY)
+        {
+            //check for "initilizing command required"
+            if (turStatus.asc == 0x04 && turStatus.ascq == 0x02)
+            {
+                //send the start-stop unit command with the "start" bit set to one.
+                //We should only hit this on anything scsi encapsulated either by a SATL or RAID controller or a native SCSI drive that needs
+                //a spin up before receiving any other commands.
+                scsi_Start_Stop_Unit(device, false, 0, 0, false, false, true);
             }
         }
 
@@ -671,7 +688,8 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
         case ATA_DRIVE:
         {
             //first check the bits in the identify data
-            if (device->drive_info.IdentifyData.ata.Word069 & BIT8)
+            if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+                && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT8))
             {
                 supportedModes->downloadMicrocodeSupported = true;
                 supportedModes->firmwareDownloadDMACommandSupported = true;
@@ -679,38 +697,49 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 supportedModes->driveOffsetBoundaryInBytes = LEGACY_DRIVE_SEC_SIZE;
                 supportedModes->driveOffsetBoundary = 9;
             }
-            if (device->drive_info.IdentifyData.ata.Word083 & BIT0 || device->drive_info.IdentifyData.ata.Word086 & BIT0)
+            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT0)
+                || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT0))
             {
                 supportedModes->downloadMicrocodeSupported = true;
                 supportedModes->fullBuffer = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word119 & BIT4 || device->drive_info.IdentifyData.ata.Word120 & BIT4)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)/*words 119, 120 valid*/
             {
-                supportedModes->segmented = true;
+                if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT4)
+                    || (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word120) && device->drive_info.IdentifyData.ata.Word120 & BIT4))
+                {
+                    supportedModes->segmented = true;
+                }
             }
-            supportedModes->maxSegmentSize = M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word235), M_Byte0(device->drive_info.IdentifyData.ata.Word235));
-            if (supportedModes->downloadMicrocodeSupported && !(supportedModes->maxSegmentSize > 0 && supportedModes->maxSegmentSize < 0xFFFF))
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word234))
             {
-                supportedModes->maxSegmentSize = UINT32_MAX;
+                supportedModes->minSegmentSize = M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word234), M_Byte0(device->drive_info.IdentifyData.ata.Word234));
             }
-            supportedModes->minSegmentSize = M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word234), M_Byte0(device->drive_info.IdentifyData.ata.Word234));
-            if (supportedModes->downloadMicrocodeSupported && !(supportedModes->minSegmentSize > 0 && supportedModes->minSegmentSize < 0xFFFF))
+            else
             {
                 supportedModes->minSegmentSize = 0;
             }
-            if (is_Seagate_Family(device) == SEAGATE && device->drive_info.IdentifyData.ata.Word243 & BIT12)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word235))
+            {
+                supportedModes->maxSegmentSize = M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word235), M_Byte0(device->drive_info.IdentifyData.ata.Word235));
+            }
+            else
+            {
+                supportedModes->maxSegmentSize = UINT32_MAX;
+            }
+            if (is_Seagate_Family(device) == SEAGATE && is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word243) && device->drive_info.IdentifyData.ata.Word243 & BIT12)
             {
                 supportedModes->seagateDeferredPowerCycleActivate = true;
                 supportedModes->deferredPowerCycleActivationSupported = true;
             }
             //now try reading the supportd capabilities page of the identify device data log for the remaining info (deferred download)
             uint8_t supportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
-            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, ATA_LOG_PAGE_LEN_BYTES, 0))
             {
                 uint64_t supportedCapabilitiesQword = M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13], supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10], supportedCapabilities[9], supportedCapabilities[8]);
                 uint64_t dlMicrocodeBits = M_BytesTo8ByteValue(supportedCapabilities[23], supportedCapabilities[22], supportedCapabilities[21], supportedCapabilities[20], supportedCapabilities[19], supportedCapabilities[18], supportedCapabilities[17], supportedCapabilities[16]);
                 //this bit should always be set to 1, but doesn't hurt to check
-                if (supportedCapabilitiesQword & BIT63)
+                if (supportedCapabilitiesQword & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
                     if (supportedCapabilitiesQword & BIT33)
                     {
@@ -728,7 +757,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         supportedModes->segmented = true;
                     }
                 }
-                if (dlMicrocodeBits & BIT63)
+                if (dlMicrocodeBits & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
                     if (dlMicrocodeBits & BIT34)
                     {

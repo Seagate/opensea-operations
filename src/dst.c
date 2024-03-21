@@ -1497,11 +1497,7 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     //device->drive_info.ata_Options.generalPurposeLoggingSupported = false;//for debugging SMART log version
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
     {
-        uint32_t extLogSize = LEGACY_DRIVE_SEC_SIZE;
-        if (SUCCESS != get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &extLogSize, true, false))
-        {
-            return NOT_SUPPORTED;
-        }
+        uint32_t extLogSize = logSize;
         selfTestResults = C_CAST(uint8_t*, calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint16_t lastPage = C_CAST(uint16_t, (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1);//zero indexed
         if (!selfTestResults)
@@ -1518,7 +1514,6 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             if (selfTestIndex > 0)//we know DST has been run at least once...
             {
                 uint8_t descriptorLength = 26;
-                uint8_t zeroCompare[26] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 //To calculate page number:
                 //   There are 19 descriptors in 512 bytes.
                 //   There are 4 reserved bytes in each sector + 18 at the end
@@ -1549,7 +1544,7 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
                         //we're back at the beginning and need to exit the loop.
                         break;
                     }
-                    if (memcmp(&selfTestResults[offset], zeroCompare, descriptorLength))//invalid entires will be all zeros-TJE
+                    if (!is_Empty(&selfTestResults[offset], descriptorLength))//invalid entires will be all zeros-TJE
                     {
                         entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
                         entries->dstEntry[entries->numberOfEntries].selfTestRun = selfTestResults[offset];
@@ -1685,12 +1680,11 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             {
                 uint8_t descriptorLength = 24;
                 uint8_t descriptorOffset = ((selfTestIndex * descriptorLength) - descriptorLength) + 2;
-                uint8_t zeroCompare[24] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
                 uint16_t offset = descriptorOffset;
                 uint16_t counter = 0;//when this get's larger than our max, we need to break out of the loop. This is always incremented. - TJE
                 while (counter < MAX_DST_ENTRIES /*&& counter < 21*/)//max of 21 dst entries in this log
                 {
-                    if (memcmp(&selfTestResults[offset], zeroCompare, descriptorLength))//invalid entires will be all zeros-TJE
+                    if (!is_Empty(&selfTestResults[offset], descriptorLength))
                     {
                         entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
                         entries->dstEntry[entries->numberOfEntries].selfTestRun = selfTestResults[offset];

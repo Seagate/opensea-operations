@@ -107,7 +107,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //word 128
-        if (device->drive_info.IdentifyData.ata.Word128 != 0 && device->drive_info.IdentifyData.ata.Word128 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word128 & BIT0)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word128) && device->drive_info.IdentifyData.ata.Word128 & BIT0)
         {
             securityStatus->securitySupported = true;
             if (device->drive_info.IdentifyData.ata.Word128 & BIT1)
@@ -135,49 +135,59 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 securityStatus->masterPasswordCapability = true;
             }
             //word 89
-            if (device->drive_info.IdentifyData.ata.Word089 & BIT15)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word089))
             {
-                securityStatus->extendedTimeFormat = true;
-                //bits 14:0
-                securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * 2;
-                if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+                if (device->drive_info.IdentifyData.ata.Word089 & BIT15)
                 {
-                    securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    securityStatus->extendedTimeFormat = true;
+                    //bits 14:0
+                    securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * 2;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+                    {
+                        securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
-            }
-            else
-            {
-                //bits 7:0
-                securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * 2;
-                if (securityStatus->securityEraseUnitTimeMinutes == (255 * 2))
+                else
                 {
-                    securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    //bits 7:0
+                    securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * 2;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (255 * 2))
+                    {
+                        securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
             }
             //word 90
-            if (device->drive_info.IdentifyData.ata.Word090 & BIT15)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word090))
             {
-                securityStatus->extendedTimeFormat = true;
-                //bits 14:0
-                securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * 2;
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+                if (device->drive_info.IdentifyData.ata.Word090 & BIT15)
                 {
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    securityStatus->extendedTimeFormat = true;
+                    //bits 14:0
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * 2;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+                    {
+                        securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
-            }
-            else
-            {
-                //bits 7:0
-                securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * 2;
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
+                else
                 {
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    //bits 7:0
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * 2;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
+                    {
+                        securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
             }
             //word 92
-            securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word092))
+            {
+                securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
+            }
         }
-        if (device->drive_info.IdentifyData.ata.Word069 != 0 && device->drive_info.IdentifyData.ata.Word069 != UINT16_MAX)
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT12))
         {
             securityStatus->encryptAll = device->drive_info.IdentifyData.ata.Word069 & BIT4;
         }
@@ -198,8 +208,8 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                     uint16_t revision = M_BytesTo2ByteValue(securityPage[1], securityPage[0]);
                     if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
                     {
-                        uint8_t listLen = securityPage[8];
-                        for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < UINT16_C(512); ++iter)
+                        uint8_t listLen = securityPage[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
+                        for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(512); ++iter)
                         {
                             bool foundSecurityPage = false;
                             switch (securityPage[iter])
@@ -1142,7 +1152,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
                 else
                 {
                     printf("\t508 minutes (max per ATA specification).\n");
-                    erasemaxSeconds = 508 * 2;
+                    erasemaxSeconds = 508 * 60;
                 }
                 //provide a completion time estimate based on the max values.
                 //Need to report it as a time greater than what we print to the screen to make it clear.
