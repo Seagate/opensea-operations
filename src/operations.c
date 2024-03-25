@@ -676,6 +676,27 @@ bool ata_Is_Write_Cache_Enabled(tDevice *device)
     return enabled;
 }
 
+int is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
+{
+    int ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == SCSI_DRIVE && !device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
+    {
+        ret = SUCCESS;
+        if (!writeReq)
+        {
+            return BAD_PARAMETER;
+        }
+        //read the block device characteristics VPD page
+        uint8_t blockCharacteristics[VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN] = { 0 };
+        if (SUCCESS == scsi_Inquiry(device, blockCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, BLOCK_DEVICE_CHARACTERISTICS, true, false))
+        {
+            writeReq->blockErase = M_GETBITRANGE(blockCharacteristics[7], 7, 6);
+            writeReq->cryptoErase = M_GETBITRANGE(blockCharacteristics[7], 5, 4);
+        }
+    }
+    return ret;
+}
+
 //erase weights are hard coded right now....-TJE
 int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes)
 {
@@ -683,6 +704,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     ataSecurityStatus ataSecurityInfo;
     sanitizeFeaturesSupported sanitizeInfo;
     nvmeFormatSupport nvmeFormatInfo;
+    writeAfterErase writeAfterEraseRequirements;
     uint64_t maxNumberOfLogicalBlocksPerCommand = 0;
     bool formatUnitAdded = false;
     bool nvmFormatAdded = false;
@@ -709,12 +731,23 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
 
     get_NVMe_Format_Support(device, &nvmeFormatInfo);
 
+    is_Write_After_Erase_Required(device, &writeAfterEraseRequirements);
+
     //fastest will be sanitize crypto
     if (sanitizeInfo.crypto)
     {
+        char sanitizeWarning[MAX_ERASE_WARNING_LENGTH] = { 0 };
+        if (writeAfterEraseRequirements.cryptoErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
+        {
+            snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle. Write after crypto erase required.");
+        }
+        else
+        {
+            snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
+        }
         currentErase->eraseIdentifier = ERASE_SANITIZE_CRYPTO;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Crypto Erase");
-        snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
+        snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
         currentErase->warningValid = true;
         currentErase->eraseWeight = 0;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -724,9 +757,18 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     //next sanitize block erase
     if (sanitizeInfo.blockErase)
     {
+        char sanitizeWarning[MAX_ERASE_WARNING_LENGTH] = { 0 };
+        if (writeAfterEraseRequirements.cryptoErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
+        {
+            snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle. Write after block erase required.");
+        }
+        else
+        {
+            snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
+        }
         currentErase->eraseIdentifier = ERASE_SANITIZE_BLOCK;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Block Erase");
-        snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
+        snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
         currentErase->warningValid = true;
         currentErase->eraseWeight = 1;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;

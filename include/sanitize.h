@@ -15,6 +15,7 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "operations.h"
 
 #if defined (__cplusplus)
 extern "C"
@@ -29,6 +30,15 @@ extern "C"
         bool overwrite;
         bool crypto;
         bool exitFailMode;
+        bool freezelock;//SATA only.
+        bool antiFreezeLock;//SATA only
+        bool definitiveEndingPattern;//SAS & NVMe set this to true. SATA this comes from identify device data log
+        eWriteAfterEraseReq writeAfterCryptoErase;//SAS only
+        eWriteAfterEraseReq writeAfterBlockErase;//SAS only
+        //TODO: NVMe no deallocate bits/feature values and how to pass this info back in here.-TJE
+        bool noDeallocateInhibited;//NVMe only
+        //TODO: nodmmas field in NVMe
+        //TODO: sanitize config when noDeallocate is specified??? warning vs error when inhibit is set to 1
     } sanitizeFeaturesSupported;
 
     //-----------------------------------------------------------------------------
@@ -138,9 +148,9 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  run_Sanitize_Operation()
+    //  (Obsolete) run_Sanitize_Operation()
     //
-    //! \brief   Description: This function will start, and optionally poll for progress for the duration of a sanitize operation
+    //! \brief   Description: (Obsolete) This function will start, and optionally poll for progress for the duration of a sanitize operation
     //
     //  Entry:
     //!   \param[in] device = pointer to device structure containing open device handle
@@ -154,6 +164,39 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int run_Sanitize_Operation(tDevice *device, eSanitizeOperations sanitizeOperation, bool pollForProgress, uint8_t *pattern, uint32_t patternLength);
+
+    OPENSEA_OPERATIONS_API int sanitize_Freezelock(tDevice* device);
+
+    OPENSEA_OPERATIONS_API int sanitize_Anti_Freezelock(tDevice* device);
+
+    typedef enum _eSanitizeErase {
+        BLOCK_ERASE,
+        CRYPTO_ERASE,
+        OVERWRITE_ERASE
+    }eSanitizeErase;
+
+    #define SANITIZE_OPERATION_OPTIONS_VERSION (1)
+    typedef struct _sanitizeOperationOptions
+    {
+        size_t size;//sizeof(sanitizeOperationOptions)
+        uint32_t version;//SANITIZE_OPERATION_OPTIONS_VERSION
+        eSanitizeErase sanitizeEraseOperation;
+        bool pollForProgress;//crypto, block, and overwrite erases
+        struct
+        {
+            bool allowUnrestrictedSanitizeExit;
+            bool zoneNoReset;//zoned devices only.
+            bool noDeallocate;//NVMe only today. May not be supported by a controller.
+        }commonOptions; //options that apply to all Sanitize erase's
+        struct
+        {
+            bool invertPatternBetweenPasses;//SATA note: Some drives may or may not set a definitive ending pattern upon completion. By default, this function will set the definitive ending pattern bit whenever possible-TJE
+            uint8_t numberOfPasses;//0 = BAD_PARAMETER, 1 = 1, 2 = 2, etc. NVMe and SATA max at 16. SCSI maxes at 32
+            uint32_t pattern;
+        }overwriteOptions; //overwrite unique options
+    }sanitizeOperationOptions;
+
+    OPENSEA_OPERATIONS_API int run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions sanitizeOptions);
 
 #if defined (__cplusplus)
 }
