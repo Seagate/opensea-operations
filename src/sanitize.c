@@ -267,6 +267,7 @@ int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported 
             if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
             {
                 sanitizeOptions->overwrite = true;
+                sanitizeOptions->maximumOverwritePasses = 16;
             }
             if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
             {
@@ -320,6 +321,15 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
             case 5://supported in vendor specific mannor in same format as case 3
                 sanitizeOpts->sanitizeCmdEnabled = true;
                 sanitizeOpts->overwrite = true;
+                if (strstr("ATA", device->drive_info.T10_vendor_ident) || strstr("NVMe", device->drive_info.T10_vendor_ident))
+                {
+                    //Assuming that only a compliant translator will support this, so screening for ATA and NVMe which are limited to 16 passes
+                    sanitizeOpts->maximumOverwritePasses = 16;
+                }
+                else
+                {
+                    sanitizeOpts->maximumOverwritePasses = 31;
+                }
                 break;
             default:
                 break;
@@ -454,7 +464,11 @@ int sanitize_Freezelock(tDevice* device)
         ret = ata_Sanitize_Freeze_Lock(device);
         if (ret != SUCCESS)
         {
-            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
+            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x00)
+            {
+                ret = FAILURE;
+            }
+            else if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
             {
                 ret = NOT_SUPPORTED;
             }
@@ -464,7 +478,11 @@ int sanitize_Freezelock(tDevice* device)
             }
             else if (device->drive_info.lastCommandRTFRs.lbaLow == 0x04)
             {
-                ret = DEVICE_ACCESS_DENIED;
+                ret = ABORTED;
+            }
+            else
+            {
+                ret = FAILURE;
             }
         }
     }
@@ -479,7 +497,11 @@ int sanitize_Anti_Freezelock(tDevice* device)
         ret = ata_Sanitize_Anti_Freeze_Lock(device);
         if (ret != SUCCESS)
         {
-            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
+            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x00)
+            {
+                ret = FAILURE;
+            }
+            else if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
             {
                 ret = NOT_SUPPORTED;
             }
@@ -489,7 +511,11 @@ int sanitize_Anti_Freezelock(tDevice* device)
             }
             else if (device->drive_info.lastCommandRTFRs.lbaLow == 0x04)
             {
-                ret = DEVICE_ACCESS_DENIED;
+                ret = ABORTED;
+            }
+            else
+            {
+                ret = FAILURE;
             }
         }
     }
@@ -567,11 +593,14 @@ static int sanitize_Poll_For_Progress(tDevice* device, uint32_t delayTime)
                     fflush(stdout);
                 }
             }
-            else
+        }
+        if (ret != SUCCESS && ret != IN_PROGRESS)
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 printf("\n\tError occurred while retrieving sanitize progress!");
-                break;
             }
+            break;
         }
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)

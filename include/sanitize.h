@@ -35,6 +35,7 @@ extern "C"
         bool definitiveEndingPattern;//SAS & NVMe set this to true. SATA this comes from identify device data log
         eWriteAfterEraseReq writeAfterCryptoErase;//SAS only
         eWriteAfterEraseReq writeAfterBlockErase;//SAS only
+        uint8_t maximumOverwritePasses;//based on ATA/NVMe/SCSI standards. Not reported by the drive.-TJE
         //TODO: NVMe no deallocate bits/feature values and how to pass this info back in here.-TJE
         bool noDeallocateInhibited;//NVMe only
         //TODO: nodmmas field in NVMe
@@ -187,12 +188,14 @@ extern "C"
             bool allowUnrestrictedSanitizeExit;
             bool zoneNoReset;//zoned devices only.
             bool noDeallocate;//NVMe only today. May not be supported by a controller.
+            uint8_t reserved[5];
         }commonOptions; //options that apply to all Sanitize erase's
         struct
         {
             bool invertPatternBetweenPasses;//SATA note: Some drives may or may not set a definitive ending pattern upon completion. By default, this function will set the definitive ending pattern bit whenever possible-TJE
             uint8_t numberOfPasses;//0 = BAD_PARAMETER, 1 = 1, 2 = 2, etc. NVMe and SATA max at 16. SCSI maxes at 32
             uint32_t pattern;
+            uint8_t reserved[2];
         }overwriteOptions; //overwrite unique options
     }sanitizeOperationOptions;
 
