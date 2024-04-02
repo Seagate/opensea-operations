@@ -142,6 +142,9 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset);
 
+    //This will output a value in the lbaCount parameter in accordance with SFF-8447
+    OPENSEA_OPERATIONS_API int get_LBA_Count_For_Specified_Capacity(tDevice* device, uint64_t capacityBytes, uint64_t* lbaCount);
+
 #if defined (__cplusplus)
 }
 #endif

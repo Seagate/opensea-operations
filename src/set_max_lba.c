@@ -454,3 +454,298 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
     }
     return inSync;
 }
+
+//SFF-8447 LBA capacity for disk drives
+//High capacity disk drive = >8000GB capacity for 3.5 or 2.5 form factor
+//low capacity disk drive = 80GB-8000GB for 2.5 and 160GB-8000GB for 3.5 form factor
+//LBA sizes:
+//  4xxx = 4096, 4160, 4192, or 4224 bytes
+//   5xx = 512, 520, 524, or 528 bytes
+//NOTE: only 512 and 4096 LBA sizes are supported in low capacity disk drives in SFF-8447
+//PI on SCSI drives is 8 bytes in size
+//Fit adjustment factor (0.995) for high capacity when LBA != 512B with zero PI or LBA != 4096B with zero PI
+//Low capacity number of LBAs is multiple of 8 for 512B drives
+//High capacity number of LBAs is multiple of 2^21 for 5xx and 2^18 for 4xxx
+//Capcity is an integer multiple of 1GiB for LBA sizes 512 and 4096 when PI is zero
+
+#define LOW_CAP_DRIVE_LIMIT_MAX_GB UINT32_C(8000)
+#define LOW_CAP_DRIVE_LIMIT_MIN_GB UINT32_C(50)
+
+//NOTE: ceiling is a round up to nearest of second operand
+//      floor is a round down to nearest of second operand
+
+#define LOW_CAP_AD_CAP_GB_SUBTRACTION (UINT32_C(50))
+
+#define LOW_CAP_512_ADDITION            UINT32_C(97696368)
+#define LOW_CAP_512_MULITIPLICATION     UINT32_C(1953504)
+#define LOW_CAP_4096_ADDITION           UINT32_C(12212046)
+#define LOW_CAP_4096_MULITIPLICATION    UINT32_C(244188)
+
+//Low Capacity LBA counts:
+//  512B:
+//    LBA count = (97696368) + (1953504 * (advertised capacity in GB - 50))
+//       3 lower digits of LBA count is divisible by 8 with remainder of zero (round up if necessary)
+//      equivalent to:
+//    LBA count = ceiling((0.001953504 * advertised capacity) + 21168, 8)
+//       NOTE: This matches IDEMA LBA1-02 
+//  4096:
+//    LBA count = (12212046) + (244188 * (advertised capacity in GB - 50))
+//    LBA count = ceiling((0.000244188 * advertised capacity) + 2646, 1)
+
+#define HIGH_CAP_2_21ST UINT32_C(2097152)
+#define HIGH_CAP_2_18TH UINT32_C(262144)
+#define HIGH_CAP_FIT_ADJUSTMENT_FACTOR 0.995
+
+//High Capacity LBA counts:
+//  5xx:
+//    PI-0:
+//        LBA count = ceiling(advertised capacity/512, 2^21)
+//    P1 1, 2, 3:
+//        LBA count = floor(ceiling(advertised capacity/512, 2^21) * (512 / (logical block size + PI size)) * fit adjustment factor, 2^21)
+//  4xxx:
+//    PI-0:
+//        LBA count = ceiling(advertiszed capacity / 4096, 2^18)
+//    PI 1, 2, 3:
+//        LBA count = floor(ceiling(advertised capacity/4096, 2^18) * (4096 / (logical block size + PI size)) * fit adjustment factor, 2^18)
+
+//For PI-1, 2, 3:
+#define PI_BYTES_LENGTH UINT32_C(8)
+
+#define ONE_GB_AS_BYTES UINT64_C(1000000000) //10^19
+
+//NOTES: This function uses the drive's current LBA size and PI in the calculation
+//       capacities less than 8TB will be calculated according to low-capacity formulas
+int get_LBA_Count_For_Specified_Capacity(tDevice* device, uint64_t capacityBytes, uint64_t *lbaCount)
+{
+    int ret = SUCCESS;
+    if (device && lbaCount && capacityBytes > 0)
+    {
+        //device->drive_info.currentProtectionType
+        if (capacityBytes > (LOW_CAP_DRIVE_LIMIT_MAX_GB * ONE_GB_AS_BYTES))
+        {
+            //high capacity calculation
+            bool validBlockSize = true;
+            uint64_t blockSizeAdjustmentFactor = UINT64_C(512);
+            uint64_t powerOfTwoFactor = HIGH_CAP_2_21ST;
+            switch (device->drive_info.deviceBlockSize)
+            {
+            case 512:
+            case 520:
+            case 524:
+            case 528:
+                blockSizeAdjustmentFactor = UINT64_C(512);
+                powerOfTwoFactor = HIGH_CAP_2_21ST;
+                break;
+            case 4096:
+            case 4160:
+            case 4192:
+            case 4224:
+                blockSizeAdjustmentFactor = UINT64_C(4096);
+                powerOfTwoFactor = HIGH_CAP_2_18TH;
+                break;
+            default:
+                printf("Block size %" PRIu8 " is not supported in this function.\n", device->drive_info.deviceBlockSize);
+                ret = NOT_SUPPORTED;
+                validBlockSize = false;
+                break;
+            }
+            if (validBlockSize)
+            {
+                uint32_t piLen = 0;
+                *lbaCount = capacityBytes / blockSizeAdjustmentFactor;
+                *lbaCount = INT_ROUND_UP(*lbaCount, powerOfTwoFactor);
+                if ((device->drive_info.currentProtectionType >= 1 && device->drive_info.currentProtectionType <= 3))
+                {
+                    piLen = PI_BYTES_LENGTH;
+                }
+                if (blockSizeAdjustmentFactor != device->drive_info.deviceBlockSize || piLen == PI_BYTES_LENGTH)
+                {
+                    *lbaCount = C_CAST(uint64_t, *lbaCount * ((C_CAST(double, blockSizeAdjustmentFactor) / C_CAST(double, device->drive_info.deviceBlockSize + piLen)) * HIGH_CAP_FIT_ADJUSTMENT_FACTOR));
+                    *lbaCount = INT_ROUND_DOWN(*lbaCount, powerOfTwoFactor);
+                }
+                else if (device->drive_info.currentProtectionType == 0)
+                {
+                    //nothing else to do for PI 0!
+                }
+                else
+                {
+                    printf("Invalid PI type %" PRIu8 "! Not supported in this function!\n", device->drive_info.currentProtectionType);
+                    ret = NOT_SUPPORTED;
+                }
+            }
+        }
+        else
+        {
+            if (capacityBytes > (LOW_CAP_DRIVE_LIMIT_MIN_GB * ONE_GB_AS_BYTES))
+            {
+                //low capacity calculation
+                if (device->drive_info.deviceBlockSize == 512)
+                {
+                    //PI type does not matter in this calculation
+                    *lbaCount = LOW_CAP_512_ADDITION + (LOW_CAP_512_MULITIPLICATION * (capacityBytes - (LOW_CAP_AD_CAP_GB_SUBTRACTION * ONE_GB_AS_BYTES)) / ONE_GB_AS_BYTES);
+                    //check if this rounds to nearest 8 LBAs
+                    *lbaCount = INT_ROUND_UP(*lbaCount, 8);
+                }
+                else if (device->drive_info.deviceBlockSize == 4096)
+                {
+                    *lbaCount = LOW_CAP_4096_ADDITION + (LOW_CAP_4096_MULITIPLICATION * (capacityBytes - (LOW_CAP_AD_CAP_GB_SUBTRACTION * ONE_GB_AS_BYTES)) / ONE_GB_AS_BYTES);
+                    //NOTE: This rounds to nearest 1 LBA, so nothing else to do
+                }
+                else
+                {
+                    printf("Low capacity drives with LBA size other than 512 or 4096 are not supported\n");
+                    ret = NOT_SUPPORTED;
+                }
+            }
+            else
+            {
+                printf("Capacities less than 50GB are not supported in this function.\n");
+                printf("Drives manufactured at these low capacities did not have a uniform\n");
+                printf("standard for the LBA counts. Drives at these capacities used a\n");
+                printf("manufacturer's unique algorithm to determine the LBA count for a\n");
+                printf("specific capacity.\n\n");
+                ret = NOT_SUPPORTED;
+            }
+        }
+    }
+    else
+    {
+        ret = BAD_PARAMETER;
+    }
+    return ret;
+}
+
+#if defined (_DEBUG)
+//This function can be used to test the get_LBA_Count_For_Specified_Capacity() function with the same values shown in the SFF-8447 spec.
+static void print_Test_SFF_8447_Capacity(void)
+{
+    uint64_t tenTB = 10000 * ONE_GB_AS_BYTES;
+    tDevice * noPI = C_CAST(tDevice*, calloc(1, sizeof(tDevice)));
+    if (!noPI)
+    {
+        return;
+    }
+    tDevice * pi1 = C_CAST(tDevice*, calloc(1, sizeof(tDevice)));//PI type does not really matter, just needs to get set in this test structure
+    if (!pi1)
+    {
+        return;
+    }
+    noPI->drive_info.deviceBlockSize = 512;
+    pi1->drive_info.deviceBlockSize = 512;
+    pi1->drive_info.currentProtectionType = 1;
+
+    bool done = false;
+    uint64_t lbaCount = 0;
+    //SFF-8447 rev 0.5 table 4-1:
+    printf("SFF-8447 rev 0.5 table 4-1:\n");
+    printf("LBA COUNTS FOR DISK DRIVES WITH AN ADVERTISED CAPACITY OF 10 TB:\n");
+    printf("LBA Size\tPI Size\tLBA Count\n");
+    printf("====================================\n");
+    do
+    {
+        switch (noPI->drive_info.deviceBlockSize)
+        {
+        case 512:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 520;
+            pi1->drive_info.deviceBlockSize = 520;
+            break;
+        case 520:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 524;
+            pi1->drive_info.deviceBlockSize = 524;
+            break;
+        case 524:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 528;
+            pi1->drive_info.deviceBlockSize = 528;
+            break;
+        case 528:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 4096;
+            pi1->drive_info.deviceBlockSize = 4096;
+            break;
+        case 4096:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 4160;
+            pi1->drive_info.deviceBlockSize = 4160;
+            break;
+        case 4160:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 4192;
+            pi1->drive_info.deviceBlockSize = 4192;
+            break;
+        case 4192:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 4224;
+            pi1->drive_info.deviceBlockSize = 4224;
+            break;
+        case 4224:
+            get_LBA_Count_For_Specified_Capacity(noPI, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  0   \t%" PRIu64 "\n", noPI->drive_info.deviceBlockSize, lbaCount);
+            get_LBA_Count_For_Specified_Capacity(pi1, tenTB, &lbaCount);
+            printf("%8" PRIu32 "\t  8   \t%" PRIu64 "\n", pi1->drive_info.deviceBlockSize, lbaCount);
+            noPI->drive_info.deviceBlockSize = 0;
+            pi1->drive_info.deviceBlockSize = 0;
+            break;
+        default:
+            done = true;
+            break;
+        }
+    } while (!done);
+
+    //SFF-8447 rev 0.5 table 4-2:
+    //All of these are without PI and 512B sector size
+    noPI->drive_info.deviceBlockSize = 512;
+    printf("\nSFF-8447 rev 0.5 table 4-2:\n");
+    printf("LBA COUNTS FOR DISK DRIVES WITH LOGICAL BLOCK SIZE OF 512 BYTES AND\n");
+    printf("\tSCSI PROTECTION INFORMATION SIZE OF 0 BYTES:\n");
+    printf("Advertised Capacity\tCapacity Type\tLBA Count\n");
+    printf("====================================================\n");
+    get_LBA_Count_For_Specified_Capacity(noPI, 80 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("       80GB        \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 160 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("      160GB        \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 320 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("      320GB        \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 500 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("      500GB        \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 1000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("        1TB         \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 2000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("        2TB         \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 4000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("        4TB         \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 6000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("        6TB         \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 8000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("        8TB         \tLow Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 10000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("       10TB         \tHigh Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 12000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("       12TB         \tHigh Capacity\t%" PRIu64 "\n", lbaCount);
+    get_LBA_Count_For_Specified_Capacity(noPI, 15000 * ONE_GB_AS_BYTES, &lbaCount);
+    printf("       15TB         \tHigh Capacity\t%" PRIu64 "\n", lbaCount);
+}
+#endif //_DEBUG
