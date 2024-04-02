@@ -429,8 +429,37 @@ int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
             sanitizeOpts->overwrite = true;
             sanitizeOpts->definitiveEndingPattern = true;
         }
+        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT29)
+        {
+            sanitizeOpts->noDeallocateInhibited = true;
+
+        }
+        sanitizeOpts->nodmmas = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30);
         sanitizeOpts->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         sanitizeOpts->writeAfterBlockErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
+        if (sanitizeOpts->noDeallocateInhibited)
+        {
+            //get the sanitize config feature status to know which mode it is operating in.
+            nvmeFeaturesCmdOpt feat;
+            memset(&feat, 0, sizeof(nvmeFeaturesCmdOpt));
+            feat.fid = NVME_FEAT_SANITIZE_CONFIG;
+            feat.nsid = NVME_ALL_NAMESPACES;
+            feat.sel = NVME_CURRENT_FEAT_SEL;
+            feat.dataPtr = NULL;
+            feat.dataLength = 0;
+            //reported in completion dword 0
+            if (SUCCESS == nvme_Get_Features(device, &feat))
+            {
+                if (device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0)
+                {
+                    sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_WARNING;
+                }
+                else
+                {
+                    sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_ERROR;
+                }
+            }
+        }
     }
     return ret;
 }

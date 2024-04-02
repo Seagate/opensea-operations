@@ -21,6 +21,22 @@
 extern "C"
 {
 #endif
+
+    //NVMe only for now-TJE
+    typedef enum _noDeallocateModifiesAfterSanitize
+    {
+        NODMMAS_NOT_DEFINED = 0,
+        NODMMAS_NOT_ADDITIONALLY_MODIFIED_AFTER_SANITIZE = 1,
+        NODMMAS_MEDIA_MODIFIED_AFTER_SANITIZE = 2,
+        NODMMAS_RESERVED = 3
+    }noDeallocateModifiesAfterSanitize;
+
+    typedef enum _noDeallocateResponseMode
+    {
+        NO_DEALLOC_RESPONSE_INV = 0, //invalid value, not specified by the device.
+        NO_DEALLOC_RESPONSE_WARNING, //a warning is generated and sanitize commands are still processed when no deallocate is set in the command
+        NO_DEALLOC_RESPONSE_ERROR    //a error is generated and santize commands are aborted when no deallocate is set in the command
+    }noDeallocateResponseMode;
     
     // \struct typedef struct _sanitizeFeaturesSupported
     typedef struct _sanitizeFeaturesSupported
@@ -36,10 +52,10 @@ extern "C"
         eWriteAfterEraseReq writeAfterCryptoErase;//SAS only
         eWriteAfterEraseReq writeAfterBlockErase;//SAS only
         uint8_t maximumOverwritePasses;//based on ATA/NVMe/SCSI standards. Not reported by the drive.-TJE
-        //TODO: NVMe no deallocate bits/feature values and how to pass this info back in here.-TJE
+        //following are NVMe only for now -TJE
         bool noDeallocateInhibited;//NVMe only
-        //TODO: nodmmas field in NVMe
-        //TODO: sanitize config when noDeallocate is specified??? warning vs error when inhibit is set to 1
+        noDeallocateModifiesAfterSanitize nodmmas;//NVMe only
+        noDeallocateResponseMode responseMode;//NVMe only
     } sanitizeFeaturesSupported;
 
     //-----------------------------------------------------------------------------
@@ -186,9 +202,12 @@ extern "C"
         struct
         {
             bool allowUnrestrictedSanitizeExit;
-            bool zoneNoReset;//zoned devices only.
-            bool noDeallocate;//NVMe only today. May not be supported by a controller.
-            uint8_t reserved[5];
+            union {
+                //These bits mean the same thing today. ZBC and ZAC use ZNR, NVMe Zoned Namespaces uses the no-deallocate for the same purpose-TJE
+                bool zoneNoReset;//zoned devices only - SATA and SAS
+                bool noDeallocate;//NVMe only today. May not be supported by a controller.
+            };
+            uint8_t reserved[6];
         }commonOptions; //options that apply to all Sanitize erase's
         struct
         {
