@@ -2384,9 +2384,9 @@ bool is_SMART_Error_Logging_Supported(tDevice *device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT0)
+        if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT0)
             ||
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT0)
+            (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT0)
             )
         {
             supported = true;
@@ -3108,7 +3108,7 @@ bool is_SMART_Enabled(tDevice *device)
     {
     case ATA_DRIVE:
         //check identify data
-        if (device->drive_info.IdentifyData.ata.Word085 != 0x0000 && device->drive_info.IdentifyData.ata.Word085 != 0xFFFF && device->drive_info.IdentifyData.ata.Word085 & BIT0)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT0)
         {
             enabled = true;
         }
@@ -3344,7 +3344,7 @@ int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enable
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check if SCT and SCT feature control is supported
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
         {
             uint16_t featureCode = 0, state = 0, optionFlags = 0;
             switch (sctFeature)
@@ -3430,7 +3430,7 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check if SCT and SCT feature control is supported
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
         {
             uint16_t featureCode = 0, state = 0, optionFlags = 0;
             switch (sctFeature)
@@ -3537,7 +3537,7 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
         {
             if ((timerValueMilliseconds / 100) > UINT16_MAX)
             {
@@ -3568,7 +3568,7 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
         {
             //made it this far, so the feature is supported
             uint16_t currentTimerValue = 0;
@@ -3597,7 +3597,7 @@ int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercComma
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
         {
             //made it this far, so the feature is supported
             switch (ercCommand)
@@ -3647,7 +3647,7 @@ int enable_Disable_SMART_Feature(tDevice *device, bool enable)
     int ret = NOT_SUPPORTED;
     if(device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word082 & BIT0)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
         {
             if(enable)
             {
@@ -3886,7 +3886,8 @@ int enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)
     int ret = NOT_SUPPORTED;
     if(device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word082 & BIT0 && device->drive_info.IdentifyData.ata.Word085 & BIT0)
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
+            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT0))
         {
             uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
             //read the data
@@ -3912,7 +3913,8 @@ int enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable)
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word082 & BIT0 && device->drive_info.IdentifyData.ata.Word085 & BIT0)
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
+            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT0))
         {
             uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
             //read the data
@@ -3943,7 +3945,8 @@ int get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check SMART support and enabled
-        if (device->drive_info.IdentifyData.ata.Word082 & BIT0 && device->drive_info.IdentifyData.ata.Word085 & BIT0)
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
+            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT0))
         {
             uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
             //read the data

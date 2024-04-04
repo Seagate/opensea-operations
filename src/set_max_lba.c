@@ -22,11 +22,12 @@
 int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 {
     int ret = SUCCESS;
-    if (device->drive_info.IdentifyData.ata.Word119 & BIT8) //accessible max address feature set
+    if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)/*validate words 119,120 are valid first, then validate that word*/
+        && (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT8)) //accessible max address feature set
     {
         ret = ata_Get_Native_Max_Address_Ext(device, nativeMaxLBA);
     }
-    else if (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
+    else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
     {
         ret = ata_Read_Native_Max_Address(device, nativeMaxLBA, device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported);
     }
@@ -177,7 +178,8 @@ int ata_Set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool cha
         }
         else
         {
-            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT8)
+            if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15) && /*validate 119 and 120 will be valid first*/
+                (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT8))
             {
                 //accessible Max Address Configuration feature set supported
                 ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA, changeId);
@@ -303,10 +305,11 @@ static uint64_t get_ATA_MaxLBA(tDevice* device)
     if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), 512))
     {
         uint8_t* identifyData = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
-        if (device->drive_info.IdentifyData.ata.Word083 & BIT10)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT10)
         {
             //acs4 - word 69 bit3 means extended number of user addressable sectors word supported (words 230 - 233) (Use this to get the max LBA since words 100 - 103 may only contain a value of FFFF_FFFF)
-            if (device->drive_info.IdentifyData.ata.Word069 & BIT3)
+            if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+                && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT3))
             {
                 maxLBA = M_BytesTo8ByteValue(identifyData[467], identifyData[466], identifyData[465], identifyData[464], identifyData[463], identifyData[462], identifyData[461], identifyData[460]);
             }

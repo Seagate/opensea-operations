@@ -761,12 +761,12 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT1)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT1)
         {
             supported = true;
         }
         /*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
-        else if (device->drive_info.IdentifyData.ata.Word022 > 0 && device->drive_info.IdentifyData.ata.Word022 < UINT16_MAX)//legacy support check only!
+        else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word022))//legacy support check only!
         {
             supported = true;
         }
@@ -792,7 +792,7 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
         {
             dataLength += 6;
         }
-        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, operationCode, 0, dataLength, commandSupportInformation))
+        if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3 && !device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, operationCode, 0, dataLength, commandSupportInformation))
         {
             reportSuccess = true;
             switch (commandSupportInformation[1] & 0x07)
@@ -864,7 +864,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT1)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT1)
         {
             //use SCT read & write long commands
             uint16_t numberOfECCCRCBytes = 0;
@@ -894,7 +894,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             }
             safe_Free_aligned(data)
         }
-        else if (device->drive_info.IdentifyData.ata.Word022 > 0 && device->drive_info.IdentifyData.ata.Word022 < UINT16_MAX && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
+        else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word022) && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
         {
             bool setFeaturesToChangeECCBytes = false;
             if (device->drive_info.IdentifyData.ata.Word022 != 4)

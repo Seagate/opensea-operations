@@ -21,7 +21,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //for ata check identifying info
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT2)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT2)
         {
             supported = true;
             //as far as I know, ATA drives don't have a limit so just return the range from the requested start and the maxLBA of the device - TJE
