@@ -5050,6 +5050,9 @@ static void get_GPL_Log_Command_Info(const char* commandName, uint8_t commandOpC
     case ATA_LOG_IDENTIFY_DEVICE_DATA:
         snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Identify Device Data");
         break;
+    case ATA_LOG_CAPACITY_MODELNUMBER_MAPPING:
+        snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "Capacity/Model Number Mapping");
+        break;
     case ATA_SCT_COMMAND_STATUS:
         snprintf(logAddressName, GPL_LOG_NAME_LENGTH, "SCT Command/Status");
         break;
@@ -5377,6 +5380,9 @@ static void get_SMART_Log_Info(const char* commandName, M_ATTR_UNUSED uint8_t co
         break;
     case ATA_LOG_IDENTIFY_DEVICE_DATA:
         snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Identify Device Data");
+        break;
+    case ATA_LOG_CAPACITY_MODELNUMBER_MAPPING:
+        snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Capacity/Model Number Mapping");
         break;
     case ATA_SCT_COMMAND_STATUS:
         snprintf(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SCT Command/Status");

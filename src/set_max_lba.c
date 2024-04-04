@@ -17,6 +17,7 @@
 #include "scsi_helper_func.h"
 #include "ata_device_config_overlay.h"
 #include "platform_helper.h"
+#include "logs.h"
 
 int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 {
@@ -53,7 +54,12 @@ int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
     return ret;
 }
 
-int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
+int scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset)
+{
+    return scsi_Set_Max_LBA_2(device, newMaxLBA, reset, false);
+}
+
+int scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
     int ret = UNKNOWN;
     uint8_t *scsiDataBuffer = C_CAST(uint8_t*, calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment));//this should be big enough to get back the block descriptor we care about
@@ -71,6 +77,10 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
         scsiDataBuffer[3] = 0;//clear the device specific parameter
         scsiDataBuffer[4] |= BIT0;//set the LLBAA bit
         scsiDataBuffer[7] = 0x10;
+        if (changeId)
+        {
+            scsiDataBuffer[3] |= BIT5;//set the CAPPID bit
+        }
         //now we have a block descriptor, so lets do what we need to do with it
         if (reset == false)
         {
@@ -143,7 +153,12 @@ int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     return ret;
 }
 
-int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
+int ata_Set_Max_LBA(tDevice * device, uint64_t newMaxLBA, bool reset)
+{
+    return ata_Set_Max_LBA_2(device, newMaxLBA, reset, false);
+}
+
+int ata_Set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
     int ret = NOT_SUPPORTED;
     //first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable address feature set)
@@ -167,23 +182,31 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
                 (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT8))
             {
                 //accessible Max Address Configuration feature set supported
-                ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA);
+                ret = ata_Set_Accessible_Max_Address_Ext(device, newMaxLBA, changeId);
             }
             else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set
             {
-                if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
+                if (changeId)
                 {
-                    ret = ata_Set_Max_Address_Ext(device, newMaxLBA, true); //this is a non-volitile command
+                    printf("Change model number is not supported on this device\n");
+                    ret = NOT_SUPPORTED;
                 }
                 else
                 {
-                    if (newMaxLBA <= MAX_28BIT)
+                    if (device->drive_info.ata_Options.fourtyEightBitAddressFeatureSetSupported)
                     {
-                        ret = ata_Set_Max_Address(device, C_CAST(uint32_t, newMaxLBA), true); //this is a non-volitile command
+                        ret = ata_Set_Max_Address_Ext(device, newMaxLBA, true); //this is a non-volitile command
                     }
                     else
                     {
-                        ret = NOT_SUPPORTED;
+                        if (newMaxLBA <= MAX_28BIT)
+                        {
+                            ret = ata_Set_Max_Address(device, C_CAST(uint32_t, newMaxLBA), true); //this is a non-volitile command
+                        }
+                        else
+                        {
+                            ret = NOT_SUPPORTED;
+                        }
                     }
                 }
             }
@@ -204,16 +227,21 @@ int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
     return ret;
 }
 
-int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset)
+int set_Max_LBA(tDevice * device, uint64_t newMaxLBA, bool reset)
+{
+    return set_Max_LBA_2(device, newMaxLBA, reset, false);
+}
+
+int set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
     int ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        ret = scsi_Set_Max_LBA(device, newMaxLBA, reset);
+        ret = scsi_Set_Max_LBA_2(device, newMaxLBA, reset, changeId);
     }
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Max_LBA(device, newMaxLBA, reset);
+        ret = ata_Set_Max_LBA_2(device, newMaxLBA, reset, changeId);
     }
     else
     {
@@ -453,4 +481,132 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
         inSync = true;
     }
     return inSync;
+}
+
+bool is_Change_Identify_String_Supported(tDevice* device)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint8_t idDataLogSupportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
+        {
+            uint64_t qword0 = M_BytesTo8ByteValue(idDataLogSupportedCapabilities[7], idDataLogSupportedCapabilities[6], idDataLogSupportedCapabilities[5], idDataLogSupportedCapabilities[4], idDataLogSupportedCapabilities[3], idDataLogSupportedCapabilities[2], idDataLogSupportedCapabilities[1], idDataLogSupportedCapabilities[0]);
+            if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= 0x0001)
+            {
+                uint64_t supportedCapabilitiesQWord = M_BytesTo8ByteValue(idDataLogSupportedCapabilities[15], idDataLogSupportedCapabilities[14], idDataLogSupportedCapabilities[13], idDataLogSupportedCapabilities[12], idDataLogSupportedCapabilities[11], idDataLogSupportedCapabilities[10], idDataLogSupportedCapabilities[9], idDataLogSupportedCapabilities[8]);
+                return (supportedCapabilitiesQWord & BIT63 && supportedCapabilitiesQWord & BIT58); //check bit63 since it should always be 1, then bit 58 for Capacity/Model Number Mapping
+            }
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint32_t capIDVPDSizeBytes = 0;
+        if (SUCCESS == get_SCSI_VPD_Page_Size(device, CAPACITY_PRODUCT_IDENTIFICATION_MAPPING, &capIDVPDSizeBytes) && capIDVPDSizeBytes > 0)
+        {
+            return (capIDVPDSizeBytes > 0); // TODO: should we return true if 0 bytes?
+        }
+    }
+    return false;
+}
+
+ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
+{
+    ptrcapacityModelNumberMapping capModelMapping = NULL;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint32_t capMNLogSizeBytes = 0;
+        if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, &capMNLogSizeBytes, true, false) && capMNLogSizeBytes > 0)
+        {
+            uint8_t* capMNMappingLog = C_CAST(uint8_t*, calloc_aligned(capMNLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!capMNMappingLog)
+            {
+                return NULL;
+            }
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, NULL, NULL, true, false, true, capMNMappingLog, capMNLogSizeBytes, NULL, 0, 0))
+            {
+                //header is first 8bytes
+                uint32_t numberOfDescriptors = M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
+                uint32_t capModelMappingSz = (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors);
+                capModelMapping = C_CAST(ptrcapacityModelNumberMapping, calloc(capModelMappingSz, sizeof(uint8_t)));
+                capModelMapping->numberOfDescriptors = numberOfDescriptors;
+                //now loop through descriptors
+                for (uint32_t offset = 8, descriptorCounter = 0; offset < capMNLogSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
+                {
+                    capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(0, 0, capMNMappingLog[offset + 5], capMNMappingLog[offset + 4], capMNMappingLog[offset + 3], capMNMappingLog[offset + 2], capMNMappingLog[offset + 1], capMNMappingLog[offset + 0]);
+                    uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
+                    memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
+                    memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capMNMappingLog[offset + 8], mnLimit);
+                    for (uint8_t iter = 0; iter < mnLimit; ++iter)
+                    {
+                        if (!is_ASCII(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                        {
+                            capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
+                        }
+                    }
+#if !defined(__BIG_ENDIAN__)
+                    byte_Swap_String(capModelMapping->descriptor[descriptorCounter].modelNumber);
+#endif
+                    remove_Leading_And_Trailing_Whitespace(capModelMapping->descriptor[descriptorCounter].modelNumber);
+                }
+            }
+            safe_Free_aligned(capMNMappingLog)
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        uint32_t capIDVPDSizeBytes = 0;
+        if (SUCCESS == get_SCSI_VPD_Page_Size(device, CAPACITY_PRODUCT_IDENTIFICATION_MAPPING, &capIDVPDSizeBytes) && capIDVPDSizeBytes > 0)
+        {
+            uint8_t* capProdIDMappingVPD = C_CAST(uint8_t*, calloc_aligned(capIDVPDSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!capProdIDMappingVPD)
+            {
+                return NULL;
+            }
+            if (SUCCESS == get_SCSI_VPD(device, CAPACITY_PRODUCT_IDENTIFICATION_MAPPING, NULL, NULL, true, capProdIDMappingVPD, capIDVPDSizeBytes, NULL))
+            {
+                //calculate number of descriptors based on page length
+                uint32_t numberOfDescriptors = M_BytesTo2ByteValue(capProdIDMappingVPD[2], capProdIDMappingVPD[3]) / 48;//Each descriptor is 48B long
+                uint32_t capProdIDMappingSz = (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors);
+                capModelMapping = C_CAST(ptrcapacityModelNumberMapping, calloc(capProdIDMappingSz, sizeof(uint8_t)));
+                capModelMapping->numberOfDescriptors = numberOfDescriptors;
+                //loop through descriptors
+                for (uint32_t offset = 4, descriptorCounter = 0; offset < capIDVPDSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
+                {
+                    capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(capProdIDMappingVPD[offset + 0], capProdIDMappingVPD[offset + 1], capProdIDMappingVPD[offset + 2], capProdIDMappingVPD[offset + 3], capProdIDMappingVPD[offset + 4], capProdIDMappingVPD[offset + 5], capProdIDMappingVPD[offset + 6], capProdIDMappingVPD[offset + 7]);
+                    capModelMapping->descriptor[descriptorCounter].capacityMaxAddress -= 1; //Need to -1 for SCSI so that this will match the -i report. If this is not done, then  we end up with 1 less than the value provided.
+                    uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
+                    memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
+                    memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capProdIDMappingVPD[offset + 8], mnLimit);
+                    for (uint8_t iter = 0; iter < mnLimit; ++iter)
+                    {
+                        if (!is_ASCII(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                        {
+                            capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
+                        }
+                    }
+                    remove_Leading_And_Trailing_Whitespace(capModelMapping->descriptor[descriptorCounter].modelNumber);
+                }
+            }
+            safe_Free_aligned(capProdIDMappingVPD)
+        }
+    }
+    return capModelMapping;
+}
+
+void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
+{
+    safe_Free(capModelMapping);
+}
+
+void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
+{
+    if (capModelMapping)
+    {
+        printf("---Capacity model number mapping---\n");
+        printf("              MaxLBA Model number\n");
+        for (uint32_t descriptorCounter = 0; descriptorCounter < capModelMapping->numberOfDescriptors; descriptorCounter++)
+        {
+            printf("%20" PRIu64 " %s\n", capModelMapping->descriptor[descriptorCounter].capacityMaxAddress, capModelMapping->descriptor[descriptorCounter].modelNumber);
+        }
+    }
 }
