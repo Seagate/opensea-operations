@@ -35,7 +35,7 @@ extern "C"
     //!   \return true = format unit supported, false = format unit not supported.
     //
     //-----------------------------------------------------------------------------
-    bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported);
+    OPENSEA_OPERATIONS_API bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported);
 
     //-----------------------------------------------------------------------------
     //
