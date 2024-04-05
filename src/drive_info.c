@@ -3557,6 +3557,7 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                     }
                     safe_Free_aligned(zbdCharacteristics)
                 }
+                    break;
                 default:
                     break;
                 }
@@ -4933,34 +4934,32 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                         //if we can read this page, then the device supports PATA Control
                     {
                         uint8_t pataControl[8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
-                        bool pageRead = false, sixByte = false;
-                        uint16_t headerLength = 0;
+                        //bool pageRead = false, 
+                        bool sixByte = false;
+                        //uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, pataControl, 8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
                         {
-                            uint16_t blockDescLen = 0;
-                            pageRead = true;
-                            if (sixByte)
-                            {
-                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = pataControl[2];
-                                if (pataControl[2] & BIT7)
-                                {
-                                    driveInfo->isWriteProtected = true;
-                                }
-                            }
-                            else
-                            {
-                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(pataControl[6], pataControl[7]);
-                                if (pataControl[3] & BIT7)
-                                {
-                                    driveInfo->isWriteProtected = true;
-                                }
-                            }
-                            headerLength += blockDescLen;
-                        }
-                        if (pageRead)
-                        {
+                            // uint16_t blockDescLen = 0;
+                            // pageRead = true;
+                            // if (sixByte)
+                            // {
+                            //     headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                            //     blockDescLen = pataControl[2];
+                            //     if (pataControl[2] & BIT7)
+                            //     {
+                            //         driveInfo->isWriteProtected = true;
+                            //     }
+                            // }
+                            // else
+                            // {
+                            //     headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                            //     blockDescLen = M_BytesTo2ByteValue(pataControl[6], pataControl[7]);
+                            //     if (pataControl[3] & BIT7)
+                            //     {
+                            //         driveInfo->isWriteProtected = true;
+                            //     }
+                            // }
+                            // headerLength += blockDescLen;
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PATA Control");
                         }
                     }
