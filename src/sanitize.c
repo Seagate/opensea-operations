@@ -442,7 +442,7 @@ int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
             //get the sanitize config feature status to know which mode it is operating in.
             nvmeFeaturesCmdOpt feat;
             memset(&feat, 0, sizeof(nvmeFeaturesCmdOpt));
-            feat.fid = NVME_FEAT_SANITIZE_CONFIG;
+            feat.fid = NVME_FEAT_SANITIZE_CONFIG_;
             feat.nsid = NVME_ALL_NAMESPACES;
             feat.sel = NVME_CURRENT_FEAT_SEL;
             feat.dataPtr = NULL;
