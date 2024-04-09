@@ -69,7 +69,7 @@ int enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, 0, lba_field, 0, 0);
+        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, 0, C_CAST(uint8_t, lba_field), 0, 0);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -737,7 +737,7 @@ static int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondit
         if (powerConditionSettings->restoreToDefault)
         {
             //this command is restoring the power conditions from the drive's default settings (bit6) and saving them upon completion (bit4)...the other option is to return to the saved settings, but we aren't going to support that with this option right now
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, EPC_RESTORE_POWER_CONDITION_SETTINGS | BIT6 | BIT4, RESERVED, RESERVED);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition), EPC_RESTORE_POWER_CONDITION_SETTINGS | BIT6 | BIT4, RESERVED, RESERVED);
         }
         else//we aren't restoring settings, so we need to set things up to save settings
         {
@@ -773,7 +773,7 @@ static int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondit
             //set the save bit
             lbalo |= BIT4;
             //issue the command
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, lbalo, lbaMid, lbaHi);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition), lbalo, lbaMid, lbaHi);
         }
     }
     return ret;
@@ -991,11 +991,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 {
                     if (powerConditions->idle_a.enable)
                     {
-                        M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 1);
+                        M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 1);
                     }
                     else
                     {
-                        M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 1);
+                        M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 1);
                     }
                 }
                 if (powerConditions->idle_a.timerValid)
@@ -1012,11 +1012,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 {
                     if (powerConditions->standby_z.enable)
                     {
-                        M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 0);
+                        M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 0);
                     }
                     else
                     {
-                        M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 0);
+                        M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 0);
                     }
                 }
                 if (powerConditions->standby_z.timerValid)
@@ -1039,11 +1039,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     {
                         if (powerConditions->idle_b.enable)
                         {
-                            M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 2);
+                            M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 2);
                         }
                         else
                         {
-                            M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 2);
+                            M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 2);
                         }
                     }
                     if (powerConditions->idle_b.timerValid)
@@ -1060,11 +1060,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     {
                         if (powerConditions->idle_c.enable)
                         {
-                            M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 3);
+                            M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 3);
                         }
                         else
                         {
-                            M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 3);
+                            M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 3);
                         }
                     }
                     if (powerConditions->idle_c.timerValid)
@@ -1081,11 +1081,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     {
                         if (powerConditions->standby_y.enable)
                         {
-                            M_SET_BIT(powerConditionsPage[mpStartOffset + 2], 0);
+                            M_SET_BIT8(powerConditionsPage[mpStartOffset + 2], 0);
                         }
                         else
                         {
-                            M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 2], 0);
+                            M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 2], 0);
                         }
                     }
                     if (powerConditions->standby_y.timerValid)
@@ -1765,7 +1765,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                     //set the active level to what was requested (power consumption identifier is ignored here)
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
                     //now set it now that the bits are cleared out
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= activeLevelField;
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= C_CAST(uint8_t, activeLevelField);
                     break;
                 default:
                     ret = FAILURE;
@@ -1886,7 +1886,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
                 }
                 if (pcWatts1 <= roundedWatts)
                 {
-                    if (watts - watts1 > watts - pcWatts1)
+                    if (watts - C_CAST(double, watts1) > watts - C_CAST(double, pcWatts1))
                     {
                         pcId1 = identifiers.identifiers[iter1].identifierValue;
                         watts1 = pcWatts1;
@@ -1901,7 +1901,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
                 }
                 if (pcWatts2 <= roundedWatts)
                 {
-                    if (watts - watts2 > watts - pcWatts2)
+                    if (watts - C_CAST(double, watts2) > watts - C_CAST(double, pcWatts2))
                     {
                         pcId2 = identifiers.identifiers[iter2].identifierValue;
                         watts2 = pcWatts2;
@@ -1921,12 +1921,12 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
             //now compare the best results between the two iterators to see which is closer to the best match, or is the best match
             //need to check which one is closer and select it
 
-            if (watts - watts1 >= watts - watts2)
+            if (watts - C_CAST(double, watts1) >= watts - C_CAST(double, watts2))
             {
                 ret = SUCCESS;
                 *pcIdentifier = pcId2;
             }
-            else if (watts - watts1 <= watts - watts2)
+            else if (watts - C_CAST(double, watts1) <= watts - C_CAST(double, watts2))
             {
                 ret = SUCCESS;
                 *pcIdentifier = pcId1;
@@ -2807,7 +2807,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
         if (enhPhyControlLength < M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]))
         {
             //parse the header to figure out full page length
-            enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            enhPhyControlLength = C_CAST(uint16_t, M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]));
             gotFullPageLength = true;
             uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
             if (!temp)
@@ -2849,11 +2849,11 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                                 //byte 19, bit 1
                                 if (enablePartial)
                                 {
-                                    M_SET_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 1);
+                                    M_SET_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 1);
                                 }
                                 else
                                 {
-                                    M_CLEAR_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 1);
+                                    M_CLEAR_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 1);
                                 }
                             }
                             if (slumberValid)
@@ -2861,11 +2861,11 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                                 //byte 19, bit 2
                                 if (enableSlumber)
                                 {
-                                    M_SET_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 2);
+                                    M_SET_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 2);
                                 }
                                 else
                                 {
-                                    M_CLEAR_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 2);
+                                    M_CLEAR_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 2);
                                 }
                             }
                         }

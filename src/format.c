@@ -446,11 +446,11 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         //send the format command
         if (formatParameters.defaultFormat && formatParameters.disableImmediate)
         {
-            ret = scsi_Format_Unit(device, fmtpInfo, longList, false, formatParameters.completeList, defectListFormat, 0, NULL, 0, formatParameters.formatType, formatCommandTimeout);
+            ret = scsi_Format_Unit(device, fmtpInfo, longList, false, formatParameters.completeList, defectListFormat, 0, NULL, 0, C_CAST(uint8_t, formatParameters.formatType), formatCommandTimeout);
         }
         else
         {
-            ret = scsi_Format_Unit(device, fmtpInfo, longList, true, formatParameters.completeList, defectListFormat, 0, dataBuf, dataSize, formatParameters.formatType, formatCommandTimeout);
+            ret = scsi_Format_Unit(device, fmtpInfo, longList, true, formatParameters.completeList, defectListFormat, 0, dataBuf, dataSize, C_CAST(uint8_t, formatParameters.formatType), formatCommandTimeout);
         }
 
         //poll for progress
@@ -1472,7 +1472,7 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
-        uint32_t formatsDataSize = sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats);
+        uint32_t formatsDataSize = C_CAST(uint32_t, sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats));
         ptrSupportedFormats formats = C_CAST(ptrSupportedFormats, malloc(formatsDataSize));
         if (!formats)
         {

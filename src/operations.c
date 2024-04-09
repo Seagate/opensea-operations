@@ -1030,7 +1030,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
             //This drive doesn't support anything that gives us time estimates, so let's make a guess.
             //TODO: Make this guess better by reading the drive capabilities and interface speed to determine a more accurate estimate.
             uint32_t megabytesPerSecond = is_SSD(device) ? 450 : 150;//assume 450 MB/s on SSD and 150 MB/s on HDD
-            *overwriteEraseTimeEstimateMinutes = C_CAST(uint32_t, ((device->drive_info.deviceMaxLba * device->drive_info.deviceBlockSize) / (megabytesPerSecond * 1.049e+6)) / 60);
+            *overwriteEraseTimeEstimateMinutes = C_CAST(uint32_t, (C_CAST(double, (device->drive_info.deviceMaxLba * device->drive_info.deviceBlockSize)) / (megabytesPerSecond * 1.049e+6)) / 60.0);
         }
     }
 
@@ -1201,11 +1201,11 @@ int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorF
     }
     if (descriptorFormat)
     {
-        M_SET_BIT(controlModePage[byteOffset], 2);
+        M_SET_BIT8(controlModePage[byteOffset], 2);
     }
     else
     {
-        M_CLEAR_BIT(controlModePage[byteOffset], 2);
+        M_CLEAR_BIT8(controlModePage[byteOffset], 2);
     }
     //write the change to the drive
     if (mode6ByteCmd)
@@ -2505,7 +2505,7 @@ int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8
             return BAD_PARAMETER;//cannot reset a specific page on this device
         }
     }
-    ret = scsi_Log_Select_Cmd(device, true, saveChanges, pageControl, logPage, logSubPage, 0, NULL, 0);
+    ret = scsi_Log_Select_Cmd(device, true, saveChanges, C_CAST(uint8_t, pageControl), logPage, logSubPage, 0, NULL, 0);
 
     return ret;
 }
@@ -2661,7 +2661,7 @@ int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges range
                 {
                     ret = SUCCESS;
                     //calculate number of ranges based on page length
-                    ranges->numberOfRanges = (M_BytesTo2ByteValue(concurrentRangeVPD[2], concurrentRangeVPD[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
+                    ranges->numberOfRanges = C_CAST(uint8_t, (M_BytesTo2ByteValue(concurrentRangeVPD[2], concurrentRangeVPD[3]) - 60) / 32);//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
                     //loop through descriptors
                     for (uint32_t offset = 64, rangeCounter = 0; offset < concurrentLogSizeBytes && rangeCounter < ranges->numberOfRanges && rangeCounter < 15; offset += 32, ++rangeCounter)
                     {

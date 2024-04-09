@@ -563,7 +563,7 @@ int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
         uint8_t readKeyCount[8] = { 0 };
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 8, readKeyCount)))
         {
-            *keyCount = M_BytesTo4ByteValue(readKeyCount[4], readKeyCount[5], readKeyCount[6], readKeyCount[7]) / UINT32_C(8);//each registered key is 8 bytes in length
+            *keyCount = C_CAST(uint16_t, M_BytesTo4ByteValue(readKeyCount[4], readKeyCount[5], readKeyCount[6], readKeyCount[7]) / UINT32_C(8));//each registered key is 8 bytes in length
         }
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
@@ -602,7 +602,7 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint16_t dataLength = (numberOfKeys * 8) + 8;
+        uint16_t dataLength = C_CAST(uint16_t, (numberOfKeys * UINT16_C(8)) + UINT16_C(8));
         uint8_t *registrationKeys = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!registrationKeys)
         {
@@ -610,7 +610,7 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
         }
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, dataLength, registrationKeys)))
         {
-            uint16_t reportedKeys = M_BytesTo4ByteValue(registrationKeys[4], registrationKeys[5], registrationKeys[6], registrationKeys[7]) / UINT32_C(8);//each registered key is 8 bytes in length
+            uint16_t reportedKeys = C_CAST(uint16_t, M_BytesTo4ByteValue(registrationKeys[4], registrationKeys[5], registrationKeys[6], registrationKeys[7]) / UINT32_C(8));//each registered key is 8 bytes in length
             keys->generation = M_BytesTo4ByteValue(registrationKeys[0], registrationKeys[1], registrationKeys[2], registrationKeys[3]);
             //loop through and save each key
             keys->numberOfKeys = 0;
@@ -678,7 +678,7 @@ int get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount)
         uint8_t reservationKeys[8] = { 0 };
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_RESERVATION, 8, reservationKeys)))
         {
-            *reservationKeyCount = M_BytesTo4ByteValue(reservationKeys[4], reservationKeys[5], reservationKeys[6], reservationKeys[7]) / UINT32_C(16);
+            *reservationKeyCount = C_CAST(uint16_t, M_BytesTo4ByteValue(reservationKeys[4], reservationKeys[5], reservationKeys[6], reservationKeys[7]) / UINT32_C(16));
         }
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
@@ -733,7 +733,7 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint16_t reservationsLength = (numberReservations * 16) + 8;
+        uint16_t reservationsLength = C_CAST(uint16_t, numberReservations * UINT16_C(16) + UINT16_C(8));
         uint8_t *reservationKeys = C_CAST(uint8_t*, calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!reservationKeys)
         {
@@ -742,7 +742,7 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
         reservations->numberOfReservations = 0;
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_RESERVATION, reservationsLength, reservationKeys)))
         {
-            uint16_t reservationKeyCount = M_BytesTo4ByteValue(reservationKeys[4], reservationKeys[5], reservationKeys[6], reservationKeys[7]) / UINT32_C(16);
+            uint16_t reservationKeyCount = C_CAST(uint16_t, M_BytesTo4ByteValue(reservationKeys[4], reservationKeys[5], reservationKeys[6], reservationKeys[7]) / UINT32_C(16));
             reservations->generation = M_BytesTo4ByteValue(reservationKeys[0], reservationKeys[1], reservationKeys[2], reservationKeys[3]);
             for (uint32_t reservationIter = 0, offset = 8; reservationIter < reservationKeyCount && reservationIter < numberReservations && offset < reservationsLength; ++reservations->numberOfReservations, ++reservationIter, offset += 16)
             {

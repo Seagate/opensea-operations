@@ -194,7 +194,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
     uint16_t randomLBACount = 5000;
     uint64_t *randomLBAList = C_CAST(uint64_t*, calloc(randomLBACount, sizeof(uint64_t)));
     uint64_t iterator = 0;
-    uint64_t onePercentOfDrive = C_CAST(uint64_t, device->drive_info.deviceMaxLba * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
+    uint64_t onePercentOfDrive = C_CAST(uint64_t, C_CAST(double, device->drive_info.deviceMaxLba) * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
     uint8_t *dataBuf = NULL;//will be allocated at the random read section
     uint64_t failingLBA = UINT64_MAX;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
@@ -540,7 +540,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     stop_Timer(&odTestTimer);
     odTest.averageCommandTimeNS /= odTest.numberOfCommandsIssued;
     odTest.totalTimeNS = get_Nano_Seconds(odTestTimer);
-    odTest.iops = C_CAST(uint64_t, odTest.numberOfCommandsIssued / (odTest.totalTimeNS * 1e-9));
+    odTest.iops = C_CAST(uint64_t, C_CAST(double, odTest.numberOfCommandsIssued) / (C_CAST(double, odTest.totalTimeNS) * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -634,7 +634,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     stop_Timer(&idTestTimer);
     idTest.averageCommandTimeNS /= idTest.numberOfCommandsIssued;
     idTest.totalTimeNS = get_Nano_Seconds(idTestTimer);
-    idTest.iops = C_CAST(uint64_t, idTest.numberOfCommandsIssued / (idTest.totalTimeNS * 1e-9));
+    idTest.iops = C_CAST(uint64_t, C_CAST(double, idTest.numberOfCommandsIssued) / (C_CAST(double, idTest.totalTimeNS) * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -731,7 +731,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     }
     randomTest.averageCommandTimeNS /= randomTest.numberOfCommandsIssued;
     randomTest.totalTimeNS = get_Nano_Seconds(randomTestTimer);
-    randomTest.iops = C_CAST(uint64_t, randomTest.numberOfCommandsIssued / (randomTest.totalTimeNS * 1e-9));
+    randomTest.iops = C_CAST(uint64_t, C_CAST(double, randomTest.numberOfCommandsIssued) / (C_CAST(double, randomTest.totalTimeNS) * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET && showPerformanceNumbers)
     {
         printf("\n");
@@ -774,7 +774,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         //calculate MB(/GB)/s performance
         uint64_t odBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, odTest.sectorCount);
         double odTotalBytesTransferred = C_CAST(double, odBytesPerTransfer * odTest.numberOfCommandsIssued);
-        double odDataRate = odTotalBytesTransferred / C_CAST(double, odTest.totalTimeNS * 1e-9);
+        double odDataRate = odTotalBytesTransferred / C_CAST(double, odTest.totalTimeNS) * 1e-9;
         char odDataRateUnits[3] = { 0 };
         char *odDataRateUnit = &odDataRateUnits[0];
         metric_Unit_Convert(&odDataRate, &odDataRateUnit);
@@ -803,7 +803,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         //calculate MB(/GB)/s performance
         uint64_t idBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, idTest.sectorCount);
         double idTotalBytesTransferred = C_CAST(double, idBytesPerTransfer * idTest.numberOfCommandsIssued);
-        double idDataRate = idTotalBytesTransferred / C_CAST(double, idTest.totalTimeNS * 1e-9);
+        double idDataRate = idTotalBytesTransferred / (C_CAST(double, idTest.totalTimeNS) * 1e-9);
         char idDataRateUnits[3] = { 0 };
         char *idDataRateUnit = &idDataRateUnits[0];
         metric_Unit_Convert(&idDataRate, &idDataRateUnit);
@@ -831,7 +831,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
         //calculate MB(/GB)/s performance
         uint64_t randomBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, randomTest.sectorCount);
         double randomTotalBytesTransferred = C_CAST(double, randomBytesPerTransfer * randomTest.numberOfCommandsIssued);
-        double randomDataRate = randomTotalBytesTransferred / C_CAST(double, randomTest.totalTimeNS * 1e-9);
+        double randomDataRate = randomTotalBytesTransferred / (C_CAST(double, randomTest.totalTimeNS) * 1e-9);
         char randomDataRateUnits[3] = { 0 };
         char *randomDataRateUnit = &randomDataRateUnits[0];
         metric_Unit_Convert(&randomDataRate, &randomDataRateUnit);
@@ -1061,7 +1061,7 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
     //startingLBA = align_LBA(device, startingLBA);
     //this is escentially a loop over the sequential read function
     time_t startTime = time(NULL);
-    while (!errorLimitReached && difftime(time(NULL), startTime) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
+    while (!errorLimitReached && C_CAST(uint64_t, difftime(time(NULL), startTime)) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
     {
         if ((startingLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
@@ -1216,22 +1216,22 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
     return ret;
 }
 
-int butterfly_Read_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int butterfly_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_READ, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Write_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int butterfly_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_WRITE, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int butterfly_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
@@ -1252,7 +1252,7 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
     innerLBA -= sectorCount;
     time(&startTime);//get the starting time before starting the loop
     double lastTime = 0.0;
-    while ((lastTime = difftime(time(NULL), startTime)) < timeLimitSeconds)
+    while (C_CAST(uint64_t, (lastTime = difftime(time(NULL), startTime))) < timeLimitSeconds)
     {
         //read the outer lba
         if ((outerLBA + sectorCount) > device->drive_info.deviceMaxLba)
@@ -1341,22 +1341,22 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimit
     return ret;
 }
 
-int random_Read_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int random_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_READ, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Write_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int random_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_WRITE, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+int random_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+int random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     int ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
@@ -1373,7 +1373,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSec
     seed_64(time(NULL));//start the seed for the random number generator
     time(&startTime);//get the starting time before starting the loop
     double lastTime = 0.0;
-    while ((lastTime = difftime(time(NULL), startTime)) < timeLimitSeconds)
+    while (C_CAST(uint64_t, (lastTime = difftime(time(NULL), startTime))) < timeLimitSeconds)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
@@ -2028,7 +2028,7 @@ static int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, ui
     }
     //this is escentially a loop over the sequential read function
     time_t startTime = time(NULL);
-    while (!errorLimitReached && difftime(time(NULL), startTime) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
+    while (!errorLimitReached && C_CAST(uint64_t, difftime(time(NULL), startTime)) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
     {
         if ((startingLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
@@ -2352,7 +2352,7 @@ int full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
 int quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
 {
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
-    uint64_t totalLBAToRead = C_CAST(uint64_t, (device->drive_info.deviceMaxLba * 0.01 * DRIVE_CAPACITY_PERCENTAGE));        //for OD/ID
+    uint64_t totalLBAToRead = C_CAST(uint64_t, (C_CAST(double, device->drive_info.deviceMaxLba) * 0.01 * DRIVE_CAPACITY_PERCENTAGE));        //for OD/ID
     uint64_t startLBA = 0, endLBA = 0;
 
     //0.1% OD Validation

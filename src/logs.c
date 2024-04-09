@@ -1440,7 +1440,7 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
             for (currentPage = 0; currentPage < numberOfLogPages; currentPage += pagesToReadAtATime)
             {
                 ret = SUCCESS;//assume success
-                pagesToReadNow = M_Min(numberOfLogPages - currentPage, pagesToReadAtATime);
+                pagesToReadNow = C_CAST(uint16_t, M_Min(numberOfLogPages - currentPage, pagesToReadAtATime));
                 if (currentPage > 0 && (logAddress == ATA_LOG_IDENTIFY_DEVICE_DATA || logAddress == ATA_LOG_DEVICE_STATISTICS))
                 {
                     //special case to allow skipping reading unavailable pages. Need to have already read page 0
@@ -3647,8 +3647,8 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
 
             for (currentPage = 0; currentPage < numberOfLogPages; currentPage += pagesToReadAtATime)
             {
-                pagesToReadNow = M_Min(numberOfLogPages - currentPage, pagesToReadAtATime);
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, (logPage * TOTAL_CONSTITUENT_PAGES) + currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, (uint16_t)issueFactory))
+                pagesToReadNow = C_CAST(uint16_t, M_Min(numberOfLogPages - currentPage, pagesToReadAtATime));
+                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, C_CAST(uint16_t, (logPage * TOTAL_CONSTITUENT_PAGES) + currentPage), &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, (uint16_t)issueFactory))
                 {
                     if (!fileOpened)
                     {

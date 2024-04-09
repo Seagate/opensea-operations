@@ -160,7 +160,7 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     return ret;
 }
 
-int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
+int erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
 {
     int ret = UNKNOWN;
     time_t currentTime = 0, startTime = 0;
@@ -231,7 +231,7 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, time_t eraseTime, uint8_
     {
         fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, writeBuffer, dataLength);
     }
-    for (iter = eraseStartLBA; difftime(currentTime, startTime) < eraseTime; iter += sectors, time(&currentTime))
+    for (iter = eraseStartLBA; C_CAST(uint64_t, difftime(currentTime, startTime)) < eraseTime; iter += sectors, time(&currentTime))
     {
         if (iter + sectors > device->drive_info.deviceMaxLba)
         {
