@@ -81,7 +81,7 @@ int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue
         uint8_t featData[4096] = { 0 };
         memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
         featureCmd.fid = C_CAST(uint8_t, featureID);
-        featureCmd.sel = selectType;
+        featureCmd.sel = C_CAST(uint8_t, selectType);
         featureCmd.dataLength = 4096;
         featureCmd.dataPtr = featData;
         if (nvme_Get_Features(device, &featureCmd) == SUCCESS)
@@ -116,7 +116,7 @@ static int nvme_Print_Arbitration_Feature_Details(tDevice *device, eNvmeFeatures
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ARBITRATION_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -145,7 +145,7 @@ static int nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeatures
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_TEMP_THRESH_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     printf("\n\tTemperature Threshold Feature\n");
     printf("=============================================\n");
     ret = nvme_Get_Features(device, &featureCmd);
@@ -198,7 +198,7 @@ static int nvme_Print_PM_Feature_Details(tDevice *device, eNvmeFeaturesSelectVal
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_POWER_MGMT_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -223,7 +223,7 @@ static int nvme_Print_Error_Recovery_Feature_Details(tDevice *device, eNvmeFeatu
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ERR_RECOVERY_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -248,7 +248,7 @@ static int nvme_Print_WCE_Feature_Details(tDevice *device, eNvmeFeaturesSelectVa
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_VOLATILE_WC_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -273,7 +273,7 @@ static int nvme_Print_NumberOfQueues_Feature_Details(tDevice *device, eNvmeFeatu
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_NUM_QUEUES_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -300,7 +300,7 @@ static int nvme_Print_Intr_Coalescing_Feature_Details(tDevice *device, eNvmeFeat
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_IRQ_COALESCE_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -325,7 +325,7 @@ static int nvme_Print_Intr_Config_Feature_Details(tDevice *device, eNvmeFeatures
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_IRQ_CONFIG_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -350,7 +350,7 @@ static int nvme_Print_Write_Atomicity_Feature_Details(tDevice *device, eNvmeFeat
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_WRITE_ATOMIC_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -383,7 +383,7 @@ static int nvme_Print_Async_Config_Feature_Details(tDevice *device, eNvmeFeature
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ASYNC_EVENT_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -409,7 +409,7 @@ static int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue
 #endif
     memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_HOST_MEMORY_BUFFER_;
-    featureCmd.sel = selectType;
+    featureCmd.sel = C_CAST(uint8_t, selectType);
     featureCmd.dataPtr = hmbData;
     featureCmd.dataLength = 4096;
     ret = nvme_Get_Features(device, &featureCmd);

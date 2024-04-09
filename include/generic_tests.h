@@ -486,7 +486,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int butterfly_Read_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int butterfly_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -505,7 +505,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int butterfly_Write_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int butterfly_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -524,7 +524,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int butterfly_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int butterfly_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -544,7 +544,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -563,7 +563,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int random_Read_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int random_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -582,7 +582,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int random_Write_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int random_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -601,7 +601,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int random_Verify_Test(tDevice *device, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int random_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -621,7 +621,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int random_Test(tDevice *device, eRWVCommandType rwvcommand, time_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API int random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //

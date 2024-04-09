@@ -88,7 +88,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
     {
         return NOT_SUPPORTED;
     }
-    uint16_t phyControlLength = 104 + MODE_PARAMETER_HEADER_10_LEN;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + then add 8 bytes for mode parameter header. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
+    uint16_t phyControlLength = UINT16_C(104) + MODE_PARAMETER_HEADER_10_LEN;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + then add 8 bytes for mode parameter header. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
     uint8_t *sasPhyControl = C_CAST(uint8_t*, calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!sasPhyControl)
     {
@@ -107,7 +107,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
             if ((pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength) > phyControlLength)
             {
                 //reread the page for the larger length
-                phyControlLength = pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                phyControlLength = C_CAST(uint16_t, pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength);
                 uint8_t *temp = realloc_aligned(sasPhyControl, 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
@@ -134,7 +134,7 @@ int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8
                         if (phySpeedGen == 0)
                         {
                             //they want it back to default, so read the hardware maximum physical link rate and set it to the programmed maximum
-                            uint8_t matchedRate = (hardwareMaximumLinkRate << 4) | hardwareMaximumLinkRate;
+                            uint8_t matchedRate = C_CAST(uint8_t, (hardwareMaximumLinkRate << 4) | hardwareMaximumLinkRate);
                             sasPhyControl[phyDescriptorOffset + 33] = matchedRate;
                         }
                         else
@@ -1158,7 +1158,7 @@ static int start_IDD_Operation(tDevice *device, eIDDTests iddOperation, bool cap
             return FAILURE;
         }
     }
-    uint32_t commandTimeSeconds = C_CAST(uint32_t, device->drive_info.lastCommandTimeNanoSeconds / 1e9);
+    uint32_t commandTimeSeconds = C_CAST(uint32_t, device->drive_info.lastCommandTimeNanoSeconds / UINT64_C(1000000000));
     if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
     {
         //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
@@ -1562,11 +1562,11 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             double measurementTime = measurementNumber * stepTime;
             if (pwrTelData->totalMeasurementTimeRequested == 0)
             {
-                measurementTime += pwrTelData->driveTimeStampWhenTheLogWasRetrieved;
+                measurementTime += C_CAST(double, pwrTelData->driveTimeStampWhenTheLogWasRetrieved);
             }
             else
             {
-                measurementTime += pwrTelData->driveTimeStampForHostRequestedMeasurement;
+                measurementTime += C_CAST(double, pwrTelData->driveTimeStampForHostRequestedMeasurement);
             }
             if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 && pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
             {
@@ -2452,7 +2452,7 @@ static int get_Seagate_SCSI_DeviceStatistics(tDevice *device, ptrSeagateDeviceSt
 
             uint16_t pageLength = M_BytesTo2ByteValue(deviceStatsLog[2], deviceStatsLog[3]);
             uint8_t parameterLength = 0;
-            for (uint16_t iter = 4; iter < pageLength; iter += (parameterLength + 4))
+            for (uint16_t iter = UINT16_C(4); iter < pageLength; iter += C_CAST(uint16_t, parameterLength + UINT16_C(4)))
             {
                 uint16_t parameterCode = M_BytesTo2ByteValue(deviceStatsLog[iter], deviceStatsLog[iter + 1]);
                 parameterLength = deviceStatsLog[iter + 3];

@@ -1329,7 +1329,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -1658,7 +1658,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -1869,7 +1869,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -2198,7 +2198,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -2408,7 +2408,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -2737,7 +2737,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -2947,7 +2947,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -3276,7 +3276,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -3486,7 +3486,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -3550,7 +3550,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -3604,7 +3604,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -3863,7 +3863,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -3997,7 +3997,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4180,7 +4180,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -4263,7 +4263,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4336,7 +4336,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -4379,7 +4379,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4560,7 +4560,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4731,7 +4731,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4912,7 +4912,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -4993,7 +4993,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5066,7 +5066,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5115,7 +5115,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5162,7 +5162,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5200,7 +5200,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5240,7 +5240,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5287,7 +5287,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5334,7 +5334,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5370,7 +5370,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5417,7 +5417,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5457,7 +5457,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5530,7 +5530,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5577,7 +5577,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5845,7 +5845,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5980,7 +5980,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -6157,7 +6157,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -6244,7 +6244,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -6349,7 +6349,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -6646,14 +6646,14 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
         //NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = 0;
         memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, false, true, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, false, true, C_CAST(uint8_t, defectFormat), 0, 8, tempLogBuf)) == SUCCESS)
         {
             gotGrownDefectCount = true;
             defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
         }
         else
         {
-            defectRet = scsi_Read_Defect_Data_10(device, false, true, defectFormat, 4, tempLogBuf);
+            defectRet = scsi_Read_Defect_Data_10(device, false, true, C_CAST(uint8_t, defectFormat), 4, tempLogBuf);
             if (defectRet == SUCCESS)
             {
                 gotGrownDefectCount = true;
@@ -6703,14 +6703,14 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
         //NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = 0;
         memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, true, false, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, true, false, C_CAST(uint8_t, defectFormat), 0, 8, tempLogBuf)) == SUCCESS)
         {
             gotPrimaryDefectCount = true;
             defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
         }
         else
         {
-            defectRet = scsi_Read_Defect_Data_10(device, true, false, defectFormat, 4, tempLogBuf);
+            defectRet = scsi_Read_Defect_Data_10(device, true, false, C_CAST(uint8_t, defectFormat), 4, tempLogBuf);
             if (defectRet == SUCCESS)
             {
                 gotPrimaryDefectCount = true;

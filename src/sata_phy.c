@@ -46,7 +46,7 @@ int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counter
                 }
                 uint8_t counterLength = 0;
                 counters->numberOfCounters = 0;
-                for (uint16_t offset = 4; offset < 512; offset += 2 + counterLength)
+                for (uint16_t offset = UINT16_C(4); offset < UINT16_C(512); offset += C_CAST(uint16_t, UINT16_C(2) + counterLength))
                 {
                     counters->counters[counters->numberOfCounters].rawID = M_BytesTo2ByteValue(phyEventLog[offset + 1], phyEventLog[offset]);
                     if (counters->counters[counters->numberOfCounters].rawID == 0)

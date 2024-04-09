@@ -162,7 +162,7 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
     //buffer type is in word 20. According to very old product manuals, if this is set to 3, then read-look ahead is supported.
     if (is_ATA_Identify_Word_Valid(wordPtr[20]))
     {
-        uint16_t bufferType = C_CAST(uint64_t, M_BytesTo2ByteValue(bytePtr[0x29], bytePtr[0x28]));
+        uint16_t bufferType = M_BytesTo2ByteValue(bytePtr[0x29], bytePtr[0x28]);
         if (bufferType == 0x0003)
         {
             driveInfo->readLookAheadSupported = true;
@@ -3109,7 +3109,7 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
             {
                 uint16_t offset = 4;
                 //in here we will set up a fake supported VPD pages buffer so that we try to read the unit serial number page, the SAT page, and device identification page
-                tempBuf[0] = scsiInfo->peripheralQualifier << 5;
+                tempBuf[0] = C_CAST(uint8_t, scsiInfo->peripheralQualifier << 5);
                 tempBuf[0] |= scsiInfo->peripheralDeviceType;
                 //set page code
                 tempBuf[1] = 0x00;
@@ -3518,18 +3518,18 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                 case CONCURRENT_POSITIONING_RANGES:
                 {
                     uint32_t concurrentRangesLength = (15 * 32) + 64;//max of 15 ranges at 32 bytes each, plus 64 bytes that show ahead as a "header"
-                    uint8_t* concurrentRanges = C_CAST(uint8_t*, calloc_aligned(concurrentRangesLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (!concurrentRanges)
+                    uint8_t* concurrentRangesData = C_CAST(uint8_t*, calloc_aligned(concurrentRangesLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                    if (!concurrentRangesData)
                     {
                         perror("Error allocating memory to read concurrent positioning ranges VPD page");
                         continue;
                     }
-                    if (SUCCESS == scsi_Inquiry(device, concurrentRanges, concurrentRangesLength, CONCURRENT_POSITIONING_RANGES, true, false))
+                    if (SUCCESS == scsi_Inquiry(device, concurrentRangesData, concurrentRangesLength, CONCURRENT_POSITIONING_RANGES, true, false))
                     {
                         //calculate how many ranges are being reported by the device.
-                        driveInfo->concurrentPositioningRanges = (M_BytesTo2ByteValue(concurrentRanges[2], concurrentRanges[3]) - 60) / 32;//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
+                        driveInfo->concurrentPositioningRanges = C_CAST(uint8_t, (M_BytesTo2ByteValue(concurrentRangesData[2], concurrentRangesData[3]) - 60) / 32);//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
                     }
-                    safe_Free_aligned(concurrentRanges)
+                    safe_Free_aligned(concurrentRangesData)
                 }
                 break;
                 case ZONED_BLOCK_DEVICE_CHARACTERISTICS:
@@ -6971,7 +6971,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tLast DST information:\n");
         if (driveInfo->dstInfo.informationValid)
         {
-            if (driveInfo->smartData.powerOnHoursD - (driveInfo->dstInfo.powerOnHours) < driveInfo->smartData.powerOnHoursD)
+            if (driveInfo->smartData.powerOnHoursD - C_CAST(double, (driveInfo->dstInfo.powerOnHours)) < driveInfo->smartData.powerOnHoursD)
             {
                 double timeSinceLastDST = C_CAST(double, driveInfo->smartData.powerOnHoursD) - C_CAST(double, driveInfo->dstInfo.powerOnHours);
                 printf("\t\tTime since last DST (hours): ");
@@ -7702,8 +7702,8 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 #ifndef MINUTES_IN_1_YEAR
 #define MINUTES_IN_1_YEAR 525600.0
 #endif // !MINUTES_IN_1_YEAR
-            double totalTerabytesRead = C_CAST(double, driveInfo->totalBytesRead / 1000000000000.0);
-            double totalTerabytesWritten = C_CAST(double, driveInfo->totalBytesWritten / 1000000000000.0);
+            double totalTerabytesRead = C_CAST(double, driveInfo->totalBytesRead) / 1000000000000.0;
+            double totalTerabytesWritten = C_CAST(double, driveInfo->totalBytesWritten) / 1000000000000.0;
             double calculatedUsage = C_CAST(double, totalTerabytesRead + totalTerabytesWritten) * C_CAST(double, MINUTES_IN_1_YEAR / C_CAST(double, driveInfo->powerOnMinutes));
             printf("%0.02f\n", calculatedUsage);
         }
@@ -8177,7 +8177,7 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
             externalDriveInfo->powerOnMinutes = C_CAST(uint64_t, nvmeDriveInfo->smartData.powerOnHoursD * 60);
             externalDriveInfo->powerOnMinutesValid = true;
             //Temperature (SCSI is in Celsius!)
-            externalDriveInfo->temperatureData.currentTemperature = nvmeDriveInfo->smartData.compositeTemperatureKelvin - 273;
+            externalDriveInfo->temperatureData.currentTemperature = C_CAST(int16_t, nvmeDriveInfo->smartData.compositeTemperatureKelvin) - INT16_C(273);
             externalDriveInfo->temperatureData.temperatureDataValid = true;
             //Workload (reads, writes)
             externalDriveInfo->totalBytesRead = C_CAST(uint64_t, nvmeDriveInfo->smartData.dataUnitsReadD * 512 * 1000);//this is a count of 512B units, so converting to bytes

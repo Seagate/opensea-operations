@@ -527,7 +527,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
             {
                 //header is first 8bytes
                 uint32_t numberOfDescriptors = M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
-                uint32_t capModelMappingSz = (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors);
+                uint32_t capModelMappingSz = C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors));
                 capModelMapping = C_CAST(ptrcapacityModelNumberMapping, calloc(capModelMappingSz, sizeof(uint8_t)));
                 capModelMapping->numberOfDescriptors = numberOfDescriptors;
                 //now loop through descriptors
@@ -567,7 +567,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
             {
                 //calculate number of descriptors based on page length
                 uint32_t numberOfDescriptors = M_BytesTo2ByteValue(capProdIDMappingVPD[2], capProdIDMappingVPD[3]) / 48;//Each descriptor is 48B long
-                uint32_t capProdIDMappingSz = (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors);
+                uint32_t capProdIDMappingSz = C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors));
                 capModelMapping = C_CAST(ptrcapacityModelNumberMapping, calloc(capProdIDMappingSz, sizeof(uint8_t)));
                 capModelMapping->numberOfDescriptors = numberOfDescriptors;
                 //loop through descriptors

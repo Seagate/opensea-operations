@@ -1513,24 +1513,24 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             uint16_t selfTestIndex = M_BytesTo2ByteValue(selfTestResults[3], selfTestResults[2]);
             if (selfTestIndex > 0)//we know DST has been run at least once...
             {
-                uint8_t descriptorLength = 26;
+                uint8_t descriptorLength = UINT8_C(26);
                 //To calculate page number:
                 //   There are 19 descriptors in 512 bytes.
                 //   There are 4 reserved bytes in each sector + 18 at the end
                 //   26 * 19 + 18 = 512;
 
-                uint16_t zeroBasedIndex = selfTestIndex - 1;
-                uint16_t pageNumber = (zeroBasedIndex) / 19;
-                uint16_t entryWithinPage = (zeroBasedIndex) % 19;
-                uint16_t descriptorOffset = (entryWithinPage * descriptorLength) + 4;//offset withing the page
+                uint16_t zeroBasedIndex = selfTestIndex - UINT16_C(1);
+                uint16_t pageNumber = (zeroBasedIndex) / UINT16_C(19);
+                uint16_t entryWithinPage = (zeroBasedIndex) % UINT16_C(19);
+                uint16_t descriptorOffset = C_CAST(uint16_t, (entryWithinPage * descriptorLength) + UINT16_C(4));//offset withing the page
 #if ENABLE_DST_LOG_DEBUG
                 printf("starting at page number = %u\n", pageNumber);
                 printf("lastPage = %u\n", lastPage);
 #endif
-                uint32_t offset = (pageNumber > 0) ? descriptorOffset * pageNumber : descriptorOffset;
+                uint32_t offset = (pageNumber > UINT32_C(0)) ? descriptorOffset * pageNumber : descriptorOffset;
                 uint32_t firstOffset = offset;
-                uint16_t counter = 0;//when this get's larger than our max, we need to break out of the loop. This is always incremented. - TJE
-                uint16_t maxEntries = (lastPage + 1) * 19;//this should get us some multiple of 19 based on the number of pages we read.
+                uint16_t counter = UINT16_C(0);//when this get's larger than our max, we need to break out of the loop. This is always incremented. - TJE
+                uint16_t maxEntries = C_CAST(uint16_t, (lastPage + UINT16_C(1)) * UINT16_C(19));//this should get us some multiple of 19 based on the number of pages we read.
 #if ENABLE_DST_LOG_DEBUG
                 printf("maxEntries = %u\n", maxEntries);
 #endif
@@ -1678,8 +1678,8 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             uint8_t selfTestIndex = selfTestResults[508];
             if (selfTestIndex > 0)
             {
-                uint8_t descriptorLength = 24;
-                uint8_t descriptorOffset = ((selfTestIndex * descriptorLength) - descriptorLength) + 2;
+                uint8_t descriptorLength = UINT8_C(24);
+                uint8_t descriptorOffset = C_CAST(uint8_t, ((selfTestIndex * descriptorLength) - descriptorLength) + UINT8_C(2));
                 uint16_t offset = descriptorOffset;
                 uint16_t counter = 0;//when this get's larger than our max, we need to break out of the loop. This is always incremented. - TJE
                 while (counter < MAX_DST_ENTRIES /*&& counter < 21*/)//max of 21 dst entries in this log
@@ -1806,7 +1806,7 @@ static int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
             if (memcmp(&dstLog[offset + 4], zeroCompare, 16))//if this doesn't match, we have an entry...-TJE
             {
                 entries->dstEntry[entries->numberOfEntries].descriptorValid = true;
-                entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus = M_Nibble0(dstLog[offset + 4]) << 4;
+                entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus = C_CAST(uint8_t, M_Nibble0(dstLog[offset + 4]) << 4);
                 entries->dstEntry[entries->numberOfEntries].selfTestRun = M_Nibble1(dstLog[offset + 4]) >> 1;
                 entries->dstEntry[entries->numberOfEntries].checkPointByte = dstLog[offset + 5];
                 entries->dstEntry[entries->numberOfEntries].lifetimeTimestamp = M_BytesTo2ByteValue(dstLog[offset + 6], dstLog[offset + 7]);
@@ -2052,7 +2052,7 @@ int print_DST_Log_Entries(ptrDstLogEntries entries)
             }
             printf("%-21s  ", selfTestRunString);
             //Timestamp
-            printf("%-9"PRIu32"  ", entries->dstEntry[iter].lifetimeTimestamp);
+            printf("%-9" PRIu64 "  ", entries->dstEntry[iter].lifetimeTimestamp);
             //Execution Status
 #define SELF_TEST_EXECUTION_STATUS_MAX_LENGTH 30
             char status[SELF_TEST_EXECUTION_STATUS_MAX_LENGTH] = { 0 };

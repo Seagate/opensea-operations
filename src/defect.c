@@ -28,7 +28,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         uint32_t dataLength = 8;
         uint8_t *defectData = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint32_t defectListLength = 0;
-        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), 0, dataLength, defectData)) == SUCCESS)
         {
             gotDefectData = true;
             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
@@ -40,7 +40,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         else
         {
             dataLength = 4;
-            ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, C_CAST(uint16_t, dataLength), defectData);
+            ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), C_CAST(uint16_t, dataLength), defectData);
             if (ret == SUCCESS)
             {
                 tenByte = true;
@@ -99,7 +99,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                         {
                             defectData = temp;
                             memset(defectData, 0, dataLength);
-                            if (SUCCESS == (ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, C_CAST(uint16_t, dataLength), defectData)))
+                            if (SUCCESS == (ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), C_CAST(uint16_t, dataLength), defectData)))
                             {
                                 uint32_t offset = 4;
                                 defectListLength = M_BytesTo2ByteValue(defectData[2], defectData[3]);
@@ -191,7 +191,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                 multipleCommandsSupported = true;
                                 //before we say this works, we need to do one more test due to some drive firmware bugs
                                 //try setting the offset to the end of the element list and see what the reported defect length is. If it is zero, then this is supported, otherwise it's a firmware bug reporting incorrectly
-                                if (SUCCESS == scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, numberOfElements + 1, dataLength, defectData))
+                                if (SUCCESS == scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), numberOfElements + 1, dataLength, defectData))
                                 {
                                     //If this reported length is less than the saved list length we already have, then this is responding to the index properly, and is therefore supported.
                                     if (M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) < defectListLength)
@@ -229,7 +229,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
                                         memset(defectData, 0, dataLength);
-                                        if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, elementNumber * increment, dataLength, defectData)))
+                                        if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), elementNumber * increment, dataLength, defectData)))
                                         {
                                             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
                                             listHasPrimaryDescriptors = defectData[1] & BIT4;
@@ -335,7 +335,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                             {
                                 defectData = temp;
                                 memset(defectData, 0, dataLength);
-                                if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)))
+                                if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), 0, dataLength, defectData)))
                                 {
                                     uint32_t offset = 8;
                                     defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);

@@ -254,8 +254,8 @@ extern "C"
         uint8_t selfTestExecutionStatus;
         union
         {
-            uint32_t lifetimeTimestamp;
-            uint32_t powerOnHours;
+            uint64_t lifetimeTimestamp;
+            uint64_t powerOnHours;
         };//union isn't necessary but might help make someone's life easier if they understand this data one way or another
         union
         {

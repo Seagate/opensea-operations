@@ -1356,7 +1356,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
             //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
             decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
-            dataConversion = decimalValue * 1000.0 * 1000.0 * 32.0;
+            dataConversion = C_CAST(double, decimalValue) * 1000.0 * 1000.0 * 32.0;
             metric_Unit_Convert(&dataConversion, &dataUnits);
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
             break;
@@ -1364,7 +1364,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //use rawCounterMSB and rawCounterLSB to setup the decimal number for display
             //First things first, check that MSB is larger or smaller than LSB offset to interpret correctly
             decimalValue = ata_SMART_Raw_Bytes_To_Int(currentAttribute, rawCounterMSB, rawCounterLSB);
-            dataConversion = decimalValue * 1024.0 * 1024.0 * 1024.0;
+            dataConversion = C_CAST(double, decimalValue) * 1024.0 * 1024.0 * 1024.0;
             metric_Unit_Convert(&dataConversion, &dataUnits);
             snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
             break;
@@ -1864,7 +1864,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         uint32_t millisecondsSinceIncrement = M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]);
                         uint64_t powerOnMinutes = C_CAST(uint64_t, M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])) * UINT64_C(60);
                         powerOnMinutes += (millisecondsSinceIncrement / UINT32_C(60000));//convert the milliseconds to minutes, then add that to the amount of time we already know
-                        printf("\tPower On Hours = %f\n", powerOnMinutes / 60.0);
+                        printf("\tPower On Hours = %f\n", C_CAST(double, powerOnMinutes) / 60.0);
                     }
                         break;
                     case 10://spin retry count
@@ -1985,7 +1985,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                             uint32_t millisecondsSinceIncrement = M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]);
                             uint64_t headFlightMinutes = C_CAST(uint64_t, M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])) * UINT64_C(60);
                             headFlightMinutes += (millisecondsSinceIncrement / UINT32_C(60000));//convert the milliseconds to minutes, then add that to the amount of time we already know
-                            printf("\tHead Flight Hours = %f\n", headFlightMinutes / 60.0);
+                            printf("\tHead Flight Hours = %f\n", C_CAST(double, headFlightMinutes) / 60.0);
                         }
                         break;
                     case 241: //Lifetime Writes from Host
