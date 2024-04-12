@@ -783,7 +783,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "If interrupted, must be restarted from the beginning.");
         currentErase->warningValid = true;
         currentErase->eraseWeight = 2;
-        currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
+        currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;//While an SSD may do a block erase, there is no guarantee it is the same as Sanitize.-TJE
         ++currentErase;
         formatUnitAdded = true;
     }
