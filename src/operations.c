@@ -692,6 +692,44 @@ int is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
         {
             writeReq->blockErase = M_GETBITRANGE(blockCharacteristics[7], 7, 6);
             writeReq->cryptoErase = M_GETBITRANGE(blockCharacteristics[7], 5, 4);
+            if ((writeReq->cryptoErase <= WAEREQ_READ_COMPLETES_GOOD_STATUS || writeReq->blockErase <= WAEREQ_READ_COMPLETES_GOOD_STATUS)
+                && device->drive_info.currentProtectionType > 0)
+            {
+                //A device formatted with protection may require an erase.
+                //So we need to check if the device supports logical block provisioning management.
+                //If it does, we are done, but otherwise we need to set a flag for may require an overwrite.
+                //Devices that support logical block provisioning will not require an overwrite because they automatically unmap
+                //at the end of crypto or block erase which resets the PI bytes and does not cause a read conflict. -TJE
+                //NOTE: It is possible for a vendor unique behavior on other devices to allow reading after these, but we have no way of detecting that -TJE
+                //In SBC, a device supporting this shall support the logical block provisioning VPD page...so just try requesting that first.
+                bool needPIWriteAfterErase = true;
+                uint8_t logicalBlockProvisioning[VPD_LOGICAL_BLOCK_PROVISIONING_LEN] = { 0 };
+                if (SUCCESS != scsi_Inquiry(device, logicalBlockProvisioning, VPD_LOGICAL_BLOCK_PROVISIONING_LEN, LOGICAL_BLOCK_PROVISIONING, true, false))
+                {
+                    needPIWriteAfterErase = false;
+                }
+                else
+                {
+                    //check if lbpu, lbpws, or lbpws10 are set since this can indicate support for provisioning. If none are set, provisioning is not supported.
+                    if (M_GETBITRANGE(logicalBlockProvisioning[5], 7, 5) > 0)
+                    {
+                        needPIWriteAfterErase = false;
+                    }
+                }
+                if (needPIWriteAfterErase)
+                {
+                    if (writeReq->cryptoErase != WAEREQ_NOT_SPECIFIED)
+                    {
+                        //only change when this is set to some other value because that can help to set this only when crypto is supported
+                        writeReq->cryptoErase = WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE;
+                    }
+                    if (writeReq->blockErase != WAEREQ_NOT_SPECIFIED)
+                    {
+                        //only change when this is set to some other value because that can help to set this only when block is supported
+                        writeReq->blockErase = WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE;
+                    }
+                }
+            }
         }
     }
     return ret;
@@ -739,7 +777,14 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
         char sanitizeWarning[MAX_ERASE_WARNING_LENGTH] = { 0 };
         if (writeAfterEraseRequirements.cryptoErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
         {
-            snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle. Write after crypto erase required.");
+            if (writeAfterEraseRequirements.cryptoErase == WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE)
+            {
+                snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "PI formatting may require write after crypto erase.");
+            }
+            else
+            {
+                snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle. Write after crypto erase required.");
+            }
         }
         else
         {
@@ -758,9 +803,16 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     if (sanitizeInfo.blockErase)
     {
         char sanitizeWarning[MAX_ERASE_WARNING_LENGTH] = { 0 };
-        if (writeAfterEraseRequirements.cryptoErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
+        if (writeAfterEraseRequirements.blockErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
         {
-            snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle. Write after block erase required.");
+            if (writeAfterEraseRequirements.blockErase == WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE)
+            {
+                snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "PI formatting may require write after block erase.");
+            }
+            else
+            {
+                snprintf(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle. Write after block erase required.");
+            }
         }
         else
         {

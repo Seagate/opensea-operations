@@ -584,7 +584,9 @@ extern "C"
         WAEREQ_NOT_SPECIFIED = 0,
         WAEREQ_READ_COMPLETES_GOOD_STATUS = 1,
         WAEREQ_MEDIUM_ERROR_OTHER_ASC = 2,
-        WAEREQ_MEDIUM_ERROR_WRITE_AFTER_SANITIZE_REQUIRED = 3
+        WAEREQ_MEDIUM_ERROR_WRITE_AFTER_SANITIZE_REQUIRED = 3,
+        //The values above are in the SBC standard. The values below this comment are added to handle other cases not fully described in the standard.-TJE
+        WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE = 4
     }eWriteAfterEraseReq;
 
     typedef struct _writeAfterErase
