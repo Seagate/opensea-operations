@@ -732,6 +732,11 @@ int is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
             }
         }
     }
+    else if (writeReq)
+    {
+        writeReq->cryptoErase = WAEREQ_NOT_SPECIFIED;
+        writeReq->blockErase = WAEREQ_NOT_SPECIFIED;
+    }
     return ret;
 }
 
@@ -760,6 +765,7 @@ int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodLi
     memset(&sanitizeInfo, 0, sizeof(sanitizeFeaturesSupported));
     memset(&ataSecurityInfo, 0, sizeof(ataSecurityStatus));
     memset(&nvmeFormatInfo, 0, sizeof(nvmeFormatSupport));
+    memset(&writeAfterEraseRequirements, 0, sizeof(writeAfterErase));
     //first make sure the list is initialized to all 1's (to help sorting later)
     memset(currentErase, 0xFF, sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS);
 
