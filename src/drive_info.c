@@ -2858,8 +2858,8 @@ int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 uint64_t dateOfManufactureQWord = M_BytesTo8ByteValue(farmData[367], farmData[366], farmData[365], farmData[364], farmData[363], farmData[362], farmData[361], farmData[360]);
                                 if (dateOfManufactureQWord & BIT63 && dateOfManufactureQWord & BIT62)//supported and valid info
                                 {
-                                    char domWeekStr[3] = { farmData[362], farmData[363], 0 };
-                                    char domYearStr[3] = { farmData[360], farmData[361], 0 };
+                                    char domWeekStr[3] = { C_CAST(char, farmData[362]), C_CAST(char, farmData[363]), 0 };
+                                    char domYearStr[3] = { C_CAST(char, farmData[360]), C_CAST(char, farmData[361]), 0 };
                                     driveInfo->dateOfManufactureValid = true;
                                     driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
                                     driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10) + UINT16_C(2000));//year is 2 digits, but this log was not in existance until after 2018 or so
@@ -3911,8 +3911,8 @@ static int get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                                     if (M_BytesTo2ByteValue(startStopCounterLog[4], startStopCounterLog[5]) == 0x0001)
                                     {
                                         //DOM found
-                                        char domWeekStr[3] = { startStopCounterLog[12], startStopCounterLog[13], 0 };
-                                        char domYearStr[5] = { startStopCounterLog[8], startStopCounterLog[9], startStopCounterLog[10], startStopCounterLog[11], 0 };
+                                        char domWeekStr[3] = { C_CAST(char, startStopCounterLog[12]), C_CAST(char, startStopCounterLog[13]), 0 };
+                                        char domYearStr[5] = { C_CAST(char, startStopCounterLog[8]), C_CAST(char, startStopCounterLog[9]), C_CAST(char, startStopCounterLog[10]), C_CAST(char, startStopCounterLog[11]), 0 };
                                         driveInfo->dateOfManufactureValid = true;
                                         driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
                                         driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10));
@@ -4763,7 +4763,7 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
                                 {
                                     if (driveInfo->longDSTTimeMinutes == 0)//checking for zero since we may have already gotten this from the Extended Inquiry VPD page
                                     {
-                                        driveInfo->longDSTTimeMinutes = ((M_BytesTo2ByteValue(controlPage[headerLength + 10], controlPage[headerLength + 11]) + 60) - 1) / 60;//rounding up to nearest minute
+                                        driveInfo->longDSTTimeMinutes = ((C_CAST(uint64_t, M_BytesTo2ByteValue(controlPage[headerLength + 10], controlPage[headerLength + 11])) + UINT64_C(60)) - UINT64_C(1)) / UINT64_C(60);//rounding up to nearest minute
                                     }
                                 }
                             }
@@ -6152,7 +6152,7 @@ static int get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS
                 supportedDLModes.size = sizeof(supportedDLModes);
                 supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
                 //change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
-                int tempDevType = device->drive_info.drive_type;
+                eDriveType tempDevType = device->drive_info.drive_type;
                 device->drive_info.drive_type = SCSI_DRIVE;
                 if (SUCCESS == get_Supported_FWDL_Modes(device, &supportedDLModes))
                 {
@@ -6667,7 +6667,7 @@ static int get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe driveInfo, u
     //lba size & relative performance
     uint8_t lbaFormatIdentifier = M_Nibble0(nvmeIdentifyData[26]);
     //lba formats start at byte 128, and are 4 bytes in size each
-    uint32_t lbaFormatOffset = 128 + (lbaFormatIdentifier * 4);
+    uint32_t lbaFormatOffset = UINT32_C(128) + (C_CAST(uint32_t, lbaFormatIdentifier) * UINT32_C(4));
     uint32_t lbaFormatData = M_BytesTo4ByteValue(nvmeIdentifyData[lbaFormatOffset + 3], nvmeIdentifyData[lbaFormatOffset + 2], nvmeIdentifyData[lbaFormatOffset + 1], nvmeIdentifyData[lbaFormatOffset + 0]);
     driveInfo->namespaceData.formattedLBASizeBytes = C_CAST(uint32_t, power_Of_Two(M_GETBITRANGE(lbaFormatData, 23, 16)));
     driveInfo->namespaceData.relativeFormatPerformance = M_GETBITRANGE(lbaFormatData, 25, 24);
@@ -7338,11 +7338,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         uint32_t simMaxLBA = 0;
         if (driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid && driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders > 0 && driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads > 0 && driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack > 0)
         {
-            simMaxLBA = driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack;
+            simMaxLBA = C_CAST(uint32_t, driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders) * C_CAST(uint32_t, driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads) * C_CAST(uint32_t, driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack);
         }
         else
         {
-            simMaxLBA = driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders * driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads * driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack;
+            simMaxLBA = C_CAST(uint32_t, driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders) * C_CAST(uint32_t, driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads) * C_CAST(uint32_t, driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack);
         }
         printf("\tSimulated MaxLBA: %" PRIu32 "\n", simMaxLBA);
     }

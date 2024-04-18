@@ -7544,13 +7544,13 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
         {
             char week[3] = { 0 };
             char year[5] = { 0 };
-            year[0] = M_Byte3(theStatistic.statisticValue);
-            year[1] = M_Byte2(theStatistic.statisticValue);
-            year[2] = M_Byte1(theStatistic.statisticValue);
-            year[3] = M_Byte0(theStatistic.statisticValue);
+            year[0] = C_CAST(char, M_Byte3(theStatistic.statisticValue));
+            year[1] = C_CAST(char, M_Byte2(theStatistic.statisticValue));
+            year[2] = C_CAST(char, M_Byte1(theStatistic.statisticValue));
+            year[3] = C_CAST(char, M_Byte0(theStatistic.statisticValue));
             year[4] = '\0';
-            week[0] = M_Byte5(theStatistic.statisticValue);
-            week[1] = M_Byte4(theStatistic.statisticValue);
+            week[0] = C_CAST(char, M_Byte5(theStatistic.statisticValue));
+            week[1] = C_CAST(char, M_Byte4(theStatistic.statisticValue));
             week[2] = '\0';
             if (strcmp(year, "    ") == 0 && strcmp(week, "  ") == 0)
             {

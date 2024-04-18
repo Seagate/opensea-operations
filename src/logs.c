@@ -1918,7 +1918,7 @@ static int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t 
                 uint16_t reportedLargeSize = 0;
                 uint16_t islPullingSize = 0;
                 uint16_t pageNumber = 0;//keep track of the current page we are reading/saving
-                uint32_t pullChunkSize = 8 * LEGACY_DRIVE_SEC_SIZE;//pull the remainder of the log in 4k chunks
+                uint32_t pullChunkSize = UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE;//pull the remainder of the log in 4k chunks
                 if (transferSizeBytes)
                 {
                     pullChunkSize = transferSizeBytes;
@@ -2009,7 +2009,7 @@ static int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t 
                     //adjust pullcheck size so we don't try and request anything that's not supported by the drive
                     if (pageNumber + (pullChunkSize / LEGACY_DRIVE_SEC_SIZE) > islPullingSize)
                     {
-                        pullChunkSize = (islPullingSize - pageNumber) * LEGACY_DRIVE_SEC_SIZE;
+                        pullChunkSize = C_CAST(uint32_t, (islPullingSize - pageNumber)) * LEGACY_DRIVE_SEC_SIZE;
                     }
                     //read each remaining chunk with the trigger bit set to 0
                     if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, islLogToPull, pageNumber, dataBuffer, pullChunkSize, 0))
@@ -2526,7 +2526,7 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
                     //adjust pullcheck size so we don't try and request anything that's not supported by the drive
                     if (pageNumber + (pullChunkSize / LEGACY_DRIVE_SEC_SIZE) > islPullingSize)
                     {
-                        pullChunkSize = (islPullingSize - pageNumber) * LEGACY_DRIVE_SEC_SIZE;
+                        pullChunkSize = C_CAST(uint32_t, (islPullingSize - pageNumber)) * LEGACY_DRIVE_SEC_SIZE;
                     }
                     //read each remaining chunk with the trigger bit set to 1 as thats what nvme-cli is doing - Deb
                     telemOpts.lsp = 1;

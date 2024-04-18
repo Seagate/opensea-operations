@@ -623,7 +623,7 @@ int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistratio
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint32_t dataLength = (numberOfKeys * 24) + 24;//24 byte header, then 24 bytes per key....if extended, then it is even larger.
+        uint32_t dataLength = (C_CAST(uint32_t, numberOfKeys) * UINT32_C(24)) + UINT32_C(24);//24 byte header, then 24 bytes per key....if extended, then it is even larger.
         uint8_t *registrationKeys = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!registrationKeys)
         {
@@ -808,7 +808,7 @@ int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservatio
         uint16_t totalReservationKeys = 0;
         if (SUCCESS == get_Registration_Key_Count(device, &totalReservationKeys))
         {
-            uint32_t reservationsLength = (totalReservationKeys * 24) + 24;
+            uint32_t reservationsLength = (C_CAST(uint32_t, totalReservationKeys) * UINT32_C(24)) + UINT32_C(24);
             uint8_t *reservationKeys = C_CAST(uint8_t*, calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!reservationKeys)
             {
@@ -1213,7 +1213,7 @@ int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationIn
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint32_t nvmeFullDataLen = 24 + (24 * numberOfKeys);
+        uint32_t nvmeFullDataLen = UINT32_C(24) + (UINT32_C(24) * C_CAST(uint32_t, numberOfKeys));
         uint8_t *nvmeFullData = C_CAST(uint8_t*, calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!nvmeFullData)
         {

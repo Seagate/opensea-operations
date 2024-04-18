@@ -647,7 +647,7 @@ int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, b
 {
     int ret = SUCCESS;
     uint16_t iterator = 0;
-    seed_64(time(NULL));//start the random number generator
+    seed_64(C_CAST(uint64_t, time(NULL)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
@@ -878,7 +878,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_READ_LONG, corruptLBA, data, dataSize, &numberOfECCCRCBytes, &numberOfBlocksRequested);
             if (ret == SUCCESS)
             {
-                //seed_64(time(NULL));
+                //seed_64(C_CAST(uint64_t, time(NULL)));
                 //modify the user data to cause a uncorrectable error
                 for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                 {
@@ -924,7 +924,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
                     if (ret == SUCCESS)
                     {
-                        //seed_64(time(NULL));
+                        //seed_64(C_CAST(uint64_t, time(NULL)));
                         //modify the user data to cause a uncorrectable error
                         for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                         {
@@ -943,7 +943,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 ret = ata_Legacy_Read_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
                 if (ret == SUCCESS)
                 {
-                    //seed_64(time(NULL));
+                    //seed_64(C_CAST(uint64_t, time(NULL)));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                     {
@@ -1009,7 +1009,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
                 else
                 {
-                    //seed_64(time(NULL));
+                    //seed_64(C_CAST(uint64_t, time(NULL)));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1); ++iter)
                     {
@@ -1097,7 +1097,7 @@ int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readC
 {
     int ret = SUCCESS;
     uint16_t iterator = 0;
-    seed_64(time(NULL));//start the random number generator
+    seed_64(C_CAST(uint64_t, time(NULL)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);

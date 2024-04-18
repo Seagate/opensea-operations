@@ -101,21 +101,21 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             {
                 //need to use the reallocate command (SCSI...ATA interfaces should attempt translating it through SAT)
                 bool longLBA = false;
-                uint8_t increment = 4;
-                if (LBA->errorAddress + (logicalPerPhysical - 1) > UINT32_MAX)
+                uint8_t increment = UINT8_C(4);
+                if (LBA->errorAddress + (logicalPerPhysical - UINT16_C(1)) > UINT32_MAX)
                 {
                     longLBA = true;
-                    increment = 8;
+                    increment = UINT8_C(8);
                 }
-                uint32_t reassignListLength = logicalPerPhysical * increment + 4;//+4 is parameter header
+                uint32_t reassignListLength = (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) + UINT32_C(4);//+ 4 is parameter header
                 //set up the header
                 dataBuf[2] = M_Byte1(logicalPerPhysical * increment);
                 dataBuf[3] = M_Byte0(logicalPerPhysical * increment);
                 uint64_t reassignLBA = LBA->errorAddress;
-                uint32_t offset = 4;
-                uint32_t iter = 0;
+                uint32_t offset = UINT32_C(4);
+                uint32_t iter = UINT32_C(0);
                 //create the list of LBAs. 1 for 1 logical per physical, 8 for 8 logical per physical
-                for (iter = 0, offset = 4; iter < logicalPerPhysical; ++iter, offset += increment, ++reassignLBA)
+                for (iter = UINT32_C(0), offset = UINT32_C(4); iter < logicalPerPhysical; ++iter, offset += increment, ++reassignLBA)
                 {
                     if (longLBA)
                     {

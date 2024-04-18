@@ -164,7 +164,7 @@ static int nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeatures
 
     for (TMPSEL = 1; TMPSEL <= 8; TMPSEL++)
     {
-        featureCmd.featSetGetValue = (TMPSEL << 16);
+        featureCmd.featSetGetValue = C_CAST(uint32_t, TMPSEL) << 16;
         ret = nvme_Get_Features(device, &featureCmd);
         if (ret == SUCCESS)
         {

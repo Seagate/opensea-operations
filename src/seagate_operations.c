@@ -2181,7 +2181,7 @@ static int get_Seagate_ATA_DeviceStatistics(tDevice *device, ptrSeagateDeviceSta
             seagateDeviceStats->sataStatistics.version = maxLogEntries;
             for (uint8_t logEntry = 0; logEntry < maxLogEntries; ++logEntry)
             {
-                uint32_t offset = 16 + (logEntry * 8);
+                uint32_t offset = UINT32_C(16) + (C_CAST(uint32_t, logEntry) * UINT32_C(8));
                 if (offset > deviceStatsSize)
                 {
                     break;
