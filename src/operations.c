@@ -2170,17 +2170,17 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
 //this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page starts)
 static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData, uint32_t modeDataLen, eScsiModePageControl mpc, bool outputWithPrintDataBuffer)
 {
-    if (modeData && modeDataLen > 2)
+    if (modeData && modeDataLen > UINT32_C(2))
     {
         uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
         uint8_t subpage = 0;
-        uint16_t pageLength = modeData[1] + 2;//page 0 format
+        uint16_t pageLength = modeData[1] + UINT16_C(2);//page 0 format
         if (modeData[0] & BIT6)
         {
             subpage = modeData[1];
-            pageLength = M_BytesTo2ByteValue(modeData[2], modeData[3]) + 4;
+            pageLength = M_BytesTo2ByteValue(modeData[2], modeData[3]) + UINT16_C(4);
         }
-        int equalsLengthToPrint = (M_Min(pageLength, modeDataLen) * 3) - 1;
+        int equalsLengthToPrint = C_CAST(int, (M_Min(C_CAST(uint32_t, pageLength), modeDataLen) * UINT32_C(3)) - UINT32_C(1));//printf for variable width fields requires an int, so this shuold always calculate to a non-negative value, so it should be safe to case to int...plus it should be small...mode pages are not that long that they come close to signed 32bit max values.-TJE
         //print the header
         if (outputWithPrintDataBuffer)
         {

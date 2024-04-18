@@ -52,7 +52,7 @@ static int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdenti
     //link rate
     diagPage[7] = C_CAST(uint8_t, linkRate);
     //phy test function ssc
-    diagPage[7] |= C_CAST(uint8_t, testFunctionSSC) << 4;
+    diagPage[7] |= C_CAST(uint8_t, testFunctionSSC << 4);
     //phy test function SATA
     if (sataTestFunction)
     {

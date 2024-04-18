@@ -4176,7 +4176,7 @@ int nvme_Print_Temp_Statistics(tDevice *device)
 
             if (ret == SUCCESS)
             {
-                temperature = ((smartLog.temperature[1] << 8) | smartLog.temperature[0]);
+                temperature = M_BytesTo2ByteValue(smartLog.temperature[1], smartLog.temperature[0]);
                 temperature = temperature ? temperature - 273 : 0;
                 pcbTemp = smartLog.tempSensor[0];
                 pcbTemp = pcbTemp ? pcbTemp - 273 : 0;
@@ -4352,8 +4352,8 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
             get_ATA_Log_Size(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, &smartErrorLogSize, false, true);
             if (smartErrorLogSize > 0)
             {
-                uint8_t errorLog[512] = { 0 }; //This log is only 1 page in spec
-                int getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, 512);
+                uint8_t errorLog[ATA_LOG_PAGE_LEN_BYTES] = { 0 }; //This log is only 1 page in spec
+                int getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, ATA_LOG_PAGE_LEN_BYTES);
                 if (SUCCESS == getLog || WARN_INVALID_CHECKSUM == getLog)
                 {
                     uint8_t errorLogIndex = errorLog[1];
@@ -4370,23 +4370,23 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
                     if (errorLogIndex > 0 && errorLogIndex < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE)
                     {
                         uint8_t zeros[SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE] = { 0 };
-                        uint32_t offset = 2 + ((errorLogIndex - 1) * SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);//first entry is at offset 2, each entry is 90 bytes long
+                        uint32_t offset = UINT32_C(2) + ((C_CAST(uint32_t, errorLogIndex) - UINT32_C(1)) * SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);//first entry is at offset 2, each entry is 90 bytes long
                         //offset should now be our starting point to populate the list
-                        uint16_t entryCount = 0;
-                        while(entryCount < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && entryCount < smartErrorLog->deviceErrorCount)
+                        uint16_t entryCount = UINT16_C(0);
+                        while (entryCount < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && entryCount < smartErrorLog->deviceErrorCount)
                         {
                             //check if the entry is empty
                             if (memcmp(&errorLog[offset], zeros, SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
                             {
                                 //restart the loop to find another entry (if any)
                                 //Adjust the offset to move past the empty entry.
-                                if (offset >= 92)//second entry or higher
+                                if (offset >= UINT32_C(92))//second entry or higher
                                 {
                                     offset -= SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE;
                                 }
                                 else //we must be at the 1st entry, so we need to reset to the end
                                 {
-                                    offset = 362;//final entry in the log
+                                    offset = UINT32_C(362);//final entry in the log
                                 }
                                 continue;
                             }
@@ -4425,13 +4425,13 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
                             ++(smartErrorLog->numberOfEntries);
                             ++entryCount;
-                            if (offset >= 92)//second entry or higher
+                            if (offset >= UINT32_C(92))//second entry or higher
                             {
                                 offset -= SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE;
                             }
                             else //we must be at the 1st entry, so we need to reset to the end
                             {
-                                offset = 362;//final entry in the log
+                                offset = UINT32_C(362);//final entry in the log
                             }
                         }
                     }
@@ -4523,7 +4523,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                         }
                                         while (pageEntryNumber < EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)//4 entries per page in the ext log
                                         {
-                                            uint32_t offset = (pageEntryNumber * EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) + EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;
+                                            uint32_t offset = (C_CAST(uint32_t, pageEntryNumber) * EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) + EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;
                                             --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
                                             //check if the entry is empty
                                             if (memcmp(&errorLog[offset], zeros, EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
@@ -4674,7 +4674,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                                         while (pageEntryNumber < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                         {
                                             //calculate the offset of the first entry we need to read from this page
-                                            offset = (pageNumber * 512) + (pageEntryNumber * COMP_SMART_ERROR_LOG_ENTRY_SIZE) + 2;
+                                            offset = (C_CAST(uint32_t, pageNumber) * 512) + (C_CAST(uint32_t, pageEntryNumber) * COMP_SMART_ERROR_LOG_ENTRY_SIZE) + UINT32_C(2);
                                             --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
                                             //read the entry into memory if it is valid, otherwise continue the loop
                                             //check if the entry is empty
@@ -4867,7 +4867,7 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
             }
             if (isLBAMode)//probably not necessary since these commands only ever reference LBA mode...
             {
-                uint32_t readSecLBA = M_Nibble0(device) << 24;
+                uint32_t readSecLBA = C_CAST(uint32_t, M_Nibble0(device)) << 24;
                 readSecLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
                 snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu32 " Tag: %" PRIu8 "", commandName, readSecLBA, sectorsToTransfer, tag);
             }
@@ -4929,7 +4929,7 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
             }
             if (isLBAMode)
             {
-                uint32_t readSecLBA = M_Nibble0(device) << 24;
+                uint32_t readSecLBA = C_CAST(uint32_t, M_Nibble0(device)) << 24;
                 readSecLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
                 snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - LBA: %" PRIu32 " Count: %" PRIu32 "", commandName, readSecLBA, sectorsToTransfer);
             }
@@ -5722,7 +5722,7 @@ static void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNU
         }
         else if (standbyTimerPeriod >= 0xF1 && standbyTimerPeriod <= 0xFB)
         {
-            uint64_t timerInSeconds = ((standbyTimerPeriod - 240) * 30) * 60;//timer is a minutes value that I'm converting to seconds
+            uint64_t timerInSeconds = ((C_CAST(uint64_t, standbyTimerPeriod) - UINT64_C(240)) * UINT64_C(30)) * UINT64_C(60);//timer is a minutes value that I'm converting to seconds
             uint8_t minutes = 0, hours = 0;//no seconds since it would always be zero
             convert_Seconds_To_Displayable_Time(timerInSeconds, NULL, NULL, &hours, &minutes, NULL);
             if (hours > 0 && minutes == 0)
@@ -6159,7 +6159,7 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
         uint32_t epcLBA = C_CAST(uint32_t, lba);
         if (commandOpCode == ATA_SET_FEATURE)
         {
-            epcLBA = C_CAST(uint32_t, (lba & MAX_28_BIT_LBA)) | (M_Nibble0(device) << 24);
+            epcLBA = C_CAST(uint32_t, (lba & MAX_28_BIT_LBA)) | C_CAST(uint32_t, (M_Nibble0(device)) << 24);
         }
 #define POWER_CONDITION_STRING_LENGTH 31
         char powerConditionString[POWER_CONDITION_STRING_LENGTH] = { 0 };
@@ -7039,7 +7039,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case 0x7E:
     case 0x7F:
     {
-        uint32_t seekLBA = (lba & MAX_28_BIT_LBA) | (M_Nibble0(device) << 24);
+        uint32_t seekLBA = C_CAST(uint32_t, (lba & MAX_28_BIT_LBA) | (C_CAST(uint32_t, M_Nibble0(device)) << 24));
         uint16_t seekCylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
         uint8_t seekHead = M_Nibble0(device);
         uint8_t seekSector = M_Byte0(lba);
@@ -7247,7 +7247,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_IDLE_IMMEDIATE_CMD:
         if (M_Byte0(features) == IDLE_IMMEDIATE_UNLOAD_FEATURE)
         {
-            uint32_t idleImmdLBA = C_CAST(uint32_t, lba & UINT32_C(0x00FFFFFFFF)) | (M_Nibble0(device) << 24);
+            uint32_t idleImmdLBA = C_CAST(uint32_t, lba & UINT32_C(0x00FFFFFFFF)) | (C_CAST(uint32_t, M_Nibble0(device)) << 24);
             if (IDLE_IMMEDIATE_UNLOAD_LBA == idleImmdLBA)
             {
                 snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate - Unload");
@@ -7291,7 +7291,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
             {
                 if (device & LBA_MODE_BIT)
                 {
-                    uint32_t writeSameLBA = M_Nibble0(device) << 24;
+                    uint32_t writeSameLBA = C_CAST(uint32_t, M_Nibble0(device)) << 24;
                     writeSameLBA |= M_DoubleWord0(lba) & UINT32_C(0x00FFFFFF);//grabbing first 24 bits only since the others should be zero
                     snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - LBA: %" PRIu32 " Count: %" PRIu8 "", writeSameLBA, M_Byte0(count));
                 }
@@ -7666,7 +7666,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
             }
             else
             {
-                uint32_t smallLba = (lba & MAX_28_BIT_LBA) | (M_Nibble0(device) << 24);
+                uint32_t smallLba = C_CAST(uint32_t, (lba & MAX_28_BIT_LBA) | (C_CAST(uint32_t, M_Nibble0(device)) << 24));
                 snprintf(errorInfo, ATA_ERROR_INFO_MAX_LENGTH, "Status: %s\tError: %s\tLBA: %" PRIu32 "\tDevice: %02" PRIX8 "", statusMessage, errorMessage, smallLba, device);
             }
         }

@@ -204,7 +204,7 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
         return MEMORY_FAILURE;
     }
     //start random number generator
-    seed_64(time(NULL));
+    seed_64(C_CAST(uint64_t, time(NULL)));
     //generate the list of random LBAs
     for (iterator = 0; iterator < randomLBACount; iterator++)
     {
@@ -641,7 +641,7 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     }
     //now random reads for 30 seconds
     //start random number generator
-    seed_64(time(NULL));
+    seed_64(C_CAST(uint64_t, time(NULL)));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         switch (rwvCommand)
@@ -1370,7 +1370,7 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitS
             return MEMORY_FAILURE;
         }
     }
-    seed_64(time(NULL));//start the seed for the random number generator
+    seed_64(C_CAST(uint64_t, time(NULL)));//start the seed for the random number generator
     time(&startTime);//get the starting time before starting the loop
     double lastTime = 0.0;
     while (C_CAST(uint64_t, (lastTime = difftime(time(NULL), startTime))) < timeLimitSeconds)
@@ -1605,7 +1605,7 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
         printf("\n");
     }
     //Random
-    seed_64(time(NULL));//start random number generator
+    seed_64(C_CAST(uint64_t, time(NULL)));//start random number generator
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         uint16_t days = 0;
@@ -2478,7 +2478,7 @@ int quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
     }
     uint64_t randomLBA = UINT64_MAX;
     uint64_t randomLBASectionSize = C_CAST(uint64_t, device->drive_info.deviceMaxLba / DRIVE_SECTIONS);
-    seed_64(time(NULL));
+    seed_64(C_CAST(uint64_t, time(NULL)));
     for (uint64_t sectionCounter = 0, counter = 0; sectionCounter < DRIVE_SECTIONS; sectionCounter++, counter += 2)
     {
         //first random LBA from section

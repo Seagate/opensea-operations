@@ -315,7 +315,7 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
                                     EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
         case PWR_CND_ACTIVE: //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly
-            seed_64(time(NULL));
+            seed_64(C_CAST(uint64_t, time(NULL)));
             for (uint8_t counter = 0; counter < 5; ++counter)
             {
                 uint64_t lba = 0;
@@ -2688,7 +2688,7 @@ int transition_To_Active(tDevice *device)
     {
         //no ATA command to do this, so we need to issue something to perform a medium access.
         uint64_t randomLBA = 0;
-        seed_64(time(NULL));
+        seed_64(C_CAST(uint64_t, time(NULL)));
         randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         ret = ata_Read_Verify(device, randomLBA, 1);
     }
