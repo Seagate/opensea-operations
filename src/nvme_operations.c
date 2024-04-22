@@ -122,10 +122,10 @@ static int nvme_Print_Arbitration_Feature_Details(tDevice *device, eNvmeFeatures
     {
         printf("\n\tArbitration & Command Processing Feature\n");
         printf("=============================================\n");
-        printf("Hi  Priority Weight (HPW) :\t\t0x%02X\n", ((featureCmd.featSetGetValue & 0xFF000000) >> 24));
-        printf("Med Priority Weight (MPW) :\t\t0x%02X\n", ((featureCmd.featSetGetValue & 0x00FF0000) >> 16));
-        printf("Low Priority Weight (LPW) :\t\t0x%02X\n", ((featureCmd.featSetGetValue & 0x0000FF00) >> 8));
-        printf("Arbitration Burst    (AB) :\t\t0x%02X\n", featureCmd.featSetGetValue & 0x00000003);
+        printf("Hi  Priority Weight (HPW) :\t\t0x%02X\n", M_GETBITRANGE(featureCmd.featSetGetValue, 31, 24));
+        printf("Med Priority Weight (MPW) :\t\t0x%02X\n", M_GETBITRANGE(featureCmd.featSetGetValue, 23, 16));
+        printf("Low Priority Weight (LPW) :\t\t0x%02X\n", M_GETBITRANGE(featureCmd.featSetGetValue, 15, 8));
+        printf("Arbitration Burst    (AB) :\t\t0x%02X\n", M_GETBITRANGE(featureCmd.featSetGetValue, 2, 0));
     }
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
