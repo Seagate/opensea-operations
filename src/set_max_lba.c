@@ -18,6 +18,7 @@
 #include "ata_device_config_overlay.h"
 #include "platform_helper.h"
 #include "logs.h"
+#include <ctype.h>
 
 int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 {
