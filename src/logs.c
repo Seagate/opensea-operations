@@ -20,21 +20,32 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 
-int generate_Logfile_Name(tDevice *device, const char * const logName, const char * const logExtension,\
+int generate_Logfile_Name(tDevice *device, const char * const logName, const char * const logExtension, \
                            eLogFileNamingConvention logFileNamingConvention, char **logFileNameUsed)
 {
     int ret = SUCCESS;
     struct tm logTime;
     memset(&logTime, 0, sizeof(struct tm));
-#ifdef _DEBUG
-    printf("%s: Drive SN: %s#\n", __FUNCTION__, device->drive_info.serialNumber);
-#endif
-    //JIRA FD-103 says for log file names we always want to use the child drive SN on USB. I thought about passing in a flag for this in case we read a SCSI log page over USB, but I figured we probably won't do that and/or don't care to do that so for now this will work and is simple-TJE
-    char *serialNumber = device->drive_info.serialNumber;
-    if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && strlen(device->drive_info.bridge_info.childDriveSN) > 0)
+    char *serialNumber = NULL;
+
+    if (device == NULL && logFileNamingConvention != NAMING_BYUSER)
+        return BAD_PARAMETER;
+
+    if (device != NULL)
     {
-        serialNumber = device->drive_info.bridge_info.childDriveSN;
+#ifdef _DEBUG
+        printf("%s: Drive SN: %s#\n", __FUNCTION__, device->drive_info.serialNumber);
+#endif
+        //JIRA FD-103 says for log file names we always want to use the child drive SN on USB.
+        //I thought about passing in a flag for this in case we read a SCSI log page over USB, 
+        //but I figured we probably won't do that and/or don't care to do that so for now this will work and is simple-TJE
+        serialNumber = device->drive_info.serialNumber;
+        if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && strlen(device->drive_info.bridge_info.childDriveSN) > 0)
+        {
+            serialNumber = device->drive_info.bridge_info.childDriveSN;
+        }
     }
+
     switch (logFileNamingConvention)
     {
     case NAMING_SERIAL_NUMBER_ONLY:
@@ -59,16 +70,21 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     default:
         return BAD_PARAMETER;
     }
-    char *dup = strdup(*logFileNameUsed);
-    if (dup)
+
+    if (logFileNamingConvention != NAMING_BYUSER)
     {
-        snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", dup, logExtension);
-        safe_Free(dup);
+        char *dup = strdup(*logFileNameUsed);
+        if (dup)
+        {
+            snprintf(*logFileNameUsed, OPENSEA_PATH_MAX, "%s.%s", dup, logExtension);
+            safe_Free(dup);
+        }
+        else
+        {
+            ret = MEMORY_FAILURE;
+        }
     }
-    else
-    {
-        ret = MEMORY_FAILURE;
-    }
+
     return ret;
 }
 
@@ -661,7 +677,7 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
         return NOT_SUPPORTED;
     }
     if (toBuffer)
-    { 
+    {
         modeLength = bufSize;
         ret = SUCCESS;
     }
@@ -673,9 +689,9 @@ int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePa
     //If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
     //checking for this for old drives that may support mode pages, but not the dbd bit properly
     //Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 
-        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE 
-        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS 
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2
+        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) == PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE
+        || M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS
         || device->drive_info.passThroughHacks.scsiHacks.mode6bytes
         || (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
     {
@@ -1749,7 +1765,6 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
             {
                 ret = FAILURE;
             }
-            
         }
         safe_Free_aligned(logBuffer)
     }
