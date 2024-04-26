@@ -1496,7 +1496,8 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                     }
                 }
                 //loop and read each page or set of pages, then save to a file
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, featureRegister))
+                ret = send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, featureRegister);
+                if (ret == SUCCESS)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
@@ -1547,7 +1548,8 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
                 }
                 else
                 {
-                    ret = FAILURE;
+                    if (ret != NOT_SUPPORTED)
+                        ret = FAILURE;
                     logSize = 0;
                     logFromGPL = true;
                     break;
