@@ -3083,7 +3083,6 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
         {
             return MEMORY_FAILURE;
         }
-        bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
         //some devices (external) don't support VPD pages or may have issue when trying to read them, so check if this hack is set before attempting to read them
         if ((!device->drive_info.passThroughHacks.scsiHacks.noVPDPages || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) && (scsiInfo->version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)) //VPD pages indroduced in SCSI 2...also a USB hack
         {
@@ -3332,25 +3331,25 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                         switch (M_GETBITRANGE(extendedInquiryData[4], 5, 3))
                         {
                         case 0:
-                            protectionType1Supported = true;
+                            scsiInfo->protectionType1Supported = true;
                             break;
                         case 1:
-                            protectionType1Supported = true;
-                            protectionType2Supported = true;
+                            scsiInfo->protectionType1Supported = true;
+                            scsiInfo->protectionType2Supported = true;
                             break;
                         case 2:
-                            protectionType2Supported = true;
+                            scsiInfo->protectionType2Supported = true;
                             break;
                         case 3:
-                            protectionType1Supported = true;
-                            protectionType3Supported = true;
+                            scsiInfo->protectionType1Supported = true;
+                            scsiInfo->protectionType3Supported = true;
                             break;
                         case 4:
-                            protectionType3Supported = true;
+                            scsiInfo->protectionType3Supported = true;
                             break;
                         case 5:
-                            protectionType2Supported = true;
-                            protectionType3Supported = true;
+                            scsiInfo->protectionType2Supported = true;
+                            scsiInfo->protectionType3Supported = true;
                             break;
                         case 6:
                             //read supported lengths and protection types VPD page
@@ -3371,17 +3370,17 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                                         {
                                             if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT1)
                                             {
-                                                protectionType1Supported = true;
+                                                scsiInfo->protectionType1Supported = true;
                                             }
                                             if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT2)
                                             {
-                                                protectionType2Supported = true;
+                                                scsiInfo->protectionType2Supported = true;
                                             }
                                             if (supportedBlockSizesAndProtectionTypes[offset + 5] & BIT3)
                                             {
-                                                protectionType3Supported = true;
+                                                scsiInfo->protectionType3Supported = true;
                                             }
-                                            if (protectionType1Supported && protectionType2Supported && protectionType3Supported)
+                                            if (scsiInfo->protectionType1Supported && scsiInfo->protectionType2Supported && scsiInfo->protectionType3Supported)
                                             {
                                                 //all protection types supported so we can leave the loop
                                                 break;
@@ -3395,9 +3394,9 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
                         }
                         break;
                         case 7:
-                            protectionType1Supported = true;
-                            protectionType2Supported = true;
-                            protectionType3Supported = true;
+                            scsiInfo->protectionType1Supported = true;
+                            scsiInfo->protectionType2Supported = true;
+                            scsiInfo->protectionType3Supported = true;
                             break;
                         }
                     }
@@ -7282,7 +7281,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("\tHumidity Data:\n");
         if (driveInfo->humidityData.humidityDataValid)
         {
-            printf("\t\tCurrent Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.currentHumidity);
+            if (driveInfo->humidityData.currentHumidity == UINT8_MAX)
+            {
+                printf("\t\tCurrent Humidity (%%): Invalid Reading\n");
+            }
+            else
+            {
+                printf("\t\tCurrent Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.currentHumidity);
+            }
         }
         else
         {
@@ -7290,7 +7296,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         if (driveInfo->humidityData.highestValid)
         {
-            printf("\t\tHighest Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.highestHumidity);
+            if (driveInfo->humidityData.currentHumidity == UINT8_MAX)
+            {
+                printf("\t\tHighest Humidity (%%): Invalid Reading\n");
+            }
+            else
+            {
+                printf("\t\tHighest Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.highestHumidity);
+            }
         }
         else
         {
@@ -7298,7 +7311,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         if (driveInfo->humidityData.lowestValid)
         {
-            printf("\t\tLowest Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.lowestHumidity);
+            if (driveInfo->humidityData.currentHumidity == UINT8_MAX)
+            {
+                printf("\t\tLowest Humidity (%%): Invalid Reading\n");
+            }
+            else
+            {
+                printf("\t\tLowest Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.lowestHumidity);
+            }
         }
         else
         {

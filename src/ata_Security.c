@@ -63,13 +63,13 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
         uint8_t ataSecurityInfo[16] = { 0 };
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_READ_INFO, false, SAT_SECURITY_INFO_LEN, ataSecurityInfo))
         {
-            securityStatus->securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]) * 2;
-            if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+            securityStatus->securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]) * ATA_SECURITY_TIME_MULTIPLIER;
+            if (securityStatus->securityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
             {
                 securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
             }
-            securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[4], ataSecurityInfo[5]) * 2;
-            if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+            securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[4], ataSecurityInfo[5]) * ATA_SECURITY_TIME_MULTIPLIER;
+            if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
             {
                 securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
             }
@@ -141,8 +141,8 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 {
                     securityStatus->extendedTimeFormat = true;
                     //bits 14:0
-                    securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * 2;
-                    if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+                    securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
                         securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
                     }
@@ -150,8 +150,8 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 else
                 {
                     //bits 7:0
-                    securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * 2;
-                    if (securityStatus->securityEraseUnitTimeMinutes == (255 * 2))
+                    securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
                         securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
                     }
@@ -164,8 +164,8 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 {
                     securityStatus->extendedTimeFormat = true;
                     //bits 14:0
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * 2;
-                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
                         securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
                     }
@@ -173,8 +173,8 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 else
                 {
                     //bits 7:0
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * 2;
-                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
                         securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
                     }
@@ -206,7 +206,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 {
                     uint8_t pageNumber = securityPage[2];
                     uint16_t revision = M_BytesTo2ByteValue(securityPage[1], securityPage[0]);
-                    if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
+                    if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= ATA_ID_DATA_VERSION_1)
                     {
                         uint8_t listLen = securityPage[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
                         for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(512); ++iter)
@@ -221,7 +221,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                                 {
                                     //make sure we got the right page first!
                                     uint64_t header = M_BytesTo8ByteValue(securityPage[7], securityPage[6],securityPage[5],securityPage[4],securityPage[3],securityPage[2],securityPage[1],securityPage[0]);
-                                    if (header & BIT63 && M_Word0(header) >= 0x0001  && M_Byte2(header) == ATA_ID_DATA_LOG_SECURITY)
+                                    if (header & ATA_ID_DATA_QWORD_VALID_BIT && M_Word0(header) >= ATA_ID_DATA_VERSION_1  && M_Byte2(header) == ATA_ID_DATA_LOG_SECURITY)
                                     {
                                         uint64_t securityCapabilities = M_BytesTo8ByteValue(securityPage[55], securityPage[54],securityPage[53],securityPage[52],securityPage[51],securityPage[50],securityPage[49],securityPage[48]);
                                         if (securityCapabilities & BIT63)
@@ -266,6 +266,39 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     else if (securityStatus->securityEnabled == true && securityStatus->securityLocked == false && securityStatus->securityFrozen == true)
     {
         securityStatus->securityState = ATA_SEC6;
+    }
+}
+
+static void print_ATA_Security_Erase_Time(uint16_t eraseTime, bool extendedTimeFormat)
+{
+    if (eraseTime == 0)
+    {
+        printf("Not reported\n");
+    }
+    else
+    {
+        uint64_t totalSeconds = C_CAST(uint64_t, eraseTime);
+        uint16_t days = 0;
+        uint8_t hours = 0, minutes = 0;
+        if (eraseTime == UINT16_MAX)
+        {
+            if (extendedTimeFormat)
+            {
+                totalSeconds = ATA_SECURITY_MAX_EXTENDED_TIME_MINUTES;
+            }
+            else
+            {
+                totalSeconds = ATA_SECURITY_MAX_TIME_MINUTES;
+            }
+        }
+        totalSeconds *= UINT64_C(60);
+        convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+        if (eraseTime == UINT16_MAX)
+        {
+            printf(">");
+        }
+        print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+        printf("\n");
     }
 }
 
@@ -323,7 +356,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
             printf("High\n");
         }
         printf("Master Password Identifier: ");
-        if (securityStatus->masterPasswordIdentifier != 0x0000 && securityStatus->masterPasswordIdentifier != UINT16_MAX)
+        if (is_ATA_Identify_Word_Valid(securityStatus->masterPasswordIdentifier))
         {
             printf("%" PRIu16, securityStatus->masterPasswordIdentifier);
             if (securityStatus->masterPasswordIdentifier == 0xFFFE)
@@ -341,116 +374,14 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
         printf("Enhanced Erase Time Estimate: ");
         if (securityStatus->enhancedEraseSupported)
         {
-            if (securityStatus->extendedTimeFormat)
-            {
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == 0)
-                {
-                    printf("Not reported\n");
-                }
-                else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
-                {
-                    uint64_t totalSeconds = UINT64_C(65532) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    printf(">");
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-                else
-                {
-                    uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->enhancedSecurityEraseUnitTimeMinutes) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-            }
-            else
-            {
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == 0)
-                {
-                    printf("Not reported\n");
-                }
-                else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
-                {
-                    uint64_t totalSeconds = UINT64_C(508) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    printf(">");
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-                else
-                {
-                    uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->enhancedSecurityEraseUnitTimeMinutes) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-            }
+            print_ATA_Security_Erase_Time(securityStatus->enhancedSecurityEraseUnitTimeMinutes, securityStatus->extendedTimeFormat);
         }
         else
         {
             printf("Not Supported\n");
         }
         printf("Security Erase Time Estimate: ");
-        if (securityStatus->extendedTimeFormat)
-        {
-            if (securityStatus->securityEraseUnitTimeMinutes == 0)
-            {
-                printf("Not reported\n");
-            }
-            else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
-            {
-                uint64_t totalSeconds = UINT64_C(65532) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                printf(">");
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-            else
-            {
-                uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->securityEraseUnitTimeMinutes) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-        }
-        else
-        {
-            if (securityStatus->securityEraseUnitTimeMinutes == 0)
-            {
-                printf("Not reported\n");
-            }
-            else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
-            {
-                uint64_t totalSeconds = UINT64_C(508) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                printf(">");
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-            else
-            {
-                uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->securityEraseUnitTimeMinutes) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-        }
+        print_ATA_Security_Erase_Time(securityStatus->securityEraseUnitTimeMinutes, securityStatus->extendedTimeFormat);
         printf("All user data is encrypted: ");
         if (securityStatus->encryptAll)
         {
@@ -553,12 +484,22 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
         {
             if (ataPassword->zacSecurityOption == ATA_ZAC_ERASE_FULL_ZONES)
             {
-                ptrData[0] |= BIT2;//word zero bit 2
+                if (useSAT)
+                {
+                    //not currently described in SAT5-r10
+                }
+                else
+                {
+                    ptrData[0] |= BIT2;//word zero bit 2
+                }
             }
         }
+        
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
-            ptrData[0] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
+            
+            //Word 0, bit 0 for the identifier bit to say it's the master password
+            ptrData[0] |= BIT0;
             if (setPassword)//if setting the password in the set password command, we need to set a few other things up
             {
                 //set the master password identifier.
@@ -1132,45 +1073,28 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             printf("User password: ");
         }
         print_ATA_Security_Password(&ataPassword);
-        if (eraseTimeMinutes == UINT16_MAX || eraseTimeMinutes == 0)
+        if (eraseTimeMinutes == 0)
         {
-            if (eraseTimeMinutes == 0)
-            {
-                printf("\n\tThe drive did not report an erase time estimate.\n");
-                printf("\tA completion estimate is not available for this drive.\n");
-            }
-            else
-            {
-                uint64_t erasemaxSeconds = 0;
-                //TODO: make this print out a friendly looking value like we do in the function that prints out ATA security information
-                printf("\n\tThe drive reported an estimated erase time longer than\n");
-                if (securityStatus.extendedTimeFormat)
-                {
-                    printf("\t65532 minutes (max per ATA specification).\n");
-                    erasemaxSeconds = 65532 * 60;
-                }
-                else
-                {
-                    printf("\t508 minutes (max per ATA specification).\n");
-                    erasemaxSeconds = 508 * 60;
-                }
-                //provide a completion time estimate based on the max values.
-                //Need to report it as a time greater than what we print to the screen to make it clear.
-                time_t currentTime = time(NULL);
-                time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0, seconds = 0;
-                char timeFormat[TIME_STRING_LENGTH] = { 0 };
-                convert_Seconds_To_Displayable_Time(erasemaxSeconds, NULL, &days, &hours, &minutes, &seconds);
-                printf("\n\tCurrent Time: %s\tDrive reported completion time: >", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
-                printf("from now.\n");
-                memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
-                printf("\tEstimated completion Time : sometime after %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
-            }
+            printf("\n\tThe drive did not report an erase time estimate.\n");
+            printf("\tA completion estimate is not available for this drive.\n");
         }
         else
         {
+            bool maxPossibleTime = eraseTimeMinutes == UINT16_MAX ? true : false;
+            if (maxPossibleTime)
+            {
+                printf("\n\tThe drive reported an estimated erase time longer than\n");
+                if (securityStatus.extendedTimeFormat)
+                {
+                    eraseTimeMinutes = ATA_SECURITY_MAX_EXTENDED_TIME_MINUTES;
+                    printf("\t65532 minutes (max per ATA specification).\n");
+                }
+                else
+                {
+                    eraseTimeMinutes = ATA_SECURITY_MAX_TIME_MINUTES;
+                    printf("\t508 minutes (max per ATA specification).\n");
+                }
+            }
             time_t currentTime = time(NULL);
             time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
             uint16_t days = 0;
@@ -1178,6 +1102,10 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             char timeFormat[TIME_STRING_LENGTH] = { 0 };
             convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), NULL, &days, &hours, &minutes, &seconds);
             printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
+            if (maxPossibleTime)
+            {
+                printf(">");
+            }
             print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
             printf("from now.\n");
             memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it

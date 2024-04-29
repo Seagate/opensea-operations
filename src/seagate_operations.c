@@ -858,25 +858,29 @@ int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeI
             switch (iddTest)
             {
             case SEAGATE_IDD_SHORT:
+                ret = SUCCESS;
                 *timeInSeconds = IDD_READY_TIME_SECONDS;
                 break;
             case SEAGATE_IDD_LONG:
-                get_SMART_Attributes(device, &smartData);
-                if (smartData.attributes.ataSMARTAttr.attributes[197].valid)
+                ret = get_SMART_Attributes(device, &smartData);
+                if (ret == SUCCESS)
                 {
-                    numberOfLbasInLists += M_BytesTo4ByteValue(smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[3], \
-                        smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[2], \
-                        smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[1], \
-                        smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[0]);
+                    if (smartData.attributes.ataSMARTAttr.attributes[197].valid)
+                    {
+                        numberOfLbasInLists += M_BytesTo4ByteValue(smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[3], \
+                            smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[2], \
+                            smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[1], \
+                            smartData.attributes.ataSMARTAttr.attributes[197].data.rawData[0]);
+                    }
+                    if (smartData.attributes.ataSMARTAttr.attributes[5].valid)
+                    {
+                        numberOfLbasInLists += M_BytesTo4ByteValue(smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[3], \
+                            smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[2], \
+                            smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[1], \
+                            smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[0]);
+                    }
+                    *timeInSeconds = (numberOfLbasInLists * 3) + IDD_READY_TIME_SECONDS;
                 }
-                if (smartData.attributes.ataSMARTAttr.attributes[5].valid)
-                {
-                    numberOfLbasInLists += M_BytesTo4ByteValue(smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[3], \
-                        smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[2], \
-                        smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[1], \
-                        smartData.attributes.ataSMARTAttr.attributes[5].data.rawData[0]);
-                }
-                *timeInSeconds = (numberOfLbasInLists * 3) + IDD_READY_TIME_SECONDS;
                 break;
             default:
                 break;
@@ -892,9 +896,11 @@ int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeI
             {
             case SEAGATE_IDD_SHORT:
                 *timeInSeconds = IDD_READY_TIME_SECONDS;
+                ret = SUCCESS;
                 break;
             case SEAGATE_IDD_LONG:
                 *timeInSeconds = UINT64_MAX;
+                ret = SUCCESS;
                 break;
             default:
                 break;

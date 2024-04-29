@@ -318,7 +318,7 @@ extern "C"
 
     #define MAX_SUPPORTED_ERASE_METHODS 13
     #define MAX_ERASE_NAME_LENGTH 30
-    #define MAX_ERASE_WARNING_LENGTH 70
+    #define MAX_ERASE_WARNING_LENGTH 80
 
     //This is based on IEEE 2883 and assumes the device firmware is compliant according to the specifications
     typedef enum _eraseSanitizationLevel
@@ -493,7 +493,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
+    //  print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     //
     //! \brief   Use this to print the concurrent positioing ranges (actuator info) from a SAS or SATA drive to the screen (stdout)
     //
@@ -516,13 +516,100 @@ extern "C"
         //TODO: Output number of bytes that are verified in addition to sectors???
     }wrvInfo, *ptrWRVInfo;
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
+    //
+    //! \brief   This reads the current settings associated with an ATA drive's write-read-verify feature
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!   \param ranges - pointer to a structure filled in with the write-read-verify info
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully read write-read-verify data, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Write_Read_Verify_Info(ptrWRVInfo info);
+    //
+    //! \brief   Use this to print the write-read-verify info from a SATA drive in human readable format to the screen
+    //
+    //  Entry:
+    //!   \param ranges - pointer to a structure filled with the write-read-verify information from a device.
+    //!
+    //  Exit:
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Write_Read_Verify_Info(ptrWRVInfo info);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  disable_Write_Read_Verify(tDevice* device)
+    //
+    //! \brief   Disable the write-read-verify feature on an ATA device
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully disabled write-read-verify, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int disable_Write_Read_Verify(tDevice* device);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
+    //
+    //! \brief   Enable the write-read-verify feature on an ATA device to a specific mode
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!   \param all - set write-read-verify to verify writes to all LBAs (cannot be used with vendor or wrvSectorCount)
+    //!   \param vendor - set the vendor specific write-read-verify mode (cannot be used with all or wrvSectorCount)
+    //!   \param wrvSectorCount - if all and vendor are false, this specifies the number of sectors to wrv
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully enabled write-read-verify with provided parameters, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount);
+
+    typedef enum _eWriteAfterErasereq
+    {
+        WAEREQ_NOT_SPECIFIED = 0,
+        WAEREQ_READ_COMPLETES_GOOD_STATUS = 1,
+        WAEREQ_MEDIUM_ERROR_OTHER_ASC = 2,
+        WAEREQ_MEDIUM_ERROR_WRITE_AFTER_SANITIZE_REQUIRED = 3,
+        //The values above are in the SBC standard. The values below this comment are added to handle other cases not fully described in the standard.-TJE
+        WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE = 4
+    }eWriteAfterEraseReq;
+
+    typedef struct _writeAfterErase
+    {
+        eWriteAfterEraseReq cryptoErase;
+        eWriteAfterEraseReq blockErase;
+    }writeAfterErase, * ptrWriteAfterErase;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_Write_After_Crypto_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
+    //
+    //! \brief   This reads the SCSI block device characteristics VPD page to determine if a write is required after crypto or block erase before a read completes successfully.
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!   \param writeReq - pointer to a structure filled in with the write after erase info
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully read write after erase data, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API int is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq);
 
     #if defined (__cplusplus)
 }
