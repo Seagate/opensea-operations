@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 project('opensea-operations', 'c', license: 'MPL-2.0', version: '3.0.5', default_options : ['warning_level=2'])
 
 c = meson.get_compiler('c')
