@@ -242,6 +242,39 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData);
 
+    typedef struct _pendingDefect
+    {
+        uint32_t powerOnHours;
+        uint64_t lba;
+    }pendingDefect, * ptrPendingDefect;
+
+    #define MAX_PLIST_ENTRIES UINT16_C(65534) //This is from ACS spec and is more than enough for SCSI
+
+    OPENSEA_OPERATIONS_API int get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    OPENSEA_OPERATIONS_API int get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    OPENSEA_OPERATIONS_API int get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    OPENSEA_OPERATIONS_API void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList);
+
+    OPENSEA_OPERATIONS_API int get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    #define MAX_BACKGROUND_SCAN_RESULTS UINT32_C(2048) //parameter codes 1 - 800h
+    typedef struct _backgroundResults
+    {
+        uint8_t reassignStatus;//scsi reassign status value. Use this to know if it's been reassigned or not
+        uint64_t accumulatedPowerOnMinutes;
+        uint8_t senseKey;
+        uint8_t additionalSenseCode;
+        uint8_t additionalSenseCodeQualifier;
+        uint64_t lba;
+    }backgroundResults, * ptrBackgroundResults;
+
+    OPENSEA_OPERATIONS_API int get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults);
+
+    OPENSEA_OPERATIONS_API int get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
 #if defined(__cplusplus)
 }
 #endif
