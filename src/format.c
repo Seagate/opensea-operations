@@ -1525,10 +1525,15 @@ static bool is_Requested_Sector_Size_Multiple(tDevice *device, uint32_t sectorSi
     }
 }
 
-int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
+int set_Sector_Configuration(tDevice* device, uint32_t sectorSize)
+{
+    return set_Sector_Configuration_With_Force(device, sectorSize, false);
+}
+
+int set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bool force)
 {
     int ret = NOT_SUPPORTED;
-    if (is_Set_Sector_Configuration_Supported(device))
+    if (is_Set_Sector_Configuration_Supported(device) || force)
     {
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
@@ -1596,9 +1601,10 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
             delay_Seconds(1);
             //need to call the fill_drive_info again to update device information
             fill_Drive_Info_Data(device);
-            if (!is_Set_Sector_Configuration_Supported(device))
+            bool setSizeSupported = is_Set_Sector_Configuration_Supported(device);
+            if (!setSizeSupported || force)
             {
-                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT && !setSizeSupported)
                 {
                     printf("ERROR: The device was reset during sector size change. Device may not be usable!\n");
                 }
