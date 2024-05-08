@@ -106,9 +106,9 @@ bool is_Depopulation_Feature_Supported(tDevice *device, uint64_t *depopulationTi
     return supported;
 }
 
-int get_Number_Of_Descriptors(tDevice *device, uint32_t *numberOfDescriptors)
+eReturnValues get_Number_Of_Descriptors(tDevice *device, uint32_t *numberOfDescriptors)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!numberOfDescriptors)
     {
         return BAD_PARAMETER;
@@ -133,10 +133,10 @@ int get_Number_Of_Descriptors(tDevice *device, uint32_t *numberOfDescriptors)
     return ret;
 }
 
-int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsExpected, ptrPhysicalElement elementList)
+eReturnValues get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsExpected, ptrPhysicalElement elementList)
 {
     //NOTE: Seagate legacy method uses head numbers starting at zero, but STD spec starts at 1. Add 1 to anything from Seagate legacy method
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!elementList)
     {
         return BAD_PARAMETER;
@@ -302,9 +302,9 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
 }
 
 //TODO: This definition belongs in opensea-transport cmds.h/.c
-int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
+eReturnValues depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -321,9 +321,9 @@ int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, u
 
 //NOTE: This may NOT give percentage. This will happen on ATA drives, but you can check that it is still running or not. - TJE
 //On ATA drives, if in progress, the progress variable will get set to 255 since it is not possible to determine actual progress
-int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *progress)
+eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *progress)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!depopStatus)
     {
         return BAD_PARAMETER;
@@ -401,7 +401,7 @@ int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *
             //Send the get physical element status command and check if any say depopulation/repopulation in progress or had an error.
             //read physical element status to see if any of the specified element number matches any that were found
             uint32_t numberOfDescriptors = 0;
-            int getDescirptors = get_Number_Of_Descriptors(device, &numberOfDescriptors);
+            eReturnValues getDescirptors = get_Number_Of_Descriptors(device, &numberOfDescriptors);
             if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
             {
                 ptrPhysicalElement elementList = C_CAST(ptrPhysicalElement, malloc(numberOfDescriptors * sizeof(physicalElement)));
@@ -552,9 +552,9 @@ int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *
     return ret;
 }
 
-int show_Depop_Repop_Progress(tDevice *device)
+eReturnValues show_Depop_Repop_Progress(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     eDepopStatus depopStatus = DEPOP_NOT_IN_PROGRESS;
     double progress = 0.0;
     if (SUCCESS == get_Depopulate_Progress(device, &depopStatus, &progress))
@@ -611,9 +611,9 @@ int show_Depop_Repop_Progress(tDevice *device)
     return ret;
 }
 
-int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA, bool pollForProgress)
+eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA, bool pollForProgress)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint64_t depopTime = 0;
     if (is_Depopulation_Feature_Supported(device, &depopTime))
     {
@@ -792,7 +792,7 @@ int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescrip
                 eDepopStatus depopStatus = DEPOP_NOT_IN_PROGRESS;//start with this until we start polling
                 double progress = 0.0;
                 uint16_t delayTime = 15;
-                int progressCheck = SUCCESS;
+                eReturnValues progressCheck = SUCCESS;
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
                     printf("\n");
@@ -921,9 +921,9 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
 }
 
 //TODO: This definition belongs in opensea-transport cmds.h/.c
-int depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
+eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1010,9 +1010,9 @@ bool is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime
     return supported;
 }
 
-int repopulate_Elements(tDevice *device)
+eReturnValues repopulate_Elements(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1027,9 +1027,9 @@ int repopulate_Elements(tDevice *device)
     return ret;
 }
 
-int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
+eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint64_t depopTime = 0;
     if (is_Repopulate_Feature_Supported(device, &depopTime))
     {
@@ -1198,7 +1198,7 @@ int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
                 eDepopStatus depopStatus = DEPOP_NOT_IN_PROGRESS;//start with this until we start polling
                 double progress = 0.0;
                 uint16_t delayTime = 15;
-                int progressCheck = SUCCESS;
+                eReturnValues progressCheck = SUCCESS;
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
                     printf("\n");

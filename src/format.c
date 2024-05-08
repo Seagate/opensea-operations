@@ -67,7 +67,7 @@ bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
     }
 }
 
-int get_Format_Progress(tDevice *device, double *percentComplete)
+eReturnValues get_Format_Progress(tDevice *device, double *percentComplete)
 {
     uint8_t senseData[SPC3_SENSE_LEN] = { 0 };
     *percentComplete = 0.0;
@@ -103,10 +103,10 @@ int get_Format_Progress(tDevice *device, double *percentComplete)
     }
 }
 
-int show_Format_Unit_Progress(tDevice *device)
+eReturnValues show_Format_Unit_Progress(tDevice *device)
 {
-    int ret = UNKNOWN;
-    double percentComplete = 0;
+    eReturnValues ret = UNKNOWN;
+    double percentComplete = 0.0;
 
     ret = get_Format_Progress(device, &percentComplete);
 
@@ -135,9 +135,9 @@ int show_Format_Unit_Progress(tDevice *device)
     return ret;
 }
 
-int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress)
+eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t *dataBuf = NULL;
     uint32_t dataSize = 4;//assume short list for now
     bool longList = false;
@@ -514,9 +514,9 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     return ret;
 }
 
-int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
+eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!device || !formatStatus)
     {
         return BAD_PARAMETER;
@@ -847,9 +847,9 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
     }
 }
 
-static int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static eReturnValues ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device))
     {
         uint8_t sectorConfigurationLog[LEGACY_DRIVE_SEC_SIZE] = { 0 };
@@ -902,9 +902,9 @@ static int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats format
     return ret;
 }
 
-static int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint8_t *inquiryData = C_CAST(uint8_t*, calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!inquiryData)
     {
@@ -1192,7 +1192,7 @@ static int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats forma
     return ret;
 }
 
-static int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static eReturnValues nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     //read the PI support from identify namespace structure
     if (device->drive_info.IdentifyData.nvme.ns.dpc > 0)
@@ -1242,9 +1242,9 @@ static int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats forma
     return SUCCESS;
 }
 
-int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+eReturnValues get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!formats)
     {
         return BAD_PARAMETER;
@@ -1459,9 +1459,9 @@ void show_Supported_Formats(ptrSupportedFormats formats)
 }
 
 //this function takes a sector size and maps it to the descriptor check code to use in the set sector configuration command
-int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex)
+eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!descriptorCheckCode || !descriptorIndex)
     {
         return BAD_PARAMETER;
@@ -1526,9 +1526,9 @@ static bool is_Requested_Sector_Size_Multiple(tDevice *device, uint32_t sectorSi
     }
 }
 
-int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
+eReturnValues set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device))
     {
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -1565,8 +1565,8 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
         {
             //write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is erased and not causing a problem
             //NOTE: last sector is sometimes used as a backup of the MBR, which is why it will also be erased
-            int writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-            int writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
+            eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+            eReturnValues writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
             if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
             {
                 mbrEraseWarning = true;
@@ -1671,9 +1671,9 @@ int set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
     return ret;
 }
 
-int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
+eReturnValues get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!percentComplete)
     {
         return BAD_PARAMETER;
@@ -1701,9 +1701,9 @@ int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
     return ret;
 }
 
-int show_NVM_Format_Progress(tDevice *device)
+eReturnValues show_NVM_Format_Progress(tDevice *device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint8_t percentComplete = 0;
 
     ret = get_NVM_Format_Progress(device, &percentComplete);
@@ -1741,9 +1741,9 @@ static uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSiz
     return fmtNum;
 }
 
-int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
+eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == NVME_DRIVE && formatSupport)
     {
         ret = SUCCESS;
@@ -1779,9 +1779,9 @@ int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
     return ret;
 }
 
-int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
+eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     nvmeFormatCmdOpts formatCmdOptions;
     memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
     //Set metadata, PI, PIL settings to current device settings to start

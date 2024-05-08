@@ -107,9 +107,9 @@ typedef struct _idDataCapabilitiesForDriveInfo
     bool processedStdIDData;//set when the function that reviews the standard ID data (ECh) has already been called.
 }idDataCapabilitiesForDriveInfo, *ptrIdDataCapabilitiesForDriveInfo;
 
-static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* identify, uint32_t dataLength)
+static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* identify, uint32_t dataLength)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t* bytePtr = identify;
     uint16_t* wordPtr = C_CAST(uint16_t*, identify);
 
@@ -1877,9 +1877,9 @@ static int get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInf
 }
 
 //This function expects a complete ID data log, so the supported pages followed by all supported pages that were read.
-static int get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* idDataLog, uint32_t dataLength)
+static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* idDataLog, uint32_t dataLength)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint8_t pageNumber = idDataLog[2];
     uint16_t revision = M_BytesTo2ByteValue(idDataLog[1], idDataLog[0]);
     if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= ATA_ID_DATA_VERSION_1)
@@ -2139,9 +2139,9 @@ static int get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_SATA drive
 }
 
 //this function expects a complete ID data log, so the supported pages followed by all supported pages that were read.
-static int get_ATA_Drive_Info_From_Device_Statistics_Log(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* idDataLog, uint32_t dataLength)
+static eReturnValues get_ATA_Drive_Info_From_Device_Statistics_Log(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* idDataLog, uint32_t dataLength)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint8_t pageNumber = idDataLog[2];
     uint16_t revision = M_BytesTo2ByteValue(idDataLog[1], idDataLog[0]);
     M_USE_UNUSED(ataCapabilities);
@@ -2312,9 +2312,9 @@ static int get_ATA_Drive_Info_From_Device_Statistics_Log(ptrDriveInformationSAS_
     return ret;
 }
 
-static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities,uint8_t *smartData, uint32_t dataLength)
+static eReturnValues get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities,uint8_t *smartData, uint32_t dataLength)
 {
-    int ret = BAD_PARAMETER;
+    eReturnValues ret = BAD_PARAMETER;
     if (smartData && dataLength >= LEGACY_DRIVE_SEC_SIZE)
     {
         //get long DST time
@@ -2523,9 +2523,9 @@ static int get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveI
     return ret;
 }
 
-static int get_Security_Features_From_Security_Protocol(tDevice *device, securityProtocolInfo* info, uint8_t *securityProtocolList, uint32_t dataLength)
+static eReturnValues get_Security_Features_From_Security_Protocol(tDevice *device, securityProtocolInfo* info, uint8_t *securityProtocolList, uint32_t dataLength)
 {
-    int ret = BAD_PARAMETER;
+    eReturnValues ret = BAD_PARAMETER;
     if (device && info && securityProtocolList && dataLength > 8)
     {
         uint16_t length = M_BytesTo2ByteValue(securityProtocolList[6], securityProtocolList[7]);
@@ -2652,9 +2652,9 @@ static int get_Security_Features_From_Security_Protocol(tDevice *device, securit
     return ret;
 }
 
-int get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     bool smartStatusFromSCTStatusLog = false;
     idDataCapabilitiesForDriveInfo ataCap;
     memset(&ataCap, 0, sizeof(idDataCapabilitiesForDriveInfo));
@@ -2971,9 +2971,9 @@ typedef struct _scsiIdentifyInfo
     bool zoneDomainsOrRealms;
 }scsiIdentifyInfo, *ptrSCSIIdentifyInfo;
 
-static int get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo, uint8_t* inquiryData, uint32_t dataLength)
+static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo, uint8_t* inquiryData, uint32_t dataLength)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (driveInfo && scsiInfo && inquiryData && dataLength >= INQ_RETURN_DATA_LENGTH_SCSI2)
     {
         //now parse the data
@@ -3073,9 +3073,9 @@ static int get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo, ptrSCSII
     return ret;
 }
 
-static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
         //VPD pages (read list of supported pages...if we don't get anything back, we'll dummy up a list of things we are interested in trying to read...this is to work around crappy USB bridges
@@ -3576,9 +3576,9 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
     return ret;
 }
 
-static int get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
         bool smartStatusRead = false;
@@ -4130,9 +4130,9 @@ static int get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
     return ret;
 }
 
-static int get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+static eReturnValues get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
         uint8_t protectionTypeEnabled = 0;//default to type 0
@@ -4316,9 +4316,9 @@ static int get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInformationSAS_S
     return ret;
 }
 
-static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
         if (!device->drive_info.passThroughHacks.scsiHacks.noModePages && (scsiInfo->version >= 2 || scsiInfo->ccs))
@@ -5763,9 +5763,9 @@ static int get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_SATA drive
 }
 
 //which diag pages are suppored to add to features list
-static int get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+static eReturnValues get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
         //skip diag pages on USB/IEEE1394 as it is extremly unlikely these requests will be handled properly and unlikely that any standard diag pages will be supported.-TJE
@@ -5848,9 +5848,9 @@ static int get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformationSAS_SATA
 
 //report supported operation codes to figure out additional features.
 //TODO: cmdDT early exit if invalid field in CDB
-static int get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
+static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
         if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)//mostly for USB devices to prevent sending commands that don't usually work in the first place.
@@ -6217,9 +6217,9 @@ static int get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS
     return ret;
 }
 
-int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!driveInfo)
     {
         return BAD_PARAMETER;
@@ -6374,9 +6374,9 @@ int get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driv
 
 //currently using the bitfields in here, other commands are sometimes run to read additional information
 //may need to reorganize more in the future to eliminate needing to pass in tDevice -TJE
-static int get_NVMe_Controller_Identify_Data(tDevice *device, ptrDriveInformationNVMe driveInfo, uint8_t* nvmeIdentifyData, uint32_t identifyDataLength)
+static eReturnValues get_NVMe_Controller_Identify_Data(tDevice *device, ptrDriveInformationNVMe driveInfo, uint8_t* nvmeIdentifyData, uint32_t identifyDataLength)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!device || !driveInfo || !nvmeIdentifyData || identifyDataLength != NVME_IDENTIFY_DATA_LEN)
     {
         return BAD_PARAMETER;
@@ -6653,9 +6653,9 @@ static int get_NVMe_Controller_Identify_Data(tDevice *device, ptrDriveInformatio
     return ret;
 }
 
-static int get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe driveInfo, uint8_t* nvmeIdentifyData, uint32_t identifyDataLength)
+static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe driveInfo, uint8_t* nvmeIdentifyData, uint32_t identifyDataLength)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!driveInfo || !nvmeIdentifyData || identifyDataLength != NVME_IDENTIFY_DATA_LEN)
     {
         return BAD_PARAMETER;
@@ -6739,9 +6739,9 @@ static int get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe driveInfo, u
 }
 
 //TODO: Move code in controller data reading DST log to here
-static int get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe driveInfo)
+static eReturnValues get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe driveInfo)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!device || !driveInfo)
     {
         return BAD_PARAMETER;
@@ -6791,9 +6791,9 @@ static int get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe driveInfo)
     return ret;
 }
 
-int get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo)
+eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!driveInfo)
     {
         return BAD_PARAMETER;
@@ -8261,9 +8261,9 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
 }
 
 
-int print_Drive_Information(tDevice* device, bool showChildInformation)
+eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
 #if defined (DEBUG_DRIVE_INFO_TIME)
     seatimer_t ataTime, scsiTime, nvmeTime;

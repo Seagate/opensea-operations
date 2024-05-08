@@ -51,7 +51,7 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Number_Of_Descriptors(tDevice *device, uint32_t *numberOfDescriptors);
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Descriptors(tDevice *device, uint32_t *numberOfDescriptors);
 
     typedef enum _ePhysicalElementType
     {
@@ -82,7 +82,7 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsExpected, ptrPhysicalElement elementList);
+    OPENSEA_OPERATIONS_API eReturnValues get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsExpected, ptrPhysicalElement elementList);
 
     //-----------------------------------------------------------------------------
     //
@@ -113,7 +113,7 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA);
+    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
@@ -143,7 +143,7 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int repopulate_Elements(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues repopulate_Elements(tDevice *device);
 
     typedef enum _eDepopStatus
     {
@@ -170,7 +170,7 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *progress);
+    OPENSEA_OPERATIONS_API eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *progress);
 
     //-----------------------------------------------------------------------------
     //
@@ -184,7 +184,7 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int show_Depop_Repop_Progress(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues show_Depop_Repop_Progress(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -201,7 +201,7 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA, bool pollForProgress);
+    OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA, bool pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
@@ -216,11 +216,11 @@ extern "C" {
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress);
+    OPENSEA_OPERATIONS_API eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress);
 
     OPENSEA_OPERATIONS_API bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime);
 
-    OPENSEA_OPERATIONS_API int depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID);
+    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID);
 
 #if defined(__cplusplus)
 }

@@ -15,9 +15,9 @@
 
 #include "defect.h"
 
-int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects)
+eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (defects)
     {
         bool tenByte = false;
@@ -644,9 +644,9 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
     }
 }
 
-int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData)
+eReturnValues create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint16_t iterator = 0;
     seed_64(C_CAST(uint64_t, time(NULL)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
@@ -671,9 +671,9 @@ int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, b
     return ret;
 }
 
-int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
+eReturnValues create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t iterator = 0;
     bool wue = is_Write_Psuedo_Uncorrectable_Supported(device);
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
@@ -728,9 +728,9 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
     return ret;
 }
 
-int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
+eReturnValues flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t iterator = 0;
     if (is_Write_Flagged_Uncorrectable_Supported(device))
     {
@@ -847,9 +847,9 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
     return supported;
 }
 
-int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
+eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     bool multipleLogicalPerPhysical = false;//used to set the physical block bit when applicable
     uint16_t logicalPerPhysicalBlocks = C_CAST(uint16_t, (device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize));
     if (logicalPerPhysicalBlocks > 1)
@@ -1042,9 +1042,9 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
     return ret;
 }
 
-int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
+eReturnValues corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t iterator = 0;
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
     uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
@@ -1094,9 +1094,9 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
     return ret;
 }
 
-int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
+eReturnValues corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint16_t iterator = 0;
     seed_64(C_CAST(uint64_t, time(NULL)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)

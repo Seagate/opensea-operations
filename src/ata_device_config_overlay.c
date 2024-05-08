@@ -45,9 +45,9 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
     return supported;
 }
 
-int dco_Restore(tDevice* device)
+eReturnValues dco_Restore(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_DCO_Supported(device, NULL))
     {
         ret = ata_DCO_Restore(device);
@@ -65,9 +65,9 @@ int dco_Restore(tDevice* device)
     return ret;
 }
 
-int dco_Freeze_Lock(tDevice* device)
+eReturnValues dco_Freeze_Lock(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_DCO_Supported(device, NULL))
     {
         ret = ata_DCO_Freeze_Lock(device);
@@ -79,9 +79,9 @@ int dco_Freeze_Lock(tDevice* device)
     return ret;
 }
 
-int dco_Identify(tDevice* device, ptrDcoData data)
+eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     bool dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
@@ -340,9 +340,9 @@ void show_DCO_Identify_Data(ptrDcoData data)
     return;
 }
 
-int dco_Set(tDevice* device, ptrDcoData data)
+eReturnValues dco_Set(tDevice* device, ptrDcoData data)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     bool dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {

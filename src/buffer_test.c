@@ -82,9 +82,9 @@ static bool are_Buffer_Commands_Available(tDevice *device)
     return supported;
 }
 
-static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
+static eReturnValues get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!bufferSize || !offsetBoundary)
     {
         return BAD_PARAMETER;
@@ -108,7 +108,7 @@ static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offse
     return ret;
 }
 
-static int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
+static eReturnValues send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -127,7 +127,7 @@ static int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t 
     }
 }
 
-static int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
+static eReturnValues send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -239,7 +239,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
         for (uint32_t counter = 0; counter < numberOfTimesToTest; ++counter)
         {
             bool breakFromLoop = false;//this will be set to true when we need to exit the loop for one reason or another
-            int wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
+            eReturnValues wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (wbResult)
             {
@@ -268,7 +268,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
             }
             //now read back the pattern
             memset(returnBuffer, 0, deviceBufferSize);
-            int rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
+            eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
             {
@@ -346,7 +346,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             {
                 patternBuffer[byteNumber] |= M_BitN(bitNumber);
             }
-            int wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
+            eReturnValues wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (wbResult)
             {
@@ -375,7 +375,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             }
             //now read back the pattern
             memset(returnBuffer, 0, deviceBufferSize);
-            int rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
+            eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
             {
@@ -425,7 +425,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
         {
             bool breakFromLoop = false;
             fill_Random_Pattern_In_Buffer(patternBuffer, deviceBufferSize);//set a new random pattern each time
-            int wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
+            eReturnValues wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (wbResult)
             {
@@ -454,7 +454,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             }
             //now read back the pattern
             memset(returnBuffer, 0, deviceBufferSize);
-            int rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
+            eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
             {
@@ -502,9 +502,9 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
 //Slower interface speed = longer test time to get a confident result.
 
 //master function for the whole test.
-int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
+eReturnValues perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!testResults)
     {
         return BAD_PARAMETER;

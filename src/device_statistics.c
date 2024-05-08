@@ -18,9 +18,9 @@
 
 //this is ued to determine which device statistic is being talked about by the DSN log on ata
 /*
-int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics deviceStats)
+eReturnValues map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = FAILURE;
+    eReturnValues ret = FAILURE;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
 
@@ -30,9 +30,9 @@ int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *devi
 */
 void scsi_Threshold_Comparison(statistic *ptrStatistic);//prototype
 
-static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return BAD_PARAMETER;
@@ -1220,9 +1220,9 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
     return ret;
 }
 
-static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return BAD_PARAMETER;
@@ -6629,7 +6629,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     //Get the Grown list count
     bool gotGrownDefectCount = false;
     eSCSIAddressDescriptors defectFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
-    int defectRet = SUCCESS;
+    eReturnValues defectRet = SUCCESS;
     if (device->drive_info.deviceMaxLba > UINT32_MAX)
     {
         defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
@@ -6763,9 +6763,9 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     return ret;
 }
 
-int get_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+eReturnValues get_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return BAD_PARAMETER;
@@ -7831,9 +7831,9 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
     }
 }
 
-static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!deviceStats)
     {
         return MEMORY_FAILURE;
@@ -7968,9 +7968,9 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
     return ret;
 }
 
-static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!deviceStats)
     {
         return MEMORY_FAILURE;
@@ -8233,9 +8233,9 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
     return ret;
 }
 
-int print_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+eReturnValues print_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return MEMORY_FAILURE;

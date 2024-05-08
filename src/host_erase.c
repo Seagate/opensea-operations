@@ -19,9 +19,9 @@
 #include "cmds.h"
 #include "platform_helper.h"
 
-int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEnd, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
+eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEnd, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint32_t sectors = get_Sector_Count_For_Read_Write(device);
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
@@ -161,9 +161,9 @@ int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEn
     return ret;
 }
 
-int erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
+eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     time_t currentTime = 0, startTime = 0;
     //first figure out how many writes we'll need to issue, then allocate the memory we need
     uint32_t sectors = get_Sector_Count_For_Read_Write(device);
@@ -274,9 +274,9 @@ int erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t eraseTime, uint
 }
 
 //This erases the first 32KiB and last 32 KiB of the drive.
-int erase_Boot_Sectors(tDevice* device)
+eReturnValues erase_Boot_Sectors(tDevice* device)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint32_t sectors = get_Sector_Count_For_Read_Write(device);
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;

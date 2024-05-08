@@ -67,7 +67,7 @@ typedef struct _sataPhyEventCounters
     phyEventCounter counters[MAX_PHY_EVENT_COUNTERS];
 }sataPhyEventCounters, *ptrSATAPhyEventCounters;
 
-OPENSEA_OPERATIONS_API int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters);
+OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters);
 
 OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters);
 

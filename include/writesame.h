@@ -57,7 +57,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -77,7 +77,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength);
+    OPENSEA_OPERATIONS_API eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength);
 
     //-----------------------------------------------------------------------------
     //
@@ -92,7 +92,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int show_Write_Same_Current_LBA(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues show_Write_Same_Current_LBA(tDevice *device);
 
 
 #if defined (__cplusplus)

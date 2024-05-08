@@ -90,7 +90,7 @@ typedef struct _firmwareUpdateDataV3 {
     bool disableResetAfterCommit;//NVMe only
 } firmwareUpdateDataV3;
 
-static int check_For_Power_Cycle_Required(int ret, tDevice *device)
+static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice *device)
 {
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
     //Check if the device needs a power cycle to complete the update...This has been necessary in Windows with the Intel NVMe driver in some cases
@@ -146,9 +146,9 @@ static int check_For_Power_Cycle_Required(int ret, tDevice *device)
 #endif //_WIN32 and WINVER >= WIN10
 }
 
-int firmware_Download(tDevice *device, firmwareUpdateData * options)
+eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
 #ifdef _DEBUG
     printf("--> %s\n",__FUNCTION__);
 #endif
@@ -679,9 +679,9 @@ typedef struct _supportedDLModesV2
     firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
 }supportedDLModesV2, * ptrSupportedDLModesV2;
 
-int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
+eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (supportedModes && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 && supportedModes->size >= sizeof(supportedDLModesV1))
     {
         switch (device->drive_info.drive_type)

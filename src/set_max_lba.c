@@ -21,9 +21,9 @@
 #include "logs.h"
 #include <ctype.h>
 
-int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
+eReturnValues ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)/*validate words 119,120 are valid first, then validate that word*/
         && (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT8)) //accessible max address feature set
     {
@@ -41,9 +41,9 @@ int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
     return ret;
 }
 
-int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
+eReturnValues get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     *nativeMaxLBA = UINT64_MAX;//this is invalid, but useful for scsi since reseting to native max means using this value (see the reset code for scsi_Set_Max_LBA)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -56,14 +56,14 @@ int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
     return ret;
 }
 
-int scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset)
+eReturnValues scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset)
 {
     return scsi_Set_Max_LBA_2(device, newMaxLBA, reset, false);
 }
 
-int scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
+eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint8_t *scsiDataBuffer = C_CAST(uint8_t*, calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment));//this should be big enough to get back the block descriptor we care about
     if (scsiDataBuffer == NULL)
     {
@@ -155,14 +155,14 @@ int scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool cha
     return ret;
 }
 
-int ata_Set_Max_LBA(tDevice * device, uint64_t newMaxLBA, bool reset)
+eReturnValues ata_Set_Max_LBA(tDevice * device, uint64_t newMaxLBA, bool reset)
 {
     return ata_Set_Max_LBA_2(device, newMaxLBA, reset, false);
 }
 
-int ata_Set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool changeId)
+eReturnValues ata_Set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     //first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable address feature set)
     uint64_t nativeMaxLBA = 0;
     //always get the native max first (even if that's only a restriction of the HPA feature set)
@@ -229,14 +229,14 @@ int ata_Set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool cha
     return ret;
 }
 
-int set_Max_LBA(tDevice * device, uint64_t newMaxLBA, bool reset)
+eReturnValues set_Max_LBA(tDevice * device, uint64_t newMaxLBA, bool reset)
 {
     return set_Max_LBA_2(device, newMaxLBA, reset, false);
 }
 
-int set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool changeId)
+eReturnValues set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = scsi_Set_Max_LBA_2(device, newMaxLBA, reset, changeId);
@@ -260,9 +260,9 @@ int set_Max_LBA_2(tDevice * device, uint64_t newMaxLBA, bool reset, bool changeI
 //or to allow validation of an erase as much as possible.
 //Because of this, it handles all the ATA checks to make sure all features are restored or a proper
 //error code for frozen or access denied is returned (HPA/AMAC/DCO and HPA security are all handled)
-int restore_Max_LBA_For_Erase(tDevice* device)
+eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = scsi_Set_Max_LBA(device, 0, true);

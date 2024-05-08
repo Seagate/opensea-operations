@@ -549,9 +549,9 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseTy
 }
 
 
-int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
@@ -571,9 +571,9 @@ int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, 
     return ret;
 }
 
-int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
@@ -593,9 +593,9 @@ int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     return ret;
 }
 
-int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
@@ -615,9 +615,9 @@ int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool u
     return ret;
 }
 
-int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT)
+eReturnValues start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t *securityErase = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityErase)
     {
@@ -653,9 +653,9 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
 
 //Attempts an unlock if needed
 //TODO: Check if security count expired!
-int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -749,9 +749,9 @@ int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPa
     return ret;
 }
 
-int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -791,9 +791,9 @@ int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
 
 //Will only unlock the drive
 //TODO: Check if security count expired!
-int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -881,9 +881,9 @@ int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bo
     return ret;
 }
 
-int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -939,9 +939,9 @@ int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     return ret;
 }
 
-int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     bool satATASecuritySupported = false;
     if (device->drive_info.drive_type != ATA_DRIVE)
     {
@@ -1131,7 +1131,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     start_Timer(&ataSecureEraseTimer);
-    int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
+    eReturnValues ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
     stop_Timer(&ataSecureEraseTimer);
     os_Unlock_Device(device);
     //before we read the bitfield again...try requesting sense data to see if that says there was a reset on the bus. (6h/29h/00h)
@@ -1166,7 +1166,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             printf("ATA Security Validate Erase Completion, validate completion buffer:\n");
             print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
         }
-        int senseResult = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, asc, ascq, fru);
+        eReturnValues senseResult = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, asc, ascq, fru);
         if (senseResult != SUCCESS && ataEraseResult == SUCCESS)
         {
             ataEraseResult = FAILURE;

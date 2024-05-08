@@ -36,9 +36,9 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
     return false;
 }
 
-static int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, eSASPhyTestFunction testFunction, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
+static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, eSASPhyTestFunction testFunction, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!diagPage)
     {
         return BAD_PARAMETER;
@@ -86,9 +86,9 @@ static int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdenti
     return ret;
 }
 
-int start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern,  bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
+eReturnValues start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern,  bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t sasDiagPage[32] = { 0 };
     ret = build_SAS_SSP_Diagnostic_Page(sasDiagPage, phyIdentifier, SAS_PHY_FUNC_TRANSMIT_PATTERN, pattern, sataTestFunction, testFunctionSSC, linkRate, dwordControl, phyTestPatternDwords);
     if (ret == SUCCESS)
@@ -98,9 +98,9 @@ int start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPa
     return ret;
 }
 
-int stop_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
+eReturnValues stop_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t sasDiagPage[32] = { 0 };
     ret = build_SAS_SSP_Diagnostic_Page(sasDiagPage, phyIdentifier, SAS_PHY_FUNC_STOP, 0, false, 0, linkRate, 0, 0);//I'm assuming the stop command doesn't need to specify anything else that matches the running test. - TJE
     if (ret == SUCCESS)

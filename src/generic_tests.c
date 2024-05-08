@@ -19,7 +19,7 @@
 #include "cmds.h"
 #include "operations.h"
 
-int read_Write_Seek_Command(tDevice *device, eRWVCommandType rwvCommand, uint64_t lba, uint8_t *ptrData, uint32_t dataSize)
+eReturnValues read_Write_Seek_Command(tDevice *device, eRWVCommandType rwvCommand, uint64_t lba, uint8_t *ptrData, uint32_t dataSize)
 {
     switch (rwvCommand)
     {
@@ -33,9 +33,9 @@ int read_Write_Seek_Command(tDevice *device, eRWVCommandType rwvCommand, uint64_
     }
 }
 
-int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+eReturnValues sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t lbaIter = startingLBA;
     uint64_t maxSequentialLBA = startingLBA + range;
     if (maxSequentialLBA >= device->drive_info.deviceMaxLba)
@@ -158,39 +158,39 @@ int sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64_t startin
     return ret;
 }
 
-int sequential_Read(tDevice *device, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues sequential_Read(tDevice *device, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return sequential_RWV(device, RWV_COMMAND_READ, startingLBA, range, sectorCount, failingLBA, updateFunction, updateData, hideLBACounter);
 }
 
-int sequential_Write(tDevice *device, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues sequential_Write(tDevice *device, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return sequential_RWV(device, RWV_COMMAND_WRITE, startingLBA, range, sectorCount, failingLBA, updateFunction, updateData, hideLBACounter);
 }
 
-int sequential_Verify(tDevice *device, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues sequential_Verify(tDevice *device, uint64_t startingLBA, uint64_t range, uint64_t sectorCount, uint64_t *failingLBA, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return sequential_RWV(device, RWV_COMMAND_VERIFY, startingLBA, range, sectorCount, failingLBA, updateFunction, updateData, hideLBACounter);
 }
 
-int short_Generic_Read_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues short_Generic_Read_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return short_Generic_Test(device, RWV_COMMAND_READ, updateFunction, updateData, hideLBACounter);
 }
 
-int short_Generic_Verify_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues short_Generic_Verify_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return short_Generic_Test(device, RWV_COMMAND_VERIFY, updateFunction, updateData, hideLBACounter);
 }
 
-int short_Generic_Write_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues short_Generic_Write_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return short_Generic_Test(device, RWV_COMMAND_WRITE, updateFunction, updateData, hideLBACounter);
 }
 
-int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     char message[256] = { 0 };
     uint16_t randomLBACount = 5000;
     uint64_t *randomLBAList = C_CAST(uint64_t*, calloc(randomLBACount, sizeof(uint64_t)));
@@ -392,17 +392,17 @@ int short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSE
     return ret;
 }
 
-int two_Minute_Generic_Read_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues two_Minute_Generic_Read_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return two_Minute_Generic_Test(device, RWV_COMMAND_READ, updateFunction, updateData, hideLBACounter);
 }
 
-int two_Minute_Generic_Write_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues two_Minute_Generic_Write_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return two_Minute_Generic_Test(device, RWV_COMMAND_WRITE, updateFunction, updateData, hideLBACounter);
 }
 
-int two_Minute_Generic_Verify_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues two_Minute_Generic_Verify_Test(tDevice *device, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return two_Minute_Generic_Test(device, RWV_COMMAND_VERIFY, updateFunction, updateData, hideLBACounter);
 }
@@ -420,9 +420,9 @@ typedef struct _performanceNumbers
     uint16_t sectorCount;
 }performanceNumbers;
 
-int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     bool showPerformanceNumbers = false;//TODO: make this a function parameter.
     size_t dataBufSize = 0;
     uint8_t *dataBuf = NULL;
@@ -845,44 +845,44 @@ int two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_
     return ret;
 }
 
-int long_Generic_Read_Test(tDevice *device, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues long_Generic_Read_Test(tDevice *device, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return user_Sequential_Read_Test(device, 0, device->drive_info.deviceMaxLba, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int long_Generic_Write_Test(tDevice *device, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues long_Generic_Write_Test(tDevice *device, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return user_Sequential_Write_Test(device, 0, device->drive_info.deviceMaxLba, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int long_Generic_Verify_Test(tDevice *device, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues long_Generic_Verify_Test(tDevice *device, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return user_Sequential_Verify_Test(device, 0, device->drive_info.deviceMaxLba, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int long_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues long_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return user_Sequential_Test(device, rwvCommand, 0, device->drive_info.deviceMaxLba, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int user_Sequential_Read_Test(tDevice *device, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues user_Sequential_Read_Test(tDevice *device, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return user_Sequential_Test(device, RWV_COMMAND_READ, startingLBA, range, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int user_Sequential_Write_Test(tDevice *device, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues user_Sequential_Write_Test(tDevice *device, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return user_Sequential_Test(device, RWV_COMMAND_WRITE, startingLBA, range, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int user_Sequential_Verify_Test(tDevice *device, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues user_Sequential_Verify_Test(tDevice *device, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return user_Sequential_Test(device, RWV_COMMAND_VERIFY, startingLBA, range, errorLimit, stopOnError, repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     errorLBA *errorList = NULL;
     uint64_t errorIndex = 0;
     bool errorLimitReached = false;
@@ -1012,9 +1012,9 @@ int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t s
     return ret;
 }
 
-int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     bool errorLimitReached = false;
     errorLBA *errorList = NULL;
     uint64_t errorIndex = 0;
@@ -1217,24 +1217,24 @@ int user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t starti
     return ret;
 }
 
-int butterfly_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues butterfly_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_READ, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues butterfly_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_WRITE, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues butterfly_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+eReturnValues butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint64_t outerLBA = 0, innerLBA = device->drive_info.deviceMaxLba;
@@ -1342,24 +1342,24 @@ int butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLim
     return ret;
 }
 
-int random_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues random_Read_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_READ, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues random_Write_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_WRITE, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues random_Verify_Test(tDevice *device, uint64_t timeLimitSeconds, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-int random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
+eReturnValues random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitSeconds, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
     uint32_t sectorCount = 1;
     uint8_t *dataBuf = NULL;
@@ -1411,9 +1411,9 @@ int random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t timeLimitS
     return ret;
 }
 
-int sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t sweepCount)
+eReturnValues sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t sweepCount)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint32_t sectorCount = 1;
     uint8_t *dataBuf = NULL;
     if (rwvcommand != RWV_COMMAND_VERIFY)
@@ -1457,7 +1457,7 @@ int sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t sweepCount)
     return ret;
 }
 
-int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
+eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
     uint8_t *dataBuf = NULL;
     size_t dataBufSize = 0;
@@ -1788,9 +1788,9 @@ int read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, u
 
 //This function is very similar to the "user_Sequential_Test" call, but the error list is allocated outside of this function instead of having it self containted.
 //Rather than change the user_Sequential_Test and make it potentially break others or complicated its already long list of parameters, I wrote this function instead.
-static int diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+static eReturnValues diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     bool errorLimitReached = false;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint64_t originalStartingLBA = startingLBA;
@@ -1861,9 +1861,9 @@ static int diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwvCommand, u
 }
 
 //tests at OD, MD, and/or ID depending on what the caller requests.
-int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, bool middle, bool inner, uint64_t numberOfLBAs, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
+eReturnValues diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, bool middle, bool inner, uint64_t numberOfLBAs, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
-    int ret = SUCCESS, outerRet = SUCCESS, innerRet = SUCCESS, middleRet = SUCCESS;
+    eReturnValues ret = SUCCESS, outerRet = SUCCESS, innerRet = SUCCESS, middleRet = SUCCESS;
     if ((repairOnTheFly && repairAtEnd) || errorLimit == 0)
     {
         return BAD_PARAMETER;
@@ -1981,9 +1981,9 @@ int diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, b
 }
 
 //this function is similar to the range function, but looks for a time limit to run for instead.
-static int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, uint64_t *numberOfLbasAccessed, bool hideLBACounter)
+static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t timeInSeconds, uint16_t errorLimit, errorLBA *errorList, uint16_t *errorOffset, bool stopOnError, bool repairOnTheFly, uint64_t *numberOfLbasAccessed, bool hideLBACounter)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     bool errorLimitReached = false;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint8_t *dataBuf = NULL;
@@ -2129,9 +2129,9 @@ static int diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvCommand, ui
     return ret;
 }
 
-int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bool middle, bool inner, uint64_t timeInSecondsPerDiameter, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, bool hideLBACounter)
+eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bool middle, bool inner, uint64_t timeInSecondsPerDiameter, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, bool hideLBACounter)
 {
-    int ret = SUCCESS, outerRet = SUCCESS, middleRet = SUCCESS, innerRet = SUCCESS;
+    eReturnValues ret = SUCCESS, outerRet = SUCCESS, middleRet = SUCCESS, innerRet = SUCCESS;
     if ((repairOnTheFly && repairAtEnd) || errorLimit == 0)
     {
         return BAD_PARAMETER;
@@ -2277,7 +2277,7 @@ int diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bo
     return ret;
 }
 
-int zero_Verify_Test(tDevice * device, eZeroVerifyTestType zeroVerifyTestType, bool hideLBACounter)
+eReturnValues zero_Verify_Test(tDevice * device, eZeroVerifyTestType zeroVerifyTestType, bool hideLBACounter)
 {
     if (zeroVerifyTestType == ZERO_VERIFY_TYPE_FULL)
         return full_Zero_Verify_Test(device, hideLBACounter);
@@ -2287,7 +2287,7 @@ int zero_Verify_Test(tDevice * device, eZeroVerifyTestType zeroVerifyTestType, b
         return BAD_PARAMETER;
 }
 
-int full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
+eReturnValues full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
 {
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
 
@@ -2350,7 +2350,7 @@ int full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
 #define DRIVE_CAPACITY_PERCENTAGE       0.1             //0.1 percentage
 #define DRIVE_SECTIONS                  10000           //divide drive into these many sections and then pick 2 random LBA from each section
 
-int quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
+eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
 {
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint64_t totalLBAToRead = C_CAST(uint64_t, (C_CAST(double, device->drive_info.deviceMaxLba) * 0.01 * DRIVE_CAPACITY_PERCENTAGE));        //for OD/ID

@@ -50,7 +50,7 @@ extern "C"
     //!   \return SUCCESS = successfully restored DCO features, FROZEN = DCO is frozen and cannot be restored, FAILURE = Error issuing command or HPA is established
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Restore(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Restore(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -65,7 +65,7 @@ extern "C"
     //!   \return SUCCESS = successfully froze DCO feature, FAILURE/ABORTED = command aborted by the device for some unknown reason.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Freeze_Lock(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Freeze_Lock(tDevice* device);
 
     //NOTE: This structure only supports the few words defined in the ACS and ACS-2 specs.
     //      Since many were reserved, those are not supported in here at this time.
@@ -144,7 +144,7 @@ extern "C"
     //!   \return SUCCESS = successfully identified DCO chagable fields, FROZEN = device is DCO frozen FAILURE/ABORTED = command aborted by the device. Possible HPA feature error due to HPA established
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Identify(tDevice* device, ptrDcoData data);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Identify(tDevice* device, ptrDcoData data);
 
     //-----------------------------------------------------------------------------
     //
@@ -178,7 +178,7 @@ extern "C"
     //    \return SUCCESS = successfully changed features with DCO, FROZEN = DCO is frozen and cannot be changed, ABORTED/FAILURE = command aborted. Possible HPA established blocking DCO command from completing.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Set(tDevice* device, ptrDcoData data);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Set(tDevice* device, ptrDcoData data);
 
 
 #if defined (__cplusplus)

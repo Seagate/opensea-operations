@@ -21,10 +21,10 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 
-int generate_Logfile_Name(tDevice *device, const char * const logName, const char * const logExtension, \
+eReturnValues generate_Logfile_Name(tDevice *device, const char * const logName, const char * const logExtension, \
                            eLogFileNamingConvention logFileNamingConvention, char **logFileNameUsed)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     struct tm logTime;
     memset(&logTime, 0, sizeof(struct tm));
     char *serialNumber = NULL;
@@ -89,7 +89,7 @@ int generate_Logfile_Name(tDevice *device, const char * const logName, const cha
     return ret;
 }
 
-int create_And_Open_Log_File(tDevice *device,\
+eReturnValues create_And_Open_Log_File(tDevice *device,\
                              FILE **filePtr,\
                              const char * const logPath,\
                              const char * const logName,\
@@ -97,7 +97,7 @@ int create_And_Open_Log_File(tDevice *device,\
                              eLogFileNamingConvention logFileNamingConvention,\
                              char **logFileNameUsed)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     char name[OPENSEA_PATH_MAX] = { 0 }; //Hopefully our file names are not bigger than this. 
     char *filename = &name[0];
     char *pathAndFileName = NULL;
@@ -262,9 +262,9 @@ int create_And_Open_Log_File(tDevice *device,\
 //TODO: A special hack is required in some cases where we may not be able to properly determine the log size..
 //      this is due to drive firmware bugs and/or passthrough limitations from OSs, drivers, or adapters.
 //      So certain standard logs that are known sizes will be returned in here in these cases...
-int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
+eReturnValues get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
 {
-    int ret = NOT_SUPPORTED;//assume the log is not supported
+    eReturnValues ret = NOT_SUPPORTED;//assume the log is not supported
     bool foundInGPL = false;
 
 #ifdef _DEBUG
@@ -364,9 +364,9 @@ int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize,
     return ret;
 }
 
-int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize)
+eReturnValues get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize)
 {
-    int ret = NOT_SUPPORTED;//assume the log is not supported
+    eReturnValues ret = NOT_SUPPORTED;//assume the log is not supported
     uint8_t *logBuffer = C_CAST(uint8_t*, calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!logBuffer)
     {
@@ -452,9 +452,9 @@ int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint
     return ret;
 }
 
-int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSize)
+eReturnValues get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSize)
 {
-    int ret = NOT_SUPPORTED;//assume the page is not supported
+    eReturnValues ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t vpdBufferLength = INQ_RETURN_DATA_LENGTH;
     uint8_t *vpdBuffer = C_CAST(uint8_t *, calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!vpdBuffer)
@@ -494,9 +494,9 @@ int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSi
 }
 
 //modePageSize includes any blockdescriptors that may be present
-int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize)
+eReturnValues get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize)
 {
-    int ret = NOT_SUPPORTED;//assume the page is not supported
+    eReturnValues ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t modeLength = MODE_PARAMETER_HEADER_10_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
     bool sixByte = false;
     bool retriedMP6 = false;//only for automatic hack
@@ -664,9 +664,9 @@ int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t m
     return ret;
 }
 
-int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd)
+eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd)
 {
-    int ret = NOT_SUPPORTED;//assume the page is not supported
+    eReturnValues ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t modeLength = 0;
     bool retriedMP6 = false;//only for automatic hack
     if (device->drive_info.passThroughHacks.scsiHacks.noModePages)
@@ -966,9 +966,9 @@ bool is_SCSI_Read_Buffer_16_Supported(tDevice *device)
     return supported;
 }
 
-int get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *errorHistorySize, bool createNewSnapshot, bool useReadBuffer16)
+eReturnValues get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *errorHistorySize, bool createNewSnapshot, bool useReadBuffer16)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!errorHistorySize)
     {
         return BAD_PARAMETER;
@@ -1015,11 +1015,11 @@ int get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *err
     return ret;
 }
 
-int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
+eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
     char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
     const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t historyLen = 0;
     char name[OPENSEA_PATH_MAX] = { 0 };
     FILE *fp_History = NULL;
@@ -1145,7 +1145,7 @@ int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, boo
     return ret;
 }
 
-int get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * const filePath)
+eReturnValues get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1157,7 +1157,7 @@ int get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * con
     }
 }
 
-int get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath)
+eReturnValues get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath)
 {
     if (extLog)
     {
@@ -1171,7 +1171,7 @@ int get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath)
     }
 }
 
-int get_DST_Log(tDevice *device, const char * const filePath)
+eReturnValues get_DST_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1191,7 +1191,7 @@ int get_DST_Log(tDevice *device, const char * const filePath)
     }
 }
 
-int get_Pending_Defect_List(tDevice *device, const char * const filePath)
+eReturnValues get_Pending_Defect_List(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1209,7 +1209,7 @@ int get_Pending_Defect_List(tDevice *device, const char * const filePath)
     }
 }
 
-int get_Identify_Device_Data_Log(tDevice *device, const char * const filePath)
+eReturnValues get_Identify_Device_Data_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1221,7 +1221,7 @@ int get_Identify_Device_Data_Log(tDevice *device, const char * const filePath)
     }
 }
 
-int get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath)
+eReturnValues get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1233,7 +1233,7 @@ int get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath
     }
 }
 
-int get_Device_Statistics_Log(tDevice *device, const char * const filePath)
+eReturnValues get_Device_Statistics_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1250,9 +1250,9 @@ int get_Device_Statistics_Log(tDevice *device, const char * const filePath)
 }
 
 //PowerCondition log
-int get_EPC_log(tDevice *device, const char * const filePath)
+eReturnValues get_EPC_log(tDevice *device, const char * const filePath)
 {
-    int ret = FAILURE;
+    eReturnValues ret = FAILURE;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //old code was reading address 0x12, however the ACS3 spec says 0x12 is the NCQ Queue Management log and 0x08 is the Power Conditions log
@@ -1269,9 +1269,9 @@ int get_EPC_log(tDevice *device, const char * const filePath)
     return ret;
 }
 
-int pull_SCSI_G_List(tDevice *device, const char * const filePath)
+eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t addressDescriptorIndex = 0;
     uint32_t defectDataSize = 8;//set to size of defect data without any address descriptors so we know how much we will be pulling
     uint8_t *defectData = C_CAST(uint8_t*, calloc_aligned(defectDataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -1346,7 +1346,7 @@ int pull_SCSI_G_List(tDevice *device, const char * const filePath)
     return ret;
 }
 
-int pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const filePath)
+eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const filePath)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -1358,11 +1358,11 @@ int pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const f
     }
 }
 
-int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileExtension, bool GPL, \
+eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileExtension, bool GPL, \
     bool SMART, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, \
     uint32_t transferSizeBytes, uint16_t featureRegister)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t logSize = 0;
 
 #ifdef _DEBUG
@@ -1670,11 +1670,11 @@ int get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileEx
 //
 //-----------------------------------------------------------------------------
 
-int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *logName, \
+eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *logName, \
                  char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize,\
                  const char * const filePath)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t pageLen = 0;
     char name[OPENSEA_PATH_MAX];
     FILE *fp_log = NULL;
@@ -1774,9 +1774,9 @@ int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *log
     return ret;
 }
 
-int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath)
+eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath)
 {
-    int     ret = UNKNOWN;
+    eReturnValues     ret = UNKNOWN;
     uint32_t vpdBufferLength = 0;
     if (toBuffer)
     {
@@ -1876,11 +1876,11 @@ int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExt
     return ret;
 }
 
-static int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
+static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
                              bool saveToFile, uint8_t* ptrData, uint32_t dataSize,\
                             const char * const filePath, uint32_t transferSizeBytes)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     char fileName[OPENSEA_PATH_MAX] = { 0 };
     char * fileNameUsed = &fileName[0];
     FILE *isl = NULL;
@@ -2109,11 +2109,11 @@ static int ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t 
     return ret;
 }
 
-static int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
+static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,\
                               bool saveToFile, uint8_t* ptrData, uint32_t dataSize,\
                               const char * const filePath, uint32_t transferSizeBytes)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     FILE *isl = NULL;
     char fileName[OPENSEA_PATH_MAX] = { 0 };
     char * fileNameUsed = &fileName[0];
@@ -2385,11 +2385,11 @@ static int scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
     return ret;
 }
 
-static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, \
+static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, \
     bool saveToFile, uint8_t* ptrData, uint32_t dataSize, \
     const char * const filePath, uint32_t transferSizeBytes)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     char fileName[OPENSEA_PATH_MAX] = { 0 };
     char * fileNameUsed = &fileName[0];
     FILE *isl = NULL;
@@ -2626,9 +2626,9 @@ static int nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t
 }
 
 //TODO: extra bool to trigger or not trigger???
-int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, bool saveToFile, uint8_t* ptrData, uint32_t dataSize, const char * const filePath, uint32_t transferSizeBytes)
+eReturnValues pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, bool saveToFile, uint8_t* ptrData, uint32_t dataSize, const char * const filePath, uint32_t transferSizeBytes)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
@@ -2646,9 +2646,9 @@ int pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet,
     return ret;
 }
 
-int print_Supported_Logs(tDevice *device, uint64_t flags)
+eReturnValues print_Supported_Logs(tDevice *device, uint64_t flags)
 {
-    int retStatus = NOT_SUPPORTED;
+    eReturnValues retStatus = NOT_SUPPORTED;
 
     switch (device->drive_info.drive_type)
     {
@@ -2669,9 +2669,9 @@ int print_Supported_Logs(tDevice *device, uint64_t flags)
 }
 
 
-int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
+eReturnValues print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
 {
-    int retStatus = NOT_SUPPORTED;
+    eReturnValues retStatus = NOT_SUPPORTED;
     uint8_t *logBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     bool subpagesSupported = true;
     bool gotListOfPages = true;
@@ -2774,9 +2774,9 @@ static void format_print_ata_logs_info(uint16_t log, uint32_t logSize, bool smar
 
 //To be portable between old & new, SMART and GPL, we need to read both GPL and SMART directory. Combine the results, then show them on screen.
 //TODO: Add SMART vs GPL info to output to know which logs are accessible in which way. Part of this could come from the spec, others from code and parsing what the drive reported.
-int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
+eReturnValues print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
-    int retStatus = NOT_SUPPORTED;
+    eReturnValues retStatus = NOT_SUPPORTED;
     bool legacyDriveNoLogDir = false;
     uint8_t *gplLogBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     uint8_t *smartLogBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -3013,9 +3013,9 @@ int print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
     return retStatus;
 }
 
-int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
+eReturnValues print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 {
-    int retStatus = NOT_SUPPORTED;
+    eReturnValues retStatus = NOT_SUPPORTED;
     bool readSupporteLogPagesLog = false;
     bool dummyFromIdentify = false;
     M_USE_UNUSED(flags);
@@ -3246,10 +3246,10 @@ int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 }
 
 //This function needs a proper rewrite to allow pulling with offsets, other log sizes, pulling to a buffer, and more like the SCSI and ATA functions.
-int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes)
+eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes)
 {
     //Since 0 is reserved log
-    int retStatus = 0;
+    eReturnValues retStatus = 0;
     uint64_t size = nvmeLogSizeBytes;//set this for now
     uint8_t * logBuffer = NULL;
     nvmeGetLogPageCmdOpts cmdOpts;
@@ -3372,9 +3372,9 @@ int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode,
 
 
 
-int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags)
+eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint32_t errorHistorySize = 2048;
     uint8_t *errorHistoryDirectory = C_CAST(uint8_t*, calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
@@ -3446,9 +3446,9 @@ int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flag
     return ret;
 }
 
-int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t logLengthOverride)
+eReturnValues pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t logLengthOverride)
 {
-    int retStatus = NOT_SUPPORTED;
+    eReturnValues retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
     uint8_t *genericLogBuf = NULL;
 #define GENERIC_LOG_FILE_NAME_LENGTH 20
@@ -3556,9 +3556,9 @@ int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullM
     return retStatus;
 }
 
-int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes)
+eReturnValues pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes)
 {
-    int retStatus = NOT_SUPPORTED;
+    eReturnValues retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
     uint8_t *genericLogBuf = NULL;
 #define ERROR_HISTORY_FILENAME_LENGTH 30
@@ -3599,11 +3599,11 @@ int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode m
     return retStatus;
 }
 
-int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint16_t logPage, uint8_t logAddress, eLogPullMode mode)
+eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint16_t logPage, uint8_t logAddress, eLogPullMode mode)
 {
     bool fileOpened = false;
     FILE *fp_log = NULL;
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     char *fileNameUsed = NULL;
     uint16_t pagesToReadAtATime = 1;
     uint16_t pagesToReadNow = 1;
@@ -3701,9 +3701,9 @@ int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t tra
     return ret;
 }
 
-int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode)
+eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t logSize = 0;
     uint8_t* genericLogBuf = NULL;
     if (device->drive_info.drive_type == ATA_DRIVE)

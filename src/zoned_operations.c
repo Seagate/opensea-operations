@@ -13,9 +13,9 @@
 
 #include "zoned_operations.h"
 
-int get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones)
+eReturnValues get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!numberOfMatchingZones)
     {
         return BAD_PARAMETER;
@@ -44,9 +44,9 @@ int get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions,
     return SUCCESS;
 }
 
-int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors)
+eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t *reportZones = NULL;
     uint32_t sectorCount = get_Sector_Count_For_512B_Based_XFers(device);
     uint32_t dataBytesToRequest = numberOfZoneDescriptors * 64;

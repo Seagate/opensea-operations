@@ -169,7 +169,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -186,7 +186,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -203,7 +203,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -222,7 +222,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -241,7 +241,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -261,7 +261,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -282,7 +282,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -302,7 +302,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -319,7 +319,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT);
 
 #if defined (__cplusplus)
 }

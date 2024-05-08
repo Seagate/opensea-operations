@@ -74,7 +74,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int firmware_Download(tDevice *device, firmwareUpdateData * options);
+    OPENSEA_OPERATIONS_API eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options);
 
     //See extended inquiry VPD page in SPC spec for details
     typedef enum _eSCSIMicrocodeActivation
@@ -146,7 +146,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes);
 
     //-----------------------------------------------------------------------------
     //

@@ -203,9 +203,9 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
 }
 
 //we need to know where we started at and the range in order to properly calculate progress
-int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range)
+eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     *writeSameInProgress = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -295,9 +295,9 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
     return ret;
 }
 
-int show_Write_Same_Current_LBA(tDevice *device)
+eReturnValues show_Write_Same_Current_LBA(tDevice *device)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t currentLBA = 0;
     uint16_t sctStatus = SCT_STATE_ACTIVE_WAITING_FOR_COMMAND;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -381,9 +381,9 @@ int show_Write_Same_Current_LBA(tDevice *device)
     return ret;
 }
 
-int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength)
+eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint64_t maxWriteSameRange = 0;
     //first check if the device supports the write same command
     if (is_Write_Same_Supported(device, startingLba, numberOfLogicalBlocks, &maxWriteSameRange) && (maxWriteSameRange >= numberOfLogicalBlocks || maxWriteSameRange == 0 || (startingLba + numberOfLogicalBlocks) == (device->drive_info.deviceMaxLba + UINT64_C(1))))
