@@ -23,7 +23,7 @@ extern "C"
 {
 #endif
 
-    OPENSEA_OPERATIONS_API int get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones);
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones);
 
     typedef enum _eZoneType
     {
@@ -61,7 +61,7 @@ extern "C"
         uint64_t writePointerLBA;
     }zoneDescriptor, *ptrZoneDescriptor;
 
-    OPENSEA_OPERATIONS_API int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors);
+    OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors);
 
     //eZoneReportingOptions reportingOptions is used to print the header saying which zones we are showing (all, some, etc)
     OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions reportingOptions, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors);

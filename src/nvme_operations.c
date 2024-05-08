@@ -65,9 +65,9 @@ void nvme_Print_Feature_Identifiers_Help(void)
 //TODO: This is far from perfect. Not all features will be supported, so would be better to have something check if
 //      a feature is supported in the identify data then request information about it as needed.
 //      it would also be helpful to have the name of the feature output as well.-TJE
-int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, M_ATTR_UNUSED bool listOnlySupportedFeatures)
+eReturnValues nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, M_ATTR_UNUSED bool listOnlySupportedFeatures)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint16_t featureID;
     nvmeFeaturesCmdOpt featureCmd;
     bool vendorUniqueLinePrinted = false;
@@ -108,9 +108,9 @@ int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue
     return ret;
 }
 
-static int nvme_Print_Arbitration_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_Arbitration_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -136,9 +136,9 @@ static int nvme_Print_Arbitration_Feature_Details(tDevice *device, eNvmeFeatures
 
 
 //Temperature Threshold 
-static int nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
     uint8_t   TMPSEL = 0; //0=Composite, 1=Sensor 1, 2=Sensor 2, ...
 #ifdef _DEBUG
@@ -190,9 +190,9 @@ static int nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeatures
 }
 
 //Power Management
-static int nvme_Print_PM_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_PM_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -215,9 +215,9 @@ static int nvme_Print_PM_Feature_Details(tDevice *device, eNvmeFeaturesSelectVal
 }
 
 //Error Recovery
-static int nvme_Print_Error_Recovery_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_Error_Recovery_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -240,9 +240,9 @@ static int nvme_Print_Error_Recovery_Feature_Details(tDevice *device, eNvmeFeatu
 }
 
 //Volatile Write Cache Feature. 
-static int nvme_Print_WCE_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_WCE_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -265,9 +265,9 @@ static int nvme_Print_WCE_Feature_Details(tDevice *device, eNvmeFeaturesSelectVa
 }
 
 //Number of Queues Feature 
-static int nvme_Print_NumberOfQueues_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_NumberOfQueues_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -292,9 +292,9 @@ static int nvme_Print_NumberOfQueues_Feature_Details(tDevice *device, eNvmeFeatu
 }
 
 //Interrupt Coalescing (08h Feature)
-static int nvme_Print_Intr_Coalescing_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_Intr_Coalescing_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -317,9 +317,9 @@ static int nvme_Print_Intr_Coalescing_Feature_Details(tDevice *device, eNvmeFeat
 }
 
 //Interrupt Vector Configuration (09h Feature)
-static int nvme_Print_Intr_Config_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_Intr_Config_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -342,9 +342,9 @@ static int nvme_Print_Intr_Config_Feature_Details(tDevice *device, eNvmeFeatures
 }
 
 //Write Atomicity Normal (0Ah Feature)
-static int nvme_Print_Write_Atomicity_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_Write_Atomicity_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -375,9 +375,9 @@ static int nvme_Print_Write_Atomicity_Feature_Details(tDevice *device, eNvmeFeat
 }
 
 //Asynchronous Event Configuration (0Bh Feature)
-static int nvme_Print_Async_Config_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_Async_Config_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
@@ -400,9 +400,9 @@ static int nvme_Print_Async_Config_Feature_Details(tDevice *device, eNvmeFeature
     return ret;
 }
 
-static int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue selectType)
+static eReturnValues nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint8_t hmbData[4096] = { 0 };
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
@@ -457,9 +457,9 @@ static int nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue
     return ret;
 }
 
-int nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeaturesSelectValue selectType)
+eReturnValues nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeaturesSelectValue selectType)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
@@ -512,9 +512,9 @@ int nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeatures
 //      It needs to also check if a given page is supported as well, which is....complicated
 //      Older devices won't have the supported pages LID, but newer will
 //      Additionally we may need to check for specific features or other bits to determine what is or is not supported.
-int nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * logSize)
+eReturnValues nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * logSize)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (logSize)
     {
         uint8_t logPageHeader[UINT32_C(16)] = { 0 };
@@ -663,9 +663,9 @@ int nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * logSize)
     return ret;
 }
 
-int nvme_Print_FWSLOTS_Log_Page(tDevice *device)
+eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice *device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     int slot = 0;
     nvmeFirmwareSlotInfo fwSlotsLogInfo;
     char fwRev[9]; // 8 bytes for the FSR + 1 byte '\0'
@@ -728,9 +728,9 @@ void show_effects_log_human(uint32_t effect)
         printf("  Reserved CSE\n");
 }
 
-int nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
+eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeEffectsLog effectsLogInfo;
     uint16_t i = 0;
     uint32_t effect = 0;
@@ -772,9 +772,9 @@ int nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
 }
 
 
-int nvme_Print_DevSelfTest_Log_Page(tDevice *device)
+eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice *device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     nvmeSelfTestLog selfTestLogInfo;
     int i, temp;
     const char *test_code_res;
@@ -861,9 +861,9 @@ int nvme_Print_DevSelfTest_Log_Page(tDevice *device)
     return ret;
 }
 
-int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
+eReturnValues nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     int err = 0;
     nvmeErrLogEntry * pErrLogBuf = NULL;
 #ifdef _DEBUG
@@ -905,9 +905,9 @@ int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint)
     return ret;
 }
 
-int print_Nvme_Ctrl_Regs(tDevice * device)
+eReturnValues print_Nvme_Ctrl_Regs(tDevice * device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
 
     nvmeBarCtrlRegisters ctrlRegs;
 

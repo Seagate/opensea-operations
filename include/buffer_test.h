@@ -68,7 +68,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults);
+    eReturnValues perform_Cable_Test(tDevice *device, ptrCableTestResults testResults);
 
     //-----------------------------------------------------------------------------
     //

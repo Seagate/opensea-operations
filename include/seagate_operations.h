@@ -37,7 +37,7 @@ extern "C"
     //!   \return SUCCESS = successfully set Phy Speed, !SUCCESS = check return code
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen);
+    OPENSEA_OPERATIONS_API eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen);
 
     //-----------------------------------------------------------------------------
     //
@@ -55,7 +55,7 @@ extern "C"
     //!   \return SUCCESS = successfully set Phy Speed, !SUCCESS = check return code
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber);
 
     //-----------------------------------------------------------------------------
     //
@@ -73,7 +73,7 @@ extern "C"
     //!   \return SUCCESS = successfully set Phy Speed, !SUCCESS = check return code
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t phyIdentifier);
+    OPENSEA_OPERATIONS_API eReturnValues set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t phyIdentifier);
 
     //-----------------------------------------------------------------------------
     //
@@ -121,7 +121,7 @@ extern "C"
     //!   \return SUCCESS = successfully enabled low current spin up, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLevel);
+    OPENSEA_OPERATIONS_API eReturnValues seagate_SCT_Low_Current_Spinup(tDevice *device, eSeagateLCSpinLevel spinupLevel);
 
     //-----------------------------------------------------------------------------
     //
@@ -138,7 +138,7 @@ extern "C"
     //!   \return SUCCESS = successfully enabled low current spin up, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, eSeagateLCSpinLevel state);
+    OPENSEA_OPERATIONS_API eReturnValues set_Low_Current_Spin_Up(tDevice *device, bool useSCTCommand, eSeagateLCSpinLevel state);
 
     //-----------------------------------------------------------------------------
     //
@@ -154,7 +154,7 @@ extern "C"
     //!   \return SUCCESS = successfully set SSC state, FAILURE = failed to set SSC state, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode);
+    OPENSEA_OPERATIONS_API eReturnValues set_SSC_Feature_SATA(tDevice *device, eSSCFeatureState mode);
 
     //-----------------------------------------------------------------------------
     //
@@ -170,7 +170,7 @@ extern "C"
     //!   \return SUCCESS = successfully got SSC state, FAILURE = failed to get SSC state, NOT_SUPPORTED = not Seagate or drive doesn't support this feature.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode);
+    OPENSEA_OPERATIONS_API eReturnValues get_SSC_Feature_SATA(tDevice *device, eSSCFeatureState *mode);
 
     typedef struct _seagateJITModes
     {
@@ -182,11 +182,11 @@ extern "C"
         bool jit3;//slowest
     }seagateJITModes, *ptrSeagateJITModes;
 
-    OPENSEA_OPERATIONS_API int seagate_Set_JIT_Modes(tDevice *device, bool disableVjit, uint8_t jitMode, bool revertToDefaults, bool nonvolatile);
+    OPENSEA_OPERATIONS_API eReturnValues seagate_Set_JIT_Modes(tDevice *device, bool disableVjit, uint8_t jitMode, bool revertToDefaults, bool nonvolatile);
 
-    OPENSEA_OPERATIONS_API int seagate_Get_JIT_Modes(tDevice *device, ptrSeagateJITModes jitModes);
+    OPENSEA_OPERATIONS_API eReturnValues seagate_Get_JIT_Modes(tDevice *device, ptrSeagateJITModes jitModes);
 
-    OPENSEA_OPERATIONS_API int seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled);//SATA only. SAS should use the set power consumption options in power_control.h
+    OPENSEA_OPERATIONS_API eReturnValues seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *enabled);//SATA only. SAS should use the set power consumption options in power_control.h
 
     //this enum is used to know the power mode of a device
     typedef enum _ePowerBalanceMode
@@ -196,7 +196,7 @@ extern "C"
         POWER_BAL_LIMITED = 3
     } ePowerBalanceMode;
 
-    OPENSEA_OPERATIONS_API int seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode);//SATA only. SAS should use the set power consumption options in power_control.h
+    OPENSEA_OPERATIONS_API eReturnValues seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode powerMode);//SATA only. SAS should use the set power consumption options in power_control.h
 
     typedef enum _eIDDTests
     {
@@ -224,7 +224,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport);
+    OPENSEA_OPERATIONS_API eReturnValues get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSupport);
 
     //-----------------------------------------------------------------------------
     //
@@ -241,7 +241,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED = IDD not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeInSeconds);
+    OPENSEA_OPERATIONS_API eReturnValues get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint64_t *timeInSeconds);
 
     //-----------------------------------------------------------------------------
     //
@@ -259,7 +259,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool captive);
+    OPENSEA_OPERATIONS_API eReturnValues run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, bool captive);
 
     //-----------------------------------------------------------------------------
     //
@@ -275,7 +275,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_IDD_Status(tDevice *device, uint8_t *status);
+    OPENSEA_OPERATIONS_API eReturnValues get_IDD_Status(tDevice *device, uint8_t *status);
 
     //-----------------------------------------------------------------------------
     //
@@ -335,7 +335,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData);
+    OPENSEA_OPERATIONS_API eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData);
 
     //-----------------------------------------------------------------------------
     //
@@ -366,7 +366,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, ePowerTelemetryMeasurementOptions measurementOption);
+    OPENSEA_OPERATIONS_API eReturnValues request_Power_Measurement(tDevice *device, uint16_t timeMeasurementSeconds, ePowerTelemetryMeasurementOptions measurementOption);
 
     //-----------------------------------------------------------------------------
     //
@@ -383,7 +383,7 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -431,9 +431,9 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail, NOT_SUPPORTED not supported on this device. This only happens on non-sata right now. - TJE
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int seagate_Quick_Format(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues seagate_Quick_Format(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int clr_Pcie_Correctable_Errs(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues clr_Pcie_Correctable_Errs(tDevice *device);
     //-----------------------------------------------------------------------------
     //
     //  nvme_Get_Ext_Smrt_Log_Page
@@ -450,7 +450,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Ext_Smrt_Log(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues get_Ext_Smrt_Log(tDevice *device);
 
     OPENSEA_OPERATIONS_API void print_smart_log(uint16_t  verNo, SmartVendorSpecific attr, int lastAttr);
     OPENSEA_OPERATIONS_API uint64_t smart_attribute_vs(uint16_t  verNo, SmartVendorSpecific attr);
@@ -519,7 +519,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API bool is_Seagate_DeviceStatistics_Supported(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int get_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats);
+    OPENSEA_OPERATIONS_API eReturnValues get_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats);
 
     OPENSEA_OPERATIONS_API void print_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats);
 #if defined (__cplusplus)

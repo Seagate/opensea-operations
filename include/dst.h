@@ -49,7 +49,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime);
+    OPENSEA_OPERATIONS_API eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -67,7 +67,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout);
+    OPENSEA_OPERATIONS_API eReturnValues send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout);
 
     //-----------------------------------------------------------------------------
     //
@@ -82,7 +82,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int abort_DST(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues abort_DST(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -99,7 +99,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
+    OPENSEA_OPERATIONS_API eReturnValues get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
 
     //-----------------------------------------------------------------------------
     //
@@ -114,7 +114,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_DST_Progress(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues print_DST_Progress(tDevice *device);
     
     #define MAX_DST_STATUS_STRING_LENGTH 160
     OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool justRanDST, bool isNVMeDrive);
@@ -134,7 +134,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -149,7 +149,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Abort_DST(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Abort_DST(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -166,7 +166,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
 
     //-----------------------------------------------------------------------------
     //
@@ -183,9 +183,9 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
 
-    OPENSEA_OPERATIONS_API int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status);
 
     //-----------------------------------------------------------------------------
     //
@@ -200,9 +200,9 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Abort_DST(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Abort_DST(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int nvme_Abort_DST(tDevice *device, uint32_t nsid);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Abort_DST(tDevice *device, uint32_t nsid);
 
     //-----------------------------------------------------------------------------
     //
@@ -246,7 +246,7 @@ extern "C"
     //!   \return SUCCESS = completed DST and clean successfully, !SUCCESS = error limit reached, or unrepairable DST condition
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList, bool *repaired);
+    OPENSEA_OPERATIONS_API eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList, bool *repaired);
 
     typedef struct _dstDescriptor
     {
@@ -310,9 +310,9 @@ extern "C"
         dstDescriptor dstEntry[MAX_DST_ENTRIES];
     }dstLogEntries, *ptrDstLogEntries;
 
-    OPENSEA_OPERATIONS_API int get_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries);
+    OPENSEA_OPERATIONS_API eReturnValues get_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries);
 
-    OPENSEA_OPERATIONS_API int print_DST_Log_Entries(ptrDstLogEntries entries);
+    OPENSEA_OPERATIONS_API eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries);
 
     OPENSEA_OPERATIONS_API bool is_Self_Test_Supported(tDevice *device);
 
@@ -320,7 +320,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API bool is_Selective_Self_Test_Supported(tDevice* device);
 
-    OPENSEA_OPERATIONS_API int run_SMART_Offline(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues run_SMART_Offline(tDevice* device);
 
 #if defined (__cplusplus)
 }

@@ -22,27 +22,30 @@
 #include <stdlib.h>
 #include "platform_helper.h"
 
-int ata_Abort_DST(tDevice *device)
+eReturnValues ata_Abort_DST(tDevice *device)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     result = ata_SMART_Offline(device, 0x7F, 15);
     return result;
 }
-int scsi_Abort_DST(tDevice *device)
+
+eReturnValues scsi_Abort_DST(tDevice *device)
 {
-    int     result = UNKNOWN;
+    eReturnValues     result = UNKNOWN;
     result = scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, NULL, 0, 15);
     return result;
 }
-int nvme_Abort_DST(tDevice *device, uint32_t nsid)
+
+eReturnValues nvme_Abort_DST(tDevice *device, uint32_t nsid)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     result = nvme_Device_Self_Test(device, nsid, 0x0F);
     return result;
 }
-int abort_DST(tDevice *device)
+
+eReturnValues abort_DST(tDevice *device)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
@@ -60,9 +63,10 @@ int abort_DST(tDevice *device)
     }
     return result;
 }
-int ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
+
+eReturnValues ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
-    int     result = UNKNOWN;
+    eReturnValues     result = UNKNOWN;
     uint8_t temp_buf[512] = { 0 };
     result = ata_SMART_Read_Data(device, temp_buf, sizeof(temp_buf));
     if (result == SUCCESS)
@@ -74,10 +78,11 @@ int ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *st
     }
     return result;
 }
-int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
+
+eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
     //04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
-    int     result = UNKNOWN;
+    eReturnValues     result = UNKNOWN;
     uint8_t *temp_buf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (temp_buf == NULL)
     {
@@ -99,9 +104,10 @@ int scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
     safe_Free_aligned(temp_buf)
     return result;
 }
-int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
+
+eReturnValues nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     uint8_t nvmeSelfTestLog[564] = { 0 };//strange size for the log, but it's what I see in the spec - TJE
     nvmeGetLogPageCmdOpts getDSTLog;
     memset(&getDSTLog, 0, sizeof(nvmeGetLogPageCmdOpts));
@@ -141,9 +147,9 @@ int nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *s
     return result;
 }
 
-int get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
+eReturnValues get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
-    int      result = UNKNOWN;
+    eReturnValues      result = UNKNOWN;
     *percentComplete = 0;
     *status = 0xFF;
     switch (device->drive_info.drive_type)
@@ -305,9 +311,9 @@ void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool
     }
 }
 
-int print_DST_Progress(tDevice *device)
+eReturnValues print_DST_Progress(tDevice *device)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     uint32_t percentComplete = 0;
     uint8_t status = 0xFF;
     result = get_DST_Progress(device, &percentComplete, &status);
@@ -475,9 +481,9 @@ bool is_Selective_Self_Test_Supported(tDevice* device)
     return supported;
 }
 
-int send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
+eReturnValues send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (commandTimeout == 0)
     {
         if (os_Is_Infinite_Timeout_Supported())
@@ -636,9 +642,9 @@ static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, 
     return supported;
 }
 
-static int get_SMART_Offline_Status(tDevice* device, uint8_t *status)
+static eReturnValues get_SMART_Offline_Status(tDevice* device, uint8_t *status)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!status)
     {
         return BAD_PARAMETER;
@@ -658,9 +664,9 @@ static int get_SMART_Offline_Status(tDevice* device, uint8_t *status)
 //      restart on its own. The standards just say it restarts after a "vendor specific event".
 //      Because of this, the polling code is removed entirely unless the following #define is set to reenable it. -TJE
 //#define ENABLE_SMART_OFFLINE_ROUTINE_POLLING 1
-int run_SMART_Offline(tDevice* device)
+eReturnValues run_SMART_Offline(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         bool abortRestart = false;
@@ -794,9 +800,9 @@ int run_SMART_Offline(tDevice* device)
     return ret;
 }
 
-int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime)
+eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Self_Test_Supported(device))
     {
         uint8_t status = 0xF0;
@@ -1065,9 +1071,9 @@ int run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, bool captiv
     return ret;
 }
 
-int get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
+eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (hours == NULL || minutes == NULL)
     {
         return BAD_PARAMETER;
@@ -1204,9 +1210,9 @@ bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
     return isValidLBA;
 }
 
-int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList, bool *repaired)
+eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList, bool *repaired)
 {
-    int ret = SUCCESS;//assume this works successfully
+    eReturnValues ret = SUCCESS;//assume this works successfully
     errorLBA *errorList = NULL;
     uint64_t *errorIndex = NULL;
     uint64_t localErrorIndex = 0;
@@ -1326,7 +1332,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                         printf("Reparing LBA %"PRIu64"\n", errorList[*errorIndex].errorAddress);
                     }
                     //we got a valid LBA, so time to fix it
-                    int repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
+                    eReturnValues repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
                     if (repaired)
                     {
                         *repaired = true;
@@ -1377,7 +1383,7 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
                     }
                     //not using generic_tests.h since we don't have a way to force ATA vs SCSI passthrough command for this, and we have times where we must do a passthrough write (USB emulation nonsense)
                     //first try verifying the whole thing at once so we can skip the loop below if it is good
-                    int verify = SUCCESS;
+                    eReturnValues verify = SUCCESS;
                     if (passthroughWrite)
                     {
                         verify = ata_Read_Verify(device, readAroundStart, C_CAST(uint32_t, readAroundRange));
@@ -1490,9 +1496,9 @@ int run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update update
 }
 #define ENABLE_DST_LOG_DEBUG 0 //set to non zero to enable this debug.
 //TODO: This should grab the entries in order from most recent to oldest...current sort via timestamp won't fix getting the most recent one first.
-static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint8_t *selfTestResults = NULL;
     uint32_t logSize = 0;//used for compatibility purposes with drives that may have GPL, but not support the ext log...
     //device->drive_info.ata_Options.generalPurposeLoggingSupported = false;//for debugging SMART log version
@@ -1787,9 +1793,9 @@ static int get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-static int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static eReturnValues get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint8_t dstLog[LP_SELF_TEST_RESULTS_LEN] = { 0 };
     if (!entries)
     {
@@ -1823,9 +1829,9 @@ static int get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-static int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+static eReturnValues get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!entries)
     {
         return BAD_PARAMETER;
@@ -1893,7 +1899,7 @@ static int get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     return ret;
 }
 
-int get_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
+eReturnValues get_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     switch (device->drive_info.drive_type)
     {
@@ -1908,7 +1914,7 @@ int get_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
     }
 }
 
-int print_DST_Log_Entries(ptrDstLogEntries entries)
+eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
 {
     if (!entries)
     {

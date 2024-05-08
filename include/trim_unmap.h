@@ -54,7 +54,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -71,7 +71,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -88,7 +88,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -105,7 +105,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
 #if defined (__cplusplus)
 }

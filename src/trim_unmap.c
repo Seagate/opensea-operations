@@ -180,9 +180,9 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
     return supported;
 }
 
-int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
+eReturnValues trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
@@ -201,9 +201,9 @@ int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     return ret;
 }
 
-int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
+eReturnValues nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t maxTrimOrUnmapBlockDescriptors = 0, maxLBACount = 0;
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {
@@ -257,9 +257,9 @@ int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     return ret;
 }
 
-int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
+eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t maxTrimOrUnmapBlockDescriptors = 0, maxLBACount = 0;
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {
@@ -364,9 +364,9 @@ int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
     return ret;
 }
 
-int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
+eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t maxTrimOrUnmapBlockDescriptors = 0, maxLBACount = 0;
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {

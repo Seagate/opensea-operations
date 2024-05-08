@@ -73,9 +73,9 @@ static void fill_OG_MBR_Partitions(uint8_t* mbrDataBuf, uint32_t mbrDataSize, pt
     return;
 }
 
-static int fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData mbr)
+static eReturnValues fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData mbr)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (mbrDataBuf && mbr && mbrDataSize >= 512 && !is_Empty(mbrDataBuf, 512) && mbrDataBuf[510] == MBR_SIGNATURE_LO && mbrDataBuf[511] == MBR_SIGNATURE_HI)
     {
         fill_OG_MBR_Partitions(mbrDataBuf, mbrDataSize, mbr);//fill in the original 4 records first since these are in the same place for any format
@@ -425,9 +425,9 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
 //TODO: Add validating the secondary copy and error checking between the copies!
 //TODO: Handle parsing from the backup LBA
 //TODO: When a CRC is invalid, compare to the backup and use that data instead
-static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
+static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (gptDataBuf && gpt && gptDataSize >= UINT32_C(32768) && gptDataSize >= (2 * device->drive_info.deviceBlockSize))
     {
         //In order to "easily" adapt this code for GPT backup, it will move the buffer data around since at the beginning the header is before the partitions, but for the backup

@@ -382,7 +382,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -398,9 +398,9 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
-    OPENSEA_OPERATIONS_API int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -481,7 +481,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Drive_Information(tDevice *device, bool showChildInformation);
+    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(tDevice *device, bool showChildInformation);
 
     //-----------------------------------------------------------------------------
     //

@@ -17,9 +17,9 @@
 #include "ata_helper.h"
 #include "ata_helper_func.h"
 
-int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
+eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!device || !counters)
     {
         return BAD_PARAMETER;

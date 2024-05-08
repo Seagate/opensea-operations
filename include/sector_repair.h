@@ -54,7 +54,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled);
+    OPENSEA_OPERATIONS_API eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled);
 
     //-----------------------------------------------------------------------------
     //
@@ -71,7 +71,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors);
 
-    OPENSEA_OPERATIONS_API int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled);
+    OPENSEA_OPERATIONS_API eReturnValues get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled);
 
     //Use this call to determine if you've already logged an error in the list so that you don't log it again
     OPENSEA_OPERATIONS_API bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba);

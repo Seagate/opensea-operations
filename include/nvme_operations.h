@@ -36,7 +36,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrint);
 
     //-----------------------------------------------------------------------------
     //
@@ -51,7 +51,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Print_FWSLOTS_Log_Page(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -66,7 +66,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Print_CmdSptEfft_Log_Page(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice *device);
 
     OPENSEA_OPERATIONS_API void show_effects_log_human(uint32_t effect);
 
@@ -83,7 +83,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Print_DevSelfTest_Log_Page(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -113,7 +113,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, bool listOnlySupportedFeatures);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, bool listOnlySupportedFeatures);
 
 
     //-----------------------------------------------------------------------------
@@ -131,13 +131,13 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeaturesSelectValue selectType);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNvmeFeaturesSelectValue selectType);
 
     // \fn print_Nvme_Ctrl_Regs(tDevice * device)
     // \brief Prints the controller registers. 
     // \param[in] device struture
     // \return SUCCESS - pass, !SUCCESS fail or something went wrong
-    OPENSEA_OPERATIONS_API int print_Nvme_Ctrl_Regs(tDevice * device);
+    OPENSEA_OPERATIONS_API eReturnValues print_Nvme_Ctrl_Regs(tDevice * device);
 
     //-----------------------------------------------------------------------------
     //
@@ -155,7 +155,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t * logSize);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t * logSize);
 
 #if defined (__cplusplus)
 }

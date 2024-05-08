@@ -88,7 +88,7 @@ static void updateDataSetEntryOffset(uint8_t *dataSetHeader, uint32_t dataSetOff
     memcpy(dataSetHeader + 8, &dataSetOffset, sizeof(uint32_t));
 }
 
-static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, int sataFarmCopyType, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
+static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, int sataFarmCopyType, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSavedHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmLongSavedHeader, uint8_t *farmStickyHeader, uint8_t *farmWorkLoadTraceHeader,
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmSavedLog, uint8_t *farmTimeSeriesLog, uint8_t *farmLongSavedLog, uint8_t *farmStickyLog, uint8_t *farmWorkLoadTraceLog)
 {
@@ -563,11 +563,11 @@ static int32_t pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes, int 
     return SUCCESS;
 }
 
-static int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
+static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPaddingBufferSize *zeroPaddingBufferSize,
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmLongSavedHeader, uint8_t *farmStickyHeader,
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmTimeSeriesLog, uint8_t *farmLongSavedLog, uint8_t *farmStickyLog, tSASLogpageSize logpageSize)
 {
-    int32_t returnValue = FAILURE;
+    eReturnValues returnValue = FAILURE;
     uint64_t startTimeInMilliSecs = 0, endTimeInMilliSecs = 0;
     uint16_t numberOfDataSets = 0;
     uint16_t headerLength = FARMC_LOG_HEADER_LENGTH;
@@ -867,9 +867,9 @@ static int32_t pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPaddingBu
     return SUCCESS;
 }
 
-int pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType)
+eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType)
 {
-    int32_t returnValue = NOT_SUPPORTED;
+    eReturnValues returnValue = NOT_SUPPORTED;
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {

@@ -103,10 +103,10 @@ typedef struct _persistentReservationCapabilitiesV1
 
 #define PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 1
 
-int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReservationCapabilities prCapabilities)
+eReturnValues get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReservationCapabilities prCapabilities)
 {
     //note: some older drives don't support report capabilities...need to figure out what to do about those - TJE
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!prCapabilities)
     {
         return BAD_PARAMETER;
@@ -552,9 +552,9 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
     return;
 }
 
-int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
+eReturnValues get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!keyCount)
     {
         return BAD_PARAMETER;
@@ -589,10 +589,10 @@ typedef struct _registrationKeysDataV1
     uint64_t registrationKey[1];//This is variable sized depending on how many are requested to be read and how many are filled in when read. 
 }registrationKeysDataV1, *ptrRegistrationKeysDataV1;
 
-int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistrationKeysData keys)
+eReturnValues get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistrationKeysData keys)
 {
     //get only registration keys
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!keys)
     {
         return BAD_PARAMETER;
@@ -666,10 +666,10 @@ void show_Registration_Keys(ptrRegistrationKeysData keys)
 }
 
 //If supporting "extents", multiple can be reported, but this capability is obsolete, so this will likely return 1 or 0
-int get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount)
+eReturnValues get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount)
 {
     //get only reservations
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!reservationKeyCount)
     {
         return BAD_PARAMETER;
@@ -720,10 +720,10 @@ typedef struct _reservationsDataV1
     reservationInfoV1 reservation[1];//variable length depending on how it was allocated. Should always be AT LEAST one of these
 }reservationsDataV1, *ptrReservationsDataV1;
 
-int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservationsData reservations)
+eReturnValues get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservationsData reservations)
 {
     //get only reservations
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!reservations)
     {
         return BAD_PARAMETER;
@@ -948,9 +948,9 @@ void show_Reservations(ptrReservationsData reservations)
     }
 }
 
-int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
+eReturnValues get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!keyCount)
     {
         return BAD_PARAMETER;
@@ -1030,11 +1030,11 @@ typedef struct _fullReservationInfoV1
     fullReservationKeyInfoV1 reservationKey[1];//Variable size depending on how many will be reported by the device at a given time.
 }fullReservationInfoV1, *ptrFullReservationInfoV1;
 
-int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation)
+eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation)
 {
     //if newer SPC, use the read full status subcommand.
     //If older SPC, use the get_Registrations and get_Reservations functions to get all the data we need to collect. - TJE
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!fullReservation)
     {
         return BAD_PARAMETER;
@@ -1458,9 +1458,9 @@ static void format_Basic_Info(uint8_t *ptrData, uint32_t dataLength, ptrPersiste
     }
 }
 
-int register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts, bool persistThroughPowerLoss, bool ignoreExisting)
+eReturnValues register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts, bool persistThroughPowerLoss, bool ignoreExisting)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t registerData[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
@@ -1492,9 +1492,9 @@ int register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts
     return ret;
 }
 
-int unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
+eReturnValues unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t registerData[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
@@ -1522,9 +1522,9 @@ int unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
     return ret;
 }
 
-int acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType)
+eReturnValues acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t acquireRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
@@ -1609,9 +1609,9 @@ int acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType)
     return ret;
 }
 
-int release_Reservation(tDevice *device, uint64_t key, eReservationType resType)
+eReturnValues release_Reservation(tDevice *device, uint64_t key, eReservationType resType)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t releaseRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
@@ -1696,9 +1696,9 @@ int release_Reservation(tDevice *device, uint64_t key, eReservationType resType)
     return ret;
 }
 
-int clear_Reservations(tDevice *device, uint64_t key)
+eReturnValues clear_Reservations(tDevice *device, uint64_t key)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t clearRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
@@ -1724,9 +1724,9 @@ int clear_Reservations(tDevice *device, uint64_t key)
     return ret;
 }
 
-int preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool abort, eReservationType resType)
+eReturnValues preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool abort, eReservationType resType)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t preemptRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };

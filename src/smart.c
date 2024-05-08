@@ -20,9 +20,9 @@
 #include "nvme_operations.h"
 #include "seagate_operations.h"
 
-int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
+eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE && is_SMART_Enabled(device))
     {
         ataSMARTAttribute currentAttribute;
@@ -2226,9 +2226,9 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
     return;
 }
 
-int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
+eReturnValues print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     smartLogData smartData; 
     memset(&smartData,0,sizeof(smartLogData));
     ret = get_SMART_Attributes(device,&smartData);
@@ -2273,9 +2273,9 @@ int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
     return ret;
 }
 
-int show_NVMe_Health(tDevice* device)
+eReturnValues show_NVMe_Health(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         smartLogData smartData;
@@ -2396,9 +2396,9 @@ bool is_SMART_Error_Logging_Supported(tDevice *device)
     return supported;
 }
 
-static int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
+static eReturnValues get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_SMART_Command_Transport_Supported(device))
     {
         //try reading the SCT status log (ACS4 adds SMART status to this log)
@@ -2433,9 +2433,9 @@ static int get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
     return ret;
 }
 
-int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
+eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
-    int ret = NOT_SUPPORTED; //command return value
+    eReturnValues ret = NOT_SUPPORTED; //command return value
     if (is_SMART_Enabled(device))
     {
         smartLogData attributes;
@@ -2826,9 +2826,9 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char
     *reasonStringOutputLength = C_CAST(uint8_t, strlen(reasonString));
 }
 //
-int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
+eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (VERBOSITY_COMMAND_NAMES <= device->deviceVerbosity)
     {
         printf("Starting SCSI SMART Check\n");
@@ -3007,9 +3007,9 @@ int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
+eReturnValues nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint8_t smartLogPage[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     nvmeGetLogPageCmdOpts smartPageOpts;
     memset(&smartPageOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
@@ -3083,9 +3083,9 @@ int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-int run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
+eReturnValues run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         result = scsi_SMART_Check(device, tripInfo);
@@ -3191,9 +3191,9 @@ bool is_SMART_Check_Supported(tDevice *device)
     return supported;
 }
 
-int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount)
+eReturnValues get_Pending_List_Count(tDevice *device, uint32_t *pendingCount)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //get from SMART attribute 197 or from device statistics log
@@ -3257,9 +3257,9 @@ int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount)
     return ret;
 }
 
-int get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
+eReturnValues get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //get from SMART attribute 5 or from device statistics log
@@ -3338,9 +3338,9 @@ int get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
 }
 
 //there is also a "get" method that should be added below
-int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool isVolatile, uint16_t hdaTemperatureIntervalOrState)
+eReturnValues sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool isVolatile, uint16_t hdaTemperatureIntervalOrState)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     //Note: SCT is a SATA thing. No SCSI equivalent
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -3424,9 +3424,9 @@ int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enable
     return ret;
 }
 
-int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enableDisable, bool *defaultValue, uint16_t *hdaTemperatureIntervalOrState, uint16_t *featureOptionFlags)
+eReturnValues sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enableDisable, bool *defaultValue, uint16_t *hdaTemperatureIntervalOrState, uint16_t *featureOptionFlags)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     //Note: SCT is a SATA thing. No SCSI equivalent
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -3533,9 +3533,9 @@ int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enabl
     return ret;
 }
 
-int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile)
+eReturnValues sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
@@ -3564,9 +3564,9 @@ int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     return ret;
 }
 
-int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile)
+eReturnValues sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
@@ -3593,9 +3593,9 @@ int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, 
     return ret;
 }
 
-int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand)
+eReturnValues sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT3)//check that the feature is supported by this drive
@@ -3617,9 +3617,9 @@ int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercComma
     return ret;
 }
 
-int sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
+eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_SMART_Command_Transport_Supported(device))
     {
         //try reading the SCT status log (ACS4 adds SMART status to this log)
@@ -3643,9 +3643,9 @@ int sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMill
     return ret;
 }
 
-int enable_Disable_SMART_Feature(tDevice *device, bool enable)
+eReturnValues enable_Disable_SMART_Feature(tDevice *device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if(device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
@@ -3684,9 +3684,9 @@ int enable_Disable_SMART_Feature(tDevice *device, bool enable)
     return ret;
 }
 
-int set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault)
+eReturnValues set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         informationalExceptionsControl control;
@@ -3721,9 +3721,9 @@ int set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault)
 }
 
 //always gets the control data. log data is optional
-int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc, ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData)
+eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc, ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!controlData)
     {
         return BAD_PARAMETER;
@@ -3792,9 +3792,9 @@ int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl
     return ret;
 }
 
-int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInformationalExceptionsControl controlData)
+eReturnValues set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInformationalExceptionsControl controlData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint8_t *infoControlPage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!infoControlPage)
     {
@@ -3882,9 +3882,9 @@ int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInform
     return ret;
 }
 
-int enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)
+eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if(device->drive_info.drive_type == ATA_DRIVE)
     {
         if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
@@ -3909,9 +3909,9 @@ int enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)
     return ret;
 }
 
-int enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable)
+eReturnValues enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
@@ -3936,9 +3936,9 @@ int enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable)
     return ret;
 }
 
-int get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
+eReturnValues get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!smartInfo)
     {
         return BAD_PARAMETER;
@@ -3974,9 +3974,9 @@ int get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
     return ret;
 }
 
-int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
+eReturnValues print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!smartInfo)
     {
         return BAD_PARAMETER;
@@ -4148,9 +4148,9 @@ int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
     return ret;
 }
 
-int nvme_Print_Temp_Statistics(tDevice *device)
+eReturnValues nvme_Print_Temp_Statistics(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
         int index;
@@ -4261,9 +4261,9 @@ int nvme_Print_Temp_Statistics(tDevice *device)
     return ret;
 }
 
-int nvme_Print_PCI_Statistics(tDevice *device)
+eReturnValues nvme_Print_PCI_Statistics(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
         //uint64_t size = 0; 
@@ -4337,9 +4337,9 @@ int nvme_Print_PCI_Statistics(tDevice *device)
 #define SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE UINT8_C(12)
 #define SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE UINT8_C(5)
 
-int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog)
+eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (!smartErrorLog)
@@ -4354,7 +4354,7 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
             if (smartErrorLogSize > 0)
             {
                 uint8_t errorLog[ATA_LOG_PAGE_LEN_BYTES] = { 0 }; //This log is only 1 page in spec
-                int getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, ATA_LOG_PAGE_LEN_BYTES);
+                eReturnValues getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, ATA_LOG_PAGE_LEN_BYTES);
                 if (SUCCESS == getLog || WARN_INVALID_CHECKSUM == getLog)
                 {
                     uint8_t errorLogIndex = errorLog[1];
@@ -4462,9 +4462,9 @@ int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog sm
 #define COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE UINT8_C(5)
 
 //This function will automatically select SMART vs GPL log
-int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog)
+eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (!smartErrorLog)
@@ -4487,7 +4487,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                 if (compErrLogSize > 0)
                 {
                     ret = SUCCESS;
-                    int getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
+                    eReturnValues getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
                     if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                     {
                         smartErrorLog->version = errorLog[0];
@@ -4622,7 +4622,7 @@ int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMAR
                     {
                         return MEMORY_FAILURE;
                     }
-                    int getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog, 512);
+                    eReturnValues getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog, 512);
                     if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                     {
                         smartErrorLog->version = errorLog[0];

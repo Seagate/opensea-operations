@@ -40,7 +40,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEnd, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t eraseRangeEnd, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -60,7 +60,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -75,7 +75,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int erase_Boot_Sectors(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues erase_Boot_Sectors(tDevice* device);
 
 #if defined (__cplusplus)
 }

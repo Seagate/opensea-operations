@@ -17,9 +17,9 @@
 #include "sanitize.h"
 #include "platform_helper.h"
 
-static int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static eReturnValues get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
-    int result = ata_Sanitize_Status(device, false);
+    eReturnValues result = ata_Sanitize_Status(device, false);
     if (result == SUCCESS)
     {
         *percentComplete = M_BytesTo2ByteValue(device->drive_info.lastCommandRTFRs.lbaMid, device->drive_info.lastCommandRTFRs.lbaLow);
@@ -89,9 +89,9 @@ static int get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, e
     return result;
 }
 
-static int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     //read the sanitize status log
     uint8_t sanitizeStatusLog[512] = { 0 };
     nvmeGetLogPageCmdOpts getLogOpts;
@@ -135,11 +135,11 @@ static int get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, 
     return result;
 }
 
-static int get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static eReturnValues get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     uint8_t req_sense_buf[SPC3_SENSE_LEN] = { 0 };
     uint8_t acq = 0, ascq = 0, senseKey = 0, fru = 0;
-    int result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
+    eReturnValues result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
     get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
     result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
     //set this for now. It will be changed below if necessary.
@@ -166,9 +166,9 @@ static int get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, 
     return result;
 }
 
-int get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+eReturnValues get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     *sanitizeStatus = 0;
     switch (device->drive_info.drive_type)
     {
@@ -191,9 +191,9 @@ int get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeSta
     return result;
 }
 
-int show_Sanitize_Progress(tDevice *device)
+eReturnValues show_Sanitize_Progress(tDevice *device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     double percentComplete = 0;
     eSanitizeStatus sanitizeInProgress = 0;
 
@@ -243,9 +243,9 @@ int show_Sanitize_Progress(tDevice *device)
     return ret;
 }
 
-int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOptions)
+eReturnValues get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOptions)
 {
-    int ret = FAILURE;
+    eReturnValues ret = FAILURE;
     if (device->drive_info.IdentifyData.ata.Word255 == 0)
     {
         ret = ata_Identify(device, C_CAST(uint8_t *, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
@@ -297,9 +297,9 @@ int get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported 
     return ret;
 }
 
-int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
+eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
 {
-    int                         ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)//check for this version of SPC first since the report supported Operation codes and Sanitize command should only be on drives with this version or highter.
     {
         if (device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)
@@ -403,9 +403,9 @@ int get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
     return ret;
 }
 
-int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
+eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
     {
         ret = SUCCESS;
@@ -465,9 +465,9 @@ int get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSuppor
     return ret;
 }
 
-int get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opts)
+eReturnValues get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opts)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
@@ -486,9 +486,9 @@ int get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opt
     return ret;
 }
 
-int sanitize_Freezelock(tDevice* device)
+eReturnValues sanitize_Freezelock(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Sanitize_Freeze_Lock(device);
@@ -519,9 +519,9 @@ int sanitize_Freezelock(tDevice* device)
     return ret;
 }
 
-int sanitize_Anti_Freezelock(tDevice* device)
+eReturnValues sanitize_Anti_Freezelock(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Sanitize_Anti_Freeze_Lock(device);
@@ -552,7 +552,7 @@ int sanitize_Anti_Freezelock(tDevice* device)
     return ret;
 }
 
-int run_Sanitize_Operation(tDevice* device, eSanitizeOperations sanitizeOperation, bool pollForProgress, uint8_t* pattern, uint32_t patternLength)
+eReturnValues run_Sanitize_Operation(tDevice* device, eSanitizeOperations sanitizeOperation, bool pollForProgress, uint8_t* pattern, uint32_t patternLength)
 {
     //convert to calling new functions since this one is obsolete.
     sanitizeOperationOptions sanitizeOptions;
@@ -594,9 +594,9 @@ int run_Sanitize_Operation(tDevice* device, eSanitizeOperations sanitizeOperatio
     return run_Sanitize_Operation2(device, sanitizeOptions);
 }
 
-static int sanitize_Poll_For_Progress(tDevice* device, uint32_t delayTime)
+static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayTime)
 {
-    int ret = IN_PROGRESS;
+    eReturnValues ret = IN_PROGRESS;
     uint8_t minutes = 0, seconds = 0;
     double percentComplete = 0;
     convert_Seconds_To_Displayable_Time(delayTime, NULL, NULL, NULL, &minutes, &seconds);
@@ -666,9 +666,9 @@ typedef struct _sanitizeOperationOptions_V1
     }overwriteOptions; //overwrite unique options
 }sanitizeOperationOptions_V1;
 
-int run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions sanitizeOptions)
+eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions sanitizeOptions)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (sanitizeOptions.version >= SANITIZE_OPERATION_OPTIONS_VERSION_V1 && sanitizeOptions.size >= sizeof(sanitizeOperationOptions_V1))
     {
         //NOTE: If sanitizeoptions changes version, need to adjust code to offer backwards compatibility when possible.-TJE

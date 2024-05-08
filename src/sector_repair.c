@@ -16,9 +16,9 @@
 #include "sector_repair.h"
 #include "cmds.h"
 
-int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled)
+eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint16_t logicalPerPhysical = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
     uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
     uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -61,7 +61,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
     }
     else
     {
-        int readReallocation = FAILURE;//assume failure
+        eReturnValues readReallocation = FAILURE;//assume failure
         if (automaticReadReallocationEnabled)
         {
             //Attempt a read reallocation to preserve the user's data
@@ -402,9 +402,9 @@ void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors)
     }
 }
 
-int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled)
+eReturnValues get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (automaticReadReallocationEnabled)
     {
         *automaticReadReallocationEnabled = false;

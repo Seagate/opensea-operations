@@ -28,9 +28,9 @@
 #include "dst.h"
 #include "logs.h"//for SCSI mode pages
 
-int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
+eReturnValues get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t *modeSense = C_CAST(uint8_t*, calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -64,9 +64,9 @@ int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
     return ret;
 }
 
-int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
+eReturnValues change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t *modeSelect = C_CAST(uint8_t*, calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -127,9 +127,9 @@ int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
 }
 
 //SBC spec. Caching Mode Page NV_DIS
-int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
+eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
 
     if (device->drive_info.drive_type != SCSI_DRIVE)
     {
@@ -183,9 +183,9 @@ int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
     return ret;
 }
 
-int scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
+eReturnValues scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
@@ -232,9 +232,9 @@ int scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
     return ret;
 }
 
-int ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
+eReturnValues ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     //on ata, we just send a set features command to change this
     if (readLookAheadEnableDisable == true)
     {
@@ -247,9 +247,9 @@ int ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
     return ret;
 }
 
-int set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
+eReturnValues set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         ret = scsi_Set_Read_Look_Ahead(device, readLookAheadEnableDisable);
@@ -265,9 +265,9 @@ int set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
     return ret;
 }
 
-int scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == NULL)
@@ -314,9 +314,9 @@ int scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     return ret;
 }
 
-int ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     //on ata, we just send a set features command to change this
     if (writeCacheEnableDisable == true)
     {
@@ -329,9 +329,9 @@ int ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     return ret;
 }
 
-int nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
     {
         nvmeFeaturesCmdOpt featuresOptions;
@@ -347,9 +347,9 @@ int nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     return ret;
 }
 
-int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
@@ -677,9 +677,9 @@ bool ata_Is_Write_Cache_Enabled(tDevice *device)
     return enabled;
 }
 
-int is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
+eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE && !device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
     {
         ret = SUCCESS;
@@ -742,9 +742,9 @@ int is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
 }
 
 //erase weights are hard coded right now....-TJE
-int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes)
+eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     ataSecurityStatus ataSecurityInfo;
     sanitizeFeaturesSupported sanitizeInfo;
     nvmeFormatSupport nvmeFormatInfo;
@@ -1140,9 +1140,9 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     return;
 }
 
-int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
+eReturnValues set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     //Change D_Sense for Control Mode page
     uint8_t controlModePage[MODE_PARAMETER_HEADER_10_LEN + 12] = { 0 };
     bool mode6ByteCmd = false;
@@ -1220,9 +1220,9 @@ int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorF
     return ret;
 }
 
-int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity)
+eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!sensitivity)
     {
         return BAD_PARAMETER;
@@ -1249,9 +1249,9 @@ int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensit
     return ret;
 }
 
-int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity)
+eReturnValues set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)
@@ -1265,9 +1265,9 @@ int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity)
     return ret;
 }
 
-int disable_Free_Fall_Control_Feature(tDevice *device)
+eReturnValues disable_Free_Fall_Control_Feature(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)
@@ -1285,7 +1285,7 @@ void show_Test_Unit_Ready_Status(tDevice *device)
 {
     scsiStatus returnedStatus;
     memset(&returnedStatus, 0, sizeof(scsiStatus));
-    int ret = scsi_Test_Unit_Ready(device, &returnedStatus);
+    eReturnValues ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {
         printf("READY\n");
@@ -1300,9 +1300,9 @@ void show_Test_Unit_Ready_Status(tDevice *device)
     }
 }
 
-int enable_Disable_AAM_Feature(tDevice *device, bool enable)
+eReturnValues enable_Disable_AAM_Feature(tDevice *device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
@@ -1338,9 +1338,9 @@ int enable_Disable_AAM_Feature(tDevice *device, bool enable)
 // 80h = minimum acoustic emanation
 // 81h - FDh = intermediate acoustic management levels
 // FEh = maximum performance.
-int set_AAM_Level(tDevice *device, uint8_t apmLevel)
+eReturnValues set_AAM_Level(tDevice *device, uint8_t apmLevel)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
@@ -1353,9 +1353,9 @@ int set_AAM_Level(tDevice *device, uint8_t apmLevel)
     return ret;
 }
 
-int get_AAM_Level(tDevice *device, uint8_t *aamLevel)
+eReturnValues get_AAM_Level(tDevice *device, uint8_t *aamLevel)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure AAM is supported.
@@ -1395,9 +1395,9 @@ bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device)
 }
 
 
-int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode)
+eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     uint32_t modePageLength = 0;
     eScsiModePageControl mpc = MPC_DEFAULT_VALUES;
     switch (updateMode)
@@ -1644,9 +1644,9 @@ int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eS
 //TODO: should we have another parameter to disable saving the page if they just want to make a temporary change?
 //If this is done. Do we want to just send the command, or do we want to turn off saving if the page isn't savable?
 //NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
-int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
+eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!modePageData || modeDataLength == 0)
     {
         return BAD_PARAMETER;
@@ -2496,9 +2496,9 @@ static bool reset_Specific_Log_Page_Supported(tDevice *device)
     return supported;
 }
 
-int reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges)
+eReturnValues reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (logPage || logSubPage)
     {
         if (!reset_Specific_Log_Page_Supported(device))
@@ -2615,9 +2615,9 @@ typedef struct _concurrentRangesV1
     concurrentRangeDescriptionV1 range[15];//maximum of 15 concurrent ranges per ACS5
 }concurrentRangesV1, *ptrConcurrentRangesV1;
 
-int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
+eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (ranges && ranges->size >= sizeof(concurrentRangesV1) && ranges->version >= CONCURRENT_RANGES_VERSION_V1)
     {
         if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2708,9 +2708,9 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     }
 }
 
-int get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
+eReturnValues get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!device || !info)
     {
         return BAD_PARAMETER;
@@ -2827,9 +2827,9 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
     }
 }
 
-int disable_Write_Read_Verify(tDevice* device)
+eReturnValues disable_Write_Read_Verify(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Set_Features(device, SF_DISABLE_WRITE_READ_VERIFY_FEATURE, 0, 0, 0, 0);
@@ -2837,9 +2837,9 @@ int disable_Write_Read_Verify(tDevice* device)
     return ret;
 }
 
-int set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
+eReturnValues set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (all && vendorSpecific)
