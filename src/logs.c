@@ -259,6 +259,7 @@ eReturnValues create_And_Open_Log_File(tDevice *device,\
 
     return ret;
 }
+
 //TODO: A special hack is required in some cases where we may not be able to properly determine the log size..
 //      this is due to drive firmware bugs and/or passthrough limitations from OSs, drivers, or adapters.
 //      So certain standard logs that are known sizes will be returned in here in these cases...
@@ -1776,7 +1777,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
 
 eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath)
 {
-    eReturnValues     ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t vpdBufferLength = 0;
     if (toBuffer)
     {
@@ -3293,28 +3294,28 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPull
                     }
                     else
                     {
-                        retStatus = 3;
+                        retStatus = FILE_OPEN_ERROR;
                     }
                 }
                 else
                 {
-                    retStatus = 3;
+                    retStatus = BAD_PARAMETER;
                 }
             }
             else
             {
-                retStatus = 3;
+                retStatus = NOT_SUPPORTED;
             }
             safe_Free(logBuffer)
         }
         else
         {
-            retStatus = 3;
+            retStatus = MEMORY_FAILURE;
         }
     }
     else
     {
-        retStatus = 4;
+        retStatus = NOT_SUPPORTED;
     }
     /*switch (logNum) {
         case NVME_LOG_SMART_ID:
@@ -3369,8 +3370,6 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPull
     }*/
     return retStatus;
 }
-
-
 
 eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags)
 {

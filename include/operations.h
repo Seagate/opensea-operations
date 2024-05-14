@@ -373,7 +373,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
-    
+
     //-----------------------------------------------------------------------------
     //
     //  set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
@@ -594,7 +594,7 @@ extern "C"
     {
         eWriteAfterEraseReq cryptoErase;
         eWriteAfterEraseReq blockErase;
-    }writeAfterErase, * ptrWriteAfterErase;
+    }writeAfterErase, *ptrWriteAfterErase;
 
     //-----------------------------------------------------------------------------
     //
@@ -612,6 +612,6 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq);
 
-    #if defined (__cplusplus)
+#if defined (__cplusplus)
 }
-    #endif
+#endif

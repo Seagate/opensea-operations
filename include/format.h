@@ -94,7 +94,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int run_Format_Unit(tDevice *device, eFormatType formatType, bool currentBlockSize, uint16_t newBlockSize, uint8_t *gList, uint32_t glistSize, bool completeList, bool disablePrimaryList, bool disableCertification, uint8_t *pattern, uint32_t patternLength, bool securityInitialize, bool pollForProgress)
+    //  eReturnValues run_Format_Unit(tDevice *device, eFormatType formatType, bool currentBlockSize, uint16_t newBlockSize, uint8_t *gList, uint32_t glistSize, bool completeList, bool disablePrimaryList, bool disableCertification, uint8_t *pattern, uint32_t patternLength, bool securityInitialize, bool pollForProgress)
     //
     //! \brief   Description:  runs or starts a format unit operation on a specified device. All formats through this function are started with immed bit set to 1.
     //
@@ -121,7 +121,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int show_Format_Unit_Progress(tDevice *device)
+    //  eReturnValues show_Format_Unit_Progress(tDevice *device)
     //
     //! \brief   Description:  shows the current progress of a format unit operation if one is in progress. - SCSI Format unit
     //
@@ -138,7 +138,7 @@ extern "C"
     {
         bool formatParametersAllFs;//This means that the last format failed, or the drive is new, or the data is not available right now
         bool lastFormatParametersValid;
-        struct 
+        struct
         {
             bool isLongList;
             uint8_t protectionFieldUsage;
@@ -284,7 +284,7 @@ extern "C"
         };
     }sectorSize;
 
-    typedef struct _supportedFormats 
+    typedef struct _supportedFormats
     {
         bool deviceSupportsOtherFormats;//if this is false, then
         bool scsiInformationNotReported;//This flag means, that on a SCSI device, we couldn't get the list of supported sector sizes, so the list includes common known sizes and it most likely a guesstimate. In otherwords, check the product manual
@@ -314,7 +314,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device);
-    
+
     //-----------------------------------------------------------------------------
     //
     //  get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
@@ -372,7 +372,7 @@ extern "C"
         bool secureEraseAppliesToAllNamespaces;//if false, only to specified namespace
         bool cryptographicEraseSupported;
         bool formatNSIDAllNSSupport;//2.0 this. Should be true for all earlier devices
-    }nvmeFormatSupport, * ptrNvmeFormatSupport;
+    }nvmeFormatSupport, *ptrNvmeFormatSupport;
 
     //-----------------------------------------------------------------------------
     //

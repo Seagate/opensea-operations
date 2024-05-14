@@ -483,7 +483,7 @@ bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
         return false;
     }
     //first read the current settings
-    if(SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage))
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage))
     {
         //check the offset to see if the bit is set.
         if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT0)
@@ -511,7 +511,7 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
         return false;
     }
     //first read the current settings
-    if(SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage))
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, cachingModePage))
     {
         //check the offset to see if the bit is set.
         if (cachingModePage[MODE_PARAMETER_HEADER_10_LEN + 12] & BIT5)
@@ -2031,7 +2031,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         break;
         //17h is in spec, but not named
     case 0x18://protocol specific logical unit
-        snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Logical Unit - %" PRIu8, subpage); 
+        snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Logical Unit - %" PRIu8, subpage);
         break;
     case 0x19://protocol specific port
         snprintf(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Port - %" PRIu8, subpage);
@@ -2286,7 +2286,7 @@ static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData,
         }
         printf("\n");
     }
-    else if(modeData)
+    else if (modeData)
     {
         //page not supported
         uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);

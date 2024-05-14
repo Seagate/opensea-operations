@@ -241,7 +241,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
 
     //-----------------------------------------------------------------------------
     //

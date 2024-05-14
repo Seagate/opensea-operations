@@ -107,7 +107,7 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percent
         uint16_t sstat = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
         *percentComplete = sprog;
 
-        switch(M_GETBITRANGE(sstat, 2, 0))
+        switch (M_GETBITRANGE(sstat, 2, 0))
         {
         case 0:
             *sanitizeStatus = SANITIZE_STATUS_NEVER_SANITIZED;
@@ -180,7 +180,7 @@ eReturnValues get_Sanitize_Progress(tDevice *device, double *percentComplete, eS
         break;
     case SCSI_DRIVE:
         result = get_SCSI_Sanitize_Progress(device, percentComplete, sanitizeStatus);
-    break;
+        break;
     default:
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -210,7 +210,7 @@ eReturnValues show_Sanitize_Progress(tDevice *device)
     else if (sanitizeInProgress == SANITIZE_STATUS_NEVER_SANITIZED)
     {
         printf("\tThis device has never been sanitized.\n");
-    } 
+    }
     else if (sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
     {
         printf("\tThe last sanitize operation completed successfully\n");
@@ -289,9 +289,9 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeatures
     }
     else
     {
-        #if defined (_DEBUG)
+#if defined (_DEBUG)
         printf("ATA IDENTIFY Failed %d\n", ret);
-        #endif
+#endif
     }
 
     return ret;

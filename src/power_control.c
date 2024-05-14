@@ -692,7 +692,7 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
             {
                 snprintf(exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
             }
-            printf("%s%2" PRIu16 " %10s  %10s    %10s %4" PRIu8 " %4" PRIu8 " %4" PRIu8 " %4" PRIu8 "  %10s %10s\n", flags, nvmps->powerState[psIter].powerStateNumber, maxPowerWatts, idlePowerWatts, activePowerWatts, 
+            printf("%s%2" PRIu16 " %10s  %10s    %10s %4" PRIu8 " %4" PRIu8 " %4" PRIu8 " %4" PRIu8 "  %10s %10s\n", flags, nvmps->powerState[psIter].powerStateNumber, maxPowerWatts, idlePowerWatts, activePowerWatts,
                 calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeReadThroughput, nvmps->numberOfPowerStates - 1),
                 calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeReadLatency, nvmps->numberOfPowerStates - 1),
                 calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeWriteThroughput, nvmps->numberOfPowerStates - 1),

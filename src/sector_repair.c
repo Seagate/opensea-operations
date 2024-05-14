@@ -152,12 +152,12 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
                         bool updateList = false;
                         uint64_t commandSpecificLba = UINT64_MAX;
                         uint64_t informationLba = UINT64_MAX;
-                        if (senseFields.scsiStatusCodes.format != 0 && senseFields.scsiStatusCodes.senseKey != SENSE_KEY_ILLEGAL_REQUEST && 
+                        if (senseFields.scsiStatusCodes.format != 0 && senseFields.scsiStatusCodes.senseKey != SENSE_KEY_ILLEGAL_REQUEST &&
                             senseFields.scsiStatusCodes.senseKey != SENSE_KEY_HARDWARE_ERROR)
                         {
                             done = false;
                             // check the command-specific information for a valid LBA.
-                            
+
                             if (senseFields.fixedFormat)
                             {
                                 commandSpecificLba = senseFields.fixedCommandSpecificInformation;

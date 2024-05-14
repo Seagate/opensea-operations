@@ -162,13 +162,13 @@ extern "C"
     {
         uint64_t capacityMaxAddress;
         char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
-    }capacityModelDescriptor, * ptrDriveCapacityModelDescriptor;
+    }capacityModelDescriptor, *ptrDriveCapacityModelDescriptor;
 
     typedef struct _capacityModelNumberMapping
     {
         uint32_t numberOfDescriptors;
         capacityModelDescriptor descriptor[1];//NOTE: This must be allocated based on how many descriptors are actually available! ex: malloc(sizeof(capacityModelNumberMapping) + (get_capacityModelDescriptor_Count() * sizeof(capacityModelDescriptor)));
-    }capacityModelNumberMapping, * ptrcapacityModelNumberMapping;
+    }capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
 
     //-----------------------------------------------------------------------------
     //

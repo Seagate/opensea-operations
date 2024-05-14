@@ -113,9 +113,9 @@ eReturnValues show_Format_Unit_Progress(tDevice *device)
     if (ret == IN_PROGRESS)
     {
         printf("\tFormat Unit Progress = %3.2f%% \n", percentComplete);
-    //add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
-    //we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
-    //with the format
+        //add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
+        //we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
+        //with the format
         if (percentComplete + 0.005 >= 100.0)
         {
             printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
@@ -196,7 +196,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
     }
     //dataSize += 1;//adding 1 to make sure we don't go over the end of out memory
     //allocate memory
-    dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize *sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
+    dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -1188,7 +1188,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFor
         formats->sectorSizes[0].logicalBlockLength = device->drive_info.deviceBlockSize;
         formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
     }
-    
+
     return ret;
 }
 
@@ -1803,7 +1803,7 @@ eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams
     {
         formatCmdOptions.pi = nvmParams.protectionType;
     }
-    
+
     if (nvmParams.formatNumberProvided)
     {
         formatCmdOptions.lbaf = nvmParams.formatNumber;

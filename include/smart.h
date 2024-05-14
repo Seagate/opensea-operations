@@ -23,12 +23,12 @@ extern "C"
 {
 #endif
 
-    typedef struct _smartLogData { 
+    typedef struct _smartLogData {
         union {
-        ataSMARTLog ataSMARTAttr;
-        nvmeSmartLog nvmeSMARTAttr;
+            ataSMARTLog ataSMARTAttr;
+            nvmeSmartLog nvmeSMARTAttr;
         } attributes;
-    } smartLogData; 
+    } smartLogData;
 
     #define MAX_ATTRIBUTE_NAME_LENGTH 43 //This leaves room for a NULL terminating character
 
@@ -349,7 +349,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Feature(tDevice *device, bool enable);
-    
+
     //-----------------------------------------------------------------------------
     //
     //  enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)

@@ -115,7 +115,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues print_DST_Progress(tDevice *device);
-    
+
     #define MAX_DST_STATUS_STRING_LENGTH 160
     OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool justRanDST, bool isNVMeDrive);
 

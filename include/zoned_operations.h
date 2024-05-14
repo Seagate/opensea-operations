@@ -48,7 +48,7 @@ extern "C"
         ZONE_CONDITION_OFFLINE = 0xF
     }eZoneCondition;
 
-    typedef struct _zoneDescriptor 
+    typedef struct _zoneDescriptor
     {
         bool descriptorValid;
         eZoneType zoneType;

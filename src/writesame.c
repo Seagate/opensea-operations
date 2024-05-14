@@ -242,7 +242,7 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
             {
                 *writeSameInProgress = false;
                 ret = ABORTED;
-            }            
+            }
             else
             {
                 *writeSameInProgress = false;

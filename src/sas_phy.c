@@ -86,7 +86,7 @@ static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t
     return ret;
 }
 
-eReturnValues start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern,  bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
+eReturnValues start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
 {
     eReturnValues ret = SUCCESS;
     uint8_t sasDiagPage[32] = { 0 };

@@ -36,7 +36,7 @@ extern "C"
         uint64_t errorAddress;
         eRepairStatus repairStatus;
     }errorLBA, *ptrErrorLBA;
-   
+
     //-----------------------------------------------------------------------------
     //
     //  repair_LBA()

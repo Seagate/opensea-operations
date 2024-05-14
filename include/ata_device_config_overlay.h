@@ -39,7 +39,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Restore(tDevice* device)
+    //  eReturnValues dco_Restore(tDevice* device)
     //
     //! \brief   Description:  Issue the DCO restore command. NOTE: This will only succeed if no HPA is established and not DCO frozen
     //
@@ -54,7 +54,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Freeze_Lock(tDevice* device)
+    //  eReturnValues dco_Freeze_Lock(tDevice* device)
     //
     //! \brief   Description:  Issue the DCO freeze lock command to block other DCO commands from processing
     //
@@ -128,11 +128,11 @@ extern "C"
             bool extendedPowerConditions;//EPC
         }feat2;
         bool validChecksum;//ident only. Recalculated for set
-    }dcoData, * ptrDcoData;
+    }dcoData, *ptrDcoData;
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Identify(tDevice* device, ptrDcoData data)
+    //  eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
     //
     //! \brief   Description:  Issue DCO identify and populate the output data structure. The output data indicated which features can be changed/disabled/blocked
     //
@@ -162,7 +162,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Set(tDevice* device, ptrDcoData data)
+    //  eReturnValues dco_Set(tDevice* device, ptrDcoData data)
     //
     //! \brief   Description: Takes the DCO data structure and turns and fields set to "false" to 0's in the data to disable the feature. 
     //!          Anything left as "true" is left as-is when sent to the device.

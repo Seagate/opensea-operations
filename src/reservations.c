@@ -428,7 +428,7 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
                 printf("not supported\n");
             }
             printf("\tCompatible Reservation Handling: ");
-            if(prCapabilities->compatibleReservationHandling)
+            if (prCapabilities->compatibleReservationHandling)
             {
                 printf("supported\n");
             }
@@ -437,7 +437,7 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
                 printf("not supported\n");
             }
             printf("\tSpecify Initiator Port Capable: ");
-            if(prCapabilities->specifyInitiatorPortCapable)
+            if (prCapabilities->specifyInitiatorPortCapable)
             {
                 printf("supported\n");
             }
@@ -455,7 +455,7 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
                 printf("not supported\n");
             }
             printf("\tPersist Through Power Loss Capable: ");
-            if(prCapabilities->persistThroughPowerLossCapable)
+            if (prCapabilities->persistThroughPowerLossCapable)
             {
                 printf("supported\n");
             }
@@ -1370,7 +1370,7 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
             }
             else
             {
-            printf("     N/A");
+                printf("     N/A");
             }
             printf("\n");
         }
@@ -1381,7 +1381,7 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
     }
     else
     {
-    printf("ERROR: Invalid full status structure version or size.\n");
+        printf("ERROR: Invalid full status structure version or size.\n");
     }
 }
 

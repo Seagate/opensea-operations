@@ -202,7 +202,7 @@ eReturnValues get_Physical_Element_Descriptors(tDevice *device, uint32_t numberO
     else
     {
         ret = MEMORY_FAILURE;
-    }    
+    }
     return ret;
 }
 
@@ -277,11 +277,11 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
         if (elementList[elementIter].associatedCapacity == UINT64_MAX)
         {
             //Drive doesn't report this
-            snprintf(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH,  "N/A");
+            snprintf(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "N/A");
         }
         else
         {
-            snprintf(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH,  "%" PRIu64, elementList[elementIter].associatedCapacity);
+            snprintf(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "%" PRIu64, elementList[elementIter].associatedCapacity);
         }
         if (elementList[elementIter].elementType == 1)
         {

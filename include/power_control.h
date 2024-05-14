@@ -123,7 +123,7 @@ extern "C"
         uint16_t numberOfPowerStates;//how many were filled into the following array
         uint32_t activePowerState;// which state is active. 0 - 31
         nvmePowerState powerState[MAXIMUM_NVME_POWER_STATES];
-    }nvmeSupportedPowerStates, * ptrNVMeSupportedPowerStates;
+    }nvmeSupportedPowerStates, *ptrNVMeSupportedPowerStates;
 
     OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps);
 
@@ -144,7 +144,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue );
+    OPENSEA_OPERATIONS_API eReturnValues get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue);
 
     typedef struct _powerConsumptionIdentifier
     {
@@ -235,11 +235,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts, uint8_t *powerConsumptionIdentifier);
-    
+
     OPENSEA_OPERATIONS_API eReturnValues enable_Disable_APM_Feature(tDevice *device, bool enable);
-    
+
     OPENSEA_OPERATIONS_API eReturnValues set_APM_Level(tDevice *device, uint8_t apmLevel);
-    
+
     OPENSEA_OPERATIONS_API eReturnValues get_APM_Level(tDevice *device, uint8_t *apmLevel);
 
     typedef struct _powerConditionInfo //written according to ATA spec fields...will try to populate as much as possible that's similar for SCSI
@@ -291,7 +291,7 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues transition_To_Idle(tDevice *device, bool unload); //unload feature must be supported
 
     //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from, which may not be callable from an application.
-    OPENSEA_OPERATIONS_API eReturnValues transition_To_Sleep (tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues transition_To_Sleep(tDevice *device);
 
     //Be careful changing partial and slumber settings. Not every controller will support it properly!
     OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber);
@@ -390,7 +390,7 @@ extern "C"
         bool puisSupported;
         bool puisEnabled;
         bool spinupCommandRequired; //requires the spinup command to be issued to spin up. If false, then a media access will spinup as needed.
-    }puisInfo, * ptrPuisInfo;
+    }puisInfo, *ptrPuisInfo;
 
     OPENSEA_OPERATIONS_API eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info);
 

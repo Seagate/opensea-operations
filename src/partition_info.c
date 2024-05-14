@@ -411,12 +411,12 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
         //next 4 chars (2 bytes) -be
         guid->part4 = M_BytesTo2ByteValue(dataBuf[8], dataBuf[9]);
         //last 12 chars (6 bytes) -be
-        guid->part5[0] =  dataBuf[10];
-        guid->part5[1] =  dataBuf[11];
-        guid->part5[2] =  dataBuf[12];
-        guid->part5[3] =  dataBuf[13];
-        guid->part5[4] =  dataBuf[14];
-        guid->part5[5] =  dataBuf[15];
+        guid->part5[0] = dataBuf[10];
+        guid->part5[1] = dataBuf[11];
+        guid->part5[2] = dataBuf[12];
+        guid->part5[3] = dataBuf[13];
+        guid->part5[4] = dataBuf[14];
+        guid->part5[5] = dataBuf[15];
     }
     return;
 }
@@ -525,7 +525,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                         gptName = C_CAST(gptPartitionTypeName*, bsearch(
                             &gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
                             sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]), sizeof(gptGUIDNameLookup[0]),
-                            (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
+                            (int(*)(const void*, const void*))cmp_GPT_Part_GUID));
 
                         if (gptName)
                         {
@@ -569,7 +569,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
     {
         uint64_t lba = 0;
         partitionData->diskBlockSize = device->drive_info.deviceBlockSize;
-        do 
+        do
         {
             if (SUCCESS == read_LBA(device, lba, false, dataBuffer, dataSize))//using fua to make sure we are reading from the media, not cache
             {
@@ -756,7 +756,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
 
 static void print_GPT_GUID(gptGUID guid)
 {
-    printf("%08" PRIX32 "-%04" PRIX16 "-%04" PRIX16 "-%04" PRIX16 "-%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 ,
+    printf("%08" PRIX32 "-%04" PRIX16 "-%04" PRIX16 "-%04" PRIX16 "-%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8,
         guid.part1, guid.part2, guid.part3, guid.part4, guid.part5[0], guid.part5[1], guid.part5[2], guid.part5[3], guid.part5[4], guid.part5[5]);
     return;
 }

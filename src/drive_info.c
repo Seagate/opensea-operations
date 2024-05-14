@@ -655,7 +655,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             driveInfo->zonedDevice = C_CAST(uint8_t, wordPtr[69] & (BIT0 | BIT1));
         }
     }
-    
+
     uint8_t queueDepth = 1;//minimum queue depth for any device is 1
     if (is_ATA_Identify_Word_Valid(wordPtr[75]))
     {
@@ -698,7 +698,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         {
             driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 0;
         }
-        
+
     }
 
     if (is_ATA_Identify_Word_Valid_SATA(wordPtr[77]))
@@ -729,7 +729,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             break;
         }
     }
-    
+
     //SATA Features supported and enabled (Words 78 & 79)
     if (is_ATA_Identify_Word_Valid_SATA(wordPtr[78]) && is_ATA_Identify_Word_Valid_SATA(wordPtr[79]))
     {
@@ -1228,7 +1228,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         word87Valid = true;
     }
-    
+
     if ((word84Valid && wordPtr[84] & BIT8) || (word87Valid && wordPtr[87] & BIT8))
     {
         driveInfo->worldWideNameSupported = true;
@@ -1866,7 +1866,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = true;
         }
     }
-    
+
     if (transportType == 0xE)
     {
         memset(&driveInfo->interfaceSpeedInfo, 0, sizeof(interfaceSpeed));//clear anything we've set so far
@@ -2312,7 +2312,7 @@ static eReturnValues get_ATA_Drive_Info_From_Device_Statistics_Log(ptrDriveInfor
     return ret;
 }
 
-static eReturnValues get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities,uint8_t *smartData, uint32_t dataLength)
+static eReturnValues get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t *smartData, uint32_t dataLength)
 {
     eReturnValues ret = BAD_PARAMETER;
     if (smartData && dataLength >= LEGACY_DRIVE_SEC_SIZE)
@@ -2719,7 +2719,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Host Logging");
         }
-        
+
         if (idDataLogSize > 0)
         {
             uint8_t* idDataLog = C_CAST(uint8_t*, calloc_aligned(idDataLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -2875,7 +2875,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     }
     safe_Free_aligned(logBuffer)
 
-    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
     {
         get_ATA_Drive_Info_From_SMART_Data(driveInfo, &ataCap, smartData, LEGACY_DRIVE_SEC_SIZE);
@@ -2928,7 +2928,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
                 safe_Free_aligned(protocolList)
             }
         }
-        
+
     }
 
     //get the native maxLBA
@@ -3216,7 +3216,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         }
                     }
                     safe_Free_aligned(unitSerialNumber)
-                        break;
+                    break;
                 }
                 case DEVICE_IDENTIFICATION:
                 {
@@ -3312,7 +3312,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         }
                     }
                     safe_Free_aligned(deviceIdentification)
-                        break;
+                    break;
                 }
                 case EXTENDED_INQUIRY_DATA:
                 {
@@ -3402,7 +3402,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         }
                     }
                     safe_Free_aligned(extendedInquiryData)
-                        break;
+                    break;
                 }
                 case BLOCK_DEVICE_CHARACTERISTICS:
                 {
@@ -3419,7 +3419,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
                     }
                     safe_Free_aligned(blockDeviceCharacteristics)
-                        break;
+                    break;
                 }
                 case POWER_CONDITION:
                     //reading this information has been moved to the mode pages below. - TJE
@@ -3475,7 +3475,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         }
                     }
                     safe_Free_aligned(logicalBlockProvisioning)
-                        break;
+                    break;
                 }
                 case BLOCK_LIMITS:
                 {
@@ -3494,7 +3494,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         }
                     }
                     safe_Free_aligned(blockLimits)
-                        break;
+                    break;
                 }
                 case ATA_INFORMATION:
                 {
@@ -3513,7 +3513,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
 
                     }
                     safe_Free_aligned(ataInformation)
-                        break;
+                    break;
                 }
                 case CONCURRENT_POSITIONING_RANGES:
                 {
@@ -4427,7 +4427,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t readWriteErrorRecovery[12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, defaultsRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode,NULL, NULL, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             defaultsRead = true;
@@ -5746,7 +5746,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, bmsPSString);
                         }
                         safe_Free(bmsString)
-                            safe_Free(bmsPSString)
+                        safe_Free(bmsPSString)
                     }
                     break;
                     default:
@@ -6248,9 +6248,9 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
     }
 
     get_SCSI_VPD_Data(device, driveInfo, &scsiInfo);
-    
+
     get_SCSI_Read_Capacity_Data(device, driveInfo, &scsiInfo);
-    
+
     if (scsiInfo.version == 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
     {
         //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
@@ -6808,7 +6808,7 @@ eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVM
     }
     if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, 0, NVME_IDENTIFY_CTRL))
     {
-        get_NVMe_Controller_Identify_Data(device, driveInfo, nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN);   
+        get_NVMe_Controller_Identify_Data(device, driveInfo, nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN);
     }
     memset(nvmeIdentifyData, 0, NVME_IDENTIFY_DATA_LEN);
     if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.namespaceID, NVME_IDENTIFY_NS))
@@ -6894,7 +6894,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     {
         //convert this to an "easy" unit instead of tons and tons of bytes
         char mTotalCapUnits[UNIT_STRING_LENGTH] = { 0 }, totalCapUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mTotalCapUnit = &mTotalCapUnits[0], * totalCapUnit = &totalCapUnits[0];
+        char* mTotalCapUnit = &mTotalCapUnits[0], *totalCapUnit = &totalCapUnits[0];
         double mTotalCapacity = driveInfo->controllerData.totalNVMCapacityD;
         double totalCapacity = mTotalCapacity;
         metric_Unit_Convert(&mTotalCapacity, &mTotalCapUnit);
@@ -6903,7 +6903,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         if (driveInfo->controllerData.unallocatedNVMCapacityD > 0)
         {
             char mUnCapUnits[4] = { 0 }, unCapUnits[4] = { 0 };
-            char* mUnCapUnit = &mUnCapUnits[0], * unCapUnit = &unCapUnits[0];
+            char* mUnCapUnit = &mUnCapUnits[0], *unCapUnit = &unCapUnits[0];
             double mUnCapacity = driveInfo->controllerData.unallocatedNVMCapacityD;
             double unCapacity = mUnCapacity;
             metric_Unit_Convert(&mUnCapacity, &mUnCapUnit);
@@ -7077,7 +7077,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     {
         //Namespace size
         char mSizeUnits[UNIT_STRING_LENGTH] = { 0 }, sizeUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mSizeUnit = &mSizeUnits[0], * sizeUnit = &sizeUnits[0];
+        char* mSizeUnit = &mSizeUnits[0], *sizeUnit = &sizeUnits[0];
         double nvmMSize = C_CAST(double, driveInfo->namespaceData.namespaceSize * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmSize = nvmMSize;
         metric_Unit_Convert(&nvmMSize, &mSizeUnit);
@@ -7087,7 +7087,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 
         //namespace capacity
         char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mCapUnit = &mCapUnits[0], * capUnit = &capUnits[0];
+        char* mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
         double nvmMCap = C_CAST(double, driveInfo->namespaceData.namespaceCapacity * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmCap = nvmMCap;
         metric_Unit_Convert(&nvmMCap, &mCapUnit);
@@ -7097,7 +7097,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 
         //namespace utilization
         char mUtilizationUnits[UNIT_STRING_LENGTH] = { 0 }, utilizationUnits[UNIT_STRING_LENGTH] = { 0 };
-        char* mUtilizationUnit = &mUtilizationUnits[0], * utilizationUnit = &utilizationUnits[0];
+        char* mUtilizationUnit = &mUtilizationUnits[0], *utilizationUnit = &utilizationUnits[0];
         double nvmMUtilization = C_CAST(double, driveInfo->namespaceData.namespaceUtilization * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmUtilization = nvmMUtilization;
         metric_Unit_Convert(&nvmMUtilization, &mUtilizationUnit);
@@ -7178,7 +7178,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 {
     double mCapacity = 0, capacity = 0;
     char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
-    char* mCapUnit = &mCapUnits[0], * capUnit = &capUnits[0];
+    char* mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
     if (strlen(driveInfo->vendorID))
     {
         printf("\tVendor ID: %s\n", driveInfo->vendorID);
@@ -8260,7 +8260,6 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     return;
 }
 
-
 eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)
 {
     eReturnValues ret = SUCCESS;
@@ -8354,7 +8353,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
         //call the print functions appropriately
         if (showChildInformation && (device->drive_info.drive_type != SCSI_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) && scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
         {
-            if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe )&& ataDriveInfo)
+            if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) && ataDriveInfo)
             {
                 print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
             }
