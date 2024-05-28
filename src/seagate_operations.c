@@ -85,7 +85,7 @@ typedef enum _eSASPhySpeeds
 eReturnValues scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber)
 {
     eReturnValues ret = SUCCESS;
-    if (phySpeedGen > 5)
+    if (phySpeedGen > SET_PHY_SPEED_MAX_GENERATION)
     {
         return NOT_SUPPORTED;
     }
@@ -198,7 +198,7 @@ eReturnValues set_phy_speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, 
         {
             if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT7 && !is_SSD(device))
             {
-                if (phySpeedGen > 3)
+                if (phySpeedGen > SET_PHY_SPEED_SATA_MAX_GENERATION)
                 {
                     //error, invalid input
                     if (VERBOSITY_QUIET < device->deviceVerbosity)

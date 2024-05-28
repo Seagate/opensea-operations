@@ -57,6 +57,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber);
 
+    #define SET_PHY_SPEED_MAX_GENERATION 5
+    #define SET_PHY_SPEED_SATA_MAX_GENERATION 3 //SATA only has 3 generations, so it's a lower number than the overall limit above which covers SAS as well.
     //-----------------------------------------------------------------------------
     //
     //  set_phy_speed()
