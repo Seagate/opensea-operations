@@ -3246,8 +3246,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
 //This function needs a proper rewrite to allow pulling with offsets, other log sizes, pulling to a buffer, and more like the SCSI and ATA functions.
 eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes)
 {
-    //Since 0 is reserved log
-    eReturnValues retStatus = 0;
+    eReturnValues retStatus = SUCCESS;
     uint64_t size = nvmeLogSizeBytes;//set this for now
     uint8_t * logBuffer = NULL;
     nvmeGetLogPageCmdOpts cmdOpts;
@@ -3291,28 +3290,28 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPull
                     }
                     else
                     {
-                        retStatus = 3;
+                        retStatus = FILE_OPEN_ERROR;
                     }
                 }
                 else
                 {
-                    retStatus = 3;
+                    retStatus = BAD_PARAMETER;
                 }
             }
             else
             {
-                retStatus = 3;
+                retStatus = NOT_SUPPORTED;
             }
             safe_Free(logBuffer)
         }
         else
         {
-            retStatus = 3;
+            retStatus = MEMORY_FAILURE;
         }
     }
     else
     {
-        retStatus = 4;
+        retStatus = NOT_SUPPORTED;
     }
     /*switch (logNum) {
         case NVME_LOG_SMART_ID:
