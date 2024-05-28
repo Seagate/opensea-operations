@@ -19,6 +19,7 @@
 #include "logs.h"
 #include "nvme_operations.h"
 #include "seagate_operations.h"
+#include "common.h"
 
 eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
@@ -1144,31 +1145,9 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
 static uint64_t ata_SMART_Raw_Bytes_To_Int(ataSMARTValue* currentAttribute, uint8_t rawCounterMSB, uint8_t rawCounterLSB)
 {
     uint64_t decimalValue = 0;
-    if (rawCounterMSB > SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT || rawCounterLSB > SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT)
+    if (!get_Bytes_To_64(&currentAttribute->data.rawData[0], SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT, rawCounterMSB, rawCounterLSB, &decimalValue))
     {
-        return UINT64_MAX;
-    }
-    if (rawCounterLSB <= rawCounterMSB)//allowing equals for single bytes
-    {
-        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter >= rawCounterLSB; --iter, ++counter)
-        {
-            decimalValue <<= 8;
-            decimalValue |= currentAttribute->data.rawData[iter];
-            if (iter == 0)
-            {
-                //exit the loop to make sure there is no undefined behavior
-                break;
-            }
-        }
-    }
-    else
-    {
-        //opposite byte ordering from above
-        for (uint8_t iter = rawCounterMSB, counter = 0; counter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT && iter <= 6 && iter <= rawCounterLSB; ++iter, ++counter)
-        {
-            decimalValue <<= 8;
-            decimalValue |= currentAttribute->data.rawData[iter];
-        }
+        decimalValue = UINT64_MAX;
     }
     return decimalValue;
 }
