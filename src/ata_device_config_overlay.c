@@ -409,10 +409,10 @@ eReturnValues dco_Set(tDevice* device, ptrDcoData data)
                 dcoIdentData[12] = M_Byte6(data->maxLBA);
                 dcoIdentData[11] = M_Byte5(data->maxLBA);
                 dcoIdentData[10] = M_Byte4(data->maxLBA);
-                dcoIdentData[9]  = M_Byte3(data->maxLBA);
-                dcoIdentData[8]  = M_Byte2(data->maxLBA);
-                dcoIdentData[7]  = M_Byte1(data->maxLBA);
-                dcoIdentData[6]  = M_Byte0(data->maxLBA);
+                dcoIdentData[9] = M_Byte3(data->maxLBA);
+                dcoIdentData[8] = M_Byte2(data->maxLBA);
+                dcoIdentData[7] = M_Byte1(data->maxLBA);
+                dcoIdentData[6] = M_Byte0(data->maxLBA);
                 //features 1
                 if (!data->feat1.writeReadVerify)
                 {

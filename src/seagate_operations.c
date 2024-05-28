@@ -2084,7 +2084,8 @@ eReturnValues get_Ext_Smrt_Log(tDevice *device)//, nvmeGetLogPageCmdOpts * getLo
 #ifdef _DEBUG
         printf("-->%s\n", __FUNCTION__);
 #endif
-        eReturnValues ret = 0, index = 0;
+        eReturnValues ret = 0;
+        int index = 0;
         EXTENDED_SMART_INFO_T ExtdSMARTInfo;
         memset(&ExtdSMARTInfo, 0x00, sizeof(ExtdSMARTInfo));
         ret = nvme_Read_Ext_Smt_Log(device, &ExtdSMARTInfo);

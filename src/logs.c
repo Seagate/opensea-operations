@@ -259,6 +259,7 @@ eReturnValues create_And_Open_Log_File(tDevice *device,\
 
     return ret;
 }
+
 //TODO: A special hack is required in some cases where we may not be able to properly determine the log size..
 //      this is due to drive firmware bugs and/or passthrough limitations from OSs, drivers, or adapters.
 //      So certain standard logs that are known sizes will be returned in here in these cases...
@@ -1497,7 +1498,8 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, ch
                     }
                 }
                 //loop and read each page or set of pages, then save to a file
-                if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, featureRegister))
+                ret = send_ATA_Read_Log_Ext_Cmd(device, logAddress, currentPage, &logBuffer[currentPage * LEGACY_DRIVE_SEC_SIZE], pagesToReadNow * LEGACY_DRIVE_SEC_SIZE, featureRegister);
+                if (ret == SUCCESS)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
@@ -1548,7 +1550,8 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, ch
                 }
                 else
                 {
-                    ret = FAILURE;
+                    if (ret != NOT_SUPPORTED)
+                        ret = FAILURE;
                     logSize = 0;
                     logFromGPL = true;
                     break;
@@ -1774,7 +1777,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
 
 eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath)
 {
-    eReturnValues     ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint32_t vpdBufferLength = 0;
     if (toBuffer)
     {

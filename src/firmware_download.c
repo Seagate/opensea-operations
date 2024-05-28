@@ -150,7 +150,7 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
 {
     eReturnValues ret = SUCCESS;
 #ifdef _DEBUG
-    printf("--> %s\n",__FUNCTION__);
+    printf("--> %s\n", __FUNCTION__);
 #endif
 
     //first verify the provided structure info to make sure it is compatible.
@@ -336,7 +336,7 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
                 }
                 break;
             }
-            
+
             //multiple commands needed to do the download (segmented)
             if (options->segmentSize == 0)
             {
@@ -618,7 +618,7 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
     }
 
 #ifdef _DEBUG
-    printf("<-- %s (%d)\n",__FUNCTION__, ret);
+    printf("<-- %s (%d)\n", __FUNCTION__, ret);
 #endif
     return ret;
 }
@@ -677,7 +677,7 @@ typedef struct _supportedDLModesV2
     SCSIMicrocodeActivation codeActivation;//SAS Only
     eMLU multipleLogicalUnitsAffected;//This will only be set for multi-lun devices. NVMe will set this since firmware affects all namespaces on the controller
     firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
-}supportedDLModesV2, * ptrSupportedDLModesV2;
+}supportedDLModesV2, *ptrSupportedDLModesV2;
 
 eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
 {
@@ -1323,7 +1323,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                     supportedModes->driveOffsetBoundary = 12;
                 }
                 else
-                {   
+                {
                     supportedModes->driveOffsetBoundaryInBytes = LEGACY_DRIVE_SEC_SIZE;
                     supportedModes->driveOffsetBoundary = 9;
                 }

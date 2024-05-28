@@ -39,7 +39,7 @@ extern "C"
         NO_DEALLOC_RESPONSE_WARNING, //a warning is generated and sanitize commands are still processed when no deallocate is set in the command
         NO_DEALLOC_RESPONSE_ERROR    //a error is generated and santize commands are aborted when no deallocate is set in the command
     }noDeallocateResponseMode;
-    
+
     // \struct typedef struct _sanitizeFeaturesSupported
     typedef struct _sanitizeFeaturesSupported
     {
@@ -156,7 +156,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues show_Sanitize_Progress(tDevice *device);
 
-    typedef enum _eSanitizeOperations{
+    typedef enum _eSanitizeOperations {
         SANITIZE_BLOCK_ERASE,
         SANITIZE_CRYPTO_ERASE,
         SANITIZE_OVERWRITE_ERASE,

@@ -221,10 +221,10 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SECURITY, securityPage, 512, 0))
                                 {
                                     //make sure we got the right page first!
-                                    uint64_t header = M_BytesTo8ByteValue(securityPage[7], securityPage[6],securityPage[5],securityPage[4],securityPage[3],securityPage[2],securityPage[1],securityPage[0]);
-                                    if (header & ATA_ID_DATA_QWORD_VALID_BIT && M_Word0(header) >= ATA_ID_DATA_VERSION_1  && M_Byte2(header) == ATA_ID_DATA_LOG_SECURITY)
+                                    uint64_t header = M_BytesTo8ByteValue(securityPage[7], securityPage[6], securityPage[5], securityPage[4], securityPage[3], securityPage[2], securityPage[1], securityPage[0]);
+                                    if (header & ATA_ID_DATA_QWORD_VALID_BIT && M_Word0(header) >= ATA_ID_DATA_VERSION_1 && M_Byte2(header) == ATA_ID_DATA_LOG_SECURITY)
                                     {
-                                        uint64_t securityCapabilities = M_BytesTo8ByteValue(securityPage[55], securityPage[54],securityPage[53],securityPage[52],securityPage[51],securityPage[50],securityPage[49],securityPage[48]);
+                                        uint64_t securityCapabilities = M_BytesTo8ByteValue(securityPage[55], securityPage[54], securityPage[53], securityPage[52], securityPage[51], securityPage[50], securityPage[49], securityPage[48]);
                                         if (securityCapabilities & BIT63)
                                         {
                                             securityStatus->restrictedSanitizeOverridesSecurity = securityCapabilities & BIT7;
@@ -426,7 +426,7 @@ static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
         {
             //now we need to check if it's a printable string or not and print it between quotes if it is, otherwise as a sequence of hex bytes
             bool isASCIIString = true;//assume it is a string since it will most likely be one.
-            for(uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
+            for (uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
             {
                 if (iscntrl(ataPassword->password[iter]) || ataPassword->password[iter] & BIT7)//this function is the opposite of isPrint and should work for what we want. We also want to check if bit 7 is set
                 {
@@ -442,7 +442,7 @@ static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
             else
             {
                 //need to show as hex bytes
-                for(uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
+                for (uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
                 {
                     printf(" %02" PRIX8 "h", ataPassword->password[iter]);
                     if (iter + 1 < ataPassword->passwordLength)
@@ -495,10 +495,10 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
                 }
             }
         }
-        
+
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
-            
+
             //Word 0, bit 0 for the identifier bit to say it's the master password
             ptrData[0] |= BIT0;
             if (setPassword)//if setting the password in the set password command, we need to set a few other things up
@@ -1206,7 +1206,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
         {
             printf("\tATA security erase has completed successfully.\n");
             printf("\tTime to erase was ");
-                    
+
         }
         result = SUCCESS;
     }
@@ -1218,7 +1218,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
         }
         result = FAILURE;
     }
-        
+
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         uint16_t days = 0;

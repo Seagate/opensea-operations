@@ -120,7 +120,7 @@ eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t er
                     }
                 }
             }
-            if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
+            if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {
                 printf("\rWriting LBA: %-40"PRIu64"", iter);
                 fflush(stdout);
@@ -239,7 +239,7 @@ eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t erase
             sectors = C_CAST(uint16_t, device->drive_info.deviceMaxLba - iter);
             dataLength = sectors * device->drive_info.deviceBlockSize;
         }
-        if (VERBOSITY_QUIET < device->deviceVerbosity &&!hideLBACounter)
+        if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
             printf("\rWriting LBA: %-40"PRIu64"", iter);
             fflush(stdout);

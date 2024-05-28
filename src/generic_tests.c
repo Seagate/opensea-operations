@@ -1868,7 +1868,7 @@ eReturnValues diameter_Test_Range(tDevice *device, eRWVCommandType testMode, boo
     {
         return BAD_PARAMETER;
     }
-    //int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
+    //eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
     errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
 
@@ -2136,7 +2136,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
     {
         return BAD_PARAMETER;
     }
-    //int user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
+    //eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
     errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
     uint64_t odOrMdLBAsAccessed = 0;

@@ -516,7 +516,7 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    int print_Nvme_Ctrl_Information(tDevice *device);
+    eReturnValues print_Nvme_Ctrl_Information(tDevice *device);
 
 #if defined (__cplusplus)
 }

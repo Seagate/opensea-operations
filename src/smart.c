@@ -89,7 +89,7 @@ eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
         }
         safe_Free_aligned(ATAdataBuffer)
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE) 
+    else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         ret = nvme_Get_SMART_Log_Page(device, NVME_ALL_NAMESPACES, C_CAST(uint8_t*, &smartAttrs->attributes), NVME_SMART_HEALTH_LOG_LEN);
     }
@@ -1187,7 +1187,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
         int16_t currentTemp = 0;
         int16_t lowestTemp = 0;
         int16_t highestTemp = 0;
-        
+
 
         //setup threshold output
         if (currentAttribute->thresholdDataValid)
@@ -1817,7 +1817,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         printf("\tThreshold:               %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue);
                     }
                 }
-                switch(isSeagateDrive)
+                switch (isSeagateDrive)
                 {
                 case SEAGATE:
                     switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
@@ -1846,7 +1846,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         powerOnMinutes += (millisecondsSinceIncrement / UINT32_C(60000));//convert the milliseconds to minutes, then add that to the amount of time we already know
                         printf("\tPower On Hours = %f\n", C_CAST(double, powerOnMinutes) / 60.0);
                     }
-                        break;
+                    break;
                     case 10://spin retry count
                         //raw unused
                         break;
@@ -1993,7 +1993,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     case 1:
                         printf("\tCorrectable, Soft LDPC correctable errors since last power cycle: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
-                    case 9: 
+                    case 9:
                         printf("\tPower On Hours: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 11:
@@ -2034,7 +2034,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         printf("\tInterface Downshift Events this Power Cycle: %" PRIu32 "\n", M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         printf("\tinterface Downshift Events Lifetime: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3]));
                         break;
-                    case 184: 
+                    case 184:
                         printf("\tDetected End-To-End CRC Errors: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 187:
@@ -2085,7 +2085,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         printf("\tFree Space: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         printf("\tFree Space Percentage in Hundreths of a Percent: %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         break;
-                    default: 
+                    default:
                         printf("\tRaw Data: ");
                         for (uint8_t rawIter = 0; rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
                         {
@@ -2197,7 +2197,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                     }
                     break;
                 }
-                
+
             }
         }
     }
@@ -2208,12 +2208,12 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
 eReturnValues print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode)
 {
     eReturnValues ret = UNKNOWN;
-    smartLogData smartData; 
-    memset(&smartData,0,sizeof(smartLogData));
-    ret = get_SMART_Attributes(device,&smartData);
-    if (ret != SUCCESS) 
+    smartLogData smartData;
+    memset(&smartData, 0, sizeof(smartLogData));
+    ret = get_SMART_Attributes(device, &smartData);
+    if (ret != SUCCESS)
     {
-        if (ret == NOT_SUPPORTED) 
+        if (ret == NOT_SUPPORTED)
         {
             printf("Printing SMART attributes is not supported on this drive type at this time\n");
         }
@@ -2329,9 +2329,9 @@ eReturnValues show_NVMe_Health(tDevice* device)
             printf("Num. Of Error Info. Log             : %.0f\n", convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.numErrLogEntries));
             printf("Warning Composite Temperature Time  : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.warningTempTime);
             printf("Critical Composite Temperature Time : %" PRIu32 "\n", smartData.attributes.nvmeSMARTAttr.criticalCompTime);
-            for (uint8_t temperatureSensorCount = 0; temperatureSensorCount < 8; ++temperatureSensorCount) 
+            for (uint8_t temperatureSensorCount = 0; temperatureSensorCount < 8; ++temperatureSensorCount)
             {
-                if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0) 
+                if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0)
                 {
                     uint16_t temperatureSensor = smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] - 273;
                     printf("Temperature Sensor %" PRIu8 "                : %" PRIu16 " C\n", (temperatureSensorCount + UINT8_C(1)), temperatureSensor);
@@ -2973,7 +2973,7 @@ eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
         //Change back to the user's saved settings
         informationalExceptionsControl savedControlSettings;
         memset(&savedControlSettings, 0, sizeof(informationalExceptionsControl));
-        if(SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_SAVED_VALUES, &savedControlSettings, NULL))
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_SAVED_VALUES, &savedControlSettings, NULL))
         {
             if (SUCCESS != set_SCSI_Informational_Exceptions_Info(device, true, &savedControlSettings))
             {
@@ -3021,25 +3021,25 @@ eReturnValues nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             if (smartLogPage[0] & BIT1)
             {
                 tripInfo->nvmeCriticalWarning.temperatureExceedsThreshold = true;
-                snprintf(tripInfo->reasonString, UINT8_MAX,  "Temperature is above an over temperature threshold or below an under temperature threshold");
+                snprintf(tripInfo->reasonString, UINT8_MAX, "Temperature is above an over temperature threshold or below an under temperature threshold");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT2)
             {
                 tripInfo->nvmeCriticalWarning.nvmSubsystemDegraded = true;
-                snprintf(tripInfo->reasonString, UINT8_MAX,  "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability");
+                snprintf(tripInfo->reasonString, UINT8_MAX, "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT3)
             {
                 tripInfo->nvmeCriticalWarning.mediaReadOnly = true;
-                snprintf(tripInfo->reasonString, UINT8_MAX,  "Media has been placed in read only mode");
+                snprintf(tripInfo->reasonString, UINT8_MAX, "Media has been placed in read only mode");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT4)
             {
                 tripInfo->nvmeCriticalWarning.volatileMemoryBackupFailed = true;
-                snprintf(tripInfo->reasonString, UINT8_MAX,  "Volatile Memory backup device has failed");
+                snprintf(tripInfo->reasonString, UINT8_MAX, "Volatile Memory backup device has failed");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT5)
@@ -3163,7 +3163,7 @@ bool is_SMART_Check_Supported(tDevice *device)
             }
         }
     }
-        break;
+    break;
     default:
         break;
     }
@@ -3625,11 +3625,11 @@ eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvT
 eReturnValues enable_Disable_SMART_Feature(tDevice *device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if(device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
         {
-            if(enable)
+            if (enable)
             {
                 ret = ata_SMART_Enable_Operations(device);
             }
@@ -3643,7 +3643,7 @@ eReturnValues enable_Disable_SMART_Feature(tDevice *device, bool enable)
     {
         informationalExceptionsControl control;
         memset(&control, 0, sizeof(informationalExceptionsControl));
-        if(SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, NULL))
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, NULL))
         {
             if (enable)
             {
@@ -3682,7 +3682,7 @@ eReturnValues set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault
                 return FAILURE;
             }
         }
-        if(SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, NULL))
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, NULL))
         {
             control.mrie = mrieMode;
             if (driveDefault)
@@ -3718,7 +3718,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModeP
                 //validate the page code since some SATLs return bad data
                 if (M_GETBITRANGE(infoLogPage[0], 5, 0) == 0x2F && infoLogPage[1] == 0 &&
                     M_BytesTo2ByteValue(infoLogPage[4], infoLogPage[5]) == 0 //make sure it's param 0
-                   )
+                    )
                 {
                     logData->isValid = true;
                     logData->additionalSenseCode = infoLogPage[8];
@@ -3864,7 +3864,7 @@ eReturnValues set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save,
 eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if(device->drive_info.drive_type == ATA_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT0)
             && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT0))
@@ -5233,7 +5233,7 @@ static void get_SMART_Offline_Immediate_Info(const char* commandName, M_ATTR_UNU
             //vendor unique (offline)
             snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
         }
-        else if (offlineImmdTest >= 0x90 /* && offlineImmdTest <= 0xFF*/ )
+        else if (offlineImmdTest >= 0x90 /* && offlineImmdTest <= 0xFF*/)
         {
             //vendor unique (captive)
             snprintf(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
@@ -5738,7 +5738,7 @@ static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uin
         convert_Seconds_To_Displayable_Time(count, NULL, NULL, &hours, &minutes, &seconds);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set NV Cache Power Mode. Minimum High-Power Time: %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8 " seconds", commandName, hours, minutes, seconds);
     }
-        break;
+    break;
     case NV_RETURN_FROM_NV_CACHE_POWER_MODE:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Return From NV Cache Power Mode", commandName);
         break;
@@ -5752,7 +5752,7 @@ static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uin
         bool populateImmediately = lba & BIT0;
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Add LBAs to NV Cache Pinned Set, Populate Immediately: %d, Count = %" PRIu32 "", commandName, populateImmediately, blockCount);
     }
-        break;
+    break;
     case NV_REMOVE_LBAS_FROM_NV_CACHE_PINNED_SET:
     {
         uint32_t blockCount = count;
@@ -5763,7 +5763,7 @@ static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uin
         bool unpinAll = lba & BIT0;
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Remove LBAs to NV Cache Pinned Set, Unpin All: %d, Count = %" PRIu32 "", commandName, unpinAll, blockCount);
     }
-        break;
+    break;
     case NV_QUERY_NV_CACHE_PINNED_SET:
     {
         uint32_t blockCount = count;
@@ -5773,7 +5773,7 @@ static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uin
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Query NV Cache Pinned Set, Starting 512B block: %" PRIu64 ", Count = %" PRIu32 "", commandName, lba, blockCount);
     }
-        break;
+    break;
     case NV_QUERY_NV_CACHE_MISSES:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Query NV Cache Misses", commandName);
         break;
@@ -5782,7 +5782,7 @@ static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uin
         uint32_t minimumBlocksToFlush = M_DoubleWord0(lba);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Flush NV Cache Pinned Set, Min Blocks To Flush = %" PRIu32 "", commandName, minimumBlocksToFlush);
     }
-        break;
+    break;
     case NV_CACHE_ENABLE:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable NV Cache", commandName);
         break;
@@ -5967,7 +5967,7 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Transfer Mode: %s", commandName, transferMode);
     }
-        break;
+    break;
     case SF_ENABLE_ALL_AUTOMATIC_DEFECT_REASSIGNMENT:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable All Automatic Defect Reassignment", commandName);
         break;
@@ -6002,7 +6002,7 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Advanced Power Management - %s", commandName, apmLevelString);
     }
-        break;
+    break;
     case SF_ENABLE_PUIS_FEATURE:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Power Up In Standby (PUIS)", commandName);
         break;
@@ -6040,7 +6040,7 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Write-Read-Verify: %s", commandName, wrvModeString);
     }
-        break;
+    break;
     case SF_ENABLE_DEVICE_LIFE_CONTROL:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Device Life Control", commandName);
         break;
@@ -6108,7 +6108,7 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
         uint8_t typicalDMATime = M_Byte1(lba);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Maximum Host Interface Sector Times - PIO: %" PRIu16 " DMA: %" PRIu8 "", commandName, typicalPIOTime, typicalDMATime);
     }
-        break;
+    break;
     case SF_LEGACY_SET_VENDOR_SPECIFIC_ECC_BYTES_FOR_READ_WRITE_LONG:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Vendor Specific ECC Data For Read/Write Long: %" PRIu8 " Bytes", commandName, subcommandCount);
         break;
@@ -6175,14 +6175,14 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
             bool saveBit = epcLBA & BIT4;
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Restore Power Condition Settings - %s Default: %d Save: %d", commandName, powerConditionString, defaultBit, saveBit);
         }
-            break;
+        break;
         case EPC_GO_TO_POWER_CONDITION:
         {
             bool delayedEntry = epcLBA & BIT25;
             bool holdPowerCondition = epcLBA & BIT24;
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Go To Power Condition - %s Delay: %d Hold: %d", commandName, powerConditionString, delayedEntry, holdPowerCondition);
         }
-            break;
+        break;
         case EPC_SET_POWER_CONDITION_TIMER:
         {
             uint32_t timer = M_GETBITRANGE(epcLBA, 23, 8);
@@ -6198,14 +6198,14 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
                 snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Power Condition Timer - %s Timer: %" PRIu32 " ms, Enable: %d, Save: %d", commandName, powerConditionString, timer * 100, enable, save);
             }
         }
-            break;
+        break;
         case EPC_SET_POWER_CONDITION_STATE:
         {
             bool enable = epcLBA & BIT5;
             bool save = epcLBA & BIT4;
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Power Condition State - %s Enable: %d, Save: %d", commandName, powerConditionString, enable, save);
         }
-            break;
+        break;
         case EPC_ENABLE_EPC_FEATURE_SET:
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable EPC Feature", commandName);
             break;
@@ -6231,13 +6231,13 @@ static void get_Set_Features_Command_Info(const char* commandName, uint8_t comma
             }
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set EPC Power Source - %s", commandName, powerSourceString);
         }
-            break;
+        break;
         default:
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown EPC Subcommand (%02" PRIX8 "h) - %s LBA: %07" PRIu32 "h", commandName, subcommand, powerConditionString, epcLBA);
             break;
         }
     }
-        break;
+    break;
     case SF_SET_CACHE_SEGMENTS:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Cache Segments - %" PRIu8 " Segments", commandName, subcommandCount);
         break;
@@ -6516,7 +6516,7 @@ static void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Close Zone, Zone ID: %" PRIu64 "  Close All: (Unknown)", commandName, lba);
         }
     }
-        break;
+    break;
     case ZM_ACTION_FINISH_ZONE:
     {
         bool finishAll = featuresActionSpecific & BIT0;
@@ -6529,7 +6529,7 @@ static void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Finish Zone, Zone ID: %" PRIu64 "  Finish All: (Unknown)", commandName, lba);
         }
     }
-        break;
+    break;
     case ZM_ACTION_OPEN_ZONE:
     {
         bool openAll = featuresActionSpecific & BIT0;
@@ -6542,7 +6542,7 @@ static void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Open Zone, Zone ID: %" PRIu64 "  Open All: (Unknown)", commandName, lba);
         }
     }
-        break;
+    break;
     case ZM_ACTION_RESET_WRITE_POINTERS:
     {
         bool resetAll = featuresActionSpecific & BIT0;
@@ -6555,7 +6555,7 @@ static void get_ZAC_Management_Out_Command_Info(const char* commandName, uint8_t
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Reset Write Pointers, Zone ID: %" PRIu64 "  Reset All: (Unknown)", commandName, lba);
         }
     }
-        break;
+    break;
     default:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown ZAC Out Command, LBA: %012" PRIX64 " Features: %04" PRIX16 "h Count: %04" PRIX16 "h", commandName, lba, features, count);
         break;
@@ -6595,28 +6595,28 @@ static void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t comma
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Abort NCQ Queue: %s. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, abortTypeString, tag, prio);
     }
-        break;
+    break;
     case NCQ_NON_DATA_DEADLINE_HANDLING:
     {
         bool rdnc = features & BIT5;
         bool wdnc = features & BIT4;
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Deadline Handling. Tag: %" PRIu8 " WDNC: %d RDNC: %d", commandName, tag, wdnc, rdnc);
     }
-        break;
+    break;
     case NCQ_NON_DATA_HYBRID_DEMOTE_BY_SIZE:
     {
         uint16_t sectorCount = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
         uint8_t fromPriority = M_GETBITRANGE(features, 7, 4);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Demote By Size. Tag: %" PRIu8 " LBA: %" PRIu64 " Count: %" PRIu16 " From Priority: %" PRIu8 "", commandName, tag, lba, sectorCount, fromPriority);
     }
-        break;
+    break;
     case NCQ_NON_DATA_HYBRID_CHANGE_BY_LBA_RANGE:
     {
         uint16_t sectorCount = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
         bool avoidSpinup = features & BIT4;
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Change By LBA Range. Tag: %" PRIu8 " LBA: %" PRIu64 " Count: %" PRIu16 " Avoid Spinup: %d", commandName, tag, lba, sectorCount, avoidSpinup);
     }
-        break;
+    break;
     case NCQ_NON_DATA_HYBRID_CONTROL:
     {
         bool disableCachingMedia = features & BIT7;
@@ -6624,7 +6624,7 @@ static void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t comma
         uint8_t dirtyLowThreshold = M_Byte0(lba);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Hybrid Control. Tag: %" PRIu8 " Disable Caching Media: %d Dirty High Thresh: %" PRIu8 " Dirty Low Thresh: %" PRIu8 "", commandName, tag, disableCachingMedia, dirtyHighThreshold, dirtyLowThreshold);
     }
-        break;
+    break;
     case NCQ_NON_DATA_SET_FEATURES:
     {
 #define NCQ_SET_FEATURES_STRING_LENGTH UINT8_C(48)
@@ -6632,7 +6632,7 @@ static void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t comma
         snprintf(ncqSetFeaturesString, NCQ_SET_FEATURES_STRING_LENGTH, "%s - Set Features. Tag: %" PRIu8 "", commandName, tag);
         get_Set_Features_Command_Info(ncqSetFeaturesString, commandOpCode, features, count, lba, device, commandInfo);
     }
-        break;
+    break;
     case NCQ_NON_DATA_ZERO_EXT:
     {
 #define NCQ_ZEROS_EXT_STRING_LENGTH UINT8_C(48)
@@ -6640,7 +6640,7 @@ static void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t comma
         snprintf(ncqZerosExtString, NCQ_ZEROS_EXT_STRING_LENGTH, "%s - Zero Ext. Tag: %" PRIu8 "", commandName, tag);
         get_Zeros_Ext_Command_Info(ncqZerosExtString, commandOpCode, features, count, lba, device, commandInfo);
     }
-        break;
+    break;
     case NCQ_NON_DATA_ZAC_MANAGEMENT_OUT:
     {
 #define NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH UINT8_C(48)
@@ -6648,7 +6648,7 @@ static void get_NCQ_Non_Data_Command_Info(const char* commandName, uint8_t comma
         snprintf(ncqZacMgmtOutString, NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH, "%s - ZAC Management Out. Tag: %" PRIu8 "", commandName, tag);
         get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device, commandInfo);
     }
-        break;
+    break;
     default:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16 "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h", commandName, subcommand, tag, features, count, lba);
         break;
@@ -6669,7 +6669,7 @@ static void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t comm
         snprintf(recieveFPDMAReadLogString, RECEIVE_FPDMA_READ_LOG_STRING_LENGTH, "%s - Read Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
         get_GPL_Log_Command_Info(recieveFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
     }
-        break;
+    break;
     case RECEIVE_FPDMA_ZAC_MANAGEMENT_IN:
     {
 #define NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH UINT8_C(53)
@@ -6677,7 +6677,7 @@ static void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t comm
         snprintf(ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH, "%s - ZAC Management In. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
         get_ZAC_Management_In_Command_Info(ncqZacMgmtInString, commandOpCode, features, count, lba, device, commandInfo);
     }
-        break;
+    break;
     default:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16 "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h", commandName, subcommand, tag, features, count, lba);
         break;
@@ -6709,7 +6709,7 @@ static void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t command
         snprintf(sendFPDMAReadLogString, SEND_FPDMA_READ_LOG_STRING_LENGTH, "%s - Write Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
         get_GPL_Log_Command_Info(sendFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
     }
-        break;
+    break;
     case SEND_FPDMA_ZAC_MANAGEMENT_OUT:
     {
 #define SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH UINT8_C(53)
@@ -6717,7 +6717,7 @@ static void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t command
         snprintf(ncqZacMgmtOutString, SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH, "%s - ZAC Management Out. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
         get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device, commandInfo);
     }
-        break;
+    break;
     case SEND_FPDMA_DATA_SET_MANAGEMENT_XL:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Data Set Management XL. Tag: %" PRIu8 " PRIO: %" PRIu8 " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu32 " LBA: %" PRIu64 "", commandName, tag, prio, blocksToTransfer, lba);
         break;
@@ -6950,7 +6950,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         }
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Uncorrectable Ext - %s  LBA: %" PRIu64 "  Count: %" PRIu32 "", uncorrectableOptionString, lba, numberOfSectors);
     }
-        break;
+    break;
     case ATA_READ_LOG_EXT_DMA:
         get_GPL_Log_Command_Info("Read Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
@@ -6968,7 +6968,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         uint8_t streamID = M_GETBITRANGE(features, 2, 0);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Configure Stream, Default CCTL: %" PRIu8 ", Add/Remove Stream: %d, readWriteStream: %d, Stream ID: %" PRIu8 "", defaultCCTL, addRemoveStream, readWriteStream, streamID);
     }
-        break;
+    break;
     case ATA_WRITE_LOG_EXT_DMA:
         get_GPL_Log_Command_Info("Write Log Ext DMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
@@ -7111,7 +7111,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
             }
         }
     }
-        break;
+    break;
     case ATA_EXEC_DRV_DIAG:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
         break;
@@ -7121,7 +7121,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         uint8_t maxHead = M_Nibble0(device);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Initialize Drive Parameters. Logical Sectors Per Track: %" PRIu8 "  Max Head: %" PRIu8 "", sectorsPerTrack, maxHead);
     }
-        break;
+    break;
     case ATA_DOWNLOAD_MICROCODE_CMD:
         get_Download_Command_Info("Download Microcode", commandOpCode, features, count, lba, device, commandInfo);
         break;
@@ -7166,7 +7166,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         uint8_t descriptorIndex = M_GETBITRANGE(count, 2, 0);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Sector Configuration Ext - Descriptor: %" PRIu8 ", Command Check: %" PRIX16 "h", descriptorIndex, features);
     }
-        break;
+    break;
     case ATA_SANITIZE:
         get_Sanitize_Command_Info("Sanitize", commandOpCode, features, count, lba, device, commandInfo);
         break;
@@ -7602,7 +7602,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
             }
             common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Command Completion Time Out");
         }
-        if(strlen(errorMessage) == 0)
+        if (strlen(errorMessage) == 0)
         {
             if (is_Possible_Recalibrate_Command(commandOpCodeThatCausedError))
             {
@@ -7620,7 +7620,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
                 }
                 //unknown error, possibly recalibrate command + track zero not found....
                 char *dup = strdup(errorMessage);
-                if(dup)
+                if (dup)
                 {
                     snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sUnknown Error Condition (%02" PRIX8 "h)", dup, error);
                     safe_Free(dup)

@@ -604,7 +604,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
                     }
                     if (switchMultiOff)
                     {
-                        multiBit = false; 
+                        multiBit = false;
                         printf("------------------------------\n");
                     }
                 }

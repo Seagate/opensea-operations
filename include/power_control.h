@@ -123,7 +123,7 @@ extern "C"
         uint16_t numberOfPowerStates;//how many were filled into the following array
         uint32_t activePowerState;// which state is active. 0 - 31
         nvmePowerState powerState[MAXIMUM_NVME_POWER_STATES];
-    }nvmeSupportedPowerStates, * ptrNVMeSupportedPowerStates;
+    }nvmeSupportedPowerStates, *ptrNVMeSupportedPowerStates;
 
     OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps);
 
@@ -390,7 +390,7 @@ extern "C"
         bool puisSupported;
         bool puisEnabled;
         bool spinupCommandRequired; //requires the spinup command to be issued to spin up. If false, then a media access will spinup as needed.
-    }puisInfo, * ptrPuisInfo;
+    }puisInfo, *ptrPuisInfo;
 
     OPENSEA_OPERATIONS_API eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info);
 

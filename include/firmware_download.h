@@ -90,7 +90,7 @@ extern "C"
         char revision[9];//8 characters and a null terminator - TJE
     }firmwareSlotRevision;
 
-    typedef struct _firmwareSlotInfo 
+    typedef struct _firmwareSlotInfo
     {
         bool firmwareSlotInfoValid;//must be true to be valid
         bool slot1ReadOnly;

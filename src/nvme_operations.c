@@ -134,7 +134,6 @@ static eReturnValues nvme_Print_Arbitration_Feature_Details(tDevice *device, eNv
     return ret;
 }
 
-
 //Temperature Threshold 
 static eReturnValues nvme_Print_Temperature_Feature_Details(tDevice *device, eNvmeFeaturesSelectValue selectType)
 {
@@ -553,27 +552,27 @@ eReturnValues nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * l
             break;
         case NVME_LOG_TELEMETRY_HOST_ID:
         case NVME_LOG_TELEMETRY_CTRL_ID:
+        {
+            uint8_t telemetryHeader[UINT32_C(512)] = { 0 };
+            getLogHeader.addr = telemetryHeader;
+            getLogHeader.dataLen = UINT32_C(512);
+            getLogHeader.lid = logPageId;
+            if (SUCCESS == nvme_Get_Log_Page(device, &getLogHeader))
             {
-                uint8_t telemetryHeader[UINT32_C(512)] = { 0 };
-                getLogHeader.addr = telemetryHeader;
-                getLogHeader.dataLen = UINT32_C(512);
-                getLogHeader.lid = logPageId;
-                if (SUCCESS == nvme_Get_Log_Page(device, &getLogHeader))
+                *logSize = UINT64_C(512) + (UINT64_C(512) * M_BytesTo2ByteValue(logPageHeader[13], logPageHeader[12]));
+                //TODO: Data area 4 support. Need to check host behavior support feature as well as identify data
+                /*if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT6)
                 {
-                    *logSize = UINT64_C(512) + (UINT64_C(512) * M_BytesTo2ByteValue(logPageHeader[13], logPageHeader[12]));
-                    //TODO: Data area 4 support. Need to check host behavior support feature as well as identify data
-                    /*if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT6)
-                    {
-                        //use data area 4
-                    }*/
-                }
-                else
-                {
-                    //requested telemetry log is likely not supported
-                    *logSize = UINT64_C(0);
-                }
+                    //use data area 4
+                }*/
             }
-            break;
+            else
+            {
+                //requested telemetry log is likely not supported
+                *logSize = UINT64_C(0);
+            }
+        }
+        break;
         case NVME_LOG_PREDICTABLE_LATENCY_EVENT_AGREGATE_ID:
             *logSize = UINT64_C(8) + (UINT64_C(2) * C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.nsetidmax));
             break;
@@ -681,23 +680,23 @@ eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice *device)
 #endif
         printf("\nFirmware slot actively running firmware: %d\n", fwSlotsLogInfo.afi & 0x07);
 
-		if (((fwSlotsLogInfo.afi & 0x70) >> 4) == 0) 
-		{
-			printf("Firmware slot to be activated at next reset: None\n\n");
-		}
-		else
-		{
-			printf("Firmware slot to be activated at next reset: %d\n\n", ((fwSlotsLogInfo.afi & 0x70) >> 4));
-		}
+        if (((fwSlotsLogInfo.afi & 0x70) >> 4) == 0)
+        {
+            printf("Firmware slot to be activated at next reset: None\n\n");
+        }
+        else
+        {
+            printf("Firmware slot to be activated at next reset: %d\n\n", ((fwSlotsLogInfo.afi & 0x70) >> 4));
+        }
 
         for (slot = 1; slot <= NVME_MAX_FW_SLOTS; slot++)
         {
-			if (fwSlotsLogInfo.FSR[slot - 1])
-			{
-				memcpy(fwRev, (char *)&fwSlotsLogInfo.FSR[slot - 1], 8);
-				fwRev[8] = '\0';
-				printf(" Slot %d : %s\n", slot, fwRev);
-			}
+            if (fwSlotsLogInfo.FSR[slot - 1])
+            {
+                memcpy(fwRev, (char *)&fwSlotsLogInfo.FSR[slot - 1], 8);
+                fwRev[8] = '\0';
+                printf(" Slot %d : %s\n", slot, fwRev);
+            }
         }
     }
 

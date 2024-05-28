@@ -24,23 +24,17 @@
 
 eReturnValues ata_Abort_DST(tDevice *device)
 {
-    eReturnValues result = UNKNOWN;
-    result = ata_SMART_Offline(device, 0x7F, 15);
-    return result;
+    return ata_SMART_Offline(device, 0x7F, 15);
 }
 
 eReturnValues scsi_Abort_DST(tDevice *device)
 {
-    eReturnValues     result = UNKNOWN;
-    result = scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, NULL, 0, 15);
-    return result;
+    return scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, NULL, 0, 15);
 }
 
 eReturnValues nvme_Abort_DST(tDevice *device, uint32_t nsid)
 {
-    eReturnValues result = UNKNOWN;
-    result = nvme_Device_Self_Test(device, nsid, 0x0F);
-    return result;
+    return nvme_Device_Self_Test(device, nsid, 0x0F);
 }
 
 eReturnValues abort_DST(tDevice *device)
@@ -66,7 +60,7 @@ eReturnValues abort_DST(tDevice *device)
 
 eReturnValues ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
-    eReturnValues     result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     uint8_t temp_buf[512] = { 0 };
     result = ata_SMART_Read_Data(device, temp_buf, sizeof(temp_buf));
     if (result == SUCCESS)
@@ -82,7 +76,7 @@ eReturnValues ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, u
 eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
     //04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
-    eReturnValues     result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     uint8_t *temp_buf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (temp_buf == NULL)
     {
@@ -149,7 +143,7 @@ eReturnValues nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
 
 eReturnValues get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
-    eReturnValues      result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     *percentComplete = 0;
     *status = 0xFF;
     switch (device->drive_info.drive_type)
@@ -410,7 +404,7 @@ bool is_Self_Test_Supported(tDevice *device)
             supported = true;
         }
     }
-        break;
+    break;
     case ATA_DRIVE:
         if (is_SMART_Enabled(device))
         {
@@ -1112,7 +1106,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
         *minutes = C_CAST(uint8_t, longTestTime % 60);
         ret = SUCCESS;
     }
-        break;
+    break;
     case SCSI_DRIVE:
     {
         uint16_t longDSTTime = 0;
