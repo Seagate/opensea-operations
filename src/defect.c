@@ -1117,9 +1117,9 @@ eReturnValues corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, 
     return ret;
 }
 
-int get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!defectList || !numberOfDefects)
     {
         return BAD_PARAMETER;
@@ -1195,9 +1195,9 @@ int get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList
     return ret;
 }
 
-int get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!defectList || !numberOfDefects)
     {
         return BAD_PARAMETER;
@@ -1244,7 +1244,7 @@ int get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList,
 }
 
 
-int get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1275,9 +1275,9 @@ void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPen
     }
 }
 
-int get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults)
+eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!results || !numberOfResults)
     {
         return BAD_PARAMETER;
@@ -1336,9 +1336,9 @@ int get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults resul
     return ret;
 }
 
-int get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!defectList || !numberOfDefects)
     {
         return BAD_PARAMETER;
@@ -1371,9 +1371,9 @@ int get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect def
 }
 
 //Defect list for this should be at least MAX_DST_ENTRIES in size
-int get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!defectList || !numberOfDefects)
     {
         return BAD_PARAMETER;

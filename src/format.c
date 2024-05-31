@@ -1526,14 +1526,14 @@ static bool is_Requested_Sector_Size_Multiple(tDevice *device, uint32_t sectorSi
     }
 }
 
-int set_Sector_Configuration(tDevice* device, uint32_t sectorSize)
+eReturnValues set_Sector_Configuration(tDevice* device, uint32_t sectorSize)
 {
     return set_Sector_Configuration_With_Force(device, sectorSize, false);
 }
 
-int set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bool force)
+eReturnValues set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bool force)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device) || force)
     {
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)

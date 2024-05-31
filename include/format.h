@@ -225,7 +225,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration(tDevice *device, uint32_t sectorSize);
 
-    OPENSEA_OPERATIONS_API int set_Sector_Configuration_With_Force(tDevice* device, uint32_t sectorSize, bool force);
+    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sectorSize, bool force);
 
     typedef struct protectionSupport
     {
