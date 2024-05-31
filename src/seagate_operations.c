@@ -2878,3 +2878,31 @@ void print_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics 
         print_Seagate_SCSI_DeviceStatistics(seagateDeviceStats);
     }
 }
+
+int get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
+{
+    int ret = NOT_SUPPORTED;
+    if (!fwNumbers)
+    {
+        return BAD_PARAMETER;
+    }
+    if (device->drive_info.drive_type == SCSI_DRIVE && SEAGATE == is_Seagate_Family(device))
+    {
+        uint8_t firmwareNumbersPage[60] = { 0 };
+        if (SUCCESS == scsi_Inquiry(device, firmwareNumbersPage, 60, 0xC0, true, false))
+        {
+            ret = SUCCESS;
+            memcpy(fwNumbers->scsiFirmwareReleaseNumber, &firmwareNumbersPage[4], FIRMWARE_RELEASE_NUM_LEN);
+            memcpy(fwNumbers->servoFirmwareReleaseNumber, &firmwareNumbersPage[12], SERVO_FIRMWARE_RELEASE_NUM_LEN);
+            memcpy(fwNumbers->sapBlockPointNumbers, &firmwareNumbersPage[20], SAP_BP_NUM_LEN);
+            memcpy(fwNumbers->servoFirmmwareReleaseDate, &firmwareNumbersPage[28], SERVO_FW_RELEASE_DATE_LEN);
+            memcpy(fwNumbers->servoRomReleaseDate, &firmwareNumbersPage[32], SERVO_ROM_RELEASE_DATE_LEN);
+            memcpy(fwNumbers->sapFirmwareReleaseNumber, &firmwareNumbersPage[36], SAP_FW_RELEASE_NUM_LEN);
+            memcpy(fwNumbers->sapFirmwareReleaseDate, &firmwareNumbersPage[44], SAP_FW_RELEASE_DATE_LEN);
+            memcpy(fwNumbers->sapFirmwareReleaseYear, &firmwareNumbersPage[48], SAP_FW_RELEASE_YEAR_LEN);
+            memcpy(fwNumbers->sapManufacturingKey, &firmwareNumbersPage[52], SAP_MANUFACTURING_KEY_LEN);
+            memcpy(fwNumbers->servoFirmwareProductFamilyAndProductFamilyMemberIDs, &firmwareNumbersPage[56], SERVO_PRODUCT_FAMILY_LEN);
+        }
+    }
+    return ret;
+}

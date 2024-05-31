@@ -14,6 +14,9 @@
 // \brief This file defines the functions for creating and reading defect information
 
 #include "defect.h"
+#include "smart.h"
+#include "logs.h"
+#include "dst.h"
 
 eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects)
 {
@@ -1109,6 +1112,294 @@ eReturnValues corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, 
         if (ret != SUCCESS)
         {
             break;
+        }
+    }
+    return ret;
+}
+
+int get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    int ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfDefects = 0;//set to zero since it will be incremented as we read in the bad LBAs
+    uint32_t totalPendingReported = 0;
+    bool validPendingReportedCount = false;
+    if (SUCCESS == get_Pending_List_Count(device, &totalPendingReported))//This is useful so we know whether or not to bother reading the log
+    {
+        validPendingReportedCount = true;
+        ret = SUCCESS;//change this to SUCCESS since we know we will get a valid count & list before we read it
+    }
+    if (totalPendingReported > 0 && validPendingReportedCount)
+    {
+        uint32_t pendingLogSize = 0;
+        get_SCSI_Log_Size(device, LP_PENDING_DEFECTS, 0x01, &pendingLogSize);
+        if (pendingLogSize > 0)
+        {
+            uint8_t* pendingDefectsLog = C_CAST(uint8_t*, calloc_aligned(pendingLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!pendingDefectsLog)
+            {
+                return MEMORY_FAILURE;
+            }
+            if (SUCCESS == get_SCSI_Log(device, LP_PENDING_DEFECTS, 0x01, NULL, NULL, true, pendingDefectsLog, pendingLogSize, NULL))
+            {
+                //First, validate that we got the right SCSI log page...I've seen some USB devices ignore the subpage code and return the wrong data. - TJE
+                if (M_GETBITRANGE(pendingDefectsLog[0], 5, 0) == 0x15 && pendingDefectsLog[0] & BIT6 && pendingDefectsLog[1] == 0x01)
+                {
+                    uint16_t pageLength = M_BytesTo2ByteValue(pendingDefectsLog[2], pendingDefectsLog[3]);//does not include 4 byte header!
+                    if (pageLength > 4)
+                    {
+                        uint32_t pendingDefectCount = 1;//will be set in loop shortly...but use this for now to enter the loop
+                        uint8_t parameterLength = 0;
+                        uint32_t offset = LOG_PAGE_HEADER_LENGTH;//setting to this so we start with the first parameter we are given...which should be zero
+                        for (uint32_t defectCounter = 0; offset < C_CAST(uint32_t, C_CAST(uint32_t, pageLength) + LOG_PAGE_HEADER_LENGTH) && defectCounter < pendingDefectCount; offset += (parameterLength + 4))
+                        {
+                            uint16_t parameterCode = M_BytesTo2ByteValue(pendingDefectsLog[offset + 0], pendingDefectsLog[offset + 1]);
+                            parameterLength = pendingDefectsLog[offset + 3];//does not include 4 byte header. The increment in the loop takes this into account
+                            if (parameterCode == 0)
+                            {
+                                //this is the total count in the log
+                                pendingDefectCount = M_BytesTo4ByteValue(pendingDefectsLog[offset + 4], pendingDefectsLog[offset + 5], pendingDefectsLog[offset + 6], pendingDefectsLog[offset + 7]);
+                            }
+                            else if (parameterCode >= 0x0001 && parameterCode <= 0xF000)
+                            {
+                                //this is a pending defect entry
+                                defectList[defectCounter].powerOnHours = M_BytesTo4ByteValue(pendingDefectsLog[offset + 4], pendingDefectsLog[offset + 5], pendingDefectsLog[offset + 6], pendingDefectsLog[offset + 7]);
+                                defectList[defectCounter].lba = M_BytesTo8ByteValue(pendingDefectsLog[offset + 8], pendingDefectsLog[offset + 9], pendingDefectsLog[offset + 10], pendingDefectsLog[offset + 11], pendingDefectsLog[offset + 12], pendingDefectsLog[offset + 13], pendingDefectsLog[offset + 14], pendingDefectsLog[offset + 15]);
+                                ++defectCounter;
+                                ++(*numberOfDefects);
+                            }
+                            else
+                            {
+                                //all other parameters are reserved, so exit
+                                break;
+                            }
+                        }
+                        ret = SUCCESS;
+                    }
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            safe_Free_aligned(pendingDefectsLog);
+        }
+    }
+    return ret;
+}
+
+int get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    int ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfDefects = 0;//set to zero since it will be incremented as we read in the bad LBAs
+    uint32_t totalPendingReported = 0;
+    bool validPendingReportedCount = false;
+    if (SUCCESS == get_Pending_List_Count(device, &totalPendingReported))//This is useful so we know whether or not to bother reading the log
+    {
+        validPendingReportedCount = true;
+        ret = SUCCESS;//change this to SUCCESS since we know we will get a valid count & list before we read it
+    }
+    if ((totalPendingReported > 0 && validPendingReportedCount) || !validPendingReportedCount)//if we got a valid count and a number greater than zero, we read the list. If we didn't get a valid count, then we still read the list...this may be an optimization in some cases
+    {
+        //Check if the ACS pending log is supported and use that INSTEAD of the Seagate log...always use std spec when we can
+        uint32_t pendingLogSize = 0;
+        get_ATA_Log_Size(device, ATA_LOG_PENDING_DEFECTS_LOG, &pendingLogSize, true, false);
+        if (pendingLogSize > 0)
+        {
+            //ACS Pending List
+            uint8_t* pendingList = C_CAST(uint8_t*, calloc_aligned(pendingLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!pendingList)
+            {
+                return MEMORY_FAILURE;
+            }
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, NULL, NULL, true, false, true, pendingList, pendingLogSize, NULL, 0, 0))
+            {
+                uint32_t numberOfDescriptors = M_BytesTo4ByteValue(pendingList[3], pendingList[2], pendingList[1], pendingList[0]);
+                for (uint32_t descriptorIter = 0, offset = 16; descriptorIter < numberOfDescriptors && offset < pendingLogSize; ++descriptorIter, offset += 16, ++(*numberOfDefects))
+                {
+                    defectList[*numberOfDefects].powerOnHours = M_BytesTo4ByteValue(pendingList[3 + offset], pendingList[2 + offset], pendingList[1 + offset], pendingList[0 + offset]);
+                    defectList[*numberOfDefects].lba = M_BytesTo8ByteValue(pendingList[15 + offset], pendingList[14 + offset], pendingList[13 + offset], pendingList[12 + offset], pendingList[11 + offset], pendingList[10 + offset], pendingList[9 + offset], pendingList[8 + offset]);
+                }
+                ret = SUCCESS;
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            safe_Free_aligned(pendingList);
+        }
+    }
+    return ret;
+}
+
+
+int get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        return get_LBAs_From_ATA_Pending_List(device, defectList, numberOfDefects);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return get_LBAs_From_SCSI_Pending_List(device, defectList, numberOfDefects);
+    }
+    return NOT_SUPPORTED;
+}
+
+void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList)
+{
+    printf("Pending Defects:\n");
+    printf("================\n");
+    if (numberOfItemsInPendingList > 0)
+    {
+        printf(" #\tLBA\t\t\tTimestamp\n");
+        for (uint32_t pendingListIter = 0; pendingListIter < numberOfItemsInPendingList; ++pendingListIter)
+        {
+            printf("%" PRIu32 "\t%" PRIu64 "\t\t\t%" PRIu32 "\n", pendingListIter, pendingList[pendingListIter].lba, pendingList[pendingListIter].powerOnHours);
+        }
+    }
+    else
+    {
+        printf("No items in pending defect list.\n");
+    }
+}
+
+int get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults)
+{
+    int ret = NOT_SUPPORTED;
+    if (!results || !numberOfResults)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfResults = 0;
+    uint32_t backgroundScanResultsLength = 0;
+    if (SUCCESS == get_SCSI_Log_Size(device, LP_BACKGROUND_SCAN_RESULTS, 0, &backgroundScanResultsLength))
+    {
+        if (backgroundScanResultsLength > 0)
+        {
+            //now allocate memory and read it
+            uint8_t* backgroundScanResults = C_CAST(uint8_t*, calloc_aligned(backgroundScanResultsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!backgroundScanResults)
+            {
+                return MEMORY_FAILURE;
+            }
+            if (SUCCESS == get_SCSI_Log(device, LP_BACKGROUND_SCAN_RESULTS, 0, NULL, NULL, true, backgroundScanResults, backgroundScanResultsLength, NULL))
+            {
+                uint16_t parameterCode = 0;
+                uint8_t parameterLength = 0;
+                for (uint32_t offset = LOG_PAGE_HEADER_LENGTH; offset < backgroundScanResultsLength && *numberOfResults < MAX_BACKGROUND_SCAN_RESULTS; offset += parameterLength + LOG_PAGE_HEADER_LENGTH)
+                {
+                    parameterCode = M_BytesTo2ByteValue(backgroundScanResults[offset + 0], backgroundScanResults[offset + 1]);
+                    parameterLength = backgroundScanResults[offset + 3];
+                    if (parameterCode == 0)
+                    {
+                        //status parameter...don't need anything from here right now
+                        continue;
+                    }
+                    else if (parameterCode >= 0x0001 && parameterCode <= 0x0800)
+                    {
+                        //result entry.
+                        results[*numberOfResults].accumulatedPowerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[offset + 4], backgroundScanResults[offset + 5], backgroundScanResults[offset + 6], backgroundScanResults[offset + 7]);
+                        results[*numberOfResults].lba = M_BytesTo8ByteValue(backgroundScanResults[offset + 16], backgroundScanResults[offset + 17], backgroundScanResults[offset + 18], backgroundScanResults[offset + 19], backgroundScanResults[offset + 20], backgroundScanResults[offset + 21], backgroundScanResults[offset + 22], backgroundScanResults[offset + 23]);
+                        results[*numberOfResults].reassignStatus = M_Nibble1(backgroundScanResults[offset + 8]);
+                        results[*numberOfResults].senseKey = M_Nibble0(backgroundScanResults[offset + 8]);
+                        results[*numberOfResults].additionalSenseCode = backgroundScanResults[offset + 9];
+                        results[*numberOfResults].additionalSenseCodeQualifier = backgroundScanResults[offset + 10];
+                        ++(*numberOfResults);
+                    }
+                    else
+                    {
+                        //reserved or vendor specific parameter...just exit
+                        break;
+                    }
+                }
+                ret = SUCCESS;
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            safe_Free_aligned(backgroundScanResults);
+        }
+    }
+    return ret;
+}
+
+int get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    int ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        return ret;
+    }
+    *numberOfDefects = 0;
+    ptrBackgroundResults bmsResults = C_CAST(ptrBackgroundResults, malloc(sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS));
+    if (!bmsResults)
+    {
+        return MEMORY_FAILURE;
+    }
+    memset(bmsResults, 0, sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS);
+    uint16_t numberOfBMSResults = 0;
+    ret = get_SCSI_Background_Scan_Results(device, bmsResults, &numberOfBMSResults);
+    if (ret == SUCCESS)
+    {
+        for (uint16_t bmsIter = 0; bmsIter < numberOfBMSResults; ++bmsIter)
+        {
+            //TODO: Should we check the reassign status before adding to this list?
+            defectList[*numberOfDefects].lba = bmsResults[bmsIter].lba;
+            defectList[*numberOfDefects].powerOnHours = C_CAST(uint32_t, bmsResults[bmsIter].accumulatedPowerOnMinutes / UINT64_C(60));
+            ++(*numberOfDefects);
+        }
+    }
+    safe_Free(bmsResults);
+    return ret;
+}
+
+//Defect list for this should be at least MAX_DST_ENTRIES in size
+int get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    int ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfDefects = 0;
+    dstLogEntries dstEntries;
+    memset(&dstEntries, 0, sizeof(dstLogEntries));
+    ret = get_DST_Log_Entries(device, &dstEntries);
+    if (ret == SUCCESS)
+    {
+        //Got the DST log entries, so we need to find error LBAs from read element failures to add that to the list
+        for (uint8_t dstIter = 0; dstIter < dstEntries.numberOfEntries; ++dstIter)
+        {
+            if (dstEntries.dstEntry[dstIter].descriptorValid)
+            {
+                switch (M_Nibble1(dstEntries.dstEntry[dstIter].selfTestExecutionStatus))
+                {
+                case 0x07://read element failure
+                    defectList[*numberOfDefects].lba = dstEntries.dstEntry[dstIter].lbaOfFailure;
+                    defectList[*numberOfDefects].powerOnHours = dstEntries.dstEntry[dstIter].lifetimeTimestamp;
+                    ++(*numberOfDefects);
+                    break;
+                default:
+                    break;
+                }
+            }
         }
     }
     return ret;

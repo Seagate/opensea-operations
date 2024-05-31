@@ -524,6 +524,35 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues get_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats);
 
     OPENSEA_OPERATIONS_API void print_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics seagateDeviceStats);
+
+    #define FIRMWARE_RELEASE_NUM_LEN 8
+    #define SERVO_FIRMWARE_RELEASE_NUM_LEN 8
+    #define SAP_BP_NUM_LEN 8
+    #define SERVO_FW_RELEASE_DATE_LEN 4
+    #define SERVO_ROM_RELEASE_DATE_LEN 4
+    #define SAP_FW_RELEASE_NUM_LEN 8
+    #define SAP_FW_RELEASE_DATE_LEN 4
+    #define SAP_FW_RELEASE_YEAR_LEN 4
+    #define SAP_MANUFACTURING_KEY_LEN 4
+    #define SERVO_PRODUCT_FAMILY_LEN 4
+
+    typedef struct _seagateSCSIFWNumbers
+    {
+        char scsiFirmwareReleaseNumber[FIRMWARE_RELEASE_NUM_LEN + 1];
+        char servoFirmwareReleaseNumber[SERVO_FIRMWARE_RELEASE_NUM_LEN + 1];
+        char sapBlockPointNumbers[SAP_BP_NUM_LEN + 1];
+        char servoFirmmwareReleaseDate[SERVO_FW_RELEASE_DATE_LEN + 1];
+        char servoRomReleaseDate[SERVO_ROM_RELEASE_DATE_LEN + 1];
+        char sapFirmwareReleaseNumber[SAP_FW_RELEASE_NUM_LEN + 1];
+        char sapFirmwareReleaseDate[SAP_FW_RELEASE_DATE_LEN + 1];
+        char sapFirmwareReleaseYear[SAP_FW_RELEASE_YEAR_LEN + 1];
+        char sapManufacturingKey[SAP_MANUFACTURING_KEY_LEN + 1];
+        char servoFirmwareProductFamilyAndProductFamilyMemberIDs[SERVO_PRODUCT_FAMILY_LEN + 1];
+    }seagateSCSIFWNumbers, *ptrSeagateSCSIFWNumbers;
+
+    //This is defined in the Seagate SCSI commands reference manual available on the web
+    OPENSEA_OPERATIONS_API int get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers);
+
 #if defined (__cplusplus)
 }
 #endif
