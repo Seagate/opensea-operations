@@ -2842,9 +2842,9 @@ void print_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStatistics 
     }
 }
 
-int get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
+eReturnValues get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!fwNumbers)
     {
         return BAD_PARAMETER;

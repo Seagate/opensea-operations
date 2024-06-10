@@ -551,7 +551,7 @@ extern "C"
     }seagateSCSIFWNumbers, *ptrSeagateSCSIFWNumbers;
 
     //This is defined in the Seagate SCSI commands reference manual available on the web
-    OPENSEA_OPERATIONS_API int get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers);
+    OPENSEA_OPERATIONS_API eReturnValues get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers);
 
 #if defined (__cplusplus)
 }
