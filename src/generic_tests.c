@@ -1058,7 +1058,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
     {
         autoWriteReassign = true;//just in case this fails, default to previous behavior
     }
-    //TODO: make sure the starting LBA is alligned? If we do this, we need to make sure we don't mess with the data of the LBAs we don't mean to start at...mostly don't want to erase an LBA we shouldn't be starting at.
+    //make sure the starting LBA is alligned? If we do this, we need to make sure we don't mess with the data of the LBAs we don't mean to start at...mostly don't want to erase an LBA we shouldn't be starting at.
     //startingLBA = align_LBA(device, startingLBA);
     //this is escentially a loop over the sequential read function
     time_t startTime = time(NULL);
@@ -1811,7 +1811,7 @@ static eReturnValues diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwv
         return BAD_PARAMETER;
     }
     errorList[*errorOffset].errorAddress = UINT64_MAX;
-    //TODO: make sure the starting LBA is alligned? If we do this, we need to make sure we don't mess with the data of the LBAs we don't mean to start at...mostly don't want to erase an LBA we shouldn't be starting at.
+    //make sure the starting LBA is alligned? If we do this, we need to make sure we don't mess with the data of the LBAs we don't mean to start at...mostly don't want to erase an LBA we shouldn't be starting at.
     //startingLBA = align_LBA(device, startingLBA);
     bool autoReadReassign = false;
     bool autoWriteReassign = false;
@@ -2019,7 +2019,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvC
         }
     }
     errorList[*errorOffset].errorAddress = UINT64_MAX;
-    //TODO: make sure the starting LBA is alligned? If we do this, we need to make sure we don't mess with the data of the LBAs we don't mean to start at...mostly don't want to erase an LBA we shouldn't be starting at.
+    //make sure the starting LBA is alligned? If we do this, we need to make sure we don't mess with the data of the LBAs we don't mean to start at...mostly don't want to erase an LBA we shouldn't be starting at.
     //startingLBA = align_LBA(device, startingLBA);
     bool autoReadReassign = false;
     bool autoWriteReassign = false;
@@ -2195,7 +2195,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
         uint64_t idStartingLBA = device->drive_info.deviceMaxLba - odOrMdLBAsAccessed;
         if (idStartingLBA == device->drive_info.deviceMaxLba)
         {
-            //TODO: this guestimate can be improved by reading the negotiated interface speed and using that as a maximum performance to get the gestimate closer to the best place to start the ID scan...this would work at least on ATA and SCSI well...USB would be more difficult to guess properly.
+            //NOTE: this guestimate can be improved by reading the negotiated interface speed and using that as a maximum performance to get the gestimate closer to the best place to start the ID scan...this would work at least on ATA and SCSI well...USB would be more difficult to guess properly.
             //need to make a guess based on the amount of time we're running where we'll start...let's assume the worse case of an accessing at 550MB/s (max 6Gb/s transfer an SSD on SATA can get...shouldn't happen)
             idStartingLBA = device->drive_info.deviceMaxLba - (((550 /*megabytes per second*/ * timeInSecondsPerDiameter) /*now convert to Bytes*/ * 1000000) /*now convert to LBAs*/ / device->drive_info.deviceBlockSize);
         }

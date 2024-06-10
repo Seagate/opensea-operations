@@ -249,7 +249,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
     }
     //else PIO-0 for really old backwards compatibility
-    //TODO: If SN is invalid, or all ASCII zeroes, then this is likely an ESDI drive managed by an ATA compatible controller.
+    //If SN is invalid, or all ASCII zeroes, then this is likely an ESDI drive managed by an ATA compatible controller.
     //      In this case, we may not want to change the speed to say "PIO-0" since it has a different transfer rate.
 
     //prefer words 62/63 (DW/MW DMA) if they ae supported
@@ -2530,7 +2530,7 @@ static eReturnValues get_Security_Features_From_Security_Protocol(tDevice *devic
     {
         uint16_t length = M_BytesTo2ByteValue(securityProtocolList[6], securityProtocolList[7]);
         uint32_t bufIter = 8;
-        //TODO: Check endianness. ATA is SUPPOSED to report little endian and SCSI/NVMe report big endian, but that doesn't seem like it's always followed.
+        //Check endianness. ATA is SUPPOSED to report little endian and SCSI/NVMe report big endian, but that doesn't seem like it's always followed.
         //      So to check this, check the bytes after the length are all zero for either interpretation. 
         //      One will be right, usually the shorter of the lengths.
         //      This is necessary for any security protocol 0 (information) buffers as I've seen all kinds of weird combinations - TJE
@@ -3145,7 +3145,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             ++offset;
                         }
                     }
-                    //TODO: Add more pages to the dummy information as we need to. This may be useful to do in the future in case a device decides not to support a MANDATORY page or another page we care about
+                    //Add more pages to the dummy information as we need to. This may be useful to do in the future in case a device decides not to support a MANDATORY page or another page we care about
                 }
                 //set page length (n-3)
                 tempBuf[2] = M_Byte1(offset - 4);//msb
@@ -3244,7 +3244,6 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                                 //we had an error while trying to read the page...
                             }
                         }
-                        //TODO: change this for parallel and PCIe?
                         driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0xFF;//set to something invalid
                         //Below we loop through to the designator descriptors to find the WWN, and on SAS set the active port.
                         //we get the active phy from the low byte of the WWN when we find the association field set to 01b
@@ -4094,7 +4093,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 {
                                     add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Field Accessible Reliability Metrics (FARM)");
                                 }
-                                //TODO: If for any reason DOM was not already read from standard page, can read it here too
+                                //NOTE: If for any reason DOM was not already read from standard page, can read it here too
                             }
                             safe_Free_aligned(farmData)
                         }
@@ -5816,7 +5815,6 @@ static eReturnValues get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformati
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Translate Address");
                                 break;
                             case DIAG_PAGE_REBUILD_ASSIST:
-                                //TODO: check and see if the rebuild assist feature is enabled.
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Rebuild Assist");
                                 break;
                             case 0x90:
@@ -5847,7 +5845,6 @@ static eReturnValues get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformati
 }
 
 //report supported operation codes to figure out additional features.
-//TODO: cmdDT early exit if invalid field in CDB
 static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInformationSAS_SATA driveInfo, ptrSCSIIdentifyInfo scsiInfo)
 {
     eReturnValues ret = SUCCESS;
@@ -6414,7 +6411,6 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice *device, ptrDrive
         uint8_t hostIdentifier[16] = { 0 };
         getHostIdentifier.dataPtr = hostIdentifier;
         getHostIdentifier.dataLength = 16;
-        //TODO: Need to debug why this doesn't work right now - TJE
         if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
         {
             memcpy(&driveInfo->controllerData.hostIdentifier, hostIdentifier, 16);
@@ -6483,7 +6479,6 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice *device, ptrDrive
                 driveInfo->dstInfo.powerOnHours = M_BytesTo8ByteValue(nvmeDSTLog[latestDSTOffset + 11], nvmeDSTLog[latestDSTOffset + 10], nvmeDSTLog[latestDSTOffset + 9], nvmeDSTLog[latestDSTOffset + 8], nvmeDSTLog[latestDSTOffset + 7], nvmeDSTLog[latestDSTOffset + 6], nvmeDSTLog[latestDSTOffset + 5], nvmeDSTLog[latestDSTOffset + 4]);
                 if (nvmeDSTLog[latestDSTOffset + 2] & BIT1)
                 {
-                    //TODO: namespace with the error?
                     driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(nvmeDSTLog[latestDSTOffset + 23], nvmeDSTLog[latestDSTOffset + 22], nvmeDSTLog[latestDSTOffset + 12], nvmeDSTLog[latestDSTOffset + 20], nvmeDSTLog[latestDSTOffset + 19], nvmeDSTLog[latestDSTOffset + 18], nvmeDSTLog[latestDSTOffset + 17], nvmeDSTLog[latestDSTOffset + 16]);
                 }
                 else
@@ -6528,7 +6523,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice *device, ptrDrive
     memcpy(driveInfo->controllerData.nvmSubsystemNVMeQualifiedName, &nvmeIdentifyData[768], 256);
     //firmware slots
     driveInfo->controllerData.numberOfFirmwareSlots = M_GETBITRANGE(nvmeIdentifyData[260], 3, 1);
-    //TODO: Add in other controller "Features"
+    //Add in other controller "Features" as needed
     if (nvmeIdentifyData[256] & BIT0)
     {
         //Supports security send/receive. Check for TCG and other security protocols
@@ -6602,7 +6597,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice *device, ptrDrive
         }
         else
         {
-            //TODO: For whatever reason the security commands did not complete despite the drive supporting them to read the list of supported protocols
+            //NOTE: For whatever reason the security commands did not complete despite the drive supporting them to read the list of supported protocols
             //set the "blocked commaands" flag
             // This is not currently enabled as it has not been observed in any system yet like it has for ATA and SCSI
             //driveInfo->trustedCommandsBeingBlocked = true;
@@ -6696,7 +6691,7 @@ static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe dr
     driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[15] = nvmeIdentifyData[119];
     //EUI64
     driveInfo->namespaceData.ieeeExtendedUniqueIdentifier = M_BytesTo8ByteValue(nvmeIdentifyData[120], nvmeIdentifyData[121], nvmeIdentifyData[122], nvmeIdentifyData[123], nvmeIdentifyData[124], nvmeIdentifyData[125], nvmeIdentifyData[126], nvmeIdentifyData[127]);
-    //TODO: Namespace "features"
+    //Namespace "features"
     uint8_t protectionEnabled = M_GETBITRANGE(nvmeIdentifyData[29], 2, 0);
     if (nvmeIdentifyData[28] & BIT0)
     {

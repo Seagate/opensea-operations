@@ -315,7 +315,8 @@ eReturnValues transition_Power_State(tDevice *device, ePowerConditionID newState
             ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_C, \
                                     EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
-        case PWR_CND_ACTIVE: //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly
+        case PWR_CND_ACTIVE: 
+            //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly (Early SAT translation recommended this behavior)
             seed_64(C_CAST(uint64_t, time(NULL)));
             for (uint8_t counter = 0; counter < 5; ++counter)
             {
@@ -323,8 +324,11 @@ eReturnValues transition_Power_State(tDevice *device, ePowerConditionID newState
                 lba = random_Range_64(0, device->drive_info.deviceMaxLba);
                 ata_Read_Verify(device, lba, 1);
             }
-            //TODO: better way to judge if tried commands worked or not...
-            //TODO: better handling for zoned devices...
+            //TODO: zoned devices will require a different method. See SAT4 or later for details.
+            //SAT-6 says:
+            //EPC: set features for all supported power conditions: ID set to FFh, enable set to zero, save set to zero to disable all current timers
+            //     Then issue an idle immediate. If no errors: In active condition, else return an error.
+            //non-EPC: send idle with feature 0, count 0, lba 0. If no error: In active state.
             ret = SUCCESS;
             break;
         case PWR_CND_IDLE://send idle immediate
@@ -616,7 +620,6 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
     if (nvmps)
     {
         printf("\nSupported NVMe Power States\n");
-        //TODO: Print a header for what will be in each column
         //flags = non operational, current power state
         printf("\t* = current power state\n");
         printf("\t! = non-operational power state\n");
@@ -631,7 +634,6 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
         //flags | # | max power | idle power | active power | latencies and throughputs (can be N/A when not reported)
         printf("\n   #  Max Power: Idle Power: Active Power: RRT: RRL: RWT: RWL: Entry Time: Exit Time:\n");
         printf("-------------------------------------------------------------------------------------\n");
-        //TODO: latencies
         //all values should be in watts. 1.00 watts, 0.25 watts, etc
         //should relative values be scaled to percentages? 100% = max performance. This may be easier for some to understand than a random number
         for (uint16_t psIter = 0; psIter < nvmps->numberOfPowerStates && psIter < MAXIMUM_NVME_POWER_STATES; ++psIter)
@@ -835,12 +837,9 @@ eReturnValues ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, b
     return ret;
 }
 
-//TODO: Only supports mode_Select_10. This should work 98% of the time. Add mode sense/select 6 commands??? May improve some devices, such as IEEE1394 or USB if this page is even supported by them (unlikely) - TJE
 eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
-    //TODO: This will need to work for both EPC and legacy modes, so no checking pages in advance or anything.
     //If restore all to defaults, then read the default mode page, then write it back.
-    //TODO: Check the powerConditions structure to see if there are any specific timers to restore up front, then copy the default data into that timer structure so it can be written back.
     //Write all applicable changes back to the drive, checking each structure as it goes.
     eReturnValues ret = SUCCESS;
     uint16_t powerConditionsPageLength = 0;
@@ -946,7 +945,6 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
                         powerConditions->standby_y.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 20], powerConditionsPage[mpStartOffset + 21], powerConditionsPage[mpStartOffset + 22], powerConditionsPage[mpStartOffset + 23]);
                         powerConditions->standby_y.restoreToDefault = false;//turn this off now that we have the other settings stored.
                     }
-                    //TODO: Other future power modes fields here
                     //CCF fields
                     if (powerConditions->checkConditionFlags.ccfIdleValid && powerConditions->checkConditionFlags.ccfIdleResetDefault)
                     {
@@ -1097,7 +1095,6 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
                         powerConditionsPage[mpStartOffset + 23] = M_Byte0(powerConditions->standby_y.timerInHundredMillisecondIncrements);
                     }
                 }
-                //TODO: Other future power modes fields here
                 //CCF fields
                 if (powerConditions->checkConditionFlags.ccfIdleValid && !powerConditions->checkConditionFlags.ccfIdleResetDefault)
                 {
@@ -1129,7 +1126,6 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
 
 static eReturnValues scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
-    //TODO: Check to make sure the changes being requested are supported by the device.
     return scsi_Set_Power_Conditions(device, restoreAllToDefaults, powerConditions);
 }
 
@@ -1142,7 +1138,6 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreA
     {
         if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT7)
         {
-            //TODO: Should each of the settings be validated that it is supported before issuing to the drive???
             if (restoreAllToDefaults)
             {
                 powerConditionSettings allSettings;
@@ -2610,7 +2605,6 @@ eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevic
     return ret;
 }
 
-//TODO: Do we return a separate error if DIPM isn't enabled first? - TJE
 eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool *supported, bool *enabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -2673,10 +2667,6 @@ eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
                     ata_Identify_Packet_Device(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
                 }
             }
-        }
-        else
-        {
-            //TODO: do we return failure, not supported, or some other exit code? For not, returning NOT_SUPPORTED - TJE
         }
     }
     return ret;

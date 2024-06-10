@@ -302,7 +302,6 @@ static uint64_t get_ATA_MaxLBA(tDevice* device)
 {
     uint64_t maxLBA = 0;
     //read the max LBA from idenfity data.
-    //TODO: read from identify device data log???
     //now we need to compare read capacity data and ATA identify data.
     if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), 512))
     {
@@ -410,8 +409,7 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
         uint8_t satVPDPage89[VPD_ATA_INFORMATION_LEN] = { 0 };
         if (SUCCESS == scsi_Inquiry(device, satVPDPage89, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
         {
-            //TODO: Do anything with the data?
-            //      Note that the identify data in this page can be modified by the SATL in some versions of SAT, so do not trust it.
+            //Note that the identify data in this page can be modified by the SATL in some versions of SAT, so do not trust it.
         }
         if (issueReset)
         {
@@ -476,7 +474,7 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        //TODO: There are not the same style of commands on nvme to change capacity as there is with SAS and SATA
+        //NOTE: There are not the same style of commands on nvme to change capacity as there is with SAS and SATA
         //      In NVMe there is the namespace management feature, but that is far more complicated than this command.
         //      For now just returning true for NVMe since the only real encapsulated NVMe drives will be on USB
         //      and it is extremely unlikely any namespace management commands will work over USB

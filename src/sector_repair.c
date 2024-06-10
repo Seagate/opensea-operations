@@ -213,7 +213,6 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
                             //we got at least one update to do to the list. 
                             //Check both the LBAs we saved above since it's not clear if both conditions can happen at the same time or not. 
                             //Most likely only one or the other though...
-                            //TODO: update the list based on what we got above.
                             if (commandSpecificLba != UINT64_MAX)
                             {
                                 //update the list to remove LBAs before this one
@@ -505,8 +504,6 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t *numberOfLBAsInTheList)
     {
         return;
     }
-    //TODO: Implement a faster iterative merge sort that removes duplicates on the fly. Right now this should be ok. - TJE
-    //http://stackoverflow.com/questions/18924792/sort-and-remove-duplicates-from-int-array-in-c
     if (*numberOfLBAsInTheList > 1)
     {
         uint32_t duplicatesDetected = 0;

@@ -30,7 +30,6 @@ eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounte
         //SATA defines this as 512B and no more.
         if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word076) && device->drive_info.IdentifyData.ata.Word076 & BIT10)
         {
-            //TODO: Add read and reset option to pass a 1 in feature register?
             uint8_t phyEventLog[512] = { 0 };
             ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, 0, phyEventLog, 512, 0);
             if (SUCCESS == ret || WARN_INVALID_CHECKSUM == ret)

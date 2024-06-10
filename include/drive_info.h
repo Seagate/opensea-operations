@@ -277,9 +277,7 @@ extern "C"
 
     typedef struct _driveInformationNVMe
     {
-        //TODO: How to get interface speed? (PCIe gen 3, 2, 1, etc)
-        //TODO: Other information people might want to show
-
+        //How to get interface speed? (PCIe gen 3, 2, 1, etc)
         //controller data
         struct {
             char modelNumber[MODEL_NUM_LEN + 1];//Null terminated

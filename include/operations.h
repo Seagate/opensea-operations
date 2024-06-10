@@ -514,7 +514,7 @@ extern "C"
         uint64_t bytesBeingVerified;//if set to UINT64_MAX, then all bytes are being verified. Otherwise it will match the mode * current logical sector size.-TJE
         uint32_t wrv2sectorCount;//vendor specific. Technically only valid if enabled to mode 2
         uint32_t wrv3sectorCount;//user defined. Technocally only valid if enabled to mode 3
-        //TODO: Output number of bytes that are verified in addition to sectors???
+        //Output number of bytes that are verified in addition to sectors???
     }wrvInfo, *ptrWRVInfo;
 
     //-----------------------------------------------------------------------------

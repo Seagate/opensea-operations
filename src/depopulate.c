@@ -226,7 +226,6 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     {
         printf("Not reported.\n");
     }
-    //TODO: add another column for rebuild allowed
     printf("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\tRebuild Allowed\n");
     printf("----------------------------------------------------------------------------------\n");
     for (uint32_t elementIter = 0; elementIter < numberOfElements; ++elementIter)
@@ -301,7 +300,7 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     return;
 }
 
-//TODO: This definition belongs in opensea-transport cmds.h/.c
+//NOTE: This definition belongs in opensea-transport cmds.h/.c
 eReturnValues depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -545,7 +544,7 @@ eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus
         }
         else
         {
-            //TODO: If this failed, there is likely a bigger problem! But we can try getting physical element status
+            //If this failed, there is likely a bigger problem! But we can try getting physical element status
             ret = FAILURE;
         }
     }
@@ -920,7 +919,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
     return supported;
 }
 
-//TODO: This definition belongs in opensea-transport cmds.h/.c
+//NOTE: This definition belongs in opensea-transport cmds.h/.c
 eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
 {
     eReturnValues ret = NOT_SUPPORTED;

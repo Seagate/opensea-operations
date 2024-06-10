@@ -84,7 +84,6 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                     break;
                 case AD_VENDOR_SPECIFIC:
                 case AD_RESERVED:
-                    //TODO: should we just return the raw data in an array?
                     ret = BAD_PARAMETER;
                     break;
                 }
@@ -1360,7 +1359,6 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPending
     {
         for (uint16_t bmsIter = 0; bmsIter < numberOfBMSResults; ++bmsIter)
         {
-            //TODO: Should we check the reassign status before adding to this list?
             defectList[*numberOfDefects].lba = bmsResults[bmsIter].lba;
             defectList[*numberOfDefects].powerOnHours = C_CAST(uint32_t, bmsResults[bmsIter].accumulatedPowerOnMinutes / UINT64_C(60));
             ++(*numberOfDefects);

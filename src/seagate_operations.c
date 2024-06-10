@@ -958,7 +958,6 @@ eReturnValues get_IDD_Status(tDevice *device, uint8_t *status)
 }
 
 //NOTE: If IDD is ever supported on NVMe, this may need updates.
-//TODO: It may be possible to read the DST log to return slightly better messages about IDD
 void translate_IDD_Status_To_String(uint8_t status, char *translatedString, bool justRanDST)
 {
     if (!translatedString)
@@ -1152,7 +1151,7 @@ static eReturnValues start_IDD_Operation(tDevice *device, eIDDTests iddOperation
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
             {
-                //TODO: Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
+                //Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
                 return NOT_SUPPORTED;
             }
             else
@@ -1215,38 +1214,6 @@ eReturnValues run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, 
                 }
                 //if we are here, then an operation isn't already in progress so time to start it
                 result = start_IDD_Operation(device, IDDtest, captiveForeground);
-                //Moving this code to start_IDD_Operation function, as we want to lock the drive for 2 mins.
-                //This is to make sure that drive is not getting any command, even outside of tool for 2 mins.
-                /*if (result != SUCCESS)
-                {
-                    if (device->drive_info.drive_type == SCSI_DRIVE)
-                    {
-                        //check the sense data. The problem may be that captive/foreground mode isn't supported for the long test
-                        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
-                        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-                        if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
-                        {
-                            //TODO: Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
-                            return NOT_SUPPORTED;
-                        }
-                        else
-                        {
-                            return FAILURE;
-                        }
-                    }
-                    else
-                    {
-                        return FAILURE;
-                    }
-                }
-                uint32_t commandTimeSeconds = C_CAST(uint32_t, device->drive_info.lastCommandTimeNanoSeconds / 1e9);
-                if (commandTimeSeconds < IDD_READY_TIME_SECONDS)
-                {
-                    //we need to make sure we waited at least 2 minutes since command was sent to the drive before pinging it with another command.
-                    //It needs time to spin back up and be ready to accept commands again.
-                    //This is being done in both captive/foreground and offline/background modes due to differences between some drive firmwares.
-                    delay_Seconds(IDD_READY_TIME_SECONDS - commandTimeSeconds);
-                }*/
                 if (SUCCESS == result && captiveForeground)
                 {
                     eReturnValues ret = get_IDD_Status(device, &status);
@@ -1379,7 +1346,7 @@ bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice *device)
     return supported;
 }
 
-//TODO: These are in the spec, but need to be verified before they are used.
+//These are in the spec, but need to be verified before they are used.
 #define ATA_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(8192)
 #define SCSI_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(6240)
 
@@ -1538,7 +1505,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
     {
         //doubles for end statistics of measurement
         double sum5v = 0, sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
-        double stepTime = pwrTelData->measurementWindowTimeMilliseconds; //TODO: Convert from milliseconds to something else???
+        double stepTime = pwrTelData->measurementWindowTimeMilliseconds;
 
         printf("Power Telemetry\n");
         printf("\tSerial Number: %s\n", pwrTelData->serialNumber);
@@ -1555,8 +1522,6 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             printf("\tMeasurement Time (seconds): %" PRIu16 "\n", pwrTelData->totalMeasurementTimeRequested);
         }
         printf("\tMeasurement Window (ms): %" PRIu16 "\n", pwrTelData->measurementWindowTimeMilliseconds);
-
-        //TODO: Host requested time and log retrieval time??? Is this necessary?
 
         printf("\nIndividual Power Measurements\n");
         //Note, while the spacing may not make much sense, it definitely works with the widths below.
@@ -1579,7 +1544,6 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             {
                 break;
             }
-            //TODO: IF format is %v only or 12V only, handle showing N/A for some output.
             //NOTE: Original format was 10.6, 6.3, 6.3, 6.3. Trying to widen to match the header
             if (pwrTelData->measurementFormat == 5)
             {
@@ -1662,7 +1626,6 @@ bool is_Seagate_Quick_Format_Supported(tDevice *device)
                 //This above support bit was discontinued, so need to check for support of other features..This is not a guaranteed "it will work" but it is what we have to work with.
                 bool stdDepopSupported = is_Depopulation_Feature_Supported(device, NULL);
                 //bool stdRepopSupported = is_Repopulate_Feature_Supported(device, NULL);
-                //TODO: Should checking for set sector configuration bit be here??? it's not clear if drives with this, but not depop will work or not at this time.
                 if (stdDepopSupported /*&& !stdRepopSupported*/)
                 {
                     supported = true;

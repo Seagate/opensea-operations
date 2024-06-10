@@ -112,7 +112,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
                 {
                     //in Windows passthrough we rely on translation through SCSI unmap, so we need to meet the limitations we're given in it...-TJE
                     //For other drivers/interfaces we will assume that it is possible to issue this for now-TJE
-                    //TODO: If we find other OS's with limitations we may need to change the #if or use some other kind of check instead.
+                    //NOTE: If we find other OS's with limitations we may need to change the #if or use some other kind of check instead.
                     uint8_t *blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
                     if (!blockLimits)
                     {
@@ -209,7 +209,6 @@ eReturnValues nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t
     {
         //We SHOULD only need one command since each range is a uint32 and more than large enough to get a majority of the drive. Maybe even get a whole drive done in 2 ranges...
         //BUT we may be limited by the OS.
-        //TODO: handle limitations to maxLBACount & maxTrimOrUnmapBlockDescriptors. This makes this funciton MUCH more complicated than it currently is...basically would look like a SCSI unmap command below - TJE
         uint32_t contextAttributes = 0;//this is here in case we want to enable setting these bits some time later. - TJE
         uint8_t deallocate[4096] = { 0 };//This will hold the maximum number of ranges/descriptors we can.
         uint32_t deallocateRange = C_CAST(uint32_t, M_Min(M_Min(range, UINT32_MAX), maxLBACount));

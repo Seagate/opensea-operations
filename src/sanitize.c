@@ -99,7 +99,6 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percent
     getLogOpts.dataLen = 512;
     getLogOpts.lid = 0x81;
     getLogOpts.addr = sanitizeStatusLog;
-    //TODO: Set namespace ID?
     if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
     {
         result = SUCCESS;
@@ -637,7 +636,6 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     {
         printf("\n");
     }
-    //TODO: Now that we have more detail on the sanitize status, especially ATA failure, do we want to show it here???
     os_Update_File_System_Cache(device);
     return ret;
 }

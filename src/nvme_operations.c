@@ -62,7 +62,7 @@ void nvme_Print_Feature_Identifiers_Help(void)
     printf("      by a given device. It is simply a list of known feature IDs as of NVMe 1.4\n");
 }
 
-//TODO: This is far from perfect. Not all features will be supported, so would be better to have something check if
+//This is far from perfect. Not all features will be supported, so would be better to have something check if
 //      a feature is supported in the identify data then request information about it as needed.
 //      it would also be helpful to have the name of the feature output as well.-TJE
 eReturnValues nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesSelectValue selectType, M_ATTR_UNUSED bool listOnlySupportedFeatures)
@@ -507,7 +507,7 @@ eReturnValues nvme_Print_Feature_Details(tDevice *device, uint8_t featureID, eNv
     return ret;
 }
 
-//TODO: This function just returns maximum sizes as best it can
+//This function just returns maximum sizes as best it can
 //      It needs to also check if a given page is supported as well, which is....complicated
 //      Older devices won't have the supported pages LID, but newer will
 //      Additionally we may need to check for specific features or other bits to determine what is or is not supported.
@@ -650,7 +650,7 @@ eReturnValues nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * l
         case NVME_LOG_COMMAND_SET_SPECIFIC_ID:
         default:
             //Unknown log ID
-            //TODO: Set ret to something else for unknown size???
+            //Set ret to something else for unknown size???
             *logSize = UINT64_C(0);
             break;
         }

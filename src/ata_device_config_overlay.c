@@ -173,7 +173,6 @@ void show_DCO_Identify_Data(ptrDcoData data)
 {
     if (data)
     {
-        //TODO: Print out fields and show the bits meanings for what is changable
         printf("\n===============================\n");
         printf(" DCO Identify Changable Fields \n");
         printf("===============================\n");

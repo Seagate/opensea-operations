@@ -23,7 +23,6 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
 {
     bool supported = false;
     //For non-ATA/IDE interfaces, we need to check if the translator (SATL) supports the ATA security protocol.
-    //TODO: we may not need this check since software SAT in the opensea-transport library can do this translation
     if (device->drive_info.interface_type != IDE_INTERFACE)
     {
         uint8_t securityBuf[LEGACY_DRIVE_SEC_SIZE] = { 0 };
@@ -56,7 +55,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
     }
     return supported;
 }
-//TODO: we may want to revisit this function since there are up to 3 places to get the information we need between SAT translation, ID, and IDData log
+
 void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus, bool useSAT)
 {
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
@@ -919,7 +918,6 @@ eReturnValues run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword
             else
             {
                 //set the password!
-                //TODO: verbose message here about what password is being set?
                 ret = set_ATA_Security_Password(device, ataPassword, satATASecuritySupported);
             }
         }

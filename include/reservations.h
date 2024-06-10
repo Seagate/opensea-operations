@@ -19,8 +19,6 @@ extern "C"
 {
 #endif
 
-    //TODO: NVMe drives can support persistent reservations, but are not currently supported by this code.
-
     OPENSEA_OPERATIONS_API bool is_Persistent_Reservations_Supported(tDevice *device);
 
     //The enum below can be used to specify which type of reservation is used. NOTE: These are not defined to values for NVMe or SCSI since they are different so that

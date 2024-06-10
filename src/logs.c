@@ -260,9 +260,6 @@ eReturnValues create_And_Open_Log_File(tDevice *device,\
     return ret;
 }
 
-//TODO: A special hack is required in some cases where we may not be able to properly determine the log size..
-//      this is due to drive firmware bugs and/or passthrough limitations from OSs, drivers, or adapters.
-//      So certain standard logs that are known sizes will be returned in here in these cases...
 eReturnValues get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
 {
     eReturnValues ret = NOT_SUPPORTED;//assume the log is not supported
@@ -1065,7 +1062,6 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *lo
         {
             maxOffset = UINT64_MAX;
         }
-        //TODO: if size of error history is greater than the maximum possible offset for the read buffer command, then need to return an error for truncated data.
         for (uint64_t offset = 0; offset < historyLen && offset <= maxOffset; offset += increment)
         {
             bool dataRetrieved = false;
@@ -1125,6 +1121,11 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *lo
                 ret = FAILURE;
                 break;
             }
+        }
+        if (historyLen > maxOffset)
+        {
+            //size of error history is greater than the maximum possible offset for the read buffer command, then need to return an error for truncated data.
+            ret = TRUNCATED_FILE;
         }
         if (logFileOpened && fp_History)
         {
@@ -1694,12 +1695,18 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
     if (ret == SUCCESS)
     {
         //If the user wants it in a buffer...just return. 
-        if ((toBuffer) && (bufSize < pageLen))
+        if ((toBuffer) && ((bufSize < pageLen) || myBuf == M_NULLPTR))
+        {
             return BAD_PARAMETER;
-
-        //TODO: Improve this since if caller has already has enough memory, no need to allocate this. 
-        logBuffer = C_CAST(uint8_t *, calloc_aligned(pageLen, sizeof(uint8_t), device->os_info.minimumAlignment));
-
+        }
+        else if (toBuffer)
+        {
+            logBuffer = myBuf;
+        }
+        else
+        {
+            logBuffer = C_CAST(uint8_t *, calloc_aligned(pageLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+        }
         if (!logBuffer)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1726,7 +1733,10 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
                             perror("Error writing to a file!\n");
                         }
                         fclose(fp_log);
-                        safe_Free_aligned(logBuffer)
+                        if (!toBuffer)
+                        {
+                            safe_Free_aligned(logBuffer)
+                        }
                         return ERROR_WRITING_FILE;
                     }
                     if ((fflush(fp_log) != 0) || ferror(fp_log))
@@ -1736,7 +1746,10 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
                             perror("Error flushing data!\n");
                         }
                         fclose(fp_log);
-                        safe_Free_aligned(logBuffer)
+                        if (!toBuffer)
+                        {
+                            safe_Free_aligned(logBuffer)
+                        }
                         return ERROR_WRITING_FILE;
                     }
                     fclose(fp_log);
@@ -1746,10 +1759,6 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
                         printf("Binary log saved to: %s\n", fileNameUsed);
                     }
                 }
-            }
-            if (toBuffer) //NOTE: the buffer size checked earlier. 
-            {
-                memcpy(myBuf, logBuffer, M_Min(pageLen, returnedPageLength));
             }
         }
         else
@@ -1770,7 +1779,10 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
                 ret = FAILURE;
             }
         }
-        safe_Free_aligned(logBuffer)
+        if (!toBuffer)
+        {
+            safe_Free_aligned(logBuffer)
+        }
     }
     return ret;
 }
@@ -2626,7 +2638,6 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
     return ret;
 }
 
-//TODO: extra bool to trigger or not trigger???
 eReturnValues pull_Telemetry_Log(tDevice *device, bool currentOrSaved, uint8_t islDataSet, bool saveToFile, uint8_t* ptrData, uint32_t dataSize, const char * const filePath, uint32_t transferSizeBytes)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -2774,7 +2785,6 @@ static void format_print_ata_logs_info(uint16_t log, uint32_t logSize, bool smar
 }
 
 //To be portable between old & new, SMART and GPL, we need to read both GPL and SMART directory. Combine the results, then show them on screen.
-//TODO: Add SMART vs GPL info to output to know which logs are accessible in which way. Part of this could come from the spec, others from code and parsing what the drive reported.
 eReturnValues print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
 {
     eReturnValues retStatus = NOT_SUPPORTED;
@@ -3104,7 +3114,6 @@ eReturnValues print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
                 bool printedIOCmdSet = false;
                 bool printedVendorUnique = false;
                 retStatus = SUCCESS;
-                //TODO: LID specific?
                 printf("\n  Log Pages (from supported pages log page)\n");
                 for (uint16_t offset = 0; offset < UINT16_C(1024); offset += UINT16_C(4))
                 {
@@ -3446,11 +3455,96 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uin
     return ret;
 }
 
-eReturnValues pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t logLengthOverride)
+static eReturnValues pull_Generic_ATA_Log(tDevice *device, uint8_t logNum, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, char* logFileName)
 {
     eReturnValues retStatus = NOT_SUPPORTED;
     uint32_t logSize = 0;
     uint8_t *genericLogBuf = NULL;
+    //First, setting up bools for GPL and SMART logging features based on drive capabilities
+    bool gpl = device->drive_info.ata_Options.generalPurposeLoggingSupported;
+    bool smart = (is_SMART_Enabled(device) && ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT0) || (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT0)));
+    //Now, using switch case to handle KNOWN logs from ATA spec. Only flipping certain logs as most every modern drive uses GPL 
+    //and most logs are GPL access now (but it wasn't always that way, and this works around some bugs in drive firmware!!!)
+    switch (logNum)
+    {
+    case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
+    case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
+    case ATA_LOG_SMART_SELF_TEST_LOG:
+    case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
+        //All of these logs are specified as access with SMART read log only, so disabling GPL. All others should be accessible with GPL when supported.
+        gpl = false;
+        break;
+    default:
+        break;
+    }
+    switch (mode)
+    {
+    case PULL_LOG_BIN_FILE_MODE:
+        retStatus = get_ATA_Log(device, logNum, logFileName, "bin", gpl, smart, false, NULL, 0, filePath, transferSizeBytes, 0);
+        break;
+    case PULL_LOG_RAW_MODE:
+        if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
+        {
+            genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (genericLogBuf)
+            {
+                retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes, 0);
+                if (SUCCESS == retStatus)
+                {
+                    print_Data_Buffer(genericLogBuf, logSize, true);
+                }
+            }
+            else
+            {
+                retStatus = MEMORY_FAILURE;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+    safe_Free_aligned(genericLogBuf)
+    return retStatus;
+}
+
+static eReturnValues pull_Generic_SCSI_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, char* logFileName)
+{
+    eReturnValues retStatus = NOT_SUPPORTED;
+    uint32_t logSize = 0;
+    uint8_t *genericLogBuf = NULL;
+    switch (mode)
+    {
+    case PULL_LOG_BIN_FILE_MODE:
+        retStatus = get_SCSI_Log(device, logNum, subpage, logFileName, "bin", false, NULL, 0, filePath);
+        break;
+    case PULL_LOG_RAW_MODE:
+        if (SUCCESS == get_SCSI_Log_Size(device, logNum, subpage, &logSize))
+        {
+            genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (genericLogBuf)
+            {
+                retStatus = get_SCSI_Log(device, logNum, subpage, NULL, NULL, true, genericLogBuf, logSize, NULL);
+                if (SUCCESS == retStatus)
+                {
+                    print_Data_Buffer(genericLogBuf, logSize, true);
+                }
+            }
+            else
+            {
+                retStatus = MEMORY_FAILURE;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+    safe_Free_aligned(genericLogBuf)
+    return retStatus;
+}
+
+eReturnValues pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, uint32_t logLengthOverride)
+{
+    eReturnValues retStatus = NOT_SUPPORTED;
 #define GENERIC_LOG_FILE_NAME_LENGTH 20
 #define LOG_NUMBER_POST_FIX_LENGTH 10
     char logFileName[GENERIC_LOG_FILE_NAME_LENGTH] = "GENERIC_LOG-";
@@ -3471,80 +3565,10 @@ eReturnValues pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage,
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
-    {
-        //TODO: Instead of a scope, this should be a function.
-        //First, setting up bools for GPL and SMART logging features based on drive capabilities
-        bool gpl = device->drive_info.ata_Options.generalPurposeLoggingSupported;
-        bool smart = (is_SMART_Enabled(device) && ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) && device->drive_info.IdentifyData.ata.Word084 & BIT0) || (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) && device->drive_info.IdentifyData.ata.Word087 & BIT0)));
-        //Now, using switch case to handle KNOWN logs from ATA spec. Only flipping certain logs as most every modern drive uses GPL 
-        //and most logs are GPL access now (but it wasn't always that way, and this works around some bugs in drive firmware!!!)
-        switch (logNum)
-        {
-        case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
-        case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
-        case ATA_LOG_SMART_SELF_TEST_LOG:
-        case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
-            //All of these logs are specified as access with SMART read log only, so disabling GPL. All others should be accessible with GPL when supported.
-            gpl = false;
-            break;
-        default:
-            break;
-        }
-        switch (mode)
-        {
-        case PULL_LOG_BIN_FILE_MODE:
-            retStatus = get_ATA_Log(device, logNum, logFileName, "bin", gpl, smart, false, NULL, 0, filePath, transferSizeBytes, 0);
-            break;
-        case PULL_LOG_RAW_MODE:
-            if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
-            {
-                genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (genericLogBuf)
-                {
-                    retStatus = get_ATA_Log(device, logNum, NULL, NULL, true, false, true, genericLogBuf, logSize, NULL, transferSizeBytes, 0);
-                    if (SUCCESS == retStatus)
-                    {
-                        print_Data_Buffer(genericLogBuf, logSize, true);
-                    }
-                }
-                else
-                {
-                    retStatus = MEMORY_FAILURE;
-                }
-            }
-            break;
-        default:
-            break;
-        }
-    }
-    break;
+        retStatus = pull_Generic_ATA_Log(device, logNum, mode, filePath, transferSizeBytes, logFileName);
+        break;
     case SCSI_DRIVE:
-        switch (mode)
-        {
-        case PULL_LOG_BIN_FILE_MODE:
-            retStatus = get_SCSI_Log(device, logNum, subpage, logFileName, "bin", false, NULL, 0, filePath);
-            break;
-        case PULL_LOG_RAW_MODE:
-            if (SUCCESS == get_SCSI_Log_Size(device, logNum, subpage, &logSize))
-            {
-                genericLogBuf = C_CAST(uint8_t*, calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (genericLogBuf)
-                {
-                    retStatus = get_SCSI_Log(device, logNum, subpage, NULL, NULL, true, genericLogBuf, logSize, NULL);
-                    if (SUCCESS == retStatus)
-                    {
-                        print_Data_Buffer(genericLogBuf, logSize, true);
-                    }
-                }
-                else
-                {
-                    retStatus = MEMORY_FAILURE;
-                }
-            }
-            break;
-        default:
-            break;
-        }
+        retStatus = pull_Generic_SCSI_Log(device, logNum, subpage, mode, filePath, logFileName);
         break;
     case NVME_DRIVE:
         retStatus = pull_Supported_NVMe_Logs(device, logNum, mode, logLengthOverride);
@@ -3552,7 +3576,6 @@ eReturnValues pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage,
     default:
         break;
     }
-    safe_Free_aligned(genericLogBuf)
     return retStatus;
 }
 

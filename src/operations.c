@@ -379,7 +379,8 @@ bool is_Read_Look_Ahead_Supported(tDevice *device)
     }
     return false;
 }
-//TODO: this uses the RCD bit. Old drives don't have this. Do something to detect this on legacy products later
+
+//NOTE: this uses the RCD bit. Old drives do not support this bit. Checking the changable values to detect support before trying to change it.
 bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
 {
     bool supported = false;
@@ -446,8 +447,7 @@ bool is_Read_Look_Ahead_Enabled(tDevice *device)
     return false;
 }
 
-//TODO: SPC3 added this page, but the NV_DIS bit is on the caching mode page.
-//      We may want to add extra logic to see if the NV_DIS bit is set to 1 on the caching mode page.
+//SPC3 added this page, but the NV_DIS bit is on the caching mode page.
 bool scsi_Is_NV_Cache_Supported(tDevice *device)
 {
     bool supported = false;
@@ -857,7 +857,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod const era
             currentErase->eraseWeight = 0;
             currentErase->warningValid = false;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_POSSIBLE_PURGE;
-            //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
+            //NOTE: We can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
             ++currentErase;
         }
         //if NOT an NVM HDD, user erase should be next since it will most likely be as fast as a sanitize block erase
@@ -868,7 +868,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod const era
             currentErase->eraseWeight = 1;
             currentErase->warningValid = false;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;//only crypto erase is a possible purge in IEEE2883-2022
-            //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
+            //NOTE: We can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
             ++currentErase;
             nvmFormatAdded = true;
         }
@@ -934,7 +934,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod const era
         //NOTE: If crypto is supported, a request for user secure erase may run a crypto erase, but no way to know for sure-TJE
         currentErase->warningValid = false;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
-        //TODO: Can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
+        //Note: We can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
         ++currentErase;
         nvmFormatAdded = true;
     }
@@ -1641,8 +1641,6 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
     return ret;
 }
 
-//TODO: should we have another parameter to disable saving the page if they just want to make a temporary change?
-//If this is done. Do we want to just send the command, or do we want to turn off saving if the page isn't savable?
 //NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
 eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
 {
@@ -1732,7 +1730,10 @@ eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_
 }
 
 #define SCSI_MODE_PAGE_NAME_MAX_LENGTH 40
-//TODO: this doesn't take into account some pages being device type specific. It does try for page 1Ch an 1Dh
+//Note: this doesn't take into account some pages being device type specific.
+//      Reviewing all the various SCSI standards for different device types would be necessary in order to make this
+//      100% correct and complete. We are currently focussed on block and zoned block devices, however some
+//      pages are being looked up for other device types as well.
 static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char *mpName)
 {
     scsiDeviceType = M_GETBITRANGE(scsiDeviceType, 4, 0);//strip off the qualifier if it was passed
@@ -2274,7 +2275,6 @@ static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData,
         }
         else
         {
-            //TODO: Do we want another variable to track when we get to 80 characters wide and print a newline and indent the next line??? - Not needed yet since we don't have a mode page that large
             for (uint16_t iter = 0; iter < M_Min(pageLength, modeDataLen); ++iter)
             {
                 printf("%02" PRIX8, modeData[iter]);
@@ -2449,18 +2449,10 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
 //should we return an error when asking for all mode pages since that output will otherwise be really messy???
 void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput)
 {
-    //if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)
-    //{
-    //    //TODO: custom function or other code to handle input of modepage == 0x3F || subpage == 0xFF and keep the output clean?
-    //}
-    //else
+    eScsiModePageControl mpc = MPC_CURRENT_VALUES;//will be incremented through a loop
+    for (; mpc <= MPC_SAVED_VALUES; ++mpc)
     {
-        //TODO: loop through and print a page out for each MPC value.
-        eScsiModePageControl mpc = MPC_CURRENT_VALUES;//will be incremented through a loop
-        for (; mpc <= MPC_SAVED_VALUES; ++mpc)
-        {
-            show_SCSI_Mode_Page(device, modePage, subpage, mpc, bufferFormatOutput);
-        }
+        show_SCSI_Mode_Page(device, modePage, subpage, mpc, bufferFormatOutput);
     }
 }
 

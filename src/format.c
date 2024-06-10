@@ -535,7 +535,7 @@ eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
     }
     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_FORMAT_STATUS_LOG_PAGE, 0, 0, formatStatusPage, 307))
     {
-        //TODO: Parameters will be all F's when the data is not available or new or the last format failed
+        //NOTE: Parameters will be all F's when the data is not available or new or the last format failed
         if (M_GETBITRANGE(formatStatusPage[0], 5, 0) == LP_FORMAT_STATUS_LOG_PAGE && !(formatStatusPage[0] & BIT6) && formatStatusPage[0] & BIT7 && formatStatusPage[1] == 0)//make sure we got the right page!
         {
             //got the data, so let's loop through it.
@@ -638,7 +638,6 @@ eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                 }
             }
             formatStatus->formatParametersAllFs = false;
-            //TODO: should we handle setting the flag below if we didn't get all the parameters? They are marked mandatory, but that doesn't mean much since there are many times that mandatory support is missing on various deviecs.
             if (lastFormatUnitAllFs && grownDefectsDuringCertificationAllFs && totalBlockReassignsDuringFormatAllFs && totalNewBlocksReassignedAllFs && powerOnMinutesSinceLastFormatAllFs)
             {
                 formatStatus->formatParametersAllFs = true;
@@ -1497,7 +1496,7 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t 
                     break;
                 }
             }
-            if (*descriptorCheckCode == 0)//TODO: Verify this is safe to do for a check that we got something valid
+            if (*descriptorCheckCode == 0)
             {
                 ret = NOT_SUPPORTED;
             }

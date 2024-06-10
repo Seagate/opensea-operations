@@ -43,7 +43,7 @@ eReturnValues abort_DST(tDevice *device)
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-        result = nvme_Abort_DST(device, UINT32_MAX);//TODO: Need to handle whether we are testing all namespaces or a specific namespace ID!
+        result = nvme_Abort_DST(device, UINT32_MAX);
         break;
     case SCSI_DRIVE:
         result = scsi_Abort_DST(device);
@@ -168,7 +168,6 @@ eReturnValues get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8
     return result;
 }
 
-//TODO: Status codes in NVMe are slightly different! Need a bool to pass in to say when it's from NVMe)
 void translate_DST_Status_To_String(uint8_t status, char *translatedString, bool justRanDST, bool isNVMeDrive)
 {
     if (!translatedString)
@@ -493,7 +492,6 @@ eReturnValues send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground
     switch (device->drive_info.drive_type)
     {
     case NVME_DRIVE:
-        //TODO: Handle individual namespaces! currently just running it on all of them!
         switch (DSTType)
         {
         case DST_TYPE_SHORT:
@@ -667,7 +665,6 @@ eReturnValues run_SMART_Offline(tDevice* device)
         uint16_t offlineTimeInSeconds = 0;
         if (is_ATA_SMART_Offline_Supported(device, &abortRestart, &offlineTimeInSeconds))
         {
-            //TODO: Print out how long this will take to run so the user knows what to expect.
             uint8_t hours = 0, minutes = 0, seconds = 0;
             convert_Seconds_To_Displayable_Time(offlineTimeInSeconds, NULL, NULL, &hours, &minutes, &seconds);
             printf("Data Collection time: %2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds\n", hours, minutes, seconds);
@@ -807,7 +804,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
         uint32_t maxTimeIncreases = 2;
         uint32_t timeIncreaseWarningCount = 1;
         uint32_t totalDSTTimeSeconds = 120;
-        uint32_t maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
+        uint32_t maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;
         //check if DST is already running
         ret = get_DST_Progress(device, &percentComplete, &status);
         if (status == 0x0F)
@@ -843,7 +840,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                             commandTimeout = C_CAST(uint32_t, hours) * UINT32_C(3600) + C_CAST(uint32_t, minutes) * UINT32_C(60);//this is a value in seconds
                         }
                         totalDSTTimeSeconds = hours * UINT32_C(3600) + minutes * UINT32_C(60);
-                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * UINT32_C(5);//TODO: add some kind of multiplier or something to this
+                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * UINT32_C(5);
                     }
                     else
                     {
@@ -853,7 +850,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                             commandTimeout = UINT32_MAX;
                         }
                         totalDSTTimeSeconds = 14400;//a fallback for drives not reporting a time, so using 4 hours for now. This likely will not ever happen
-                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
+                        maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;
                     }
                 }
                 break;
@@ -1275,7 +1272,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
             uint32_t maxTimeIncreases = 2;
             //uint32_t timeIncreaseWarningCount = 1;
             uint32_t totalDSTTimeSeconds = 120;
-            uint32_t maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;//TODO: add some kind of multiplier or something to this
+            uint32_t maxDSTWaitTimeSeconds = totalDSTTimeSeconds * 5;
             while (status == 0x0F && (ret == SUCCESS || ret == IN_PROGRESS))
             {
                 lastProgressIndication = percentComplete;
@@ -1489,7 +1486,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
     return ret;
 }
 #define ENABLE_DST_LOG_DEBUG 0 //set to non zero to enable this debug.
-//TODO: This should grab the entries in order from most recent to oldest...current sort via timestamp won't fix getting the most recent one first.
+
 static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -1938,7 +1935,6 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
         //short
         //extended
 
-        //TODO: Need to change some wording or screen output for ATA & SCSI vs NVMe
         if (entries->logType == DST_LOG_TYPE_NVME)
         {
             //checkpoint = segment?

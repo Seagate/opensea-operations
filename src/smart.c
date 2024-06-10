@@ -2102,7 +2102,6 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         printf("\tCurrent Temperature (C): %" PRIu16 "\n", M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     default:
-                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
                         printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     }
@@ -2129,7 +2128,6 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         printf("\tTotal LBAs Read: %" PRIu64 " MB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0) * UINT64_C(32));
                         break;
                     default:
-                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
                         printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     }
@@ -2156,7 +2154,6 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                         printf("\tLifetime Reads From Host: %" PRIu64 " GiB\n", ata_SMART_Raw_Bytes_To_Int(&smartData->attributes.ataSMARTAttr.attributes[iter], 6, 0));
                         break;
                     default:
-                        //TODO: This 32bit value should be fine, but may need to change to a 64 bit if anything odd is observed.
                         printf("\tCount: %" PRIu32 "\n", M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1], smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     }
@@ -3001,7 +2998,6 @@ eReturnValues nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
         //check the critical warning byte! (Byte 0)
         if (smartLogPage[0] > 0)
         {
-            //TODO: Return the reason for the failure! - TJE
             ret = FAILURE;
         }
         else
@@ -5499,7 +5495,7 @@ static void get_SMART_Command_Info(const char* commandName, uint8_t commandOpCod
 static void get_Sanitize_Command_Info(const char* commandName, M_ATTR_UNUSED uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, M_ATTR_UNUSED uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint16_t subcommand = features;
-    uint32_t signature = M_DoubleWord0(lba);//TODO: may need to byte swap this //NOTE: for overwrite, this is the pattern. 47:32 contain a signature
+    uint32_t signature = M_DoubleWord0(lba);//NOTE: for overwrite, this is the pattern. 47:32 contain a signature
     bool zoneNoReset = M_ToBool(count & BIT15);
     bool invertBetweenPasses = M_ToBool(count & BIT7);//overwrite only
     bool definitiveEndingPattern = M_ToBool(count & BIT6);//overwrite only
@@ -6729,7 +6725,6 @@ static void get_Send_FPDMA_Command_Info(const char* commandName, uint8_t command
 
 static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t count, uint64_t lba, uint8_t device, char commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    //TODO: some commands leave some registers reserved. Add handling when some of these reserved registers are set to non-zero values
     switch (commandOpCode)
     {
     case ATA_NOP_CMD:
@@ -6821,7 +6816,6 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         }
         else if (count != 0)
         {
-            //TODO: features, lba, etc
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command (%02" PRIX8 "h)", commandOpCode);
         }
         else
@@ -7002,7 +6996,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
     case ATA_RECEIVE_FPDMA:
         get_Receive_FPDMA_Command_Info("Receive FPDMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
-    case ATA_SEEK_CMD://TODO: seek can be 7xh....but that also conflicts with new command definitions
+    case ATA_SEEK_CMD://NOTE: seek can be 7xh....but that also conflicts with new command definitions
     case 0x71:
     case 0x72:
     case 0x73:
@@ -7524,7 +7518,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
     char statusMessage[ATA_STATUS_MESSAGE_MAX_LENGTH] = { 0 };
     char errorMessage[ATA_ERROR_MESSAGE_MAX_LENGTH] = { 0 };
 
-    //TODO: Start with Status bits!
+    //Start with Status bits!
     if (status & ATA_STATUS_BIT_DEVICE_FAULT)
     {
         //device fault occurred as a result of the command!
@@ -7557,7 +7551,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
         }
         common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Error Reg Valid");
 
-        //TODO: Parse error field bits
+        //Parse error field bits
         if (error & ATA_ERROR_BIT_ABORT)
         {
             common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Abort");
@@ -7902,7 +7896,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                         }
                     }
                 }
-                //TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
+                //print out the error command!
                 uint8_t status = 0, error = 0, errorDevice = 0, errorDeviceControl = 0;
                 uint64_t errorlba = 0;
                 uint16_t errorCount = 0;
@@ -8128,7 +8122,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                         }
                     }
                 }
-                //TODO: print out the error command! highlight in red? OR some other thing like a -> to make it clear what command was the error?
+                //print out the error command!
                 uint8_t status = 0, error = 0, errorDevice = 0, errorDeviceControl = 0;
                 uint64_t errorlba = 0;
                 uint16_t errorCount = 0;

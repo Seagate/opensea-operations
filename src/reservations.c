@@ -118,7 +118,6 @@ eReturnValues get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersi
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint8_t capabilities[8] = { 0 };
-        //todo: should this just be sent, or should it have a scsi version check???
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_REPORT_CAPABILITIES, 8, capabilities)))
         {
             uint16_t prCapabilitiesLength = M_BytesTo2ByteValue(capabilities[0], capabilities[1]);
@@ -517,7 +516,6 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
             {
                 printf("\tDevice does not report supported reservation types.\n");
             }
-            //TODO: Allowed commands...not sure how to output this nicely at this time.
             if (prCapabilities->allowedCommandsInfo.allowedCommandsRawValue < 6)//restricted like this since this is reserved at the time of writing this code - TJE
             {
                 printf("\n\tAllowed Commands Info:\n");
@@ -1285,7 +1283,7 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
         printf("Full Reservation Status:\n");
         printf("\tGeneration: %" PRIX32 "h\n", fullReservation->generation);
 
-        printf("      Key        | ATP | Res Holder | Scope |         Type         |  RTPID  | Transport ID \n");//TODO: relative target port ID, transport ID
+        printf("      Key        | ATP | Res Holder | Scope |         Type         |  RTPID  | Transport ID \n");
         for (uint32_t keyIter = 0; keyIter < UINT16_MAX && keyIter < fullReservation->numberOfKeys; ++keyIter)
         {
             char atp = 'N';

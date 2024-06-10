@@ -74,7 +74,6 @@ static bool are_Buffer_Commands_Available(tDevice *device)
             memset(supportedCommandData, 0, 16);
             if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, supportedCommandData))
             {
-                //TODO: check the buffer capacity for non-zero value?
                 supported = true;
             }
         }
@@ -200,7 +199,6 @@ static bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
             case 0x47:
                 switch (ascq)
                 {
-                    //TODO: other asc 0x47 cases may fit CRC error
                 case 0x01://DATA PHASE CRC ERROR DETECTED
                 case 0x03://INFORMATION UNIT iuCRC ERROR DETECTED - SAT will translate a CRC error into this! Definitely need this one. Less sure about the others...-TJE
                 case 0x05://PROTOCOL SERVICE CRC ERROR

@@ -4028,7 +4028,6 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                 }
                             }
                             deviceStats->sasStatistics.availableLBAMappingresourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://used LBA mapping resource count
@@ -4055,7 +4054,6 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                 }
                             }
                             deviceStats->sasStatistics.usedLBAMappingResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 3://available provisioning resource percentage
@@ -4082,7 +4080,6 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                 }
                             }
                             deviceStats->sasStatistics.availableProvisioningResourcePercentage.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 0x100://de-duplicated LBA resource count
@@ -4109,7 +4106,6 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                 }
                             }
                             deviceStats->sasStatistics.deduplicatedLBAResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 0x101://compressed LBA resource count
@@ -4136,7 +4132,6 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                 }
                             }
                             deviceStats->sasStatistics.compressedLBAResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 0x102://total efficiency LBA resource count
@@ -4163,7 +4158,6 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                 }
                             }
                             deviceStats->sasStatistics.totalEfficiencyLBAResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         default:
@@ -6586,7 +6580,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                             deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 44], protSpData[phyOffset + 45], protSpData[phyOffset + 46], protSpData[phyOffset + 47]);
                                             ++deviceStats->sasStatistics.statisticsPopulated;
                                             ++deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount;
-                                            //TODO: Phy event descriptors? Not sure this is needed right now -TJE
+                                            //Phy event descriptors? Not sure this is needed right now -TJE
                                             //      Events would be yet another loop depending on how many are reported.
                                         }
                                         else
@@ -6596,7 +6590,6 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                                     }
                                     ++deviceStats->sasStatistics.sasProtStats.portCount;
                                 }
-                                //TODO: If other protocols report data here, we will need to add it. So far no other protocol spec lists a log page - TJE
                             }
                             else
                             {

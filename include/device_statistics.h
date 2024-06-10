@@ -130,7 +130,7 @@ extern "C"
     {
         STAT_PROT_NONE, //no statistics available or reported
         STAT_PROT_SAS, //SAS protocol specific port page info. Up to 2 ports and 2 phys?
-        //TODO: Other protocol specific pages. I did not see one for SPI, SSA, SRP, Fibre Channel, UAS, or SOP. If these other protocols add data to output, we can add it here. - TJE
+        //Other protocol specific pages. I did not see one for SPI, SSA, SRP, Fibre Channel, UAS, or SOP. If these other protocols add data to output, we can add it here. - TJE
     }eProtocolSpecificStatisticsType;
 
     //setting maximum number of ports to 2 for now. This could change in the future, but is not super likely - TJE
@@ -343,7 +343,7 @@ extern "C"
         //TODO: How do we want to handle multiple port SAS? Currently limiting this output to 2 ports since that is the most supported today-TJE
         union {
             sasProtocolStatistics sasProtStats;
-            //TODO: Other data structures for other protocols that implement the protocol specific port log page
+            //Other data structures for other protocols that implement the protocol specific port log page
         };
         //Power condition transitions
         bool powerConditionTransitionsSupported;
@@ -353,7 +353,6 @@ extern "C"
         statistic transitionsToIdleC;
         statistic transitionsToStandbyZ;
         statistic transitionsToStandbyY;
-        //TODO:
         //      Command duration limits statistics page
         //      Informational exceptions??? Not sure how we should track this data yet - TJE
         //      

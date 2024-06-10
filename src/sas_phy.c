@@ -27,7 +27,7 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
             switch (supportedDiagnosticPages[iter])
             {
             case DIAG_PAGE_PROTOCOL_SPECIFIC:
-                return true; //TODO: rather than just return true, we should make sure that the protocol is actually SAS by checking for protocol identifier 6h from somewhere...-TJE
+                return true;
             default:
                 break;
             }

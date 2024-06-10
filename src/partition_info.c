@@ -293,7 +293,6 @@ static uint32_t gpt_CRC_32(uint8_t* dataBuf, uint32_t dataLength)
 
 //This will work, but the crappy thing is they need to be in ORDER for best performance.
 //Rather than ordering this ourselves, put these in a list that is manageable and trackable ourselves, then sort it before using it.-TJE
-//TODO: Expand list of "known" partition GUIDs
 //https://en.m.wikipedia.org/wiki/GUID_Partition_Table#Partition_type_GUIDs
 bool gptGUIDsSorted = false;
 gptPartitionTypeName gptGUIDNameLookup[] = {
@@ -387,10 +386,8 @@ gptPartitionTypeName gptGUIDNameLookup[] = {
 };
 
 //used with bsearch to locate the name quicker
-//TODO: check if memcmp of whole GUID is faster
 static int cmp_GPT_Part_GUID(const void* a, const void* b)
 {
-    // compare ASC, if they are same, compare ASCQ
     return memcmp(&(C_CAST(gptPartitionTypeName*, a))->guid, &(C_CAST(gptPartitionTypeName *, b))->guid, sizeof(gptGUID));
 }
 
@@ -421,10 +418,6 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
     return;
 }
 
-//This is currently written expecting the primary copy.
-//TODO: Add validating the secondary copy and error checking between the copies!
-//TODO: Handle parsing from the backup LBA
-//TODO: When a CRC is invalid, compare to the backup and use that data instead
 static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -447,8 +440,6 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
             if (lba == 0 && SUCCESS == fill_MBR_Data(gptDataBuf, 512, &gpt->protectiveMBR))
             {
                 gpt->mbrValid = true;
-                //TODO: Check partitions in MBR to see if protective or hybrid style
-                //TODO: Make sure only one partition is listed.
             }
             gpt->revision = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 11], gptDataBuf[gptHeaderOffset + 10], gptDataBuf[gptHeaderOffset + 9], gptDataBuf[gptHeaderOffset + 8]);
             uint32_t gptHeaderSize = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 15], gptDataBuf[gptHeaderOffset + 14], gptDataBuf[gptHeaderOffset + 13], gptDataBuf[gptHeaderOffset + 12]);
@@ -473,7 +464,6 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                 uint32_t sizeOfPartitionEntry = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 87], gptDataBuf[gptHeaderOffset + 86], gptDataBuf[gptHeaderOffset + 85], gptDataBuf[gptHeaderOffset + 84]);
                 if (lba != 0)
                 {
-                    //gpt->numberOfPartitionEntries //TODO: does this need to be taken into account to find the "beginning" of the backup partitions??? -TJE
                     gptPartitionArray = &gptDataBuf[gptDataSize - device->drive_info.deviceBlockSize - (gpt->numberOfPartitionEntries * sizeOfPartitionEntry)];//for backup this will point to the beginning of the partition array
                 }
                 gpt->crc32HeaderValid = true;
@@ -625,7 +615,6 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                 }
                 else if (partitionData->partitionDataType == PARTITION_TABLE_GPT)
                 {
-                    //TODO: These functions expect LBA 0 right now. Need to pass the LBA in so they can adjust where to look.-TJE
                     uint32_t partitionCount = number_Of_GPT_Partitions(dataBuffer, dataSize, device->drive_info.deviceBlockSize, lba);
                     uint32_t gptStructSize = C_CAST(uint32_t, (sizeof(gptData) - sizeof(gptPartitionEntry)) + (sizeof(gptPartitionEntry) * partitionCount));
                     partitionData->gptTable = C_CAST(ptrGPTData, calloc(gptStructSize, sizeof(uint8_t)));
@@ -709,7 +698,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
             {
                 printf("\n\t---Partition %" PRIu8 "---\n", partIter);
                 printf("\tPartition Type: ");
-                //TODO: Print out the type that it is. There are a lot, some reused between systems so this may not always be possible.
+                //Print out the type that it is. There are a lot, some reused between systems so this may not always be possible.
                 //      Currently focussing on what is most likely to be seen: Windows, Linux, UEFI, MacOSX, one of the BSDs still active today
                 //https://en.m.wikipedia.org/wiki/Partition_type
                 //https://www.win.tue.nl/~aeb/partitions/partition_types.html

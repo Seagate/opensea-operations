@@ -383,7 +383,7 @@ extern "C"
     typedef struct _smartFeatureInfo
     {
         uint16_t smartVersion;
-        //TODO: smart attributes?
+        //smart attributes? Currently in a separate API
         uint8_t offlineDataCollectionStatus;
         uint8_t selfTestExecutionStatus;
         uint16_t timeToCompleteOfflineDataCollection;//vendor specific in new specs
@@ -630,7 +630,7 @@ extern "C"
         uint8_t version;
         uint8_t numberOfEntries;
         bool extLog;
-        //TODO: This union isn't really needed...Can remove this sometime
+        //NOTE: This union isn't really needed...Can remove this sometime
         union
         {
             SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
