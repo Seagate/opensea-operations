@@ -314,7 +314,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
                 //all else fails, try mode sense 6
                 if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
                 {
-                    safe_Free_aligned(dataBuf)
+                    safe_Free_aligned(C_CAST(void**, &dataBuf));
                     return NOT_SUPPORTED;
                 }
             }
@@ -410,7 +410,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
         else
         {
             //invalid block descriptor length
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
             return NOT_SUPPORTED;
         }
         //now send a mode select command
@@ -510,7 +510,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
             //check if there was an invalid parameter field specifying the security initialize bit...if so, print a message and return not supported - TJE
         }
     }
-    safe_Free_aligned(dataBuf)
+    safe_Free_aligned(C_CAST(void**, &dataBuf));
     return ret;
 }
 
@@ -564,7 +564,7 @@ eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                             {
                                 lastFormatUnitAllFs = true;
                             }
-                            safe_Free(allFs)
+                            safe_Free(C_CAST(void**, &allFs));
                         }
                         else
                         {
@@ -652,7 +652,7 @@ eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
             formatStatus->totalNewBlocksReassignedValid = false;
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(formatStatusPage)
+        safe_Free_aligned(C_CAST(void**, &formatStatusPage));
     }
     else
     {
@@ -970,7 +970,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFor
             }
         }
     }
-    safe_Free_aligned(inquiryData)
+    safe_Free_aligned(C_CAST(void**, &inquiryData));
     bool dummyUpCommonSizes = true;
     uint32_t supportedSectorSizesDataLength = 0;
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
@@ -1053,7 +1053,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFor
             }
             ret = SUCCESS;
         }
-        safe_Free_aligned(supportedBlockLengthsData)
+        safe_Free_aligned(C_CAST(void**, &supportedBlockLengthsData));
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))
     {
@@ -1575,7 +1575,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice *device, uint32_t sect
             {
                 mbrEraseWarning = true;
             }
-            safe_Free_aligned(eraseMBR);
+            safe_Free_aligned(C_CAST(void**, &eraseMBR));
         }
         else
         {

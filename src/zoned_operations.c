@@ -84,7 +84,7 @@ eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions report
         }
         else
         {
-            safe_Free_aligned(reportZones)
+            safe_Free_aligned(C_CAST(void**, &reportZones));
             return NOT_SUPPORTED;
         }
         if (ret != SUCCESS)
@@ -122,7 +122,7 @@ eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions report
             break;
         }
     }
-    safe_Free_aligned(reportZones)
+    safe_Free_aligned(C_CAST(void**, &reportZones));
     return SUCCESS;
 }
 

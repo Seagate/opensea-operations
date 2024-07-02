@@ -55,7 +55,7 @@ eReturnValues get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
         {
             ret = FAILURE;
         }
-        safe_Free_aligned(modeSense)
+        safe_Free_aligned(C_CAST(void**, &modeSense));
     }
     else //ata cannot control ready LED since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
     {
@@ -117,7 +117,7 @@ eReturnValues change_Ready_LED(tDevice *device, bool readyLEDDefault, bool ready
             //send the mode select command
             ret = scsi_Mode_Select_10(device, 24, true, true, false, modeSelect, 24);
         }
-        safe_Free_aligned(modeSelect)
+        safe_Free_aligned(C_CAST(void**, &modeSelect));
     }
     else //ata cannot control ready LED since it is managed by the host, not the drive (drive just reads a signal to change operation as per ATA spec). Not sure if other device types support this change or not at this time.
     {
@@ -179,7 +179,7 @@ eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
         //send the mode select command
         ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return ret;
 }
 
@@ -228,7 +228,7 @@ eReturnValues scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnable
         //send the mode select command
         ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return ret;
 }
 
@@ -310,7 +310,7 @@ eReturnValues scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable
         //send the mode select command
         ret = scsi_Mode_Select_10(device, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, true, true, false, cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return ret;
 }
 
@@ -410,7 +410,7 @@ bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
             supported = true;//if it is enabled by default, then it's supported
         }
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return supported;
 }
 
@@ -496,7 +496,7 @@ bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
             enabled = false;
         }
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return enabled;
 }
 
@@ -523,7 +523,7 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
             enabled = true;
         }
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return enabled;
 }
 
@@ -592,7 +592,7 @@ bool scsi_Is_Write_Cache_Supported(tDevice *device)
             supported = true;//if it is enabled by default, then it's supported
         }
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return supported;
 }
 
@@ -663,7 +663,7 @@ bool scsi_Is_Write_Cache_Enabled(tDevice *device)
             enabled = false;
         }
     }
-    safe_Free_aligned(cachingModePage)
+    safe_Free_aligned(C_CAST(void**, &cachingModePage));
     return enabled;
 }
 
@@ -1479,7 +1479,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                         currentPageToSet = C_CAST(uint8_t*, calloc_aligned(currentPageToSetLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                         if (!currentPageToSet)
                         {
-                            safe_Free_aligned(modeData)
+                            safe_Free_aligned(C_CAST(void**, &modeData));
                             return MEMORY_FAILURE;
                         }
                         if (used6ByteCmd)
@@ -1549,7 +1549,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                                 ret = SUCCESS;
                             }
                         }
-                        safe_Free_aligned(currentPageToSet)
+                        safe_Free_aligned(C_CAST(void**, &currentPageToSet));
                     }
                     if (counter > 0 && counter == failedModeSelects)
                     {
@@ -1560,7 +1560,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                 {
                     ret = FAILURE;
                 }
-                safe_Free_aligned(modeData)
+                safe_Free_aligned(C_CAST(void**, &modeData));
             }
             else
             {
@@ -1631,7 +1631,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                     }
                 }
             }
-            safe_Free_aligned(modeData)
+            safe_Free_aligned(C_CAST(void**, &modeData));
         }
         else
         {
@@ -1720,7 +1720,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_
                 }
             }
         }
-        safe_Free_aligned(modeData)
+        safe_Free_aligned(C_CAST(void**, &modeData));
     }
     else
     {
@@ -2397,7 +2397,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                     print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[offset], currentPageLength, mpc, bufferFormatOutput);
                 }
             }
-            safe_Free_aligned(modeData)
+            safe_Free_aligned(C_CAST(void**, &modeData));
         }
         else
         {
@@ -2432,7 +2432,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
                     print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], &modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength], modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc, bufferFormatOutput);
                 }
             }
-            safe_Free_aligned(modeData)
+            safe_Free_aligned(C_CAST(void**, &modeData));
         }
         else
         {
@@ -2553,7 +2553,7 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t m
         if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
         {
             modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
-            safe_Free_aligned(vpdModePagePolicy)
+            safe_Free_aligned(C_CAST(void**, &vpdModePagePolicy));
             vpdModePagePolicy = C_CAST(uint8_t*, calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (vpdModePagePolicy)
             {
@@ -2584,7 +2584,7 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t m
                 }
             }
         }
-        safe_Free_aligned(vpdModePagePolicy)
+        safe_Free_aligned(C_CAST(void**, &vpdModePagePolicy));
     }
     return mlus;
 }
@@ -2637,7 +2637,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRa
                         ranges->range[rangeCounter].numberOfLBAs = M_BytesTo8ByteValue(concurrentRangeLog[offset + 23], concurrentRangeLog[offset + 22], concurrentRangeLog[offset + 21], concurrentRangeLog[offset + 20], concurrentRangeLog[offset + 19], concurrentRangeLog[offset + 18], concurrentRangeLog[offset + 17], concurrentRangeLog[offset + 16]);
                     }
                 }
-                safe_Free_aligned(concurrentRangeLog)
+                safe_Free_aligned(C_CAST(void**, &concurrentRangeLog));
             }
         }
         else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -2665,7 +2665,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRa
                         ranges->range[rangeCounter].numberOfLBAs = M_BytesTo8ByteValue(concurrentRangeVPD[offset + 16], concurrentRangeVPD[offset + 17], concurrentRangeVPD[offset + 18], concurrentRangeVPD[offset + 19], concurrentRangeVPD[offset + 20], concurrentRangeVPD[offset + 21], concurrentRangeVPD[offset + 22], concurrentRangeVPD[offset + 23]);
                     }
                 }
-                safe_Free_aligned(concurrentRangeVPD)
+                safe_Free_aligned(C_CAST(void**, &concurrentRangeVPD));
             }
         }
     }

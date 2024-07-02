@@ -154,7 +154,7 @@ eReturnValues sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64
         }
         fflush(stdout);
     }
-    safe_Free_aligned(dataBuf)
+    safe_Free_aligned(C_CAST(void**, &dataBuf));
     return ret;
 }
 
@@ -253,7 +253,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
             }
             printf("\n%s\n", message);
         }
-        safe_Free(randomLBAList)
+        safe_Free(C_CAST(void**, &randomLBAList));
         return ret;
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -302,7 +302,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
             }
             printf("\n%s\n", message);
         }
-        safe_Free(randomLBAList)
+        safe_Free(C_CAST(void**, &randomLBAList));
         return ret;
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -335,7 +335,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
         if (!dataBuf)
         {
             perror("malloc data buf failed\n");
-            safe_Free(randomLBAList)
+            safe_Free(C_CAST(void**, &randomLBAList));
             return MEMORY_FAILURE;
         }
     }
@@ -387,8 +387,8 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
     {
         printf("\n");
     }
-    safe_Free(dataBuf)
-    safe_Free(randomLBAList)
+    safe_Free(C_CAST(void**, &dataBuf));
+    safe_Free(C_CAST(void**, &randomLBAList));
     return ret;
 }
 
@@ -523,7 +523,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
                     break;
                 }
             }
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
             return ret;
         }
         ++odTest.numberOfCommandsIssued;
@@ -617,7 +617,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
                     break;
                 }
             }
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
             return ret;
         }
         ++idTest.numberOfCommandsIssued;
@@ -711,7 +711,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
                     break;
                 }
             }
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
             return ret;
         }
         ++randomTest.numberOfCommandsIssued;
@@ -841,7 +841,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         printf("\tLBAs accessed per command: %"PRIu16"\n", randomTest.sectorCount);
         printf("\tTotal LBAs accessed: %"PRIu64"\n", randomTest.numberOfCommandsIssued * randomTest.sectorCount);
     }
-    safe_Free_aligned(dataBuf)
+    safe_Free_aligned(C_CAST(void**, &dataBuf));
     return ret;
 }
 
@@ -1008,7 +1008,7 @@ eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, 
             }
         }
     }
-    safe_Free(errorList)
+    safe_Free(C_CAST(void**, &errorList));
     return ret;
 }
 
@@ -1047,7 +1047,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
-            safe_Free(errorList)
+            safe_Free(C_CAST(void**, &errorList));
             return MEMORY_FAILURE;
         }
     }
@@ -1163,7 +1163,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
         printf("\n");
         fflush(stdout);
     }
-    safe_Free_aligned(dataBuf)
+    safe_Free_aligned(C_CAST(void**, &dataBuf));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         printf("\n");
@@ -1213,7 +1213,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
             }
         }
     }
-    safe_Free(errorList)
+    safe_Free(C_CAST(void**, &errorList));
     return ret;
 }
 
@@ -1334,7 +1334,7 @@ eReturnValues butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64
             currentSectorCount = sectorCount;
         }
     }
-    safe_Free(dataBuf)
+    safe_Free(C_CAST(void**, &dataBuf));
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         printf("\n");
@@ -1407,7 +1407,7 @@ eReturnValues random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t 
     {
         printf("\n");
     }
-    safe_Free(dataBuf)
+    safe_Free(C_CAST(void**, &dataBuf));
     return ret;
 }
 
@@ -1782,7 +1782,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
     {
         printf("\n");
     }
-    safe_Free(dataBuf)
+    safe_Free(C_CAST(void**, &dataBuf));
     return SUCCESS;
 }
 
@@ -1976,7 +1976,7 @@ eReturnValues diameter_Test_Range(tDevice *device, eRWVCommandType testMode, boo
             }
         }
     }
-    safe_Free(errorList)
+    safe_Free(C_CAST(void**, &errorList));
     return ret;
 }
 
@@ -2125,7 +2125,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvC
     {
         *numberOfLbasAccessed = startingLBA + sectorCount - *numberOfLbasAccessed;//subtract itself since it gets set to where we start at when we begin.
     }
-    safe_Free_aligned(dataBuf)
+    safe_Free_aligned(C_CAST(void**, &dataBuf));
     return ret;
 }
 
@@ -2273,7 +2273,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
             }
         }
     }
-    safe_Free(errorList)
+    safe_Free(C_CAST(void**, &errorList));
     return ret;
 }
 
@@ -2315,7 +2315,7 @@ eReturnValues full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             if (!validationBuffer)
             {
                 perror("\nfailed to allocate memory for validation data\n");
-                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 return MEMORY_FAILURE;
             }
 
@@ -2325,11 +2325,11 @@ eReturnValues full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 {
                     printf("\nValidation Failed for LBA Range : %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
                 }
-                safe_Free_aligned(dataBuffer)
-                safe_Free_aligned(validationBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                safe_Free_aligned(C_CAST(void**, &validationBuffer));
                 return VALIDATION_FAILURE;
             }
-            safe_Free_aligned(validationBuffer)
+            safe_Free_aligned(C_CAST(void**, &validationBuffer));
         }
         else
         {
@@ -2337,10 +2337,10 @@ eReturnValues full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             {
                 printf("\nRead failed at LBA %-20"PRIu64"\n", lbaIterator);
             }
-            safe_Free_aligned(dataBuffer)
+            safe_Free_aligned(C_CAST(void**, &dataBuffer));
             return FAILURE;
         }
-        safe_Free_aligned(dataBuffer)
+        safe_Free_aligned(C_CAST(void**, &dataBuffer));
     }
 
     printf("\n");
@@ -2386,7 +2386,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             if (!validationBuffer)
             {
                 perror("\nfailed to allocate memory for validation data\n");
-                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 return MEMORY_FAILURE;
             }
 
@@ -2396,11 +2396,11 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 {
                     printf("\nValidation Failed for LBA Range: %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
                 }
-                safe_Free_aligned(dataBuffer)
-                safe_Free_aligned(validationBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                safe_Free_aligned(C_CAST(void**, &validationBuffer));
                 return VALIDATION_FAILURE;
             }
-            safe_Free_aligned(validationBuffer)
+            safe_Free_aligned(C_CAST(void**, &validationBuffer));
         }
         else
         {
@@ -2408,10 +2408,10 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             {
                 printf("\nRead failed at LBA %-20"PRIu64"\n", lbaIterator);
             }
-            safe_Free_aligned(dataBuffer)
+            safe_Free_aligned(C_CAST(void**, &dataBuffer));
             return FAILURE;
         }
-        safe_Free_aligned(dataBuffer)
+        safe_Free_aligned(C_CAST(void**, &dataBuffer));
     }
 
     //0.1% ID Validation
@@ -2444,7 +2444,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             if (!validationBuffer)
             {
                 perror("\nfailed to allocate memory for validation data\n");
-                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 return MEMORY_FAILURE;
             }
 
@@ -2454,11 +2454,11 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 {
                     printf("\nValidation Failed for LBA Range: %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
                 }
-                safe_Free_aligned(dataBuffer)
-                safe_Free_aligned(validationBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                safe_Free_aligned(C_CAST(void**, &validationBuffer));
                 return VALIDATION_FAILURE;
             }
-            safe_Free_aligned(validationBuffer)
+            safe_Free_aligned(C_CAST(void**, &validationBuffer));
         }
         else
         {
@@ -2466,10 +2466,10 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             {
                 printf("\nRead failed at LBA %-20"PRIu64"\n", lbaIterator);
             }
-            safe_Free_aligned(dataBuffer)
+            safe_Free_aligned(C_CAST(void**, &dataBuffer));
             return FAILURE;
         }
-        safe_Free_aligned(dataBuffer)
+        safe_Free_aligned(C_CAST(void**, &dataBuffer));
     }
 
     //Random Section Validation
@@ -2505,7 +2505,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 if (!validationBuffer)
                 {
                     perror("\nfailed to allocate memory for validation data\n");
-                    safe_Free_aligned(dataBuffer)
+                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
                     return MEMORY_FAILURE;
                 }
 
@@ -2515,11 +2515,11 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                     {
                         printf("\nValidation Failed for LBA: %-20"PRIu64"\n", randomLBA);
                     }
-                    safe_Free_aligned(dataBuffer)
-                    safe_Free_aligned(validationBuffer)
+                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                    safe_Free_aligned(C_CAST(void**, &validationBuffer));
                     return VALIDATION_FAILURE;
                 }
-                safe_Free_aligned(validationBuffer)
+                safe_Free_aligned(C_CAST(void**, &validationBuffer));
             }
             else
             {
@@ -2527,10 +2527,10 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 {
                     printf("\nRead failed at LBA %-20"PRIu64"\n", randomLBA);
                 }
-                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 return FAILURE;
             }
-            safe_Free_aligned(dataBuffer)
+            safe_Free_aligned(C_CAST(void**, &dataBuffer));
         }
 
         //second random LBA from section
@@ -2556,7 +2556,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 if (!validationBuffer)
                 {
                     perror("\nfailed to allocate memory for validation data\n");
-                    safe_Free_aligned(dataBuffer)
+                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
                     return MEMORY_FAILURE;
                 }
 
@@ -2566,11 +2566,11 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                     {
                         printf("\nValidation Failed for LBA: %-20"PRIu64"\n", randomLBA);
                     }
-                    safe_Free_aligned(dataBuffer);
-                    safe_Free_aligned(validationBuffer);
+                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                    safe_Free_aligned(C_CAST(void**, &validationBuffer));
                     return VALIDATION_FAILURE;
                 }
-                safe_Free_aligned(validationBuffer);
+                safe_Free_aligned(C_CAST(void**, &validationBuffer));
             }
             else
             {
@@ -2578,10 +2578,10 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 {
                     printf("\nRead failed at LBA %-20"PRIu64"\n", randomLBA);
                 }
-                safe_Free_aligned(dataBuffer)
+                safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 return FAILURE;
             }
-            safe_Free_aligned(dataBuffer)
+            safe_Free_aligned(C_CAST(void**, &dataBuffer));
         }
     }
 

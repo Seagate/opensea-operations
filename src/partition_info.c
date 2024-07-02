@@ -30,16 +30,16 @@ ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
         case PARTITION_TABLE_NOT_FOUND:
             break;
         case PARTITION_TABLE_MRB:
-            safe_Free(partInfo->mbrTable);
+            safe_Free(C_CAST(void**, &partInfo->mbrTable));
             break;
         case PARTITION_TABLE_APM:
-            safe_Free(partInfo->apmTable);
+            safe_Free(C_CAST(void**, &partInfo->apmTable));
             break;
         case PARTITION_TABLE_GPT:
-            safe_Free(partInfo->gptTable);
+            safe_Free(C_CAST(void**, &partInfo->gptTable));
             break;
         }
-        safe_Free(partInfo);
+        safe_Free(C_CAST(void**, &partInfo));
     }
     return partInfo;
 }
@@ -492,7 +492,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                     ret = read_LBA(device, partitionArrayLBA, false, gptPartitionArray, gptPartitionArrayDataLength);
                     if (ret != SUCCESS)
                     {
-                        safe_Free(gptPartitionArray);
+                        safe_Free(C_CAST(void**, &gptPartitionArray));
                         return FAILURE;
                     }
                 }
@@ -539,7 +539,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                 }
                 if (usedLocalPartitionBuf)
                 {
-                    safe_Free(gptPartitionArray);
+                    safe_Free(C_CAST(void**, &gptPartitionArray));
                 }
             }
         }

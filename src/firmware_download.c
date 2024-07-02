@@ -927,7 +927,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                         //bit 1 = dm_md_f - activate deferred code (part of mode e. If mode e is supported, so should f - TJE
                     }
                 }
-                safe_Free_aligned(extendedInq) // PRH valgrind check
+                safe_Free_aligned(C_CAST(void**, &extendedInq)) ;// PRH valgrind check
             }
 
             //PMC 8070 fails this command for some unknown reason even if a drive supports it, so skip these requests when this hack is set.-TJE
@@ -1197,7 +1197,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                         //else try requesting all supported OPs and parse that information??? It could be report all is supported, but other modes are not
                         else
                         {
-                            safe_Free_aligned(writeBufferSupportData)
+                            safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
                                 uint32_t reportAllOPsLength = 4;
                             uint8_t* reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                             if (reportAllOPs)
@@ -1206,7 +1206,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                                 {
                                     //get the full length, then reallocate and reread
                                     reportAllOPsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
-                                    safe_Free_aligned(reportAllOPs)
+                                    safe_Free_aligned(C_CAST(void**, &reportAllOPs));
                                         reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                                     if (reportAllOPs)
                                     {
@@ -1288,12 +1288,12 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                                 {
                                     supportedModes->scsiInfoPossiblyIncomplete = true;
                                 }
-                                safe_Free_aligned(reportAllOPs)
+                                safe_Free_aligned(C_CAST(void**, &reportAllOPs));
                             }
                         }
                     }
                 }
-                safe_Free_aligned(writeBufferSupportData)
+                safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
             }
             uint8_t offsetReq[4] = { 0 };
             if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
@@ -1355,7 +1355,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                         //DO NOT turn the flag to false. It should already be false. If it was set to true, then the drive has already reported it supports this mode some other way.
                     }
                 }
-                safe_Free_aligned(c3VPD)
+                safe_Free_aligned(C_CAST(void**, &c3VPD));
             }
         }
         break;

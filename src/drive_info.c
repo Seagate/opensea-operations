@@ -2731,7 +2731,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
                     get_ATA_Drive_Info_From_ID_Data_Log(driveInfo, &ataCap, idDataLog, idDataLogSize);
                 }
             }
-            safe_Free_aligned(idDataLog)
+            safe_Free_aligned(C_CAST(void**, &idDataLog));
         }
         //read device statistics log (only some pages are needed)
         if (devStatsSize > 0)//can come from GPL or SMART
@@ -2745,7 +2745,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
                     get_ATA_Drive_Info_From_Device_Statistics_Log(driveInfo, &ataCap, devStats, devStatsSize);
                 }
             }
-            safe_Free_aligned(devStats)
+            safe_Free_aligned(C_CAST(void**, &devStats));
         }
         if (ataCap.gplSupported && hybridInfoSize > 0)//GPL only. Page is also only a size of 1 512B block
         {
@@ -2869,11 +2869,11 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
                         }
                     }
                 }
-                safe_Free_aligned(farmData)
+                safe_Free_aligned(C_CAST(void**, &farmData));
             }
         }
     }
-    safe_Free_aligned(logBuffer)
+    safe_Free_aligned(C_CAST(void**, &logBuffer));
 
         uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
@@ -2925,7 +2925,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
                         }
                     }
                 }
-                safe_Free_aligned(protocolList)
+                safe_Free_aligned(C_CAST(void**, &protocolList));
             }
         }
 
@@ -3157,7 +3157,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
             if (!supportedVPDPages)
             {
                 perror("Error allocating memory for supported VPD pages!\n");
-                safe_Free_aligned(tempBuf)
+                safe_Free_aligned(C_CAST(void**, &tempBuf));
                 return MEMORY_FAILURE;
             }
             memcpy(supportedVPDPages, &tempBuf[4], supportedVPDPagesLength);
@@ -3215,7 +3215,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             }
                         }
                     }
-                    safe_Free_aligned(unitSerialNumber)
+                    safe_Free_aligned(C_CAST(void**, &unitSerialNumber));
                     break;
                 }
                 case DEVICE_IDENTIFICATION:
@@ -3310,7 +3310,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             }
                         }
                     }
-                    safe_Free_aligned(deviceIdentification)
+                    safe_Free_aligned(C_CAST(void**, &deviceIdentification));
                     break;
                 }
                 case EXTENDED_INQUIRY_DATA:
@@ -3388,7 +3388,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                                         }
                                     }
                                 }
-                                safe_Free_aligned(supportedBlockSizesAndProtectionTypes)
+                                safe_Free_aligned(C_CAST(void**, &supportedBlockSizesAndProtectionTypes));
                             }
                             //no else...don't care that much right now...-TJE
                         }
@@ -3400,7 +3400,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             break;
                         }
                     }
-                    safe_Free_aligned(extendedInquiryData)
+                    safe_Free_aligned(C_CAST(void**, &extendedInquiryData));
                     break;
                 }
                 case BLOCK_DEVICE_CHARACTERISTICS:
@@ -3417,7 +3417,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         driveInfo->formFactor = M_Nibble0(blockDeviceCharacteristics[7]);
                         driveInfo->zonedDevice = (blockDeviceCharacteristics[8] & (BIT4 | BIT5)) >> 4;
                     }
-                    safe_Free_aligned(blockDeviceCharacteristics)
+                    safe_Free_aligned(C_CAST(void**, &blockDeviceCharacteristics));
                     break;
                 }
                 case POWER_CONDITION:
@@ -3473,7 +3473,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             }
                         }
                     }
-                    safe_Free_aligned(logicalBlockProvisioning)
+                    safe_Free_aligned(C_CAST(void**, &logicalBlockProvisioning));
                     break;
                 }
                 case BLOCK_LIMITS:
@@ -3492,7 +3492,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write Same");
                         }
                     }
-                    safe_Free_aligned(blockLimits)
+                    safe_Free_aligned(C_CAST(void**, &blockLimits));
                     break;
                 }
                 case ATA_INFORMATION:
@@ -3511,7 +3511,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         memcpy(driveInfo->satProductRevision, &ataInformation[32], 4);
 
                     }
-                    safe_Free_aligned(ataInformation)
+                    safe_Free_aligned(C_CAST(void**, &ataInformation));
                     break;
                 }
                 case CONCURRENT_POSITIONING_RANGES:
@@ -3528,7 +3528,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         //calculate how many ranges are being reported by the device.
                         driveInfo->concurrentPositioningRanges = C_CAST(uint8_t, (M_BytesTo2ByteValue(concurrentRangesData[2], concurrentRangesData[3]) - 60) / 32);//-60 since page length doesn't include first 4 bytes and descriptors start at offset 64. Each descriptor is 32B long
                     }
-                    safe_Free_aligned(concurrentRangesData)
+                    safe_Free_aligned(C_CAST(void**, &concurrentRangesData));
                 }
                 break;
                 case ZONED_BLOCK_DEVICE_CHARACTERISTICS:
@@ -3555,14 +3555,14 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             break;
                         }
                     }
-                    safe_Free_aligned(zbdCharacteristics)
+                    safe_Free_aligned(C_CAST(void**, &zbdCharacteristics));
                 }
                     break;
                 default:
                     break;
                 }
             }
-            safe_Free(supportedVPDPages)
+            safe_Free(C_CAST(void**, &supportedVPDPages));
         }
         else
         {
@@ -3570,7 +3570,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
             memcpy(driveInfo->serialNumber, &device->drive_info.scsiVpdData.inquiryData[36], SERIAL_NUM_LEN);
             device->drive_info.serialNumber[SERIAL_NUM_LEN] = '\0';
         }
-        safe_Free_aligned(tempBuf)
+        safe_Free_aligned(C_CAST(void**, &tempBuf));
     }
     return ret;
 }
@@ -3614,7 +3614,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                 {
                     //trying to read the list of supported pages can trigger this to show up due to invalid operation code
                     //when this happens, just return to save the time and effort.
-                    safe_Free_aligned(scsiLogBuf)
+                    safe_Free_aligned(C_CAST(void**, &scsiLogBuf));
                     driveInfo->smartStatus = 2;
                     return NOT_SUPPORTED;
                 }
@@ -3787,7 +3787,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                     }
                                 }
                             }
-                            safe_Free_aligned(writeErrorData)
+                            safe_Free_aligned(C_CAST(void**, &writeErrorData));
                         }
                         break;
                     case LP_READ_ERROR_COUNTERS:
@@ -3830,7 +3830,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                     }
                                 }
                             }
-                            safe_Free_aligned(readErrorData)
+                            safe_Free_aligned(C_CAST(void**, &readErrorData));
                         }
                         break;
                     case LP_LOGICAL_BLOCK_PROVISIONING:
@@ -3854,7 +3854,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 driveInfo->temperatureData.temperatureDataValid = true;
                                 driveInfo->temperatureData.currentTemperature = temperatureData[9];
                             }
-                            safe_Free_aligned(temperatureData)
+                            safe_Free_aligned(C_CAST(void**, &temperatureData));
                         }
                         break;
                         case 1://environmental reporting
@@ -3884,7 +3884,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 driveInfo->humidityData.highestValid = true;
                                 driveInfo->humidityData.lowestValid = true;
                             }
-                            safe_Free_aligned(environmentReporting)
+                            safe_Free_aligned(C_CAST(void**, &environmentReporting));
                         }
                         break;
                         default:
@@ -3918,7 +3918,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                     }
                                 }
                             }
-                            safe_Free_aligned(startStopCounterLog);
+                            safe_Free_aligned(C_CAST(void**, &startStopCounterLog));
                         }
                         break;
                         case 0x01://utilization
@@ -3933,7 +3933,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 //bytes 9 & 10
                                 driveInfo->deviceReportedUtilizationRate = C_CAST(double, M_BytesTo2ByteValue(utilizationData[8], utilizationData[9])) / 1000.0;
                             }
-                            safe_Free_aligned(utilizationData)
+                            safe_Free_aligned(C_CAST(void**, &utilizationData));
                         }
                         break;
                         default:
@@ -3955,7 +3955,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 //add "Application Client Logging" to supported features :)
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Application Client Logging");
                             }
-                            safe_Free_aligned(applicationClient)
+                            safe_Free_aligned(C_CAST(void**, &applicationClient));
                         }
                         break;
                         default:
@@ -3981,7 +3981,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 driveInfo->dstInfo.powerOnHours = M_BytesTo2ByteValue(selfTestResults[parameterOffset + 6], selfTestResults[parameterOffset + 7]);
                                 driveInfo->dstInfo.errorLBA = M_BytesTo8ByteValue(selfTestResults[parameterOffset + 8], selfTestResults[parameterOffset + 9], selfTestResults[parameterOffset + 10], selfTestResults[parameterOffset + 11], selfTestResults[parameterOffset + 12], selfTestResults[parameterOffset + 13], selfTestResults[parameterOffset + 14], selfTestResults[parameterOffset + 15]);
                             }
-                            safe_Free_aligned(selfTestResults)
+                            safe_Free_aligned(C_CAST(void**, &selfTestResults));
                         }
                         break;
                     case LP_SOLID_STATE_MEDIA:
@@ -3998,7 +3998,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 //bytes 7 of parameter 1 (or byte 12)
                                 driveInfo->percentEnduranceUsed = C_CAST(double, ssdEnduranceData[11]);
                             }
-                            safe_Free_aligned(ssdEnduranceData)
+                            safe_Free_aligned(C_CAST(void**, &ssdEnduranceData));
                         }
                         break;
                     case LP_BACKGROUND_SCAN_RESULTS:
@@ -4016,7 +4016,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 driveInfo->powerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[8], backgroundScanResults[9], backgroundScanResults[10], backgroundScanResults[11]);
                                 driveInfo->powerOnMinutesValid = true;
                             }
-                            safe_Free_aligned(backgroundScanResults)
+                            safe_Free_aligned(C_CAST(void**, &backgroundScanResults));
                         }
                         break;
                     case LP_GENERAL_STATISTICS_AND_PERFORMANCE:
@@ -4039,7 +4039,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 //convert to bytes written
                                 driveInfo->totalBytesRead = driveInfo->totalLBAsRead * driveInfo->logicalSectorSize;
                             }
-                            safe_Free_aligned(generalStatsAndPerformance)
+                            safe_Free_aligned(C_CAST(void**, &generalStatsAndPerformance));
                         }
                         break;
                     case LP_INFORMATION_EXCEPTIONS:
@@ -4073,7 +4073,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                             {
                                 driveInfo->smartStatus = 2;
                             }
-                            safe_Free_aligned(informationExceptions)
+                            safe_Free_aligned(C_CAST(void**, &informationExceptions));
                         }
                         break;
                     case SEAGATE_LP_FARM:
@@ -4095,7 +4095,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                 }
                                 //NOTE: If for any reason DOM was not already read from standard page, can read it here too
                             }
-                            safe_Free_aligned(farmData)
+                            safe_Free_aligned(C_CAST(void**, &farmData));
                         }
                         break;
                     case 0x3C://Vendor specific page. we're checking this page on Seagate drives for an enhanced usage indicator on SSDs (PPM value)
@@ -4110,14 +4110,14 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                             {
                                 driveInfo->percentEnduranceUsed = (C_CAST(double, M_BytesTo4ByteValue(ssdUsage[8], ssdUsage[9], ssdUsage[10], ssdUsage[11])) / 1000000.00) * 100.00;
                             }
-                            safe_Free_aligned(ssdUsage)
+                            safe_Free_aligned(C_CAST(void**, &ssdUsage));
                         }
                         break;
                     default:
                         break;
                     }
                 }
-                safe_Free_aligned(scsiLogBuf)
+                safe_Free_aligned(C_CAST(void**, &scsiLogBuf));
             }
         }
         if (!smartStatusRead)
@@ -4156,7 +4156,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInform
                     uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment));
                     if (!temp)
                     {
-                        safe_Free_aligned(readCapBuf)
+                        safe_Free_aligned(C_CAST(void**, &readCapBuf));
                         return MEMORY_FAILURE;
                     }
                     readCapBuf = temp;
@@ -4225,7 +4225,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInform
                 uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (temp == NULL)
                 {
-                    safe_Free_aligned(readCapBuf)
+                    safe_Free_aligned(C_CAST(void**, &readCapBuf));
                     return MEMORY_FAILURE;
                 }
                 readCapBuf = temp;
@@ -4270,7 +4270,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInform
         default:
             break;
         }
-        safe_Free_aligned(readCapBuf)
+        safe_Free_aligned(C_CAST(void**, &readCapBuf));
         if (scsiInfo->protectionSupported)
         {
             //set protection types supported up here.
@@ -4574,8 +4574,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, arreString);
 
                         }
-                        safe_Free(awreString)
-                        safe_Free(arreString)
+                        safe_Free(C_CAST(void**, &awreString));
+                        safe_Free(C_CAST(void**, &arreString));
                     }
                     break;
                     default:
@@ -4873,7 +4873,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, dlcString);
                         }
-                        safe_Free(dlcString)
+                        safe_Free(C_CAST(void**, &dlcString));
                     }
                     break;
                     case 0x05://IO Advice Hints
@@ -5498,7 +5498,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, epcFeatureString);
                         }
-                        safe_Free(epcFeatureString)
+                        safe_Free(C_CAST(void**, &epcFeatureString));
                     }
                     break;
                     case 0xF1://ata power conditions
@@ -5744,8 +5744,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, bmsPSString);
                         }
-                        safe_Free(bmsString)
-                        safe_Free(bmsPSString)
+                        safe_Free(C_CAST(void**, &bmsString));
+                        safe_Free(C_CAST(void**, &bmsPSString));
                     }
                     break;
                     default:
@@ -5837,7 +5837,7 @@ static eReturnValues get_SCSI_Diagnostic_Data(tDevice* device, ptrDriveInformati
                         }
                     }
                 }
-                safe_Free_aligned(supportedDiagnostics)
+                safe_Free_aligned(C_CAST(void**, &supportedDiagnostics));
             }
         }
     }
@@ -5908,7 +5908,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInfo
                     {
                         device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations = true;
                     }
-                    safe_Free_aligned(supportedCommands)
+                    safe_Free_aligned(C_CAST(void**, &supportedCommands));
                     return NOT_SUPPORTED;
                 }
                 //check for format corrupt
@@ -6207,7 +6207,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice* device, ptrDriveInfo
                         break;
                     }
                 }
-                safe_Free_aligned(supportedCommands)
+                safe_Free_aligned(C_CAST(void**, &supportedCommands));
             }
         }
     }
@@ -6232,7 +6232,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
         {
             get_SCSI_Inquiry_Data(driveInfo, &scsiInfo, inquiryData, 255);
         }
-        safe_Free_aligned(inquiryData)
+        safe_Free_aligned(C_CAST(void**, &inquiryData));
     }
     memcpy(&driveInfo->adapterInformation, &device->drive_info.adapter_info, sizeof(adapterInfo));
 
@@ -6322,7 +6322,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
                     }
                 }
             }
-            safe_Free_aligned(securityProtocols)
+            safe_Free_aligned(C_CAST(void**, &securityProtocols));
         }
     }
     driveInfo->percentEnduranceUsed = -1;//set to this to filter out later
@@ -6810,7 +6810,7 @@ eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVM
     {
         get_NVMe_Namespace_Identify_Data(driveInfo, nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN);
     }
-    safe_Free_aligned(nvmeIdentifyData)
+    safe_Free_aligned(C_CAST(void**, &nvmeIdentifyData));
     get_NVMe_Log_Data(device, driveInfo);
     return ret;
 }
@@ -8413,10 +8413,10 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
             }
         }
     }
-    safe_Free(ataDriveInfo)
-    safe_Free(scsiDriveInfo)
-    safe_Free(usbDriveInfo)
-    safe_Free(nvmeDriveInfo)
+    safe_Free(C_CAST(void**, &ataDriveInfo));
+    safe_Free(C_CAST(void**, &scsiDriveInfo));
+    safe_Free(C_CAST(void**, &usbDriveInfo));
+    safe_Free(C_CAST(void**, &nvmeDriveInfo));
     return ret;
 }
 

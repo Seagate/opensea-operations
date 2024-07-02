@@ -94,7 +94,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(writeSameSupported)
+                safe_Free_aligned(C_CAST(void**, &writeSameSupported));
             }
             else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3)
             {
@@ -140,7 +140,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(writeSameSupported)
+                safe_Free_aligned(C_CAST(void**, &writeSameSupported));
             }
             else
             {
@@ -195,7 +195,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         }
                     }
                 }
-                safe_Free_aligned(blockLimits)
+                safe_Free_aligned(C_CAST(void**, &blockLimits));
             }
         }
     }
@@ -248,7 +248,7 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
                 *writeSameInProgress = false;
             }
         }
-        safe_Free_aligned(sctStatusBuf)
+        safe_Free_aligned(C_CAST(void**, &sctStatusBuf));
     }
     /*
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -285,7 +285,7 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
             *progress *= 100.0;
             *progress /= 65536.0;
         }
-        safe_Free_aligned(senseData)
+        safe_Free_aligned(C_CAST(void**, &senseData));
     }
     */
     else
@@ -334,7 +334,7 @@ eReturnValues show_Write_Same_Current_LBA(tDevice *device)
                 ret = NOT_SUPPORTED;
             }
         }
-        safe_Free_aligned(sctStatusBuf)
+        safe_Free_aligned(C_CAST(void**, &sctStatusBuf));
     }
     else //SCSI Drive doesn't tell us
     {
@@ -474,7 +474,7 @@ eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOf
                 delay_Seconds(delayTime);
             }
         }
-        safe_Free_aligned(zeroPatternBuf)
+        safe_Free_aligned(C_CAST(void**, &zeroPatternBuf));
     }
     else
     {

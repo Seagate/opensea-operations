@@ -197,7 +197,7 @@ eReturnValues get_Physical_Element_Descriptors(tDevice *device, uint32_t numberO
                 }
             }
         }
-        safe_Free_aligned(getPhysicalElements)
+        safe_Free_aligned(C_CAST(void**, &getPhysicalElements));
     }
     else
     {
@@ -458,7 +458,7 @@ eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus
                     {
                         ret = NOT_SUPPORTED;
                     }
-                    safe_Free(elementList)
+                    safe_Free(C_CAST(void**, &elementList));
                 }
             }
             else
@@ -753,7 +753,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elem
                                 invalidElement = true;
                             }
                         }
-                        safe_Free(elementList)
+                        safe_Free(C_CAST(void**, &elementList));
                     }
                 }
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -1152,7 +1152,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForP
                                         }
                                     }
                                 }
-                                safe_Free(elementList)
+                                safe_Free(C_CAST(void**, &elementList));
                             }
                         }
                         if (currentlyDepopulatedElements > 0)

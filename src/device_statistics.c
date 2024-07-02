@@ -578,7 +578,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
                     }
                 }
             }
-            safe_Free_aligned(devStatsNotificationsLog)
+            safe_Free_aligned(C_CAST(void**, &devStatsNotificationsLog));
         }
         if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0, 0))
         {
@@ -1215,7 +1215,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
                 }
             }
         }
-        safe_Free_aligned(deviceStatsLog)
+        safe_Free_aligned(C_CAST(void**, &deviceStatsLog));
     }
     return ret;
 }
@@ -6598,7 +6598,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                             }
                         }
                     }
-                    safe_Free_aligned(protSpData)
+                    safe_Free_aligned(C_CAST(void**, &protSpData));
                 }
             }
             break;

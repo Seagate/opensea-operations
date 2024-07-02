@@ -151,7 +151,7 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
         }
         ret = FAILURE;
     }
-    safe_Free_aligned(scsiDataBuffer)
+    safe_Free_aligned(C_CAST(void**, &scsiDataBuffer));
     return ret;
 }
 
@@ -353,7 +353,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
             uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
             if (!temp)
             {
-                safe_Free_aligned(readCapBuf)
+                safe_Free_aligned(C_CAST(void**, &readCapBuf));
                 return maxLBA;
             }
             readCapBuf = temp;
@@ -376,7 +376,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
         uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
         if (temp == NULL)
         {
-            safe_Free_aligned(readCapBuf)
+            safe_Free_aligned(C_CAST(void**, &readCapBuf));
             return maxLBA;
         }
         readCapBuf = temp;
@@ -386,7 +386,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
             copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, true);
         }
     }
-    safe_Free_aligned(readCapBuf)
+    safe_Free_aligned(C_CAST(void**, &readCapBuf));
     return maxLBA;
 }
 
@@ -549,7 +549,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                     remove_Leading_And_Trailing_Whitespace(capModelMapping->descriptor[descriptorCounter].modelNumber);
                 }
             }
-            safe_Free_aligned(capMNMappingLog)
+            safe_Free_aligned(C_CAST(void**, &capMNMappingLog));
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -587,7 +587,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                     remove_Leading_And_Trailing_Whitespace(capModelMapping->descriptor[descriptorCounter].modelNumber);
                 }
             }
-            safe_Free_aligned(capProdIDMappingVPD)
+            safe_Free_aligned(C_CAST(void**, &capProdIDMappingVPD));
         }
     }
     return capModelMapping;
@@ -595,7 +595,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
 
 void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
 {
-    safe_Free(capModelMapping);
+    safe_Free(C_CAST(void**, &capModelMapping));
 }
 
 void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)

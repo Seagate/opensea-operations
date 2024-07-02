@@ -441,7 +441,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                 }
             }
         }
-        safe_Free_aligned(defectData)
+        safe_Free_aligned(C_CAST(void**, &defectData));
     }
     else
     {
@@ -452,7 +452,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
 
 void free_Defect_List(scsiDefectList **defects)
 {
-    safe_Free(*defects)
+    safe_Free(C_CAST(void**, defects));
 }
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
@@ -724,7 +724,7 @@ eReturnValues create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint6
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
         }
     }
     return ret;
@@ -895,7 +895,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
                 //now write back the data with a write long command
                 ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, NULL, NULL);
             }
-            safe_Free_aligned(data)
+            safe_Free_aligned(C_CAST(void**, &data));
         }
         else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word022) && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
         {
@@ -963,7 +963,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
                     setFeaturesToChangeECCBytes = false;
                 }
             }
-            safe_Free_aligned(data)
+            safe_Free_aligned(C_CAST(void**, &data));
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1039,7 +1039,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
         {
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(dataBuffer)
+        safe_Free_aligned(C_CAST(void**, &dataBuffer));
     }
     return ret;
 }
@@ -1090,7 +1090,7 @@ eReturnValues corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
         }
     }
     return ret;
@@ -1188,7 +1188,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(pendingDefectsLog);
+            safe_Free_aligned(C_CAST(void**, &pendingDefectsLog));
         }
     }
     return ret;
@@ -1236,7 +1236,7 @@ eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect d
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(pendingList);
+            safe_Free_aligned(C_CAST(void**, &pendingList));
         }
     }
     return ret;
@@ -1329,7 +1329,7 @@ eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundRes
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(backgroundScanResults);
+            safe_Free_aligned(C_CAST(void**, &backgroundScanResults));
         }
     }
     return ret;
@@ -1364,7 +1364,7 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPending
             ++(*numberOfDefects);
         }
     }
-    safe_Free(bmsResults);
+    safe_Free(C_CAST(void**, &bmsResults));
     return ret;
 }
 
