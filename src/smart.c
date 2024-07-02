@@ -4781,7 +4781,7 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
     case ATA_WRITE_STREAM_DMA_EXT:
     case ATA_WRITE_STREAM_EXT:
         streamDir = true;
-        M_FALLTHROUGH
+        M_FALLTHROUGH;
     case ATA_READ_STREAM_DMA_EXT:
     case ATA_READ_STREAM_EXT:
         ext = true;
@@ -4797,12 +4797,12 @@ static void get_Read_Write_Command_Info(const char* commandName, uint8_t command
     case ATA_READ_FPDMA_QUEUED_CMD:
     case ATA_WRITE_FPDMA_QUEUED_CMD:
         fpdma = true;
-        M_FALLTHROUGH
+        M_FALLTHROUGH;
     case ATA_READ_DMA_QUE_EXT:
     case ATA_WRITE_DMA_QUE_FUA_EXT:
     case ATA_WRITE_DMA_QUE_EXT:
         ext = true;
-        M_FALLTHROUGH
+        M_FALLTHROUGH;
     case ATA_WRITE_DMA_QUEUED_CMD:
     case ATA_READ_DMA_QUEUED_CMD:
         async = true;

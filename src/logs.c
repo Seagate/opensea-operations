@@ -2001,16 +2001,16 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                     {
                         break;
                     }
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 case 1://small
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 default:
                     islPullingSize = reportedSmallSize;
                     break;
@@ -2277,23 +2277,23 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                     {
                         break;
                     }
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 case 3://large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 case 1://small
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 default:
                     islPullingSize = reportedSmallSize;
                     break;
@@ -2517,16 +2517,16 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                     {
                         break;
                     }
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 case 2://medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 case 1://small
-                    M_FALLTHROUGH
+                    M_FALLTHROUGH;
                 default:
                     islPullingSize = reportedSmallSize;
                     break;
