@@ -13,6 +13,19 @@
 // \file writesame.c
 // \brief This file defines the functions related to the writesame command on a drive
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+#include "sleep.h"
+
 #include "platform_helper.h"
 #include "writesame.h"
 
@@ -329,7 +342,7 @@ eReturnValues show_Write_Same_Current_LBA(tDevice *device)
         }
         else
         {
-            if (!is_Write_Same_Supported(device, 0, 0, NULL))
+            if (!is_Write_Same_Supported(device, 0, 0, M_NULLPTR))
             {
                 ret = NOT_SUPPORTED;
             }
@@ -389,7 +402,7 @@ eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOf
     if (is_Write_Same_Supported(device, startingLba, numberOfLogicalBlocks, &maxWriteSameRange) && (maxWriteSameRange >= numberOfLogicalBlocks || maxWriteSameRange == 0 || (startingLba + numberOfLogicalBlocks) == (device->drive_info.deviceMaxLba + UINT64_C(1))))
     {
         uint32_t zeroPatternBufLen = 0;
-        uint8_t *zeroPatternBuf = NULL;
+        uint8_t *zeroPatternBuf = M_NULLPTR;
         if (device->drive_info.drive_type != ATA_DRIVE)
         {
             if (!pattern && patternLength != device->drive_info.deviceBlockSize)
@@ -444,8 +457,8 @@ eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOf
             {
                 uint8_t minutes = 0, seconds = 0;
                 printf("Write same progress will be updated every");
-                convert_Seconds_To_Displayable_Time(delayTime, NULL, NULL, NULL, &minutes, &seconds);
-                print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
+                print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
                 printf("\n");
             }
             delay_Seconds(1);//delay one second before we start polling to let the drive get started

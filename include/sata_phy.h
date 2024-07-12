@@ -18,7 +18,7 @@
 extern "C" {
 #endif //__cplusplus
 
-#include "common.h"
+#include "common_types.h"
 #include "operations_Common.h"
 
 typedef enum _eSATA_Phy_Event_ID

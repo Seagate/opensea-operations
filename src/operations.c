@@ -13,6 +13,19 @@
 // \file operations.c   Implementation for generic ATA/SCSI functions
 //                     The intention of the file is to be generic & not OS specific
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "unit_conversion.h"
+#include "time_utils.h"
+
 #include "operations_Common.h"
 #include "operations.h"
 #include "ata_helper_func.h"
@@ -137,7 +150,7 @@ eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
     }
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return MEMORY_FAILURE;
@@ -188,7 +201,7 @@ eReturnValues scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnable
     eReturnValues ret = UNKNOWN;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return MEMORY_FAILURE;
@@ -270,7 +283,7 @@ eReturnValues scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable
     eReturnValues ret = UNKNOWN;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return MEMORY_FAILURE;
@@ -386,7 +399,7 @@ bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
     bool supported = false;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return false;
@@ -477,7 +490,7 @@ bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
     bool enabled = false;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return false;
@@ -505,7 +518,7 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
     bool enabled = false;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return false;
@@ -568,7 +581,7 @@ bool scsi_Is_Write_Cache_Supported(tDevice *device)
     bool supported = false;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return false;
@@ -645,7 +658,7 @@ bool scsi_Is_Write_Cache_Enabled(tDevice *device)
     bool enabled = false;
     //on SAS we change this through a mode page
     uint8_t *cachingModePage = C_CAST(uint8_t*, calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (cachingModePage == NULL)
+    if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
         return false;
@@ -742,7 +755,7 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
 }
 
 //erase weights are hard coded right now....-TJE
-eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes)
+eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes)
 {
     eReturnValues ret = SUCCESS;
     ataSecurityStatus ataSecurityInfo;
@@ -753,7 +766,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod const era
     bool formatUnitAdded = false;
     bool nvmFormatAdded = false;
     bool isWriteSameSupported = is_Write_Same_Supported(device, 0, C_CAST(uint32_t, device->drive_info.deviceMaxLba), &maxNumberOfLogicalBlocksPerCommand);
-    bool isFormatUnitSupported = is_Format_Unit_Supported(device, NULL);
+    bool isFormatUnitSupported = is_Format_Unit_Supported(device, M_NULLPTR);
     eraseMethod * currentErase = C_CAST(eraseMethod*, eraseMethodList);
     if (!currentErase)
     {
@@ -1119,12 +1132,12 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     {
         uint16_t days = 0;
         uint8_t hours = 0, minutes = 0, seconds = 0;
-        convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, *overwriteEraseTimeEstimateMinutes) * UINT64_C(60), NULL, &days, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, *overwriteEraseTimeEstimateMinutes) * UINT64_C(60), M_NULLPTR, &days, &hours, &minutes, &seconds);
         //Example output: 
         //The minimum time to overwrite erase this drive is approximately x days y hours z minutes. 
         //The actual time may take longer. Cryptographic erase completes in seconds. Trim/Unmap & blockerase should also complete in under a minute
         printf("The minimum time to overwrite erase this drive is approximately:\n\t");
-        print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         printf("\n");
         printf("The actual time to erase may take longer.\n");
         if (cryptoSupported)
@@ -1419,13 +1432,13 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
         if (mpc == MPC_DEFAULT_VALUES && modePage == MP_RETURN_ALL_PAGES && subpage == MP_SP_ALL_SUBPAGES && scsi_MP_Reset_To_Defaults_Supported(device))
         {
             //requesting to reset all mode pages. Send the mode select command with the RTD bit set.
-            ret = scsi_Mode_Select_10(device, 0, true, true, true, NULL, 0);
+            ret = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);
             uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)//checking for invalid operation code
             {
                 //retry with 6 byte command since 10 byte op code was not recognizd.
-                ret = scsi_Mode_Select_6(device, 0, true, true, true, NULL, 0);
+                ret = scsi_Mode_Select_6(device, 0, true, true, true, M_NULLPTR, 0);
             }
         }
         else
@@ -1439,7 +1452,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                 }
                 //now read all the data
                 bool used6ByteCmd = false;
-                if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+                if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, M_NULLPTR, M_NULLPTR, true, modeData, modePageLength, M_NULLPTR, &used6ByteCmd))
                 {
                     //now we need to loop through each page, and send it to the drive as a new mode select command.
                     uint32_t offset = 0;
@@ -1460,7 +1473,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                     uint16_t counter = 0, failedModeSelects = 0;
                     for (; offset < modePageLength; offset += currentPageLength, ++counter)
                     {
-                        uint8_t* currentPageToSet = NULL;
+                        uint8_t* currentPageToSet = M_NULLPTR;
                         uint16_t currentPageToSetLength = used6ByteCmd ? MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength : MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
                         uint8_t currentPage = M_GETBITRANGE(modeData[offset + 0], 5, 0);
                         uint8_t currentSubPage = 0;
@@ -1580,7 +1593,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
             }
             //now read all the data
             bool used6ByteCmd = false;
-            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, M_NULLPTR, M_NULLPTR, true, modeData, modePageLength, M_NULLPTR, &used6ByteCmd))
             {
                 uint16_t offset = 0;
                 uint16_t blockDescriptorLength = 0;
@@ -1667,7 +1680,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_
         }
         //now read all the data
         bool used6ByteCmd = false;
-        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, modePage, subpage, M_NULLPTR, M_NULLPTR, true, modeData, modePageLength, M_NULLPTR, &used6ByteCmd))
         {
             uint16_t offset = 0;
             uint16_t blockDescriptorLength = 0;
@@ -2363,7 +2376,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
             }
             //now read all the data
             bool used6ByteCmd = false;
-            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, M_NULLPTR, M_NULLPTR, true, modeData, modePageLength, M_NULLPTR, &used6ByteCmd))
             {
                 //Loop through each page returned in the buffer and print it to the screen
                 uint32_t offset = 0;
@@ -2420,7 +2433,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
             }
             //now read all the data
             bool used6ByteCmd = false;
-            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, NULL, NULL, true, modeData, modePageLength, NULL, &used6ByteCmd))
+            if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, M_NULLPTR, M_NULLPTR, true, modeData, modePageLength, M_NULLPTR, &used6ByteCmd))
             {
                 if (used6ByteCmd)
                 {
@@ -2498,7 +2511,7 @@ eReturnValues reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageCont
             return BAD_PARAMETER;//cannot reset a specific page on this device
         }
     }
-    ret = scsi_Log_Select_Cmd(device, true, saveChanges, C_CAST(uint8_t, pageControl), logPage, logSubPage, 0, NULL, 0);
+    ret = scsi_Log_Select_Cmd(device, true, saveChanges, C_CAST(uint8_t, pageControl), logPage, logSubPage, 0, M_NULLPTR, 0);
 
     return ret;
 }
@@ -2622,7 +2635,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRa
                 {
                     return MEMORY_FAILURE;
                 }
-                if (SUCCESS == get_ATA_Log(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, NULL, NULL, true, false, true, concurrentRangeLog, concurrentLogSizeBytes, NULL, 0, 0))
+                if (SUCCESS == get_ATA_Log(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, M_NULLPTR, M_NULLPTR, true, false, true, concurrentRangeLog, concurrentLogSizeBytes, M_NULLPTR, 0, 0))
                 {
                     ret = SUCCESS;
                     //header is first 64bytes
@@ -2650,7 +2663,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRa
                 {
                     return MEMORY_FAILURE;
                 }
-                if (SUCCESS == get_SCSI_VPD(device, CONCURRENT_POSITIONING_RANGES, NULL, NULL, true, concurrentRangeVPD, concurrentLogSizeBytes, NULL))
+                if (SUCCESS == get_SCSI_VPD(device, CONCURRENT_POSITIONING_RANGES, M_NULLPTR, M_NULLPTR, true, concurrentRangeVPD, concurrentLogSizeBytes, M_NULLPTR))
                 {
                     ret = SUCCESS;
                     //calculate number of ranges based on page length

@@ -13,6 +13,19 @@
 // \file dst.c
 // \brief This file defines the function calls for dst and dst related operations
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+#include "sleep.h"
+
 #include "operations_Common.h"
 #include "dst.h"
 #include "sector_repair.h"
@@ -29,7 +42,7 @@ eReturnValues ata_Abort_DST(tDevice *device)
 
 eReturnValues scsi_Abort_DST(tDevice *device)
 {
-    return scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, NULL, 0, 15);
+    return scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, M_NULLPTR, 0, 15);
 }
 
 eReturnValues nvme_Abort_DST(tDevice *device, uint32_t nsid)
@@ -78,7 +91,7 @@ eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
     //04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
     eReturnValues result = UNKNOWN;
     uint8_t *temp_buf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (temp_buf == NULL)
+    if (temp_buf == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
         return MEMORY_FAILURE;
@@ -511,21 +524,21 @@ eReturnValues send_DST(tDevice *device, eDSTType DSTType, bool captiveForeground
         case DST_TYPE_SHORT:
             if (captiveForeground)
             {
-                ret = scsi_Send_Diagnostic(device, 0x05, 0, 0, 0, 0, 0, NULL, 0, commandTimeout);
+                ret = scsi_Send_Diagnostic(device, 0x05, 0, 0, 0, 0, 0, M_NULLPTR, 0, commandTimeout);
             }
             else
             {
-                ret = scsi_Send_Diagnostic(device, 0x01, 0, 0, 0, 0, 0, NULL, 0, commandTimeout);
+                ret = scsi_Send_Diagnostic(device, 0x01, 0, 0, 0, 0, 0, M_NULLPTR, 0, commandTimeout);
             }
             break;
         case DST_TYPE_LONG:
             if (captiveForeground)
             {
-                ret = scsi_Send_Diagnostic(device, 0x06, 0, 0, 0, 0, 0, NULL, 0, commandTimeout);
+                ret = scsi_Send_Diagnostic(device, 0x06, 0, 0, 0, 0, 0, M_NULLPTR, 0, commandTimeout);
             }
             else
             {
-                ret = scsi_Send_Diagnostic(device, 0x02, 0, 0, 0, 0, 0, NULL, 0, commandTimeout);
+                ret = scsi_Send_Diagnostic(device, 0x02, 0, 0, 0, 0, 0, M_NULLPTR, 0, commandTimeout);
             }
             break;
         case DST_TYPE_CONVEYENCE://not available on SCSI
@@ -666,7 +679,7 @@ eReturnValues run_SMART_Offline(tDevice* device)
         if (is_ATA_SMART_Offline_Supported(device, &abortRestart, &offlineTimeInSeconds))
         {
             uint8_t hours = 0, minutes = 0, seconds = 0;
-            convert_Seconds_To_Displayable_Time(offlineTimeInSeconds, NULL, NULL, &hours, &minutes, &seconds);
+            convert_Seconds_To_Displayable_Time(offlineTimeInSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
             printf("Data Collection time: %2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds\n", hours, minutes, seconds);
             if (abortRestart)
             {
@@ -676,7 +689,7 @@ eReturnValues run_SMART_Offline(tDevice* device)
             {
                 printf("\tInterrupting commands will cause data collection to suspend and will restart after a vendor specific event.\n");
             }
-            time_t currentTime = time(NULL);
+            time_t currentTime = time(M_NULLPTR);
             time_t futureTime = get_Future_Date_And_Time(currentTime, offlineTimeInSeconds);
             char timeFormat[TIME_STRING_LENGTH] = { 0 };
             printf("\tEstimated completion Time : sometime after %s\n", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
@@ -697,7 +710,7 @@ eReturnValues run_SMART_Offline(tDevice* device)
 #endif //ENABLE_SMART_OFFLINE_ROUTINE_POLLING
                     )
                 {
-                    convert_Seconds_To_Displayable_Time(countDownSecondsRemaining, NULL, NULL, &hours, &minutes, &seconds);
+                    convert_Seconds_To_Displayable_Time(countDownSecondsRemaining, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
                     printf("\r%2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds remaining", hours, minutes, seconds);
                     fflush(stdout);
                     delay_Seconds(1);
@@ -875,8 +888,8 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                 delay_Seconds(1);//delay for a second before starting to poll for progress to give it time to start
                 //set status to 0x08 before the loop or it will not get entered
                 status = 0x0F;
-                time_t dstProgressTimer = time(NULL);
-                time_t startTime = time(NULL);
+                time_t dstProgressTimer = time(M_NULLPTR);
+                time_t startTime = time(M_NULLPTR);
                 uint32_t lastProgressIndication = 0;
                 uint8_t timeExtensionCount = 0;
                 char *overTimeWarningMessage = "WARNING: DST is taking longer than expected.";
@@ -906,7 +919,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                         break;
                     }
                     //make the time between progress polls bigger if it isn't changing quickly to allow the drive time to finish any recovery it's doing.
-                    if (difftime(time(NULL), dstProgressTimer) > timeDiff && lastProgressIndication == percentComplete)
+                    if (difftime(time(M_NULLPTR), dstProgressTimer) > timeDiff && lastProgressIndication == percentComplete)
                     {
                         //We are likely pinging the drive too quickly during the read test and error recovery isn't finishing...extend the delay time
                         if (timeExtensionCount <= maxTimeIncreases)
@@ -915,7 +928,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                             timeDiff *= 2;
                             ++timeExtensionCount;
                         }
-                        dstProgressTimer = time(NULL);//reset this beginning timer since we changed the polling time
+                        dstProgressTimer = time(M_NULLPTR);//reset this beginning timer since we changed the polling time
                         if (!ignoreMaxTime && timeExtensionCount > maxTimeIncreases && difftime(dstProgressTimer, startTime) > maxDSTWaitTimeSeconds)
                         {
                             //only abort if we are past the total DST time and have already increased the delays multiple times.
@@ -1065,7 +1078,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
 eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minutes)
 {
     eReturnValues ret = UNKNOWN;
-    if (hours == NULL || minutes == NULL)
+    if (hours == M_NULLPTR || minutes == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1076,7 +1089,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
         {
             uint16_t longDSTTime = 0;
             uint8_t *smartData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (smartData == NULL)
+            if (smartData == M_NULLPTR)
             {
                 perror("calloc failure\n");
                 return MEMORY_FAILURE;
@@ -1109,7 +1122,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
         uint16_t longDSTTime = 0;
         bool getTimeFromExtendedInquiryData = false;
         uint8_t *controlMP = C_CAST(uint8_t*, calloc_aligned(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (controlMP == NULL)
+        if (controlMP == M_NULLPTR)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
@@ -1157,7 +1170,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
         if (getTimeFromExtendedInquiryData)
         {
             uint8_t *extendedInqyData = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (extendedInqyData == NULL)
+            if (extendedInqyData == M_NULLPTR)
             {
                 perror("calloc failure!\n");
                 return MEMORY_FAILURE;
@@ -1204,8 +1217,8 @@ bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
 eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Update updateFunction, void *updateData, ptrDSTAndCleanErrorList externalErrorList, bool *repaired)
 {
     eReturnValues ret = SUCCESS;//assume this works successfully
-    errorLBA *errorList = NULL;
-    uint64_t *errorIndex = NULL;
+    errorLBA *errorList = M_NULLPTR;
+    uint64_t *errorIndex = M_NULLPTR;
     uint64_t localErrorIndex = 0;
     uint64_t totalErrors = 0;
     bool unableToRepair = false;
@@ -1264,8 +1277,8 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
             uint32_t percentComplete = 0;
             uint32_t lastProgressIndication = 0;
             uint8_t delayTime = 5;//Start with 5. If after 30 seconds, progress has not changed, increase the delay to 15seconds. If it still fails to update after the next minute, break out and abort the DST.
-            time_t dstProgressTimer = time(NULL);
-            time_t startTime = time(NULL);
+            time_t dstProgressTimer = time(M_NULLPTR);
+            time_t startTime = time(M_NULLPTR);
             uint8_t timeExtensionCount = 0;
             bool dstAborted = false;
             uint32_t timeDiff = 30;
@@ -1277,7 +1290,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
             {
                 lastProgressIndication = percentComplete;
                 ret = get_DST_Progress(device, &percentComplete, &status);
-                if (difftime(time(NULL), dstProgressTimer) > timeDiff && lastProgressIndication == percentComplete)
+                if (difftime(time(M_NULLPTR), dstProgressTimer) > timeDiff && lastProgressIndication == percentComplete)
                 {
                     //We are likely pinging the drive too quickly during the read test and error recovery isn't finishing...extend the delay time
                     if (timeExtensionCount <= maxTimeIncreases)
@@ -1286,7 +1299,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
                         timeDiff *= 2;
                         ++timeExtensionCount;
                     }
-                    dstProgressTimer = time(NULL);//reset this beginning timer since we changed the polling time
+                    dstProgressTimer = time(M_NULLPTR);//reset this beginning timer since we changed the polling time
                     if (timeExtensionCount > maxTimeIncreases && difftime(dstProgressTimer, startTime) > maxDSTWaitTimeSeconds)
                     {
                         //only abort if we are past the total DST time and have already increased the delays multiple times.
@@ -1490,7 +1503,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
 static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    uint8_t *selfTestResults = NULL;
+    uint8_t *selfTestResults = M_NULLPTR;
     uint32_t logSize = 0;//used for compatibility purposes with drives that may have GPL, but not support the ext log...
     //device->drive_info.ata_Options.generalPurposeLoggingSupported = false;//for debugging SMART log version
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
@@ -1503,7 +1516,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries e
             return MEMORY_FAILURE;
         }
         //read the extended self test results log with read log ext
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, NULL, NULL, true, false, true, selfTestResults, extLogSize, NULL, 0, 0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, M_NULLPTR, M_NULLPTR, true, false, true, selfTestResults, extLogSize, M_NULLPTR, 0, 0))
         //if (SUCCESS == ata_Read_Log_Ext(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, 0, selfTestResults, LEGACY_DRIVE_SEC_SIZE, device->drive_info.ata_Options.readLogWriteLogDMASupported, 0))
         {
             ret = SUCCESS;

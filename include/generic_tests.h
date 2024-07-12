@@ -40,7 +40,7 @@ extern "C"
     //!   \param[in] device = file descriptor
     //!   \param[in] rwvCommand = enum value specifying which command type to issue
     //!   \param[in] lba = LBA to start the command at
-    //!   \param[in] ptrData = pointer to the data buffer to use for the command (May be NULL for RWV_VERIFY)
+    //!   \param[in] ptrData = pointer to the data buffer to use for the command (May be M_NULLPTR for RWV_VERIFY)
     //!   \param[in] dataSize = number of data bytes to transfer (This should be a value that is a multiple of the device's logical sector size)
     //!
     //  Exit:

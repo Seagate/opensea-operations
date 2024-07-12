@@ -57,11 +57,11 @@ extern "C" {
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle (used to get the serial number)
     //!   \param[in,out] filePtr = File pointer that will hold an open file handle upon successful completion
-    //!   \param[in] logPath = this is a directory/folder for where the fle should be created. NULL if current directory. 
+    //!   \param[in] logPath = this is a directory/folder for where the fle should be created. M_NULLPTR if current directory. 
     //!   \param[in] logName = this is a name to put into the name of the log. Examples: SMART, CEL
     //!   \param[in] logExtension = this is an ASCII representation of the extension to save the file with. If unsure, use bin. No DOT required in this parameter
     //!   \param[in] logFileNamingConvention = enum value to specify which log file naming convention to use
-    //!   \param[out] logFileNameUsed = sets this pointer to the string of the name and extension used for the log file name. This must be set to NULL when calling. Memory should be OPENSEA_PATH_MAX in size
+    //!   \param[out] logFileNameUsed = sets this pointer to the string of the name and extension used for the log file name. This must be set to M_NULLPTR when calling. Memory should be OPENSEA_PATH_MAX in size
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
@@ -149,7 +149,7 @@ extern "C" {
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer instead of file
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it
-    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working directory.
     //!   \param[in] featureRegister - this is the feature register for the command. default to zero for most commands.
     //! 
     //  Exit:
@@ -173,12 +173,12 @@ extern "C" {
     //!   \param[in]  device - file descriptor
     //!   \param[in]  logAddress - the address of the log you wish to pull
     //!   \param[in]  subpage - set this to something other than zero if looking for a specific subpage to a log
-    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) NULL if no file output needed
+    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) M_NULLPTR if no file output needed
     //!   \param[in]  fileExtension - a string for the file extension. You do not need to include a dot character.
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer 
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it (use get_SCSI_Log_Size)
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -203,7 +203,7 @@ extern "C" {
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer instead of file
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -221,7 +221,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device - file descriptor
-    //!   \param[in]  filePath - string for the file output path. Set to NULL for the current directory
+    //!   \param[in]  filePath - string for the file output path. Set to M_NULLPTR for the current directory
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -237,7 +237,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -257,9 +257,9 @@ extern "C" {
     //!   \param currentOrSaved - boolean flag to switch between pulling the current log or the saved log (current is currently the only log supported so set this to true). On NVMe current = host, saved = controller
     //!   \param islDataSet - flag to pull the small, medium, or large dataset. 1 = small, 2 = medium, 3 = large, 4 = extra large (SAS only)
     //!   \param saveToFile - boolean flag to tell it to save to a file with an auto generated name (naming is based off of serial number and current date and time)
-    //!   \param ptrData - pointer to a data buffer. This MUST be non-NULL when saveToFile = false
+    //!   \param ptrData - pointer to a data buffer. This MUST be non-M_NULLPTR when saveToFile = false
     //!   \param dataSize - size of the buffer that ptrData points to. This should be at least 256K for the small data set.
-    //!   \param [in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param [in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working directory.
     //!
     //  Exit:
     //!   \return VOID
@@ -282,7 +282,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -298,7 +298,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -315,7 +315,7 @@ extern "C" {
     //  Entry:
     //!   \param[in]  device file descriptor
     //!   \param[in] extLog - set to true to read the GPL log, false for the SMART log. Recommended you use device->drive_info.ata_Options.generalPurposeLoggingSupported for this value.
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -331,7 +331,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -347,7 +347,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -363,7 +363,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -380,7 +380,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
@@ -396,7 +396,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
@@ -474,7 +474,7 @@ extern "C" {
     //!   \param logNum - log # to pull 
     //!   \param subpage - subpage of the log # to pull (for SCSI)
     //!   \param mode   - what mode to pull the log
-    //!   \param filePath   - path for log file creation (if needed, otherwise set to NULL)
+    //!   \param filePath   - path for log file creation (if needed, otherwise set to M_NULLPTR)
     //!   \param transferSizeBytes - number of bytes to use with each read through a loop. For example: can be used to do 64k instead of a default amount
     //!   \param logLengthOverride - NVME only. Used to specify the total length of a log when known since the generic lookup may not get this correct or may not know the actual length
     //  Exit:
@@ -536,14 +536,14 @@ extern "C" {
     //  Entry:
     //!   \param[in]  device - file descriptor
     //!   \param[in]  buffer ID - the buffer ID of the error history data
-    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) NULL if no file output needed
+    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) M_NULLPTR if no file output needed
     //!   \param[in]  createNewSnapshot - set to true to generate a new snapshot when reading the error history directory.
     //!   \param[in]  useReadBuffer16 - use the SPC5 read buffer 16 command
     //!   \param[in]  fileExtension - a string for the file extension. You do not need to include a dot character.
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer 
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it (use get_SCSI_Log_Size)
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -564,7 +564,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in] device = poiner to a valid device structure with a device handle
-    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working dir.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
     //!   \param[in] issueFactory = if set 0-4 issue the command with the factory feature. 
     //!                             FARM pull Factory subpages   

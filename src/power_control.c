@@ -13,6 +13,18 @@
 // \file power_control.c
 // \brief This file defines the functions for power related changes to drives.
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "prng.h"
+
 #include "operations_Common.h"
 #include "power_control.h"
 #include "logs.h"
@@ -92,7 +104,7 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
         //first check if EPC feature is supported and/or enabled
         uint8_t epcFeature = 0;//0 - disabled, 1 - supported, 2 - enabled.
         uint8_t *identifyData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (identifyData == NULL)
+        if (identifyData == M_NULLPTR)
         {
             perror("Calloc Failure!\n");
             return MEMORY_FAILURE;
@@ -317,7 +329,7 @@ eReturnValues transition_Power_State(tDevice *device, ePowerConditionID newState
             break;
         case PWR_CND_ACTIVE: 
             //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly (Early SAT translation recommended this behavior)
-            seed_64(C_CAST(uint64_t, time(NULL)));
+            seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
             for (uint8_t counter = 0; counter < 5; ++counter)
             {
                 uint64_t lba = 0;
@@ -843,12 +855,12 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
     //Write all applicable changes back to the drive, checking each structure as it goes.
     eReturnValues ret = SUCCESS;
     uint16_t powerConditionsPageLength = 0;
-    uint8_t *powerConditionsPage = NULL;
+    uint8_t *powerConditionsPage = M_NULLPTR;
     if (restoreAllToDefaults)
     {
         if (scsi_MP_Reset_To_Defaults_Supported(device))
         {
-            ret = scsi_Mode_Select_10(device, 0, true, true, true, NULL, 0);//RTD bit is set and supported by the drive which will reset the page to defaults for us without a data transfer or multiple commands.
+            ret = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);//RTD bit is set and supported by the drive which will reset the page to defaults for us without a data transfer or multiple commands.
         }
         else
         {
@@ -1257,7 +1269,7 @@ eReturnValues scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, 
     {
         if (powerCondition == PWR_CND_ALL)
         {
-            ret = scsi_Set_Power_Conditions(device, true, NULL);
+            ret = scsi_Set_Power_Conditions(device, true, M_NULLPTR);
         }
         else
         {
@@ -2018,12 +2030,12 @@ static eReturnValues ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSet
     {
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, NULL, NULL, true, false, true, epcLog, epcLogSize, NULL, epcLogSize, 0))
+    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, M_NULLPTR, M_NULLPTR, true, false, true, epcLog, epcLogSize, M_NULLPTR, epcLogSize, 0))
     {
         ret = SUCCESS;
         for (uint32_t offset = 0; offset < (LEGACY_DRIVE_SEC_SIZE * 2); offset += 64)
         {
-            ptrPowerConditionInfo currentPowerCondition = NULL;
+            ptrPowerConditionInfo currentPowerCondition = M_NULLPTR;
             switch (offset)
             {
             case 0://idle a
@@ -2098,7 +2110,7 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSe
         return BAD_PARAMETER;
     }
     uint8_t epcVPDPage[VPD_POWER_CONDITION_LEN] = { 0 };
-    if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, NULL, NULL, true, epcVPDPage, VPD_POWER_CONDITION_LEN, NULL))
+    if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, M_NULLPTR, M_NULLPTR, true, epcVPDPage, VPD_POWER_CONDITION_LEN, M_NULLPTR))
     {
         //NOTE: Recovery times are in milliseconds, not 100 milliseconds like other timers, so need to convert to 100 millisecond units for now-TJE
         //idle a
@@ -2170,16 +2182,16 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSe
             }
             if (gotData)
             {
-                bool *idleAenabledBit = NULL;
-                uint32_t *idleAtimerSetting = NULL;
-                bool *idleBenabledBit = NULL;
-                uint32_t *idleBtimerSetting = NULL;
-                bool *idleCenabledBit = NULL;
-                uint32_t *idleCtimerSetting = NULL;
-                bool *standbyYenabledBit = NULL;
-                uint32_t *standbyYtimerSetting = NULL;
-                bool *standbyZenabledBit = NULL;
-                uint32_t *standbyZtimerSetting = NULL;
+                bool *idleAenabledBit = M_NULLPTR;
+                uint32_t *idleAtimerSetting = M_NULLPTR;
+                bool *idleBenabledBit = M_NULLPTR;
+                uint32_t *idleBtimerSetting = M_NULLPTR;
+                bool *idleCenabledBit = M_NULLPTR;
+                uint32_t *idleCtimerSetting = M_NULLPTR;
+                bool *standbyYenabledBit = M_NULLPTR;
+                uint32_t *standbyYtimerSetting = M_NULLPTR;
+                bool *standbyZenabledBit = M_NULLPTR;
+                uint32_t *standbyZtimerSetting = M_NULLPTR;
                 switch (modePageControl)
                 {
                 case MPC_CURRENT_VALUES:
@@ -2471,7 +2483,7 @@ eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable)
     standbyTimer.enableValid = true;
     standbyTimer.enable = enable;
 
-    return scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, NULL);
+    return scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, M_NULLPTR);
 }
 
 eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
@@ -2502,7 +2514,7 @@ eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncr
             standbyTimer.timerValid = true;
             standbyTimer.timerInHundredMillisecondIncrements = hundredMillisecondIncrements;
         }
-        ret = scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, NULL);
+        ret = scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, M_NULLPTR);
     }
     return ret;
 }
@@ -2515,7 +2527,7 @@ eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable)
     idleTimer.enableValid = true;
     idleTimer.enable = enable;
 
-    return scsi_Set_Legacy_Power_Conditions(device, false, NULL, &idleTimer);
+    return scsi_Set_Legacy_Power_Conditions(device, false, M_NULLPTR, &idleTimer);
 }
 
 eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
@@ -2537,7 +2549,7 @@ eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncreme
             idleTimer.timerValid = true;
             idleTimer.timerInHundredMillisecondIncrements = hundredMillisecondIncrements;
         }
-        ret = scsi_Set_Legacy_Power_Conditions(device, false, NULL, &idleTimer);
+        ret = scsi_Set_Legacy_Power_Conditions(device, false, M_NULLPTR, &idleTimer);
     }
     return ret;
 }
@@ -2581,7 +2593,7 @@ eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevic
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         bool supported = false;
-        if (SUCCESS == sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, &supported, NULL))
+        if (SUCCESS == sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, &supported, M_NULLPTR))
         {
             if (enable)
             {
@@ -2643,11 +2655,11 @@ eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         bool dipmEnabled = false;
-        eReturnValues getDIPM = sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, NULL, &dipmEnabled);//DIPM must be ENABLED before we can change this feature!!
+        eReturnValues getDIPM = sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, M_NULLPTR, &dipmEnabled);//DIPM must be ENABLED before we can change this feature!!
         if (getDIPM == SUCCESS && dipmEnabled)
         {
             bool supported = false;
-            if (SUCCESS == sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(device, &supported, NULL))
+            if (SUCCESS == sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(device, &supported, M_NULLPTR))
             {
                 if (enable)
                 {
@@ -2679,7 +2691,7 @@ eReturnValues transition_To_Active(tDevice *device)
     {
         //no ATA command to do this, so we need to issue something to perform a medium access.
         uint64_t randomLBA = 0;
-        seed_64(C_CAST(uint64_t, time(NULL)));
+        seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
         randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         ret = ata_Read_Verify(device, randomLBA, 1);
     }

@@ -29,7 +29,7 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[out] dmaSupport = DMA mode DCO commands are supported by the device. This is optional. NULL can be passed for this parameter.
+    //!   \param[out] dmaSupport = DMA mode DCO commands are supported by the device. This is optional. M_NULLPTR can be passed for this parameter.
     //!
     //  Exit:
     //!   \return true = supported, false = not supported

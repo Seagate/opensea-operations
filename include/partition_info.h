@@ -19,7 +19,7 @@ extern "C"
 {
 #endif
 
-#include "common.h"
+#include "common_types.h"
 #include "operations_Common.h"
 
     //There are a few other types out there that are not currently supported in here: 

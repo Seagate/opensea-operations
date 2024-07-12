@@ -11,6 +11,17 @@
 // ******************************************************************************************
 // 
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "zoned_operations.h"
 
 eReturnValues get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones)
@@ -47,7 +58,7 @@ eReturnValues get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reporti
 eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t *reportZones = NULL;
+    uint8_t *reportZones = M_NULLPTR;
     uint32_t sectorCount = get_Sector_Count_For_512B_Based_XFers(device);
     uint32_t dataBytesToRequest = numberOfZoneDescriptors * 64;
     if (!zoneDescriptors || numberOfZoneDescriptors == 0)

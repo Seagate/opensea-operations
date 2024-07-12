@@ -13,7 +13,20 @@
 // \file generic_tests.c
 // \brief This file defines the functions for generic read tests
 
-#include "common.h"
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "prng.h"
+#include "time_utils.h"
+#include "unit_conversion.h"
+
 #include "generic_tests.h"
 #include "sector_repair.h"
 #include "cmds.h"
@@ -42,7 +55,7 @@ eReturnValues sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64
     {
         maxSequentialLBA = device->drive_info.deviceMaxLba + 1;//the plus 1 here should make sure we don't go beyond the max lba
     }
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
         dataBuf = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -61,7 +74,7 @@ eReturnValues sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64
         //check that current LBA + sector count doesn't go beyond the maxLBA for the loop
         if ((lbaIter + sectorCount) > maxSequentialLBA)
         {
-            uint8_t *temp = NULL;
+            uint8_t *temp = M_NULLPTR;
             //adjust the sector count to fit
             sectorCount = maxSequentialLBA - lbaIter;
             if (rwvCommand != RWV_COMMAND_VERIFY)
@@ -196,7 +209,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
     uint64_t *randomLBAList = C_CAST(uint64_t*, calloc(randomLBACount, sizeof(uint64_t)));
     uint64_t iterator = 0;
     uint64_t onePercentOfDrive = C_CAST(uint64_t, C_CAST(double, device->drive_info.deviceMaxLba) * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
-    uint8_t *dataBuf = NULL;//will be allocated at the random read section
+    uint8_t *dataBuf = M_NULLPTR;//will be allocated at the random read section
     uint64_t failingLBA = UINT64_MAX;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     if (!randomLBAList)
@@ -205,7 +218,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
         return MEMORY_FAILURE;
     }
     //start random number generator
-    seed_64(C_CAST(uint64_t, time(NULL)));
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
     //generate the list of random LBAs
     for (iterator = 0; iterator < randomLBACount; iterator++)
     {
@@ -231,7 +244,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
         }
         printf("%s for %"PRIu64" LBAs\n", message, onePercentOfDrive);
     }
-    if (SUCCESS != sequential_RWV(device, rwvCommand, 0, onePercentOfDrive, sectorCount, &failingLBA, NULL, NULL, hideLBACounter))
+    if (SUCCESS != sequential_RWV(device, rwvCommand, 0, onePercentOfDrive, sectorCount, &failingLBA, M_NULLPTR, M_NULLPTR, hideLBACounter))
     {
         ret = FAILURE;
         if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -280,7 +293,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
         }
         printf("%s for %"PRIu64" LBAs\n", message, onePercentOfDrive);
     }
-    if (SUCCESS != sequential_RWV(device, rwvCommand, device->drive_info.deviceMaxLba - onePercentOfDrive, onePercentOfDrive, sectorCount, &failingLBA, NULL, NULL, hideLBACounter))
+    if (SUCCESS != sequential_RWV(device, rwvCommand, device->drive_info.deviceMaxLba - onePercentOfDrive, onePercentOfDrive, sectorCount, &failingLBA, M_NULLPTR, M_NULLPTR, hideLBACounter))
     {
         ret = FAILURE;
         if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -425,7 +438,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
     eReturnValues ret = SUCCESS;
     bool showPerformanceNumbers = false;//TODO: make this a function parameter.
     size_t dataBufSize = 0;
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint8_t IDODTimeSeconds = 45;//can be made into a function input if we wanted
     uint8_t randomTimeSeconds = 30;//can be made into a function input if we wanted
@@ -470,7 +483,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
             printf("Sequential Unknown Test at OD for ~");
             break;
         }
-        print_Time_To_Screen(NULL, NULL, NULL, NULL, &IDODTimeSeconds);
+        print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &IDODTimeSeconds);
         printf("\n");
     }
     odTest.asyncCommandsUsed = false;
@@ -478,9 +491,9 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
     odTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this command to get us in the right place for the OD test.
     read_Write_Seek_Command(device, rwvCommand, 0, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize));
-    startTime = time(NULL);
+    startTime = time(M_NULLPTR);
     start_Timer(&odTestTimer);
-    while (difftime(time(NULL), startTime) < IDODTimeSeconds && ODEndingLBA < device->drive_info.deviceMaxLba)
+    while (difftime(time(M_NULLPTR), startTime) < IDODTimeSeconds && ODEndingLBA < device->drive_info.deviceMaxLba)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
@@ -564,7 +577,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
             printf("Sequential Unknown Test at ID for ~");
             break;
         }
-        print_Time_To_Screen(NULL, NULL, NULL, NULL, &IDODTimeSeconds);
+        print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &IDODTimeSeconds);
         printf("\n");
     }
     IDStartLBA = device->drive_info.deviceMaxLba - ODEndingLBA;
@@ -573,9 +586,9 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
     idTest.sectorCount = C_CAST(uint16_t, sectorCount);
     //issue this read to get the heads in the right place before starting the ID test.
     read_Write_Seek_Command(device, rwvCommand, IDStartLBA, dataBuf, C_CAST(uint32_t, sectorCount * device->drive_info.deviceBlockSize));
-    startTime = time(NULL);
+    startTime = time(M_NULLPTR);
     start_Timer(&idTestTimer);
-    while (difftime(time(NULL), startTime) < IDODTimeSeconds && IDStartLBA < device->drive_info.deviceMaxLba)
+    while (difftime(time(M_NULLPTR), startTime) < IDODTimeSeconds && IDStartLBA < device->drive_info.deviceMaxLba)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
@@ -642,7 +655,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
     }
     //now random reads for 30 seconds
     //start random number generator
-    seed_64(C_CAST(uint64_t, time(NULL)));
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         switch (rwvCommand)
@@ -660,15 +673,15 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
             printf("Random Unknown Test for ~");
             break;
         }
-        print_Time_To_Screen(NULL, NULL, NULL, NULL, &randomTimeSeconds);
+        print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &randomTimeSeconds);
         printf("\n");
     }
     randomTest.asyncCommandsUsed = false;
     randomTest.fastestCommandTimeNS = UINT64_MAX;//set this to a max so that it gets readjusted later...-TJE
     randomTest.sectorCount = C_CAST(uint16_t, sectorCount);
-    startTime = time(NULL);
+    startTime = time(M_NULLPTR);
     start_Timer(&randomTestTimer);
-    while (difftime(time(NULL), startTime) < randomTimeSeconds)
+    while (difftime(time(M_NULLPTR), startTime) < randomTimeSeconds)
     {
         randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
@@ -883,7 +896,7 @@ eReturnValues user_Sequential_Verify_Test(tDevice *device, uint64_t startingLBA,
 eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     eReturnValues ret = SUCCESS;
-    errorLBA *errorList = NULL;
+    errorLBA *errorList = M_NULLPTR;
     uint64_t errorIndex = 0;
     bool errorLimitReached = false;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
@@ -1016,10 +1029,10 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
 {
     eReturnValues ret = SUCCESS;
     bool errorLimitReached = false;
-    errorLBA *errorList = NULL;
+    errorLBA *errorList = M_NULLPTR;
     uint64_t errorIndex = 0;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     size_t dataBufSize = 0;
     //only one of these flags should be set. If they are both set, this makes no sense
     if (stopOnError)
@@ -1061,8 +1074,8 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
     //make sure the starting LBA is alligned? If we do this, we need to make sure we don't mess with the data of the LBAs we don't mean to start at...mostly don't want to erase an LBA we shouldn't be starting at.
     //startingLBA = align_LBA(device, startingLBA);
     //this is escentially a loop over the sequential read function
-    time_t startTime = time(NULL);
-    while (!errorLimitReached && C_CAST(uint64_t, difftime(time(NULL), startTime)) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
+    time_t startTime = time(M_NULLPTR);
+    while (!errorLimitReached && C_CAST(uint64_t, difftime(time(M_NULLPTR), startTime)) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
     {
         if ((startingLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
@@ -1238,7 +1251,7 @@ eReturnValues butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64
     time_t startTime = 0;//will be set to actual current time before we start the test
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint64_t outerLBA = 0, innerLBA = device->drive_info.deviceMaxLba;
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     size_t dataBufSize = 0;
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
@@ -1253,7 +1266,7 @@ eReturnValues butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64
     innerLBA -= sectorCount;
     time(&startTime);//get the starting time before starting the loop
     double lastTime = 0.0;
-    while (C_CAST(uint64_t, (lastTime = difftime(time(NULL), startTime))) < timeLimitSeconds)
+    while (C_CAST(uint64_t, (lastTime = difftime(time(M_NULLPTR), startTime))) < timeLimitSeconds)
     {
         //read the outer lba
         if ((outerLBA + sectorCount) > device->drive_info.deviceMaxLba)
@@ -1362,7 +1375,7 @@ eReturnValues random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t 
     eReturnValues ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
     uint32_t sectorCount = 1;
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
         dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
@@ -1371,10 +1384,10 @@ eReturnValues random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t 
             return MEMORY_FAILURE;
         }
     }
-    seed_64(C_CAST(uint64_t, time(NULL)));//start the seed for the random number generator
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));//start the seed for the random number generator
     time(&startTime);//get the starting time before starting the loop
     double lastTime = 0.0;
-    while (C_CAST(uint64_t, (lastTime = difftime(time(NULL), startTime))) < timeLimitSeconds)
+    while (C_CAST(uint64_t, (lastTime = difftime(time(M_NULLPTR), startTime))) < timeLimitSeconds)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
@@ -1415,7 +1428,7 @@ eReturnValues sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t s
 {
     eReturnValues ret = SUCCESS;
     uint32_t sectorCount = 1;
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
         dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
@@ -1459,7 +1472,7 @@ eReturnValues sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t s
 
 eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType testMode, uint32_t timePerTestSeconds, uint16_t *numberOfCommandTimeouts, uint16_t *numberOfCommandFailures, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     size_t dataBufSize = 0;
     time_t startTime = 0;
     uint64_t IDStartLBA = 0;
@@ -1504,12 +1517,12 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
             printf("Sequential Verify Test at OD for ~");
             break;
         }
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, NULL, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         printf("\n");
     }
-    startTime = time(NULL);
-    while (difftime(time(NULL), startTime) < timePerTestSeconds && ODEndingLBA < device->drive_info.deviceMaxLba)
+    startTime = time(M_NULLPTR);
+    while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds && ODEndingLBA < device->drive_info.deviceMaxLba)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -1563,13 +1576,13 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
             printf("Sequential Verify Test at ID for ~");
             break;
         }
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, NULL, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         printf("\n");
     }
     IDStartLBA = device->drive_info.deviceMaxLba - ODEndingLBA;
-    startTime = time(NULL);
-    while (difftime(time(NULL), startTime) < timePerTestSeconds && IDStartLBA < device->drive_info.deviceMaxLba)
+    startTime = time(M_NULLPTR);
+    while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds && IDStartLBA < device->drive_info.deviceMaxLba)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -1606,7 +1619,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
         printf("\n");
     }
     //Random
-    seed_64(C_CAST(uint64_t, time(NULL)));//start random number generator
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));//start random number generator
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         uint16_t days = 0;
@@ -1624,12 +1637,12 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
             printf("Random Verify Test for ~");
             break;
         }
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, NULL, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         printf("\n");
     }
-    startTime = time(NULL);
-    while (difftime(time(NULL), startTime) < timePerTestSeconds)
+    startTime = time(M_NULLPTR);
+    while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds)
     {
         randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1685,13 +1698,13 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
             printf("Butterfly Verify Test for ~");
             break;
         }
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, NULL, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         printf("\n");
     }
     currentSectorCount = sectorCount = get_Sector_Count_For_Read_Write(device);
-    startTime = time(NULL);
-    while (difftime(time(NULL), startTime) < timePerTestSeconds)
+    startTime = time(M_NULLPTR);
+    while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds)
     {
         //read the outer lba
         if ((outerLBA + sectorCount) > device->drive_info.deviceMaxLba)
@@ -1986,7 +1999,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvC
     eReturnValues ret = SUCCESS;
     bool errorLimitReached = false;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     size_t dataBufSize = 0;
     if (numberOfLbasAccessed)
     {
@@ -2028,8 +2041,8 @@ static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvC
         autoWriteReassign = true;//just in case this fails, default to previous behavior
     }
     //this is escentially a loop over the sequential read function
-    time_t startTime = time(NULL);
-    while (!errorLimitReached && C_CAST(uint64_t, difftime(time(NULL), startTime)) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
+    time_t startTime = time(M_NULLPTR);
+    while (!errorLimitReached && C_CAST(uint64_t, difftime(time(M_NULLPTR), startTime)) < timeInSeconds && startingLBA < device->drive_info.deviceMaxLba)
     {
         if ((startingLBA + sectorCount) > device->drive_info.deviceMaxLba)
         {
@@ -2142,7 +2155,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
     uint64_t odOrMdLBAsAccessed = 0;
     uint16_t days = 0;
     uint8_t hours = 0, minutes = 0, seconds = 0;
-    convert_Seconds_To_Displayable_Time(timeInSecondsPerDiameter, NULL, &days, &hours, &minutes, &seconds);
+    convert_Seconds_To_Displayable_Time(timeInSecondsPerDiameter, M_NULLPTR, &days, &hours, &minutes, &seconds);
 
     //OD
     if (outer && (ret == SUCCESS || (errorOffset < errorLimit && !stopOnError)))
@@ -2150,7 +2163,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("Outer Diameter Test for");
-            print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("\n");
         }
         outerRet = diamter_Test_RWV_Time(device, testMode, 0, timeInSecondsPerDiameter, errorLimit, errorList, &errorOffset, stopOnError, repairOnTheFly, &odOrMdLBAsAccessed, hideLBACounter);
@@ -2171,7 +2184,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("Middle Diameter Test for");
-            print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("\n");
         }
         if (odOrMdLBAsAccessed == 0)
@@ -2202,10 +2215,10 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("Inner Diameter Test for");
-            print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("\n");
         }
-        innerRet = diamter_Test_RWV_Time(device, testMode, idStartingLBA, timeInSecondsPerDiameter, errorLimit, errorList, &errorOffset, stopOnError, repairOnTheFly, NULL, hideLBACounter);
+        innerRet = diamter_Test_RWV_Time(device, testMode, idStartingLBA, timeInSecondsPerDiameter, errorLimit, errorList, &errorOffset, stopOnError, repairOnTheFly, M_NULLPTR, hideLBACounter);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("\n");
@@ -2479,7 +2492,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
     }
     uint64_t randomLBA = UINT64_MAX;
     uint64_t randomLBASectionSize = C_CAST(uint64_t, device->drive_info.deviceMaxLba / DRIVE_SECTIONS);
-    seed_64(C_CAST(uint64_t, time(NULL)));
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
     for (uint64_t sectionCounter = 0, counter = 0; sectionCounter < DRIVE_SECTIONS; sectionCounter++, counter += 2)
     {
         //first random LBA from section

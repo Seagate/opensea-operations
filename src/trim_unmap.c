@@ -12,6 +12,17 @@
 // 
 // \file trim_unmap.c
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "trim_unmap.h"
 #include "platform_helper.h"
 
@@ -88,7 +99,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
         {
             supported = true;
         }
-        if (NULL != maxTrimOrUnmapBlockDescriptors)
+        if (M_NULLPTR != maxTrimOrUnmapBlockDescriptors)
         {
             if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word105))
             {
@@ -144,7 +155,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
     {
         //check the bit in logical block provisioning VPD page
         uint8_t *lbpPage = C_CAST(uint8_t*, calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (NULL == lbpPage)
+        if (M_NULLPTR == lbpPage)
         {
             perror("calloc failure!");
             return false;
@@ -157,10 +168,10 @@ bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDe
             }
         }
         safe_Free_aligned(C_CAST(void**, &lbpPage));
-        if (supported == true && NULL != maxTrimOrUnmapBlockDescriptors && NULL != maxLBACount)
+        if (supported == true && M_NULLPTR != maxTrimOrUnmapBlockDescriptors && M_NULLPTR != maxLBACount)
         {
             uint8_t *blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (NULL == blockLimits)
+            if (M_NULLPTR == blockLimits)
             {
                 perror("calloc failure!");
                 return supported;
@@ -386,7 +397,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
         }
         descriptorsPerCommand = M_Min(maxTrimOrUnmapBlockDescriptors, unmapDescriptors / numberOfUnmapCommandsRequired);
         unmapCommandDataLen = M_Min(descriptorsPerCommand * 16, unmapBufferLen) + 8;//add 8 for the length of the header
-        if (unmapBuffer == NULL)
+        if (unmapBuffer == M_NULLPTR)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
@@ -426,7 +437,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
         uint32_t unmapOffset = 0;
         //allocate a buffer to hold the descriptors AND header. Earlier buffer was just to build the descriptors into it.
         uint8_t* unmapCommandBuffer = C_CAST(uint8_t*, calloc_aligned(unmapCommandDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (NULL == unmapCommandBuffer)
+        if (M_NULLPTR == unmapCommandBuffer)
         {
             perror("calloc failure");
             return MEMORY_FAILURE;
@@ -448,7 +459,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
                 unmapCommandDataLen = unmapBufferLen - ((unmapCommandDataLen - 8) * (unmapCommands + 1));
                 unmapCommandDataLen += 8;
                 uint8_t *temp = realloc(unmapCommandBuffer, unmapCommandDataLen * sizeof(uint8_t));
-                if (temp == NULL)
+                if (temp == M_NULLPTR)
                 {
                     perror("realloc failure!");
                     return MEMORY_FAILURE;

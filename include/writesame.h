@@ -70,7 +70,7 @@ extern "C"
     //!   \param[in] startingLba = This is the LBA that the write same will be started at
     //!   \param[in] numberOfLogicalBlocks = this is the range that the write same is being run on
     //!   \param[in] pollForProgress = boolean flag specifying whether or not to poll for progress
-    //!   \param[in] pattern = pointer to buffer to use for pattern. Should be 1 logical sector in size. May be NULL to use default zero pattern
+    //!   \param[in] pattern = pointer to buffer to use for pattern. Should be 1 logical sector in size. May be M_NULLPTR to use default zero pattern
     //!   \param[in] patternLength = lenght of the pattern memory
     //!
     //  Exit:

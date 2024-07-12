@@ -13,6 +13,17 @@
 // \file sata_phy.c
 // \brief functions to help with configuring or reading info about the SATA PHY
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "sata_phy.h"
 #include "ata_helper.h"
 #include "ata_helper_func.h"

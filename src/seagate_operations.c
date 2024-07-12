@@ -13,6 +13,19 @@
 // \file seagate_operations.c
 // \brief This file defines the functions for Seagate drive specific operations that are customer safe
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "sleep.h"
+#include <float.h>
+
 #include "seagate_operations.h"
 #include "logs.h"
 #include "smart.h"
@@ -22,7 +35,6 @@
 #include "format.h"
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
-#include <float.h> //for DBL_MAX
 #include "platform_helper.h"
 #include "depopulate.h"
 
@@ -30,7 +42,7 @@ eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
     eReturnValues ret = UNKNOWN;
     uint8_t *sctSATAPhySpeed = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (sctSATAPhySpeed == NULL)
+    if (sctSATAPhySpeed == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
         return MEMORY_FAILURE;
@@ -1356,11 +1368,11 @@ eReturnValues pull_Power_Telemetry_Log(tDevice *device, const char * const fileP
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, "PWRTEL", "pwr", true, false, false, NULL, 0, filePath, transferSizeBytes, 0);
+        ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, "PWRTEL", "pwr", true, false, false, M_NULLPTR, 0, filePath, transferSizeBytes, 0);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, "PWRTEL", false, is_SCSI_Read_Buffer_16_Supported(device), "pwr", false, NULL, 0, filePath, transferSizeBytes, NULL);
+        ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, "PWRTEL", false, is_SCSI_Read_Buffer_16_Supported(device), "pwr", false, M_NULLPTR, 0, filePath, transferSizeBytes, M_NULLPTR);
     }
     return ret;
 }
@@ -1415,7 +1427,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
         return BAD_PARAMETER;
     }
     uint32_t powerTelemetryLogSize = 0;
-    uint8_t *powerTelemetryLog = NULL;
+    uint8_t *powerTelemetryLog = M_NULLPTR;
     //first, determine how much data there is, allocate memory, then read it all into that buffer
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1425,7 +1437,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
             powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
-                ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, NULL, NULL, true, false, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, 0);
+                ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, M_NULLPTR, M_NULLPTR, true, false, true, powerTelemetryLog, powerTelemetryLogSize, M_NULLPTR, 0, 0);
             }
             else
             {
@@ -1446,7 +1458,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
             powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
-                ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, NULL, false, rb16, NULL, true, powerTelemetryLog, powerTelemetryLogSize, NULL, 0, NULL);
+                ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, M_NULLPTR, false, rb16, M_NULLPTR, true, powerTelemetryLog, powerTelemetryLogSize, M_NULLPTR, 0, M_NULLPTR);
             }
             else
             {
@@ -1624,8 +1636,8 @@ bool is_Seagate_Quick_Format_Supported(tDevice *device)
             if (!supported)
             {
                 //This above support bit was discontinued, so need to check for support of other features..This is not a guaranteed "it will work" but it is what we have to work with.
-                bool stdDepopSupported = is_Depopulation_Feature_Supported(device, NULL);
-                //bool stdRepopSupported = is_Repopulate_Feature_Supported(device, NULL);
+                bool stdDepopSupported = is_Depopulation_Feature_Supported(device, M_NULLPTR);
+                //bool stdRepopSupported = is_Repopulate_Feature_Supported(device, M_NULLPTR);
                 if (stdDepopSupported /*&& !stdRepopSupported*/)
                 {
                     supported = true;
@@ -1651,7 +1663,7 @@ eReturnValues seagate_Quick_Format(tDevice *device)
             timeout = MAX_CMD_TIMEOUT_SECONDS;
         }
         os_Lock_Device(device);
-        ret = ata_SMART_Command(device, ATA_SMART_EXEC_OFFLINE_IMM, 0xD3, NULL, 0, timeout, false, 0);
+        ret = ata_SMART_Command(device, ATA_SMART_EXEC_OFFLINE_IMM, 0xD3, M_NULLPTR, 0, timeout, false, 0);
         os_Unlock_Device(device);
     }
     return ret;
@@ -2137,7 +2149,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(tDevice *device, ptrSeagat
             return MEMORY_FAILURE;
         }
 
-        if (SUCCESS == get_ATA_Log(device, 0xC7, NULL, NULL, true, false, true, deviceStatsLog, deviceStatsSize, NULL, 0, 0))
+        if (SUCCESS == get_ATA_Log(device, 0xC7, M_NULLPTR, M_NULLPTR, true, false, true, deviceStatsLog, deviceStatsSize, M_NULLPTR, 0, 0))
         {
             ret = SUCCESS;
             uint8_t maxLogEntries = 0;
@@ -2417,7 +2429,7 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice *device, ptrSeaga
             return MEMORY_FAILURE;
         }
 
-        if (SUCCESS == get_SCSI_Log(device, 0x2F, 0x00, NULL, NULL, true, deviceStatsLog, deviceStatsSize, NULL))
+        if (SUCCESS == get_SCSI_Log(device, 0x2F, 0x00, M_NULLPTR, M_NULLPTR, true, deviceStatsLog, deviceStatsSize, M_NULLPTR))
         {
             ret = SUCCESS;
 

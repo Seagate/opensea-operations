@@ -15,6 +15,17 @@
 //NOTE: Old reservations from SCSI2 (and up to SPC2) are not currently supported. These are much more limited than what is available in the Persistent Reservations feature
 //NOTE: Some additional enhancement for NVMe is probably possible. The current NVMe implementation is more-or-less what is part of NVMe to SCSI translation. - TJE
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "reservations.h"
 #include "scsi_helper.h"
 #include "scsi_helper_func.h"
@@ -25,7 +36,7 @@ bool is_Persistent_Reservations_Supported(tDevice *device)
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //try a persistent reserve in with no data transferred. This SHOULD not return an error if this feature is supported - TJE
-        if (SUCCESS == scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 0, NULL))
+        if (SUCCESS == scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 0, M_NULLPTR))
         {
             supported = true;
         }

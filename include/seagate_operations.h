@@ -308,7 +308,7 @@ extern "C"
     typedef struct _seagatePwrTelemetry
     {
         bool multipleLogicalUnits;
-        char serialNumber[9]; //including NULL terminator.
+        char serialNumber[9]; //including M_NULLPTR terminator.
         uint16_t powerCycleCount;
         uint64_t driveTimeStampForHostRequestedMeasurement;//in microseconds //should this be a double???
         uint64_t driveTimeStampWhenTheLogWasRetrieved;//in microseconds //should this be a double???
@@ -378,7 +378,7 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working directory.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. Should be rounded to 512B for ATA devices
     //!
     //  Exit:

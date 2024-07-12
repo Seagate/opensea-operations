@@ -13,13 +13,26 @@
 // \file smart.c
 // \brief This file defines the functions related to SMART features on a drive (attributes, Status check)
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+#include "sleep.h"
+#include "unit_conversion.h"
+
 #include "operations_Common.h"
 #include "smart.h"
 #include "usb_hacks.h"
 #include "logs.h"
 #include "nvme_operations.h"
 #include "seagate_operations.h"
-#include "common.h"
 
 eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
 {
@@ -29,7 +42,7 @@ eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
         ataSMARTAttribute currentAttribute;
         uint16_t            smartIter = 0;
         uint8_t *ATAdataBuffer = C_CAST(uint8_t *, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (ATAdataBuffer == NULL)
+        if (ATAdataBuffer == M_NULLPTR)
         {
             perror("Calloc Failure!\n");
             return MEMORY_FAILURE;
@@ -1116,7 +1129,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
 {
     //making the attribute name seperate so that if we add is_Seagate() logic in we can turn on and off printing the name
     char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-    if (attributeName == NULL)
+    if (attributeName == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
         return;
@@ -1402,7 +1415,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
 {
     char* attributeName = C_CAST(char*, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
     bool dataFormatVerified = false;
-    if (attributeName == NULL)
+    if (attributeName == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
         return;
@@ -1747,7 +1760,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
 {
     //making the attribute name seperate so that if we add is_Seagate() logic in we can turn on and off printing the name
     char *attributeName = C_CAST(char *, calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-    if (attributeName == NULL)
+    if (attributeName == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
         return;
@@ -2970,7 +2983,7 @@ eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
         //Change back to the user's saved settings
         informationalExceptionsControl savedControlSettings;
         memset(&savedControlSettings, 0, sizeof(informationalExceptionsControl));
-        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_SAVED_VALUES, &savedControlSettings, NULL))
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_SAVED_VALUES, &savedControlSettings, M_NULLPTR))
         {
             if (SUCCESS != set_SCSI_Informational_Exceptions_Info(device, true, &savedControlSettings))
             {
@@ -3525,10 +3538,10 @@ eReturnValues sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand er
                 switch (ercCommand)
                 {
                 case SCT_ERC_READ_COMMAND:
-                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0001, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0001, M_NULLPTR, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
                     break;
                 case SCT_ERC_WRITE_COMMAND:
-                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0002, NULL, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
+                    ret = send_ATA_SCT_Error_Recovery_Control(device, isVolatile ? 0x0001 : 0x0003, 0x0002, M_NULLPTR, C_CAST(uint16_t, timerValueMilliseconds / UINT32_C(100)));
                     break;
                 default:
                     break;
@@ -3579,10 +3592,10 @@ eReturnValues sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryComman
             switch (ercCommand)
             {
             case SCT_ERC_READ_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0001, NULL, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0001, M_NULLPTR, 0);
                 break;
             case SCT_ERC_WRITE_COMMAND:
-                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0002, NULL, 0);
+                ret = send_ATA_SCT_Error_Recovery_Control(device, 0x0005, 0x0002, M_NULLPTR, 0);
                 break;
             default:
                 break;
@@ -3639,7 +3652,7 @@ eReturnValues enable_Disable_SMART_Feature(tDevice *device, bool enable)
     {
         informationalExceptionsControl control;
         memset(&control, 0, sizeof(informationalExceptionsControl));
-        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, NULL))
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
         {
             if (enable)
             {
@@ -3669,7 +3682,7 @@ eReturnValues set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault
         uint8_t defaultMode = 6;
         if (driveDefault)
         {
-            if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, NULL))
+            if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
             {
                 defaultMode = control.mrie;
             }
@@ -3678,7 +3691,7 @@ eReturnValues set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault
                 return FAILURE;
             }
         }
-        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, NULL))
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
         {
             control.mrie = mrieMode;
             if (driveDefault)
@@ -5682,7 +5695,7 @@ static void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNU
         {
             uint64_t timerInSeconds = standbyTimerPeriod * 5;
             uint8_t minutes = 0, seconds = 0;
-            convert_Seconds_To_Displayable_Time(timerInSeconds, NULL, NULL, NULL, &minutes, &seconds);
+            convert_Seconds_To_Displayable_Time(timerInSeconds, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
             if (minutes > 0 && seconds == 0)
             {
                 snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Minutes", minutes);
@@ -5700,7 +5713,7 @@ static void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNU
         {
             uint64_t timerInSeconds = ((C_CAST(uint64_t, standbyTimerPeriod) - UINT64_C(240)) * UINT64_C(30)) * UINT64_C(60);//timer is a minutes value that I'm converting to seconds
             uint8_t minutes = 0, hours = 0;//no seconds since it would always be zero
-            convert_Seconds_To_Displayable_Time(timerInSeconds, NULL, NULL, &hours, &minutes, NULL);
+            convert_Seconds_To_Displayable_Time(timerInSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, M_NULLPTR);
             if (hours > 0 && minutes == 0)
             {
                 snprintf(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Hours", hours);
@@ -5731,7 +5744,7 @@ static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uin
     case NV_SET_NV_CACHE_POWER_MODE:
     {
         uint8_t hours = 0, minutes = 0, seconds = 0;
-        convert_Seconds_To_Displayable_Time(count, NULL, NULL, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(count, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set NV Cache Power Mode. Minimum High-Power Time: %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8 " seconds", commandName, hours, minutes, seconds);
     }
     break;

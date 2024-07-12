@@ -30,7 +30,7 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[out] fastFormatSupported = bool that will hold if fast format is supported. May be NULL if you don't care about checking for fast format support.
+    //!   \param[out] fastFormatSupported = bool that will hold if fast format is supported. May be M_NULLPTR if you don't care about checking for fast format support.
     //!
     //  Exit:
     //!   \return true = format unit supported, false = format unit not supported.
@@ -103,12 +103,12 @@ extern "C"
     //!   \param[in] formatType = use this to specify a standard format or fast format
     //!   \param[in] currentBlockSize = use the current logical block size of the device for format (next parameter ignored)
     //!   \param[in] newBlockSize = if currentBlockSize is false, this is the new logical block size to format the drive with.
-    //!   \param[in] gList = pointer to the glist to use during format. When NULL, the device will use the current glist unless the completeList bool is set to true.
+    //!   \param[in] gList = pointer to the glist to use during format. When M_NULLPTR, the device will use the current glist unless the completeList bool is set to true.
     //!   \param[in] glistSize = size of the glist pointed to by gList
-    //!   \param[in] completeList = set to true to say the provided glist is the complete glist for the device. If this is true and gList is NULL, then this will clear the glist.
+    //!   \param[in] completeList = set to true to say the provided glist is the complete glist for the device. If this is true and gList is M_NULLPTR, then this will clear the glist.
     //!   \param[in] disablePrimaryList = set to true to disable using the primary list during a format.
     //!   \param[in] disableCertification = set to true to disable certification
-    //!   \param[in] pattern = pointer to a pattern to use during the format. If NULL, the device's default patter is used.
+    //!   \param[in] pattern = pointer to a pattern to use during the format. If M_NULLPTR, the device's default patter is used.
     //!   \param[in] patternLength = length of the data pointed to by pattern
     //!   \param[in] securityInitialize = set to true to set the security initialize bit which requests previously reallocated areas to be overwritten. (Seagate drive's don't currently support this) SBC spec recommends using Sanitize instead of this bit to overwrite previously reallocated sectors.
     //!   \param[in] pollForProgress = set to true for this function to poll for progress until complete. Set to false to use this function to kick off a format unit operation for you.

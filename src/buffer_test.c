@@ -13,6 +13,18 @@
 // \file buffer_test.c
 // \brief This file defines the function calls for performing buffer/cabling tests
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "pattern_utils.h"
+
 #include "buffer_test.h"
 
 

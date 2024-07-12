@@ -13,6 +13,19 @@
 // \file format.c
 // \brief This file defines the functions for performing some format unit operations
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "sleep.h"
+#include "time_utils.h"
+
 #include "format.h"
 #include "logs.h"
 #include "nvme_helper_func.h"
@@ -138,7 +151,7 @@ eReturnValues show_Format_Unit_Progress(tDevice *device)
 eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t *dataBuf = NULL;
+    uint8_t *dataBuf = M_NULLPTR;
     uint32_t dataSize = 4;//assume short list for now
     bool longList = false;
     bool fastFormatSupported = false;//not used yet - TJE
@@ -447,7 +460,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
         //send the format command
         if (formatParameters.defaultFormat && formatParameters.disableImmediate)
         {
-            ret = scsi_Format_Unit(device, fmtpInfo, longList, false, formatParameters.completeList, defectListFormat, 0, NULL, 0, C_CAST(uint8_t, formatParameters.formatType), formatCommandTimeout);
+            ret = scsi_Format_Unit(device, fmtpInfo, longList, false, formatParameters.completeList, defectListFormat, 0, M_NULLPTR, 0, C_CAST(uint8_t, formatParameters.formatType), formatCommandTimeout);
         }
         else
         {
@@ -476,9 +489,9 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
                 uint8_t seconds = 0, minutes = 0, hours = 0;
-                convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
                 printf("Progress will be updated every ");
-                print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+                print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
                 printf("\n");
             }
             while (IN_PROGRESS == get_Format_Progress(device, &progress))
@@ -808,7 +821,7 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
         //pull the VPD page and determine how many are supported based on descriptor length and the VPD page length
         uint32_t scsiSectorSizesSupported = 0;
         uint8_t supportedBlockLengthsData[4] = { 0 };
-        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, 4, NULL))
+        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, M_NULLPTR, M_NULLPTR, true, supportedBlockLengthsData, 4, M_NULLPTR))
         {
             uint16_t pageLength = M_BytesTo2ByteValue(supportedBlockLengthsData[2], supportedBlockLengthsData[3]);
             scsiSectorSizesSupported = pageLength / 8;//each descriptor is 8 bytes in size
@@ -981,7 +994,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFor
         {
             return MEMORY_FAILURE;
         }
-        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, supportedSectorSizesDataLength, NULL))
+        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, M_NULLPTR, M_NULLPTR, true, supportedBlockLengthsData, supportedSectorSizesDataLength, M_NULLPTR))
         {
             dummyUpCommonSizes = false;
             uint32_t numberOfSizes = formats->numberOfSectorSizes;
@@ -1651,12 +1664,12 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice *device, uint32_t sect
             formatUnitParameters.formatType = FORMAT_FAST_WRITE_NOT_REQUIRED;
             formatUnitParameters.currentBlockSize = false;
             formatUnitParameters.newBlockSize = C_CAST(uint16_t, sectorSize);
-            formatUnitParameters.gList = NULL;
+            formatUnitParameters.gList = M_NULLPTR;
             formatUnitParameters.glistSize = 0;
             formatUnitParameters.completeList = false;
             formatUnitParameters.disablePrimaryList = false;
             formatUnitParameters.disableCertification = false;
-            formatUnitParameters.pattern = NULL;
+            formatUnitParameters.pattern = M_NULLPTR;
             formatUnitParameters.patternLength = 0;
             formatUnitParameters.securityInitialize = false;
             formatUnitParameters.defaultFormat = true;//Don't need any option bits! In fact, this could cause an error if not set!
@@ -1880,9 +1893,9 @@ eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             uint8_t seconds = 0, minutes = 0, hours = 0;
-            convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
+            convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
             printf("Progress will be updated every ");
-            print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
             printf("\n");
         }
         while (IN_PROGRESS == (ret = get_NVM_Format_Progress(device, &progress)) && progress < 100.0)

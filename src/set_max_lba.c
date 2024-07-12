@@ -13,6 +13,18 @@
 // \file set_max_lba.c
 // \brief This file defines the functions for setting the maxLBA on a device
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "sleep.h"
+
 #include "operations_Common.h"
 #include "set_max_lba.h"
 #include "scsi_helper_func.h"
@@ -65,7 +77,7 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
 {
     eReturnValues ret = UNKNOWN;
     uint8_t *scsiDataBuffer = C_CAST(uint8_t*, calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment));//this should be big enough to get back the block descriptor we care about
-    if (scsiDataBuffer == NULL)
+    if (scsiDataBuffer == M_NULLPTR)
     {
         perror("calloc failure");
         return MEMORY_FAILURE;
@@ -286,7 +298,7 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
             return DEVICE_ACCESS_DENIED;
         }
         //After the restore, check if DCO feature is on the drive and if it reports a higher max LBA to restore to. HPA must be restored first which should have already happened in the previous function.
-        if (ret == SUCCESS && is_DCO_Supported(device, NULL))
+        if (ret == SUCCESS && is_DCO_Supported(device, M_NULLPTR))
         {
             //need to restore DCO as well.
             //TODO: one thing we may need to consider is that DCO has disabled features or more importantly DMA modes for compatibility.
@@ -374,7 +386,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
     {
         //try read capacity 16, if that fails we are done trying
         uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
-        if (temp == NULL)
+        if (temp == M_NULLPTR)
         {
             safe_Free_aligned(C_CAST(void**, &readCapBuf));
             return maxLBA;
@@ -421,7 +433,7 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
             {
                 delay_Seconds(1);
                 //issue test unit ready after this to clear out a sense code for the device having received a bus reset
-                scsi_Test_Unit_Ready(device, NULL);
+                scsi_Test_Unit_Ready(device, M_NULLPTR);
             }
         }
         ataMaxLBA = get_ATA_MaxLBA(device);
@@ -511,7 +523,7 @@ bool is_Change_Identify_String_Supported(tDevice* device)
 
 ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
 {
-    ptrcapacityModelNumberMapping capModelMapping = NULL;
+    ptrcapacityModelNumberMapping capModelMapping = M_NULLPTR;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint32_t capMNLogSizeBytes = 0;
@@ -520,9 +532,9 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
             uint8_t* capMNMappingLog = C_CAST(uint8_t*, calloc_aligned(capMNLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!capMNMappingLog)
             {
-                return NULL;
+                return M_NULLPTR;
             }
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, NULL, NULL, true, false, true, capMNMappingLog, capMNLogSizeBytes, NULL, 0, 0))
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, M_NULLPTR, M_NULLPTR, true, false, true, capMNMappingLog, capMNLogSizeBytes, M_NULLPTR, 0, 0))
             {
                 //header is first 8bytes
                 uint32_t numberOfDescriptors = M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
@@ -560,9 +572,9 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
             uint8_t* capProdIDMappingVPD = C_CAST(uint8_t*, calloc_aligned(capIDVPDSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!capProdIDMappingVPD)
             {
-                return NULL;
+                return M_NULLPTR;
             }
-            if (SUCCESS == get_SCSI_VPD(device, CAPACITY_PRODUCT_IDENTIFICATION_MAPPING, NULL, NULL, true, capProdIDMappingVPD, capIDVPDSizeBytes, NULL))
+            if (SUCCESS == get_SCSI_VPD(device, CAPACITY_PRODUCT_IDENTIFICATION_MAPPING, M_NULLPTR, M_NULLPTR, true, capProdIDMappingVPD, capIDVPDSizeBytes, M_NULLPTR))
             {
                 //calculate number of descriptors based on page length
                 uint32_t numberOfDescriptors = M_BytesTo2ByteValue(capProdIDMappingVPD[2], capProdIDMappingVPD[3]) / 48;//Each descriptor is 48B long

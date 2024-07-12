@@ -342,7 +342,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS])
+    //  get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS])
     //
     //! \brief   Gets a list of the supported erase functions on a drive. list must be at least MAX_SUPPORTED_ERASE_METHODS in size. The list will be in order from fastest to slowest.
     //!          There is also a TCG version of this function in tcg_base_operations.h that will fill in the list including support for revert and revertSP if the drive supports these methods
@@ -356,7 +356,7 @@ extern "C"
     //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //

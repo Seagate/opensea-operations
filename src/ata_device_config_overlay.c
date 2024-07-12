@@ -12,7 +12,17 @@
 // 
 // \file ata_device_config_overlay.c   ATA Device configuration overlay support (DCO)
 
-#include "common.h"
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "ata_helper.h"
 #include "ata_helper_func.h"
 #include "ata_device_config_overlay.h"
@@ -48,7 +58,7 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
 eReturnValues dco_Restore(tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (is_DCO_Supported(device, NULL))
+    if (is_DCO_Supported(device, M_NULLPTR))
     {
         ret = ata_DCO_Restore(device);
         if (ret == ABORTED)
@@ -68,7 +78,7 @@ eReturnValues dco_Restore(tDevice* device)
 eReturnValues dco_Freeze_Lock(tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (is_DCO_Supported(device, NULL))
+    if (is_DCO_Supported(device, M_NULLPTR))
     {
         ret = ata_DCO_Freeze_Lock(device);
         if (ret == ABORTED)

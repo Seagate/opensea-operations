@@ -13,6 +13,19 @@
 // \file sanitize.c
 // \brief This file defines the functions for sanitize operations on SCSI and ATA drives
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+#include "sleep.h"
+
 #include "operations_Common.h"
 #include "sanitize.h"
 #include "platform_helper.h"
@@ -445,7 +458,7 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
             feat.fid = NVME_FEAT_SANITIZE_CONFIG_;
             feat.nsid = NVME_ALL_NAMESPACES;
             feat.sel = NVME_CURRENT_FEAT_SEL;
-            feat.dataPtr = NULL;
+            feat.dataPtr = M_NULLPTR;
             feat.dataLength = 0;
             //reported in completion dword 0
             if (SUCCESS == nvme_Get_Features(device, &feat))
@@ -598,9 +611,9 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     eReturnValues ret = IN_PROGRESS;
     uint8_t minutes = 0, seconds = 0;
     double percentComplete = 0;
-    convert_Seconds_To_Displayable_Time(delayTime, NULL, NULL, NULL, &minutes, &seconds);
+    convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
     printf("Sanitize progress will be updated every");
-    print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
+    print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
     printf("\n");
     eSanitizeStatus sanitizeInProgress = SANITIZE_STATUS_IN_PROGRESS;
     while (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS)

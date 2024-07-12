@@ -14,6 +14,18 @@
 // \file ata_Security.c
 // \brief This file defines the function calls for performing some ATA Security operations
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+
 #include "operations_Common.h"
 #include "ata_Security.h"
 #include <ctype.h>
@@ -292,12 +304,12 @@ static void print_ATA_Security_Erase_Time(uint16_t eraseTime, bool extendedTimeF
             }
         }
         totalSeconds *= UINT64_C(60);
-        convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
+        convert_Seconds_To_Displayable_Time(totalSeconds, M_NULLPTR, &days, &hours, &minutes, M_NULLPTR);
         if (eraseTime == UINT16_MAX)
         {
             printf(">");
         }
-        print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, M_NULLPTR);
         printf("\n");
     }
 }
@@ -627,7 +639,7 @@ eReturnValues start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataP
     //first send the erase prepare command
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
-        ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, NULL, 15);
+        ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, M_NULLPTR, 15);
     }
     else
     {
@@ -765,7 +777,7 @@ eReturnValues run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool 
         {
             if (satATASecuritySupported)//if SAT ATA security supported, use it so the SATL manages the commands.
             {
-                ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_FREEZE_LOCK, false, 0, NULL, 15);
+                ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_FREEZE_LOCK, false, 0, M_NULLPTR, 15);
             }
             else
             {
@@ -1094,18 +1106,18 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
                     printf("\t508 minutes (max per ATA specification).\n");
                 }
             }
-            time_t currentTime = time(NULL);
+            time_t currentTime = time(M_NULLPTR);
             time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
             uint16_t days = 0;
             uint8_t hours = 0, minutes = 0, seconds = 0;
             char timeFormat[TIME_STRING_LENGTH] = { 0 };
-            convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), NULL, &days, &hours, &minutes, &seconds);
+            convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
             if (maxPossibleTime)
             {
                 printf(">");
             }
-            print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("from now.\n");
             memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
             printf("\tEstimated completion Time : %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));

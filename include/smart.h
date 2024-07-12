@@ -30,7 +30,7 @@ extern "C"
         } attributes;
     } smartLogData;
 
-    #define MAX_ATTRIBUTE_NAME_LENGTH 43 //This leaves room for a NULL terminating character
+    #define MAX_ATTRIBUTE_NAME_LENGTH 43 //This leaves room for a M_NULLPTR terminating character
 
     //SMART attributes are NOT standardized. Use these definitions with caution as they may have different meanings between vendors and firmwares. - TJE
     #define ATTRB_NUM_RETIRED_SECTOR    (5)

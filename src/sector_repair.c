@@ -12,6 +12,16 @@
 // 
 // \file sector_repair.c
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
 
 #include "sector_repair.h"
 #include "cmds.h"
@@ -481,8 +491,8 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice *device, bool *automati
 
 static int errorLBACompare(const void *a, const void *b)
 {
-    ptrErrorLBA lba1 = C_CAST(ptrErrorLBA, a);
-    ptrErrorLBA lba2 = C_CAST(ptrErrorLBA, b);
+    const errorLBA *lba1 = a;
+    const errorLBA *lba2 = b;
     if (lba1->errorAddress < lba2->errorAddress)
     {
         return -1;

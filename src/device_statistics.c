@@ -13,6 +13,18 @@
 // \file device_statistics.c
 // \brief This file defines the functions related to getting/displaying device statistics
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+
 #include "device_statistics.h"
 #include "logs.h"
 
@@ -52,7 +64,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
             uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0, 0))
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, M_NULLPTR, M_NULLPTR, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, M_NULLPTR, 0, 0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
                 //increment by 2 qwords and go through each statistic and it's condition individually
@@ -580,11 +592,11 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
             }
             safe_Free_aligned(C_CAST(void**, &devStatsNotificationsLog));
         }
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0, 0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, M_NULLPTR, M_NULLPTR, true, true, true, deviceStatsLog, deviceStatsSize, M_NULLPTR, 0, 0))
         {
             ret = SUCCESS;
             uint32_t offset = 0;//start offset 1 sector to get to the general statistics
-            uint64_t *qwordPtrDeviceStatsLog = NULL;
+            uint64_t *qwordPtrDeviceStatsLog = M_NULLPTR;
             for (uint8_t pageIter = 0; pageIter < deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET]; ++pageIter)
             {
                 //statistics flags:
@@ -7839,14 +7851,14 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatis
     if (deviceStats->sataStatistics.generalStatisticsSupported)
     {
         printf("\n---General Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.lifetimePoweronResets, "LifeTime Power-On Resets", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.lifetimePoweronResets, "LifeTime Power-On Resets", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.powerOnHours, "Power-On Hours", "hours");
-        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsWritten, "Logical Sectors Written", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfWriteCommands, "Number Of Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsRead, "Logical Sectors Read", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReadCommands, "Number Of Read Commands", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsWritten, "Logical Sectors Written", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfWriteCommands, "Number Of Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsRead, "Logical Sectors Read", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReadCommands, "Number Of Read Commands", M_NULLPTR);
         print_Date_And_Time_Timestamp_Statistic(deviceStats->sataStatistics.dateAndTimeTimestamp, "Date And Time Timestamp");
-        print_Count_Statistic(deviceStats->sataStatistics.pendingErrorCount, "Pending Error Count", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.pendingErrorCount, "Pending Error Count", M_NULLPTR);
         print_Workload_Utilization_Statistic(deviceStats->sataStatistics.workloadUtilization, "Workload Utilization");
         print_Utilization_Usage_Rate_Statistic(deviceStats->sataStatistics.utilizationUsageRate, "Utilization Usage Rate");
         print_Resource_Availability_Statistic(deviceStats->sataStatistics.resourceAvailability, "Resource Availability");
@@ -7855,27 +7867,27 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatis
     if (deviceStats->sataStatistics.freeFallStatisticsSupported)
     {
         printf("\n---Free Fall Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfFreeFallEventsDetected, "Number Of Free-Fall Events Detected", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.overlimitShockEvents, "Overlimit Shock Events", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfFreeFallEventsDetected, "Number Of Free-Fall Events Detected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.overlimitShockEvents, "Overlimit Shock Events", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.rotatingMediaStatisticsSupported)
     {
         printf("\n---Rotating Media Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.spindleMotorPoweronHours, "Spindle Motor Power-On Hours", "hours");
         print_Count_Statistic(deviceStats->sataStatistics.headFlyingHours, "Head Flying Hours", "hours");
-        print_Count_Statistic(deviceStats->sataStatistics.headLoadEvents, "Head Load Events", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocatedLogicalSectors, "Number Of Reallocated Logical Sectors", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.readRecoveryAttempts, "Read Recovery Attempts", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfMechanicalStartFailures, "Number Of Mechanical Start Failures", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors, "Number Of Reallocation Candidate Logical Sectors", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents, "Number Of High Priority Unload Events", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.headLoadEvents, "Head Load Events", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocatedLogicalSectors, "Number Of Reallocated Logical Sectors", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.readRecoveryAttempts, "Read Recovery Attempts", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfMechanicalStartFailures, "Number Of Mechanical Start Failures", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors, "Number Of Reallocation Candidate Logical Sectors", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents, "Number Of High Priority Unload Events", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.generalErrorsStatisticsSupported)
     {
         printf("\n---General Errors Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReportedUncorrectableErrors, "Number Of Reported Uncorrectable Errors", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion, "Number Of Resets Between Command Acceptance and Completion", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.physicalElementStatusChanged, "Physical Element Status Changed", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReportedUncorrectableErrors, "Number Of Reported Uncorrectable Errors", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion, "Number Of Resets Between Command Acceptance and Completion", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.physicalElementStatusChanged, "Physical Element Status Changed", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.temperatureStatisticsSupported)
     {
@@ -7897,9 +7909,9 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatis
     if (deviceStats->sataStatistics.transportStatisticsSupported)
     {
         printf("\n---Transport Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfHardwareResets, "Number Of Hardware Resets", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfASREvents, "Number Of ASR Events", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfInterfaceCRCErrors, "Number Of Interface CRC Errors", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfHardwareResets, "Number Of Hardware Resets", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfASREvents, "Number Of ASR Events", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfInterfaceCRCErrors, "Number Of Interface CRC Errors", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.ssdStatisticsSupported)
     {
@@ -7909,17 +7921,17 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatis
     if (deviceStats->sataStatistics.zonedDeviceStatisticsSupported)
     {
         printf("\n---Zoned Device Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.zonesEmptied, "Zones Emptied", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.zonesEmptied, "Zones Emptied", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.vendorSpecificStatisticsSupported)
     {
@@ -7953,7 +7965,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatis
             }
             if (deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter].isSupported)
             {
-                print_Count_Statistic(deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter], statisticName, NULL);
+                print_Count_Statistic(deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter], statisticName, M_NULLPTR);
                 ++statisticsFound;
             }
         }
@@ -7977,68 +7989,68 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, 
     if (deviceStats->sasStatistics.writeErrorCountersSupported)
     {
         printf("\n---Write Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay, "Write Errors Corrected Without Substantial Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithPossibleDelays, "Write Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalReWrites, "Write Total Rewrites", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrected, "Write Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed, "Write Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalBytesProcessed, "Write Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalUncorrectedErrors, "Write Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay, "Write Errors Corrected Without Substantial Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithPossibleDelays, "Write Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalReWrites, "Write Total Rewrites", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrected, "Write Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed, "Write Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalBytesProcessed, "Write Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalUncorrectedErrors, "Write Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.readErrorCountersSupported)
     {
         printf("\n---Read Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrectedWithPossibleDelays, "Read Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalRereads, "Read Total Rereads", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrected, "Read Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed, "Read Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalBytesProcessed, "Read Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalUncorrectedErrors, "Read Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrectedWithPossibleDelays, "Read Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalRereads, "Read Total Rereads", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrected, "Read Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed, "Read Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalBytesProcessed, "Read Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalUncorrectedErrors, "Read Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.readReverseErrorCountersSupported)
     {
         printf("\n---Read Reverse Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay, "Read Reverse Errors Corrected Without Substantial Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays, "Read Reverse Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalReReads, "Read Reverse Total Rereads", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrected, "Read Reverse Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed, "Read Reverse Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalBytesProcessed, "Read Reverse Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalUncorrectedErrors, "Read Reverse Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay, "Read Reverse Errors Corrected Without Substantial Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays, "Read Reverse Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalReReads, "Read Reverse Total Rereads", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrected, "Read Reverse Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed, "Read Reverse Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalBytesProcessed, "Read Reverse Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalUncorrectedErrors, "Read Reverse Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.verifyErrorCountersSupported)
     {
         printf("\n---Verify Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay, "Verify Errors Corrected Without Substantial Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays, "Verify Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalReVerifies, "Verify Total Rereads", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrected, "Verify Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed, "Verify Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalBytesProcessed, "Verify Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalUncorrectedErrors, "Verify Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay, "Verify Errors Corrected Without Substantial Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays, "Verify Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalReVerifies, "Verify Total Rereads", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrected, "Verify Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed, "Verify Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalBytesProcessed, "Verify Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalUncorrectedErrors, "Verify Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.nonMediumErrorSupported)
     {
         printf("\n---Non Medium Error---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.nonMediumErrorCount, "Non-Medium Error Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.nonMediumErrorCount, "Non-Medium Error Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.formatStatusSupported)
     {
         printf("\n---Format Status---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.grownDefectsDuringCertification, "Grown Defects During Certification", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat, "Total Blocks Reassigned During Format", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.totalNewBlocksReassigned, "Total New Blocks Reassigned", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.grownDefectsDuringCertification, "Grown Defects During Certification", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat, "Total Blocks Reassigned During Format", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.totalNewBlocksReassigned, "Total New Blocks Reassigned", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.powerOnMinutesSinceFormat, "Power On Minutes Since Last Format", "minutes");
     }
     if (deviceStats->sasStatistics.logicalBlockProvisioningSupported)
     {
         printf("\n---Logical Block Provisioning---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.availableLBAMappingresourceCount, "Available LBA Mapping Resource Count", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.usedLBAMappingResourceCount, "Used LBA Mapping Resource Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.availableLBAMappingresourceCount, "Available LBA Mapping Resource Count", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.usedLBAMappingResourceCount, "Used LBA Mapping Resource Count", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.availableProvisioningResourcePercentage, "Available Provisioning Resource Percentage", "%");
-        print_Count_Statistic(deviceStats->sasStatistics.deduplicatedLBAResourceCount, "De-duplicted LBA Resource Count", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.compressedLBAResourceCount, "Compressed LBA Resource Count", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.totalEfficiencyLBAResourceCount, "Total Efficiency LBA Resource Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.deduplicatedLBAResourceCount, "De-duplicted LBA Resource Count", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.compressedLBAResourceCount, "Compressed LBA Resource Count", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.totalEfficiencyLBAResourceCount, "Total Efficiency LBA Resource Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.temperatureSupported)
     {
@@ -8089,20 +8101,20 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, 
         printf("\n---Start-Stop Cycle Counter---\n");
         print_SCSI_Date_Statistic(deviceStats->sasStatistics.dateOfManufacture, "Date Of Manufacture");
         print_SCSI_Date_Statistic(deviceStats->sasStatistics.accountingDate, "Accounting Date");
-        print_Count_Statistic(deviceStats->sasStatistics.specifiedCycleCountOverDeviceLifetime, "Specified Cycle Count Over Device Lifetime", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.accumulatedStartStopCycles, "Accumulated Start-Stop Cycles", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime, "Specified Load-Unload Count Over Device Lifetime", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.accumulatedLoadUnloadCycles, "Accumulated Load-Unload Cycles", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.specifiedCycleCountOverDeviceLifetime, "Specified Cycle Count Over Device Lifetime", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.accumulatedStartStopCycles, "Accumulated Start-Stop Cycles", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime, "Specified Load-Unload Count Over Device Lifetime", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.accumulatedLoadUnloadCycles, "Accumulated Load-Unload Cycles", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.powerConditionTransitionsSupported)
     {
         printf("\n---Power Condition Transitions---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToActive, "Accumulated Transitions to Active", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleA, "Accumulated Transitions to Idle A", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleB, "Accumulated Transitions to Idle B", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleC, "Accumulated Transitions to Idle C", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyZ, "Accumulated Transitions to Standby Z", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyY, "Accumulated Transitions to Standby Y", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToActive, "Accumulated Transitions to Active", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleA, "Accumulated Transitions to Idle A", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleB, "Accumulated Transitions to Idle B", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleC, "Accumulated Transitions to Idle C", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyZ, "Accumulated Transitions to Standby Z", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyY, "Accumulated Transitions to Standby Y", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.utilizationSupported)
     {
@@ -8119,24 +8131,24 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, 
     {
         printf("\n---Background Scan Results---\n");
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedPowerOnMinutes, "Accumulated Power On Minutes", "minutes");
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundScansPerformed, "Number Of Background Scans Performed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundMediaScansPerformed, "Number Of Background Media Scans Performed", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundScansPerformed, "Number Of Background Scans Performed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundMediaScansPerformed, "Number Of Background Media Scans Performed", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.defectStatisticsSupported)
     {
         printf("\n---Defect Statistics---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.pendingDefectsSupported)
     {
         printf("\n---Pending Defects---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.pendingDefectCount, "Pending Defect Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.pendingDefectCount, "Pending Defect Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.lpsMisalignmentSupported)
     {
         printf("\n---LPS Misalignment---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.lpsMisalignmentCount, "LPS Misalignment Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.lpsMisalignmentCount, "LPS Misalignment Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.nvCacheSupported)
     {
@@ -8147,33 +8159,33 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, 
     if (deviceStats->sasStatistics.generalStatisticsAndPerformanceSupported)
     {
         printf("\n---General Statistics And Performance---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadCommands, "Number Of Read Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteCommands, "Number Of Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksReceived, "Number Of Logical Blocks Received", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksTransmitted, "Number Of Logical Blocks Transmitted", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readCommandProcessingIntervals, "Read Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeCommandProcessingIntervals, "Write Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.weightedNumberOfReadCommandsPlusWriteCommands, "Weighted Number Of Read Commands Plus Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.weightedReadCommandProcessingPlusWriteCommandProcessing, "Weighted Number Of Read Command Processing Plus Write Command Processing", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.idleTimeIntervals, "Idle Time Intervals", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadCommands, "Number Of Read Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteCommands, "Number Of Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksReceived, "Number Of Logical Blocks Received", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksTransmitted, "Number Of Logical Blocks Transmitted", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readCommandProcessingIntervals, "Read Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeCommandProcessingIntervals, "Write Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.weightedNumberOfReadCommandsPlusWriteCommands, "Weighted Number Of Read Commands Plus Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.weightedReadCommandProcessingPlusWriteCommandProcessing, "Weighted Number Of Read Command Processing Plus Write Command Processing", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.idleTimeIntervals, "Idle Time Intervals", M_NULLPTR);
         print_SCSI_Time_Interval_Statistic(deviceStats->sasStatistics.timeIntervalDescriptor, "Time Interval Desriptor");
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUACommands, "Number Of Read FUA Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUACommands, "Number Of Write FUA Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUANVCommands, "Number Of Read FUA NV Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUANVCommands, "Number Of Write FUA NV Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readFUACommandProcessingIntervals, "Read FUA Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeFUACommandProcessingIntervals, "Write FUA Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readFUANVCommandProcessingIntervals, "Read FUA NV Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeFUANVCommandProcessingIntervals, "Write FUA NV Command Processing Intervals", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUACommands, "Number Of Read FUA Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUACommands, "Number Of Write FUA Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUANVCommands, "Number Of Read FUA NV Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUANVCommands, "Number Of Write FUA NV Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readFUACommandProcessingIntervals, "Read FUA Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeFUACommandProcessingIntervals, "Write FUA Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readFUANVCommandProcessingIntervals, "Read FUA NV Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeFUANVCommandProcessingIntervals, "Write FUA NV Command Processing Intervals", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.cacheMemoryStatisticsSupported)
     {
         printf("\n---Cache Memory Statistics---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.readCacheMemoryHits, "Read Cache Memory Hits", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readsToCacheMemory, "Reads To Cache Memory", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeCacheMemoryHits, "Write Cache Memory Hits", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writesFromCacheMemory, "Writes From Cache Memory", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.timeFromLastHardReset, "Last Hard Reset Intervals", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readCacheMemoryHits, "Read Cache Memory Hits", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readsToCacheMemory, "Reads To Cache Memory", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeCacheMemoryHits, "Write Cache Memory Hits", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writesFromCacheMemory, "Writes From Cache Memory", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.timeFromLastHardReset, "Last Hard Reset Intervals", M_NULLPTR);
         print_SCSI_Time_Interval_Statistic(deviceStats->sasStatistics.cacheTimeInterval, "Cache Memory Time Interval");
     }
     if (deviceStats->sasStatistics.timeStampSupported)
@@ -8184,18 +8196,18 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, 
     if (deviceStats->sasStatistics.zonedDeviceStatisticsSupported)
     {
         printf("\n---Zoned Device Statistics---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.zonesEmptied, "Zones Emptied", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones, "Maximum Implicitly Open Sequential Or Before Required Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.zonesEmptied, "Zones Emptied", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones, "Maximum Implicitly Open Sequential Or Before Required Zones", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.protocolSpecificStatisticsSupported)
     {
@@ -8213,10 +8225,10 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, 
                         if (deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].sasPhyStatsValid)
                         {
                             printf("\t--Port %" PRIu16 " - Phy %" PRIu16 "--\n", deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID, deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyID);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].invalidDWORDCount, "Invalid Dword Count", NULL);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].runningDisparityErrorCount, "Running Disparit Error Count", NULL);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].lossOfDWORDSynchronizationCount, "Loss of Dword Snchronization Count", NULL);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyResetProblemCount, "Phy Reset Problem Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].invalidDWORDCount, "Invalid Dword Count", M_NULLPTR);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].runningDisparityErrorCount, "Running Disparit Error Count", M_NULLPTR);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].lossOfDWORDSynchronizationCount, "Loss of Dword Snchronization Count", M_NULLPTR);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyResetProblemCount, "Phy Reset Problem Count", M_NULLPTR);
                         }
                     }
                 }

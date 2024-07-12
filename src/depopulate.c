@@ -13,6 +13,19 @@
 // \file depopulate.h
 // \brief This file defines the functions for depopulating physical/storage elements on a drive (Remanufacture)
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+#include "sleep.h"
+
 #include "depopulate.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
 #include "platform_helper.h"
@@ -218,8 +231,8 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     {
         uint16_t days = 0;
         uint8_t hours = 0, minutes = 0, seconds = 0;
-        convert_Seconds_To_Displayable_Time(depopulateTime, NULL, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(depopulateTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         printf("\n");
     }
     else
@@ -626,9 +639,9 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elem
             {
                 uint16_t days = 0;
                 uint8_t hours = 0, minutes = 0, seconds = 0;
-                convert_Seconds_To_Displayable_Time(depopTime, NULL, &days, &hours, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
                 printf("Starting depopulation. Approximate time until completion: ");
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+                print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
                 printf("\n");
             }
             printf("Do not remove power or attempt other access as interrupting it may make\n");
@@ -1042,9 +1055,9 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForP
             {
                 uint16_t days = 0;
                 uint8_t hours = 0, minutes = 0, seconds = 0;
-                convert_Seconds_To_Displayable_Time(depopTime, NULL, &days, &hours, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
                 printf("Starting repopulation. Approximate time until completion: ");
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+                print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
                 printf("\n");
             }
             printf("Do not remove power or attempt other access as interrupting it may make\n");

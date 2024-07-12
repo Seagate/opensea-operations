@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include "common.h"
 #include "common_public.h"
 #include "ata_helper.h"
 #include "ata_helper_func.h"
@@ -36,7 +35,7 @@ extern "C"
         #undef(OPENSEA_OPERATIONS_API)
     #endif
     
-    #if defined(_WIN32) //DLL/LIB....be VERY careful making modifications to this unless you know what you are doing!
+    #if defined(_WIN32) /*DLL/LIB....be VERY careful making modifications to this unless you know what you are doing!*/
         #if defined (EXPORT_OPENSEA_OPERATIONS) && defined(STATIC_OPENSEA_OPERATIONS)
             #error "The preprocessor definitions EXPORT_OPENSEA_OPERATIONS and STATIC_OPENSEA_OPERATIONS cannot be combined!"
         #elif defined(STATIC_OPENSEA_OPERATIONS)
@@ -57,7 +56,7 @@ extern "C"
         #else
             #error "You must specify STATIC_OPENSEA_OPERATIONS or EXPORT_OPENSEA_OPERATIONS or IMPORT_OPENSEA_OPERATIONS in the preprocessor definitions!"
         #endif
-    #else //SO/A....as far as I know, nothing needs to be done here
+    #else /*SO/A....as far as I know, nothing needs to be done here*/
         #define OPENSEA_OPERATIONS_API
     #endif
 #if defined (__cplusplus)

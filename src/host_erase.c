@@ -13,6 +13,18 @@
 // \file host_erase.c
 // \brief This file defines the function for performing a host based erase functions (host issues a series of write commands)
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "pattern_utils.h"
+
 #include "operations_Common.h"
 #include "operations.h"
 #include "host_erase.h"
@@ -27,7 +39,7 @@ eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t er
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseRangeStart);
     uint8_t *writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (writeBuffer == NULL)
+    if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase range");
         return MEMORY_FAILURE;
@@ -171,7 +183,7 @@ eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t erase
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint64_t alignedLBA = align_LBA(device, eraseStartLBA);
     uint8_t *writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (writeBuffer == NULL)
+    if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase time");
         return MEMORY_FAILURE;
@@ -281,7 +293,7 @@ eReturnValues erase_Boot_Sectors(tDevice* device)
     uint64_t iter = 0;
     uint32_t dataLength = sectors * device->drive_info.deviceBlockSize;
     uint8_t* writeBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (writeBuffer == NULL)
+    if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase range");
         return MEMORY_FAILURE;

@@ -13,10 +13,24 @@
 // \file firmware_download.c
 // \brief This file defines the function for performing a firmware download to a drive
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "sleep.h"
+#if defined (_WIN32)
+#include "windows_version_detect.h" //for Windows API checks
+#endif
+
 #include "operations_Common.h"
 #include "firmware_download.h"
 #include "logs.h"
-#include "common_platform.h"
 #include "platform_helper.h"
 #include "power_control.h"
 

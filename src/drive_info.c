@@ -10,6 +10,20 @@
 //
 // ******************************************************************************************
 // 
+
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "unit_conversion.h"
+#include "time_utils.h"
+
 #include "drive_info.h"
 #include "operations.h" //this is for read-look ahead and write cache information
 #include "logs.h"
@@ -1684,8 +1698,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //Special case for SSD detection. One of these SSDs didn't set the media_type to SSD
     //but it is an SSD. So this match will catch it when this happens. It should be uncommon to find though -TJE
     if (driveInfo->rotationRate == 0 &&
-        strlen(driveInfo->modelNumber) > 0 && (strstr(driveInfo->modelNumber, "Seagate SSD") != NULL) &&
-        strlen(driveInfo->firmwareRevision) > 0 && (strstr(driveInfo->firmwareRevision, "UHFS") != NULL))
+        strlen(driveInfo->modelNumber) > 0 && (strstr(driveInfo->modelNumber, "Seagate SSD") != M_NULLPTR) &&
+        strlen(driveInfo->firmwareRevision) > 0 && (strstr(driveInfo->firmwareRevision, "UHFS") != M_NULLPTR))
     {
         driveInfo->rotationRate = 0x0001;
     }
@@ -2725,7 +2739,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
             uint8_t* idDataLog = C_CAST(uint8_t*, calloc_aligned(idDataLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (idDataLog)
             {
-                if (SUCCESS == get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, NULL, NULL, true, true, true, idDataLog, idDataLogSize, NULL, 0, 0))
+                if (SUCCESS == get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, M_NULLPTR, M_NULLPTR, true, true, true, idDataLog, idDataLogSize, M_NULLPTR, 0, 0))
                 {
                     //call function to fill in data from ID data log
                     get_ATA_Drive_Info_From_ID_Data_Log(driveInfo, &ataCap, idDataLog, idDataLogSize);
@@ -2739,7 +2753,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
             uint8_t* devStats = C_CAST(uint8_t*, calloc_aligned(devStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (devStats)
             {
-                if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, devStats, devStatsSize, NULL, 0, 0))
+                if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, M_NULLPTR, M_NULLPTR, true, true, true, devStats, devStatsSize, M_NULLPTR, 0, 0))
                 {
                     //call function to fill in data from ID data log
                     get_ATA_Drive_Info_From_Device_Statistics_Log(driveInfo, &ataCap, devStats, devStatsSize);
@@ -2784,7 +2798,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
         {
             memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
             //Read the SCT status log
-            if (SUCCESS == get_ATA_Log(device, ATA_SCT_COMMAND_STATUS, NULL, NULL, true, true, true, logBuffer, ATA_LOG_PAGE_LEN_BYTES, NULL, 0, 0))
+            if (SUCCESS == get_ATA_Log(device, ATA_SCT_COMMAND_STATUS, M_NULLPTR, M_NULLPTR, true, true, true, logBuffer, ATA_LOG_PAGE_LEN_BYTES, M_NULLPTR, 0, 0))
             {
                 uint16_t sctFormatVersion = M_BytesTo2ByteValue(logBuffer[1], logBuffer[0]);
                 if (sctFormatVersion > 1)//cannot find spec for revision 1 of this log, but we'll keep this safe until I find it with this check
@@ -2862,8 +2876,8 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
                                     char domWeekStr[3] = { C_CAST(char, farmData[362]), C_CAST(char, farmData[363]), 0 };
                                     char domYearStr[3] = { C_CAST(char, farmData[360]), C_CAST(char, farmData[361]), 0 };
                                     driveInfo->dateOfManufactureValid = true;
-                                    driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
-                                    driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10) + UINT16_C(2000));//year is 2 digits, but this log was not in existance until after 2018 or so
+                                    driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, M_NULLPTR, 10));
+                                    driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, M_NULLPTR, 10) + UINT16_C(2000));//year is 2 digits, but this log was not in existance until after 2018 or so
                                 }
                             }
                         }
@@ -2936,7 +2950,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     if (!smartStatusFromSCTStatusLog)
     {
         //SMART status
-        switch (ata_SMART_Check(device, NULL))
+        switch (ata_SMART_Check(device, M_NULLPTR))
         {
         case SUCCESS:
             driveInfo->smartStatus = 0;
@@ -3913,8 +3927,8 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                         char domWeekStr[3] = { C_CAST(char, startStopCounterLog[12]), C_CAST(char, startStopCounterLog[13]), 0 };
                                         char domYearStr[5] = { C_CAST(char, startStopCounterLog[8]), C_CAST(char, startStopCounterLog[9]), C_CAST(char, startStopCounterLog[10]), C_CAST(char, startStopCounterLog[11]), 0 };
                                         driveInfo->dateOfManufactureValid = true;
-                                        driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, NULL, 10));
-                                        driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, NULL, 10));
+                                        driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, M_NULLPTR, 10));
+                                        driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, M_NULLPTR, 10));
                                     }
                                 }
                             }
@@ -4223,7 +4237,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice* device, ptrDriveInform
 
                 //try read capacity 16, if that fails we are done trying
                 uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN * sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (temp == NULL)
+                if (temp == M_NULLPTR)
                 {
                     safe_Free_aligned(C_CAST(void**, &readCapBuf));
                     return MEMORY_FAILURE;
@@ -4419,14 +4433,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     case 0:
                         //check if AWRE and ARRE are supported or can be changed before checking if they are enabled or not.
                     {
-                        char* awreString = NULL;
-                        char* arreString = NULL;
+                        char* awreString = M_NULLPTR;
+                        char* arreString = M_NULLPTR;
                         uint32_t awreStringLength = 0;
                         uint32_t arreStringLength = 0;
                         uint8_t readWriteErrorRecovery[12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, defaultsRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             defaultsRead = true;
@@ -4491,7 +4505,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                                 }
                             }
                         }
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -4591,7 +4605,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                             uint8_t rigidGeometry[24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };
                             bool pageRead = false, sixByte = false;
                             uint16_t headerLength = 0;
-                            if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, rigidGeometry, 24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                            if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, rigidGeometry, 24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                             {
                                 uint16_t blockDescLen = 0;
                                 pageRead = true;
@@ -4634,7 +4648,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         bool pageRead = false;
                         bool sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -4681,7 +4695,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                                 //we didn't get is supported from above, so check the changable page
                                 memset(cachingPage, 0, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);
                                 pageRead = false;//reset to false before reading the changable values page
-                                if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CHANGABLE_VALUES, pageCode, subPageCode, NULL, NULL, true, cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                                if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CHANGABLE_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                                 {
                                     uint16_t blockDescLen = 0;
                                     pageRead = true;
@@ -4728,7 +4742,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         bool pageRead = false;
                         bool sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, controlPage, MP_CONTROL_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, controlPage, MP_CONTROL_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -4772,12 +4786,12 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     case 1://controlExtension
                     {
                         //check if DLC is supported or can be changed before checking if they are enabled or not.
-                        char* dlcString = NULL;
+                        char* dlcString = M_NULLPTR;
                         uint32_t dlcStringLength = 0;
                         uint8_t controlExtensionPage[MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, defaultsRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             defaultsRead = true;
@@ -4819,7 +4833,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                                 }
                             }
                         }
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -4881,7 +4895,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t ioAdviceHints[1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, ioAdviceHints, 1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, ioAdviceHints, 1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -4937,7 +4951,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         //bool pageRead = false, 
                         bool sixByte = false;
                         //uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, pataControl, 8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, pataControl, 8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             // uint16_t blockDescLen = 0;
                             // pageRead = true;
@@ -4976,7 +4990,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -5011,7 +5025,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -5142,7 +5156,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -5242,7 +5256,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -5345,14 +5359,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     {
                     case 0x00://EPC
                     {
-                        char* epcFeatureString = NULL;
+                        char* epcFeatureString = M_NULLPTR;
                         uint32_t epcFeatureStringLength = 0;
                         //read the default values to check if it's supported...then try the current page...
                         bool defaultsRead = false, sixByte = false;
                         uint8_t powerConditions[40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             defaultsRead = true;
@@ -5416,7 +5430,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                             }
                         }
                         //Now read the current page to see if it's more than just supported :)
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -5506,7 +5520,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t ataPowerConditions[16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, ataPowerConditions, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, ataPowerConditions, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -5555,7 +5569,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint8_t informationalExceptions[12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, informationalExceptions, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, informationalExceptions, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -5591,14 +5605,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     case 0x01://Background control
                     {
                         //check if DLC is supported or can be changed before checking if they are enabled or not.
-                        char* bmsString = NULL;
-                        char* bmsPSString = NULL;
+                        char* bmsString = M_NULLPTR;
+                        char* bmsPSString = M_NULLPTR;
                         uint32_t bmsStringLength = 0;
                         uint32_t bmsPSStringLength = 0;
                         uint8_t backgroundControl[16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
                         bool pageRead = false, defaultsRead = false, sixByte = false;
                         uint16_t headerLength = 0;
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, NULL, NULL, true, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             defaultsRead = true;
@@ -5663,7 +5677,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                                 }
                             }
                         }
-                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, NULL, NULL, true, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, NULL, &sixByte))
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
                         {
                             uint16_t blockDescLen = 0;
                             pageRead = true;
@@ -6248,7 +6262,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
 
     get_SCSI_Read_Capacity_Data(device, driveInfo, &scsiInfo);
 
-    if (scsiInfo.version == 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, NULL))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
+    if (scsiInfo.version == 6 && (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported || SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0, M_NULLPTR))) //security protocol commands introduced in SPC4. TODO: may need to drop to SPC3 for some devices. Need to investigate
     {
         //Check for TCG support - try sending a security protocol in command to get the list of security protocols (check for security protocol EFh? We can do that for ATA Security information)
         uint8_t* securityProtocols = C_CAST(uint8_t*, calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -6330,7 +6344,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
     if (scsiInfo.version == 2)
     {
         //Check for persistent reservation support
-        if (SUCCESS == scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 0, NULL))
+        if (SUCCESS == scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 0, M_NULLPTR))
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Persistent Reservations");
         }
@@ -8259,7 +8273,7 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
 eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)
 {
     eReturnValues ret = SUCCESS;
-    ptrDriveInformation ataDriveInfo = NULL, scsiDriveInfo = NULL, usbDriveInfo = NULL, nvmeDriveInfo = NULL;
+    ptrDriveInformation ataDriveInfo = M_NULLPTR, scsiDriveInfo = M_NULLPTR, usbDriveInfo = M_NULLPTR, nvmeDriveInfo = M_NULLPTR;
 #if defined (DEBUG_DRIVE_INFO_TIME)
     seatimer_t ataTime, scsiTime, nvmeTime;
     memset(&ataTime, 0, sizeof(seatimer_t));
@@ -8319,28 +8333,28 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
     if (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe)
     {
         ataSeconds = get_Seconds(ataTime);
-        convert_Seconds_To_Displayable_Time(ataSeconds, NULL, NULL, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(ataSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
         printf("ATA: ");
-        print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
         printf("\n");
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeSeconds = get_Seconds(nvmeTime);
-        convert_Seconds_To_Displayable_Time(nvmeSeconds, NULL, NULL, &hours, &minutes, &seconds);
+        convert_Seconds_To_Displayable_Time(nvmeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
         printf("NVMe: ");
-        print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+        print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
         printf("\n");
     }
     uint64_t scsiSeconds = get_Seconds(scsiTime);
-    convert_Seconds_To_Displayable_Time(scsiSeconds, NULL, NULL, &hours, &minutes, &seconds);
+    convert_Seconds_To_Displayable_Time(scsiSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
     printf("SCSI: ");
-    print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+    print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
     printf("\n");
     printf("Total: ");
     scsiSeconds += ataSeconds + nvmeSeconds;
-    convert_Seconds_To_Displayable_Time(scsiSeconds, NULL, NULL, &hours, &minutes, &seconds);
-    print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+    convert_Seconds_To_Displayable_Time(scsiSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
+    print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
     printf("\n");
 #endif //DEBUG_DRIVE_INFO_TIME
 
@@ -8422,7 +8436,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
 
 char* print_drive_type(tDevice* device)
 {
-    if (device != NULL)
+    if (device != M_NULLPTR)
     {
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
@@ -8459,6 +8473,6 @@ char* print_drive_type(tDevice* device)
     }
     else
     {
-        return "NULL";
+        return "M_NULLPTR";
     }
 }

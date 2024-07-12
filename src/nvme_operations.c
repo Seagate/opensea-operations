@@ -11,6 +11,18 @@
 // ******************************************************************************************
 // 
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "unit_conversion.h"
+
 #include "nvme_operations.h"
 
 void nvme_Print_Feature_Identifiers_Help(void)
@@ -864,7 +876,7 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrin
 {
     eReturnValues ret = UNKNOWN;
     int err = 0;
-    nvmeErrLogEntry * pErrLogBuf = NULL;
+    nvmeErrLogEntry * pErrLogBuf = M_NULLPTR;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
@@ -874,7 +886,7 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrin
         numOfErrToPrint = 32;
     }
     pErrLogBuf = C_CAST(nvmeErrLogEntry *, calloc_aligned(C_CAST(size_t, numOfErrToPrint), sizeof(nvmeErrLogEntry), device->os_info.minimumAlignment));
-    if (pErrLogBuf != NULL)
+    if (pErrLogBuf != M_NULLPTR)
     {
         ret = nvme_Get_ERROR_Log_Page(device, C_CAST(uint8_t*, pErrLogBuf), C_CAST(uint32_t, numOfErrToPrint * sizeof(nvmeErrLogEntry)));
         if (ret == SUCCESS)

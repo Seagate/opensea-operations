@@ -13,6 +13,17 @@
 // \file sas_phy.c
 // \brief This file holds options to do things on a SAS phy.
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "sas_phy.h"
 
 bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)

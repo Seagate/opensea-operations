@@ -13,6 +13,18 @@
 // \file farm_log.c
 // \brief This file defines the functions related to FARM Log
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+
 #include "farm_log.h"
 #include "logs.h"
 #include "vendor/seagate/seagate_ata_types.h"
@@ -103,14 +115,14 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
         {
             //FARM current logpage - (0xA6 - 0x00)
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmCurrentLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_CURRENT))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true, false, true, farmCurrentLog, ATA_FARM_LOG_PAGE_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_CURRENT))
             {
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
                 addDataSetEntry(SUBPAGE_TYPE_FARM_CURRENT, farmCurrentHeader, &numberOfDataSets, &headerLength, &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
                 FILE *tempFile = fopen("farmcurrent.bin", "w+b");
-                if (tempFile != NULL)
+                if (tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmCurrentLog, sizeof(uint8_t), ATA_FARM_LOG_PAGE_SIZE, tempFile) != C_CAST(size_t, ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempFile))
@@ -132,14 +144,14 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
             //FARM factory logpage - (0xA6 - 0x03)
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmFactoryLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true, false, true, farmFactoryLog, ATA_FARM_LOG_PAGE_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA))
             {
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
                 addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, &numberOfDataSets, &headerLength, &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
                 FILE *tempFile = fopen("farmfactory.bin", "w+b");
-                if (tempFile != NULL)
+                if (tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmFactoryLog, sizeof(uint8_t), ATA_FARM_LOG_PAGE_SIZE, tempFile) != C_CAST(size_t, ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempFile))
@@ -161,14 +173,14 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
             //FARM saved logpage - (0xA6 - 0x02)
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, NULL, NULL, true, false, true, farmSavedLog, ATA_FARM_LOG_PAGE_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_REPORT_SAVED))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true, false, true, farmSavedLog, ATA_FARM_LOG_PAGE_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_REPORT_SAVED))
             {
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
                 addDataSetEntry(SUBPAGE_TYPE_FARM_SAVE, farmSavedHeader, &numberOfDataSets, &headerLength, &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
                 FILE *tempFile = fopen("farmsaved.bin", "w+b");
-                if (tempFile != NULL)
+                if (tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmSavedLog, sizeof(uint8_t), ATA_FARM_LOG_PAGE_SIZE, tempFile) != C_CAST(size_t, ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempFile))
@@ -194,7 +206,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
             //FARM Time series logpage 0xC6 - feature 0x00
             uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC))
             {
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
@@ -204,7 +216,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempFileTimeseries = fopen("farmtimeseries.bin", "w+b");
-                if (tempFileTimeseries != NULL)
+                if (tempFileTimeseries != M_NULLPTR)
                 {
                     if (fwrite(farmTimeSeriesLog, sizeof(uint8_t), 16 * ATA_FARM_LOG_PAGE_SIZE, tempFileTimeseries) != C_CAST(size_t, 16 * ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempFileTimeseries))
@@ -223,7 +235,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempFileLongSave = fopen("farmlongsaved.bin", "w+b");
-                if (tempFileLongSave != NULL)
+                if (tempFileLongSave != M_NULLPTR)
                 {
                     if (fwrite(farmLongSavedLog, sizeof(uint8_t), 2 * ATA_FARM_LOG_PAGE_SIZE, tempFileLongSave) != C_CAST(size_t, 2 * ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempFileLongSave))
@@ -242,7 +254,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempFileSticky = fopen("farmsticky.bin", "w+b");
-                if (tempFileSticky != NULL)
+                if (tempFileSticky != M_NULLPTR)
                 {
                     if (fwrite(farmStickyLog, sizeof(uint8_t), 6 * ATA_FARM_LOG_PAGE_SIZE, tempFileSticky) != C_CAST(size_t, 6 * ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempFileSticky))
@@ -267,7 +279,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
             //FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
             {
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
@@ -277,7 +289,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempFile = fopen("farmworkloadtrace.bin", "w+b");
-                if (tempFile != NULL)
+                if (tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmWorkLoadTraceLog, sizeof(uint8_t), ATA_WORKLOAD_TRACE_PAGE_SIZE, tempFile) != C_CAST(size_t, ATA_WORKLOAD_TRACE_PAGE_SIZE)
                         || ferror(tempFile))
@@ -307,7 +319,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
             //FARM Time series logpage 0xC6 - feature 0x01
             uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH))
             {
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
@@ -317,7 +329,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempCurrentFile = fopen("farmcurrent.bin", "w+b");
-                if (tempCurrentFile != NULL)
+                if (tempCurrentFile != M_NULLPTR)
                 {
                     if (fwrite(farmCurrentLog, sizeof(uint8_t), ATA_FARM_LOG_PAGE_SIZE, tempCurrentFile) != C_CAST(size_t, ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempCurrentFile))
@@ -336,7 +348,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempSavedFile = fopen("farmsaved.bin", "w+b");
-                if (tempSavedFile != NULL)
+                if (tempSavedFile != M_NULLPTR)
                 {
                     if (fwrite(farmSavedLog, sizeof(uint8_t), ATA_FARM_LOG_PAGE_SIZE, tempSavedFile) != C_CAST(size_t, ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempSavedFile))
@@ -355,7 +367,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempTimeSeriesFile = fopen("farmtimeseries.bin", "w+b");
-                if (tempTimeSeriesFile != NULL)
+                if (tempTimeSeriesFile != M_NULLPTR)
                 {
                     if (fwrite(farmTimeSeriesLog, sizeof(uint8_t), 16 * ATA_FARM_LOG_PAGE_SIZE, tempTimeSeriesFile) != C_CAST(size_t, 16 * ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempTimeSeriesFile))
@@ -374,7 +386,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempLongSavedFile = fopen("farmlongsaved.bin", "w+b");
-                if (tempLongSavedFile != NULL)
+                if (tempLongSavedFile != M_NULLPTR)
                 {
                     if (fwrite(farmLongSavedLog, sizeof(uint8_t), 2 * ATA_FARM_LOG_PAGE_SIZE, tempLongSavedFile) != C_CAST(size_t, 2 * ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempLongSavedFile))
@@ -393,7 +405,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempStickyFile = fopen("farmsticky.bin", "w+b");
-                if (tempStickyFile != NULL)
+                if (tempStickyFile != M_NULLPTR)
                 {
                     if (fwrite(farmStickyLog, sizeof(uint8_t), 6 * ATA_FARM_LOG_PAGE_SIZE, tempStickyFile) != C_CAST(size_t, 6 * ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempStickyFile))
@@ -412,7 +424,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempFactoryFile = fopen("farmfactory.bin", "w+b");
-                if (tempFactoryFile != NULL)
+                if (tempFactoryFile != M_NULLPTR)
                 {
                     if (fwrite(farmFactoryLog, sizeof(uint8_t), ATA_FARM_LOG_PAGE_SIZE, tempFactoryFile) != C_CAST(size_t, ATA_FARM_LOG_PAGE_SIZE)
                         || ferror(tempFactoryFile))
@@ -437,7 +449,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
             //FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, NULL, NULL, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, NULL, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
+            if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
             {
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
@@ -447,7 +459,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
 
 #ifdef _DEBUG
                 FILE *tempFile = fopen("farmworkloadtrace.bin", "w+b");
-                if (tempFile != NULL)
+                if (tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmWorkLoadTraceLog, sizeof(uint8_t), ATA_WORKLOAD_TRACE_PAGE_SIZE, tempFile) != C_CAST(size_t, ATA_WORKLOAD_TRACE_PAGE_SIZE)
                         || ferror(tempFile))
@@ -578,7 +590,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
     if (is_FARM_Log_Supported(device))
     {
         startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, NULL, NULL, true, farmCurrentLog, logpageSize.currentLog, NULL);
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, M_NULLPTR, M_NULLPTR, true, farmCurrentLog, logpageSize.currentLog, M_NULLPTR);
         if (returnValue != SUCCESS)
         {
             //print error
@@ -594,7 +606,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
 
 #ifdef  _DEBUG
             FILE *tempFile = fopen("farmcurrent.bin", "w+b");
-            if (tempFile != NULL)
+            if (tempFile != M_NULLPTR)
             {
                 if (fwrite(farmCurrentLog, sizeof(uint8_t), logpageSize.currentLog, tempFile) != C_CAST(size_t, logpageSize.currentLog)
                     || ferror(tempFile))
@@ -612,7 +624,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
     if (is_Factory_FARM_Log_Supported(device))
     {
         startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
-        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, NULL, NULL, true, farmFactoryLog, logpageSize.factoryLog, NULL);
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, M_NULLPTR, M_NULLPTR, true, farmFactoryLog, logpageSize.factoryLog, M_NULLPTR);
         if (returnValue != SUCCESS)
         {
             //print error
@@ -628,7 +640,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
 
 #ifdef  _DEBUG
             FILE *tempFile = fopen("farmfactory.bin", "w+b");
-            if (tempFile != NULL)
+            if (tempFile != M_NULLPTR)
             {
                 if (fwrite(farmFactoryLog, sizeof(uint8_t), logpageSize.factoryLog, tempFile) != C_CAST(size_t, logpageSize.factoryLog)
                     || ferror(tempFile))
@@ -651,7 +663,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
 
         for (uint8_t i = SEAGATE_FARM_SP_TIME_SERIES_START; i <= SEAGATE_FARM_SP_TIME_SERIES_END; i++)
         {
-            returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempTimeSeries, logpageSize.timeSeriesLog, NULL);
+            returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, M_NULLPTR, M_NULLPTR, true, tempTimeSeries, logpageSize.timeSeriesLog, M_NULLPTR);
             if (returnValue != SUCCESS)
             {
                 //print error
@@ -676,7 +688,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
 
 #ifdef _DEBUG
             FILE *tempFile = fopen("farmtimeseries.bin", "w+b");
-            if (tempFile != NULL)
+            if (tempFile != M_NULLPTR)
             {
                 printf("writing into farmtimeseries.bin file\n");
                 if (fwrite(farmTimeSeriesLog, sizeof(uint8_t), timeSeriesLogLength, tempFile) != C_CAST(size_t, timeSeriesLogLength)
@@ -699,7 +711,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
         startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
         //pull 0xC0
-        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, NULL, NULL, true, tempLongSavedFarm, logpageSize.longSavedLog, NULL);
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, M_NULLPTR, M_NULLPTR, true, tempLongSavedFarm, logpageSize.longSavedLog, M_NULLPTR);
         if (returnValue != SUCCESS)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -716,7 +728,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
         }
 
         //pull 0xC1
-        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD2, NULL, NULL, true, tempLongSavedFarm, logpageSize.longSavedLog, NULL);
+        returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD2, M_NULLPTR, M_NULLPTR, true, tempLongSavedFarm, logpageSize.longSavedLog, M_NULLPTR);
         if (returnValue != SUCCESS)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -739,7 +751,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
 
 #ifdef _DEBUG
             FILE *tempFile = fopen("farmlongsaved.bin", "w+b");
-            if (tempFile != NULL)
+            if (tempFile != M_NULLPTR)
             {
                 if (fwrite(farmLongSavedLog, sizeof(uint8_t), longSavedLogLength, tempFile) != C_CAST(size_t, longSavedLogLength)
                     || ferror(tempFile))
@@ -762,7 +774,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
         startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
         for (uint8_t i = SEAGATE_FARM_SP_STICKY_START; i <= SEAGATE_FARM_SP_STICKY_END; i++)
         {
-            returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, NULL, NULL, true, tempSticky, logpageSize.stickyLog, NULL);
+            returnValue = get_SCSI_Log(device, SEAGATE_LP_FARM, i, M_NULLPTR, M_NULLPTR, true, tempSticky, logpageSize.stickyLog, M_NULLPTR);
             if (returnValue != SUCCESS)
             {
                 //print error
@@ -787,7 +799,7 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
 
 #ifdef _DEBUG
             FILE *tempFile = fopen("farmsticky.bin", "w+b");
-            if (tempFile != NULL)
+            if (tempFile != M_NULLPTR)
             {
                 if (fwrite(farmStickyLog, sizeof(uint8_t), stickyLogLength, tempFile) != C_CAST(size_t, stickyLogLength)
                     || ferror(tempFile))
@@ -898,20 +910,20 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
     uint8_t farmLongSavedHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
     uint8_t farmStickyHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
     uint8_t farmWorkLoadTraceHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
-    uint8_t *farmCurrentLog = NULL;
-    uint8_t *farmFactoryLog = NULL;
-    uint8_t *farmSavedLog = NULL;
-    uint8_t *farmTimeSeriesLog = NULL;
-    uint8_t *farmLongSavedLog = NULL;
-    uint8_t *farmStickyLog = NULL;
-    uint8_t *farmWorkLoadTraceLog = NULL;
-    uint8_t *zeroPaddingHeader = NULL;
-    uint8_t *farmCurrentZeroPaddingBuffer = NULL;
-    uint8_t *farmFactoryZeroPaddingBuffer = NULL;
-    uint8_t *farmSavedZeroPaddingBuffer = NULL;
-    uint8_t *farmTimeSeriesZeroPaddingBuffer = NULL;
-    uint8_t *farmLongSavedZeroPaddingBuffer = NULL;
-    uint8_t *farmStickyZeroPaddingBuffer = NULL;
+    uint8_t *farmCurrentLog = M_NULLPTR;
+    uint8_t *farmFactoryLog = M_NULLPTR;
+    uint8_t *farmSavedLog = M_NULLPTR;
+    uint8_t *farmTimeSeriesLog = M_NULLPTR;
+    uint8_t *farmLongSavedLog = M_NULLPTR;
+    uint8_t *farmStickyLog = M_NULLPTR;
+    uint8_t *farmWorkLoadTraceLog = M_NULLPTR;
+    uint8_t *zeroPaddingHeader = M_NULLPTR;
+    uint8_t *farmCurrentZeroPaddingBuffer = M_NULLPTR;
+    uint8_t *farmFactoryZeroPaddingBuffer = M_NULLPTR;
+    uint8_t *farmSavedZeroPaddingBuffer = M_NULLPTR;
+    uint8_t *farmTimeSeriesZeroPaddingBuffer = M_NULLPTR;
+    uint8_t *farmLongSavedZeroPaddingBuffer = M_NULLPTR;
+    uint8_t *farmStickyZeroPaddingBuffer = M_NULLPTR;
     tZeroPaddingBufferSize zeroPaddingBufferSize = { 0 };
 
     //set signature
@@ -1151,8 +1163,8 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         }
 
         //create and open the log file
-        FILE *farmCombinedLog = NULL;
-        char *fileNameUsed = NULL;
+        FILE *farmCombinedLog = M_NULLPTR;
+        char *fileNameUsed = M_NULLPTR;
         if (SUCCESS != create_And_Open_Log_File(device, &farmCombinedLog, filePath, "FARMC", "frmc", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)

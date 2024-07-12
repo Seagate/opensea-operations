@@ -195,7 +195,7 @@ extern "C"
     //!   \param[in] device = file descriptor
     //!
     //  Exit:
-    //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = NULL.
+    //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = M_NULLPTR.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device);

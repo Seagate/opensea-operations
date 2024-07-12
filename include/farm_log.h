@@ -36,7 +36,7 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = poiner to a valid device structure with a device handle
-    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working dir.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong

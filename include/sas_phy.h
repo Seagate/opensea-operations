@@ -20,6 +20,8 @@ extern "C"
 {
 #endif
 
+    #include "precision_timer.h"
+
     #include "operations_Common.h"
     #include "scsi_helper.h"
     #include "scsi_helper_func.h"

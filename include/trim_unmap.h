@@ -30,8 +30,8 @@ extern "C"
     //
     //  Entry:
     //!   \param device - file descriptor
-    //!   \param maxTrimOrUnmapBlockDescriptors - pointer to a uint16_t to hold the number of decriptors that can be sent. This can be NULL. On ATA, this will be a value divisible by 64 since 64 descriptors can be placed inside each TRIM command.
-    //!   \param maxLBACount - this is only for SAS since SAS can specify the maximum number of LBA's to unmap in a single command. If maxTrimOrUnmapBlockDescriptors is non-NULL, this MUST be non-NULL as well or neither value will be filled in
+    //!   \param maxTrimOrUnmapBlockDescriptors - pointer to a uint16_t to hold the number of decriptors that can be sent. This can be M_NULLPTR. On ATA, this will be a value divisible by 64 since 64 descriptors can be placed inside each TRIM command.
+    //!   \param maxLBACount - this is only for SAS since SAS can specify the maximum number of LBA's to unmap in a single command. If maxTrimOrUnmapBlockDescriptors is non-M_NULLPTR, this MUST be non-M_NULLPTR as well or neither value will be filled in
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes

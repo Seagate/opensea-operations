@@ -17,7 +17,17 @@
 //This file has a function to read the partition info from MBR, APM, or GPT partitioning on a storage drive.
 //This only reads the information and does not modify it.
 
-#include "common.h"
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "operations_Common.h"
 #include "partition_info.h"
 
@@ -388,7 +398,7 @@ gptPartitionTypeName gptGUIDNameLookup[] = {
 //used with bsearch to locate the name quicker
 static int cmp_GPT_Part_GUID(const void* a, const void* b)
 {
-    return memcmp(&(C_CAST(gptPartitionTypeName*, a))->guid, &(C_CAST(gptPartitionTypeName *, b))->guid, sizeof(gptGUID));
+    return memcmp(&(C_CAST(const gptPartitionTypeName*, a))->guid, &(C_CAST(const gptPartitionTypeName *, b))->guid, sizeof(gptGUID));
 }
 
 //This copies the mixed endianness GUID from the dataBuf into a format that can easily be output with a for-loop into the GUID variable
@@ -504,7 +514,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                     gpt->crc32PartitionEntriesValid = true;
                     for (uint64_t partIter = 0, dataOffset = 0; partIter < gpt->numberOfPartitionEntries && partIter < gptStructPartitionEntriesAvailable; ++partIter, dataOffset += sizeOfPartitionEntry)
                     {
-                        gptPartitionTypeName* gptName = NULL;
+                        gptPartitionTypeName* gptName = M_NULLPTR;
                         copy_GPT_GUID(&gptPartitionArray[dataOffset + 0], &gpt->partition[partIter].partitionTypeGUID.guid);
                         if (!gptGUIDsSorted)
                         {

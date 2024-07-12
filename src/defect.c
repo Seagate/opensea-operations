@@ -13,6 +13,18 @@
 // \file defect.h
 // \brief This file defines the functions for creating and reading defect information
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "prng.h"
+
 #include "defect.h"
 #include "smart.h"
 #include "logs.h"
@@ -650,7 +662,7 @@ eReturnValues create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRan
 {
     eReturnValues ret = SUCCESS;
     uint16_t iterator = 0;
-    seed_64(C_CAST(uint64_t, time(NULL)));//start the random number generator
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
@@ -832,14 +844,14 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
             //try issuing a read long command with no data transfer and see if it's treated as an error or not.
             if (device->drive_info.deviceMaxLba > UINT32_MAX)
             {
-                if (SUCCESS == scsi_Read_Long_16(device, false, false, 0, 0, NULL))
+                if (SUCCESS == scsi_Read_Long_16(device, false, false, 0, 0, M_NULLPTR))
                 {
                     supported = true;
                 }
             }
             else
             {
-                if (SUCCESS == scsi_Read_Long_10(device, false, false, 0, 0, NULL))
+                if (SUCCESS == scsi_Read_Long_10(device, false, false, 0, 0, M_NULLPTR))
                 {
                     supported = true;
                 }
@@ -881,7 +893,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
             ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_READ_LONG, corruptLBA, data, dataSize, &numberOfECCCRCBytes, &numberOfBlocksRequested);
             if (ret == SUCCESS)
             {
-                //seed_64(C_CAST(uint64_t, time(NULL)));
+                //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                 //modify the user data to cause a uncorrectable error
                 for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                 {
@@ -893,7 +905,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
                     dataSize = LEGACY_DRIVE_SEC_SIZE * numberOfBlocksRequested;
                 }
                 //now write back the data with a write long command
-                ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, NULL, NULL);
+                ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, M_NULLPTR, M_NULLPTR);
             }
             safe_Free_aligned(C_CAST(void**, &data));
         }
@@ -927,7 +939,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
                     ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
                     if (ret == SUCCESS)
                     {
-                        //seed_64(C_CAST(uint64_t, time(NULL)));
+                        //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                         //modify the user data to cause a uncorrectable error
                         for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                         {
@@ -946,7 +958,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
                 ret = ata_Legacy_Read_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
                 if (ret == SUCCESS)
                 {
-                    //seed_64(C_CAST(uint64_t, time(NULL)));
+                    //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                     {
@@ -1012,7 +1024,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
                 }
                 else
                 {
-                    //seed_64(C_CAST(uint64_t, time(NULL)));
+                    //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1); ++iter)
                     {
@@ -1100,7 +1112,7 @@ eReturnValues corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, 
 {
     eReturnValues ret = SUCCESS;
     uint16_t iterator = 0;
-    seed_64(C_CAST(uint64_t, time(NULL)));//start the random number generator
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
@@ -1142,7 +1154,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
             {
                 return MEMORY_FAILURE;
             }
-            if (SUCCESS == get_SCSI_Log(device, LP_PENDING_DEFECTS, 0x01, NULL, NULL, true, pendingDefectsLog, pendingLogSize, NULL))
+            if (SUCCESS == get_SCSI_Log(device, LP_PENDING_DEFECTS, 0x01, M_NULLPTR, M_NULLPTR, true, pendingDefectsLog, pendingLogSize, M_NULLPTR))
             {
                 //First, validate that we got the right SCSI log page...I've seen some USB devices ignore the subpage code and return the wrong data. - TJE
                 if (M_GETBITRANGE(pendingDefectsLog[0], 5, 0) == 0x15 && pendingDefectsLog[0] & BIT6 && pendingDefectsLog[1] == 0x01)
@@ -1222,7 +1234,7 @@ eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect d
             {
                 return MEMORY_FAILURE;
             }
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, NULL, NULL, true, false, true, pendingList, pendingLogSize, NULL, 0, 0))
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, M_NULLPTR, M_NULLPTR, true, false, true, pendingList, pendingLogSize, M_NULLPTR, 0, 0))
             {
                 uint32_t numberOfDescriptors = M_BytesTo4ByteValue(pendingList[3], pendingList[2], pendingList[1], pendingList[0]);
                 for (uint32_t descriptorIter = 0, offset = 16; descriptorIter < numberOfDescriptors && offset < pendingLogSize; ++descriptorIter, offset += 16, ++(*numberOfDefects))
@@ -1293,7 +1305,7 @@ eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundRes
             {
                 return MEMORY_FAILURE;
             }
-            if (SUCCESS == get_SCSI_Log(device, LP_BACKGROUND_SCAN_RESULTS, 0, NULL, NULL, true, backgroundScanResults, backgroundScanResultsLength, NULL))
+            if (SUCCESS == get_SCSI_Log(device, LP_BACKGROUND_SCAN_RESULTS, 0, M_NULLPTR, M_NULLPTR, true, backgroundScanResults, backgroundScanResultsLength, M_NULLPTR))
             {
                 uint16_t parameterCode = 0;
                 uint8_t parameterLength = 0;
