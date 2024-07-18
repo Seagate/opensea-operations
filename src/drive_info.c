@@ -1483,7 +1483,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         //word 117 is only valid when word 106 bit 12 is set
         if ((wordPtr[106] & BIT12) == BIT12)
         {
-            driveInfo->logicalSectorSize = M_BytesTo2ByteValue(wordPtr[118], wordPtr[117]);
+            driveInfo->logicalSectorSize = M_WordsTo4ByteValue(wordPtr[118], wordPtr[117]);
             driveInfo->logicalSectorSize *= 2; //convert to words to bytes
         }
         else //means that logical sector size is 512bytes
@@ -2876,8 +2876,19 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
                                     char domWeekStr[3] = { C_CAST(char, farmData[362]), C_CAST(char, farmData[363]), 0 };
                                     char domYearStr[3] = { C_CAST(char, farmData[360]), C_CAST(char, farmData[361]), 0 };
                                     driveInfo->dateOfManufactureValid = true;
-                                    driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, M_NULLPTR, 10));
-                                    driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, M_NULLPTR, 10) + UINT16_C(2000));//year is 2 digits, but this log was not in existance until after 2018 or so
+                                    if (!get_And_Validate_Integer_Input_Uint8(domWeekStr, NULL, ALLOW_UNIT_NONE, &driveInfo->manufactureWeek))
+                                    {
+                                        driveInfo->dateOfManufactureValid = false;
+                                    }
+                                    if (!get_And_Validate_Integer_Input_Uint16(domYearStr, NULL, ALLOW_UNIT_NONE, &driveInfo->manufactureYear))
+                                    {
+                                        driveInfo->dateOfManufactureValid = false;
+                                    }
+                                    else
+                                    {
+                                        //year is 2 digits, but this log was not in existance until after 2018 or so
+                                        driveInfo->manufactureYear += UINT16_C(2000);
+                                    }
                                 }
                             }
                         }
@@ -3927,8 +3938,14 @@ static eReturnValues get_SCSI_Log_Data(tDevice* device, ptrDriveInformationSAS_S
                                         char domWeekStr[3] = { C_CAST(char, startStopCounterLog[12]), C_CAST(char, startStopCounterLog[13]), 0 };
                                         char domYearStr[5] = { C_CAST(char, startStopCounterLog[8]), C_CAST(char, startStopCounterLog[9]), C_CAST(char, startStopCounterLog[10]), C_CAST(char, startStopCounterLog[11]), 0 };
                                         driveInfo->dateOfManufactureValid = true;
-                                        driveInfo->manufactureWeek = C_CAST(uint8_t, strtol(domWeekStr, M_NULLPTR, 10));
-                                        driveInfo->manufactureYear = C_CAST(uint16_t, strtol(domYearStr, M_NULLPTR, 10));
+                                        if (!get_And_Validate_Integer_Input_Uint8(domWeekStr, NULL, ALLOW_UNIT_NONE, &driveInfo->manufactureWeek))
+                                        {
+                                            driveInfo->dateOfManufactureValid = false;
+                                        }
+                                        if (!get_And_Validate_Integer_Input_Uint16(domYearStr, NULL, ALLOW_UNIT_NONE, &driveInfo->manufactureYear))
+                                        {
+                                            driveInfo->dateOfManufactureValid = false;
+                                        }
                                     }
                                 }
                             }
