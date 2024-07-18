@@ -97,7 +97,7 @@ eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
     {
         if (data)
         {
-            uint8_t dcoIdentData[512] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
             if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
             {
                 dcoDMASupport = false;
@@ -357,7 +357,7 @@ eReturnValues dco_Set(tDevice* device, ptrDcoData data)
     {
         if (data)
         {
-            uint8_t dcoIdentData[512] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
             if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
             {
                 dcoDMASupport = false;

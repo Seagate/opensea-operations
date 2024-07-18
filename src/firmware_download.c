@@ -113,7 +113,7 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice *
         //we do not already have a "Power cycle is requied" return code, so need to check the firmware log for the NVMe device to see if the "next active" slot value is non-zero.
         //If it is non-zero then the low-level driver did not issue the necessary reset for activation.
         //read the firmware log for more information
-        uint8_t firmwareLog[512] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareLog, 512);
         nvmeGetLogPageCmdOpts firmwareLogOpts;
         firmwareLogOpts.addr = firmwareLog;
         firmwareLogOpts.dataLen = 512;
@@ -144,7 +144,7 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice *
                 //set the firmware revision in each slot
                 //for (uint32_t slotIter = 0, offset = 8; slotIter <= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1) && slotIter <= 7 /*max of 7 slots in spec and structure*/ && offset < 512; ++slotIter, offset += 8)
                 //{
-                //    char rev[9] = { 0 };
+                //    DECLARE_ZERO_INIT_ARRAY(char, rev, 9);
                 //    memcpy(rev, &firmwareLog[offset], 8);
                 //    rev[8] = '\0';
                 //    printf("slot %u: %s\n", slotIter, rev);
@@ -872,7 +872,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                 supportedModes->firmwareSlotInfo.numberOfSlots = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1);
                 supportedModes->firmwareSlotInfo.slot1ReadOnly = device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT0;
                 //read the firmware log for more information
-                uint8_t firmwareLog[512] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareLog, 512);
                 nvmeGetLogPageCmdOpts firmwareLogOpts;
                 firmwareLogOpts.addr = firmwareLog;
                 firmwareLogOpts.dataLen = 512;
@@ -1309,7 +1309,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                 }
                 safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
             }
-            uint8_t offsetReq[4] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, offsetReq, 4);
             if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
             {
                 supportedModes->driveOffsetBoundary = offsetReq[0];
@@ -1539,7 +1539,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
                 for (uint8_t counter = 0; counter < supportedModes->firmwareSlotInfo.numberOfSlots; ++counter)
                 {
                     //slot number, read only?, active slot?, next active slot?, firmware revision in that slot
-                    char slotRevision[14] = { 0 };
+                    DECLARE_ZERO_INIT_ARRAY(char, slotRevision, 14);
                     printf("\tSlot %" PRIu8, counter + 1);
                     if ((counter + 1) == 1 && supportedModes->firmwareSlotInfo.slot1ReadOnly)
                     {

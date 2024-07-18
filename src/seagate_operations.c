@@ -1382,7 +1382,7 @@ eReturnValues request_Power_Measurement(tDevice *device, uint16_t timeMeasuremen
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint8_t pwrTelLogPg[512] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, pwrTelLogPg, 512);
         pwrTelLogPg[0] = C_CAST(uint8_t, SEAGATE_ATA_LOG_POWER_TELEMETRY);
         pwrTelLogPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
         pwrTelLogPg[2] = RESERVED;
@@ -1396,7 +1396,7 @@ eReturnValues request_Power_Measurement(tDevice *device, uint16_t timeMeasuremen
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t pwrTelDiagPg[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, pwrTelDiagPg, 16);
         pwrTelDiagPg[0] = C_CAST(uint8_t, SEAGATE_DIAG_POWER_MEASUREMENT);
         pwrTelDiagPg[1] = POWER_TELEMETRY_REQUEST_MEASUREMENT_VERSION;//version 1
         pwrTelDiagPg[2] = M_Byte1(12);//page length msb
@@ -1891,7 +1891,7 @@ uint64_t smart_attribute_vs(uint16_t verNo, SmartVendorSpecific attr)
 void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
 {
     static uint64_t lsbGbErased = 0, msbGbErased = 0, lsbLifWrtToFlash = 0, msbLifWrtToFlash = 0, lsbLifWrtFrmHost = 0, msbLifWrtFrmHost = 0, lsbLifRdToHost = 0, msbLifRdToHost = 0, lsbTrimCnt = 0, msbTrimCnt = 0;
-    char buf[40] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, buf, 40);
 #define NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH 35
     char strBuf[NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH] = { 0 };
     int hideAttr = 0;
@@ -2863,7 +2863,7 @@ eReturnValues get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIF
     }
     if (device->drive_info.drive_type == SCSI_DRIVE && SEAGATE == is_Seagate_Family(device))
     {
-        uint8_t firmwareNumbersPage[60] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareNumbersPage, 60);
         if (SUCCESS == scsi_Inquiry(device, firmwareNumbersPage, 60, 0xC0, true, false))
         {
             ret = SUCCESS;

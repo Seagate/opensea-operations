@@ -106,7 +106,7 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percent
 {
     eReturnValues result = UNKNOWN;
     //read the sanitize status log
-    uint8_t sanitizeStatusLog[512] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, sanitizeStatusLog, 512);
     nvmeGetLogPageCmdOpts getLogOpts;
     memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
     getLogOpts.dataLen = 512;
@@ -318,7 +318,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
         {
             return NOT_SUPPORTED;
         }
-        uint8_t supportedCommands[14] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCommands, 14);
         ret = FAILURE;
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
         {

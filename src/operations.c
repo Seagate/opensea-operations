@@ -2415,7 +2415,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         else
         {
             //not supported (SATL most likely)
-            uint8_t modeData[2] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, modeData, 2);
             modeData[0] = modePage;
             modeData[1] = subpage;
             print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
@@ -2450,7 +2450,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         else
         {
             //not supported (SATL most likely)
-            uint8_t modeData[2] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, modeData, 2);
             modeData[0] = modePage;
             modeData[1] = subpage;
             print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0], modeData, 2, mpc, bufferFormatOutput);
@@ -2475,7 +2475,7 @@ static bool reset_Specific_Log_Page_Supported(tDevice *device)
     bool supported = false;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
     {
-        uint8_t supportData[14] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportData, 14);
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, 1, LOG_SELECT_CMD, 0, 14, supportData))
         {
             uint8_t support = M_GETBITRANGE(supportData[1], 2, 0);
@@ -2522,7 +2522,7 @@ uint8_t get_LUN_Count(tDevice *device)
     uint8_t lunCount = 1;//assume 1 since we are talking over a lun right now. - TJE
     if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
     {
-        uint8_t luns[4] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, luns, 4);
         uint8_t selectReport = 0x02;//or 0????
         if (SUCCESS == scsi_Report_Luns(device, selectReport, 4, luns))
         {
@@ -2536,7 +2536,7 @@ uint8_t get_LUN_Count(tDevice *device)
 eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, uint16_t serviceAction)
 {
     eMLU mlu = MLU_NOT_REPORTED;
-    uint8_t reportOp[4] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, reportOp, 4);
     uint8_t reportingOptions = 1;
     if (serviceAction > 0)
     {

@@ -128,7 +128,7 @@ eReturnValues get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersi
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t capabilities[8] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, capabilities, 8);
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_REPORT_CAPABILITIES, 8, capabilities)))
         {
             uint16_t prCapabilitiesLength = M_BytesTo2ByteValue(capabilities[0], capabilities[1]);
@@ -570,7 +570,7 @@ eReturnValues get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t readKeyCount[8] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, readKeyCount, 8);
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_KEYS, 8, readKeyCount)))
         {
             *keyCount = C_CAST(uint16_t, M_BytesTo4ByteValue(readKeyCount[4], readKeyCount[5], readKeyCount[6], readKeyCount[7]) / UINT32_C(8));//each registered key is 8 bytes in length
@@ -685,7 +685,7 @@ eReturnValues get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCou
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t reservationKeys[8] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, reservationKeys, 8);
         if (SUCCESS == (ret = scsi_Persistent_Reserve_In(device, SCSI_PERSISTENT_RESERVE_IN_READ_RESERVATION, 8, reservationKeys)))
         {
             *reservationKeyCount = C_CAST(uint16_t, M_BytesTo4ByteValue(reservationKeys[4], reservationKeys[5], reservationKeys[6], reservationKeys[7]) / UINT32_C(16));
@@ -1486,7 +1486,7 @@ eReturnValues register_Key(tDevice * device, uint64_t registrationKey, bool allT
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t registerData[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, 16);
         registerData[8] = M_Byte0(registrationKey);
         registerData[9] = M_Byte1(registrationKey);
         registerData[10] = M_Byte2(registrationKey);
@@ -1517,7 +1517,7 @@ eReturnValues unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t registerData[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, 16);
         registerData[0] = M_Byte0(currentRegistrationKey);
         registerData[1] = M_Byte1(currentRegistrationKey);
         registerData[2] = M_Byte2(currentRegistrationKey);
@@ -1579,7 +1579,7 @@ eReturnValues acquire_Reservation(tDevice *device, uint64_t key, eReservationTyp
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t acquireRes[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, acquireRes, 16);
         uint8_t nvmeReservationType = 0;
         acquireRes[0] = M_Byte0(key);
         acquireRes[1] = M_Byte1(key);
@@ -1666,7 +1666,7 @@ eReturnValues release_Reservation(tDevice *device, uint64_t key, eReservationTyp
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t releaseRes[8] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, releaseRes, 8);
         uint8_t nvmeReservationType = 0;
         releaseRes[0] = M_Byte0(key);
         releaseRes[1] = M_Byte1(key);
@@ -1719,7 +1719,7 @@ eReturnValues clear_Reservations(tDevice *device, uint64_t key)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t clearRes[8] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, clearRes, 8);
         clearRes[0] = M_Byte0(key);
         clearRes[1] = M_Byte1(key);
         clearRes[2] = M_Byte2(key);
@@ -1782,7 +1782,7 @@ eReturnValues preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemp
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t preemptRes[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, preemptRes, 16);
         uint8_t nvmeReservationType = 0;
         preemptRes[0] = M_Byte0(key);
         preemptRes[1] = M_Byte1(key);

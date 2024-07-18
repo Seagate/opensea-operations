@@ -34,7 +34,7 @@
 
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
-    uint8_t formatSupportData[10] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, formatSupportData, 10);
     if (fastFormatSupported)
     {
         *fastFormatSupported = false;//make sure this defaults to false
@@ -316,7 +316,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
     if (!formatParameters.currentBlockSize || formatParameters.newMaxLBA)
     {
         bool modeSelect10 = true;
-        uint8_t modeParameterData[24] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, modeParameterData, 24);
         //try mode sense 10 with LongLBA bit set...if that fails, try mode sense 6
         if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, true, MPC_CURRENT_VALUES, modeParameterData))
         {
@@ -820,7 +820,7 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
     {
         //pull the VPD page and determine how many are supported based on descriptor length and the VPD page length
         uint32_t scsiSectorSizesSupported = 0;
-        uint8_t supportedBlockLengthsData[4] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedBlockLengthsData, 4);
         if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, M_NULLPTR, M_NULLPTR, true, supportedBlockLengthsData, 4, M_NULLPTR))
         {
             uint16_t pageLength = M_BytesTo2ByteValue(supportedBlockLengthsData[2], supportedBlockLengthsData[3]);

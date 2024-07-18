@@ -72,7 +72,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
 {
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
-        uint8_t ataSecurityInfo[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, ataSecurityInfo, 16);
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_READ_INFO, false, SAT_SECURITY_INFO_LEN, ataSecurityInfo))
         {
             securityStatus->securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]) * ATA_SECURITY_TIME_MULTIPLIER;
@@ -207,7 +207,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     //read ID data log page for security bits to get restrictedSanitizeOverridesSecurity bit
     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.ata_Options.generalPurposeLoggingSupported)
     {
-        uint8_t securityPage[512] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, securityPage, 512);
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, 0, 0, securityPage, 512, 0))
         {
             if (M_BytesTo2ByteValue(securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * 512 > 0)

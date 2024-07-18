@@ -28,7 +28,7 @@
 
 bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
 {
-    uint8_t supportedDiagnosticPages[50] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedDiagnosticPages, 50);
     if (SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 50, supportedDiagnosticPages, 50, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x00, 50, supportedDiagnosticPages, 15))
     {
         //check that page 3F is supported.
@@ -100,7 +100,7 @@ static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t
 eReturnValues start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern,  bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t sasDiagPage[32] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, sasDiagPage, 32);
     ret = build_SAS_SSP_Diagnostic_Page(sasDiagPage, phyIdentifier, SAS_PHY_FUNC_TRANSMIT_PATTERN, pattern, sataTestFunction, testFunctionSSC, linkRate, dwordControl, phyTestPatternDwords);
     if (ret == SUCCESS)
     {
@@ -112,7 +112,7 @@ eReturnValues start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSA
 eReturnValues stop_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t sasDiagPage[32] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, sasDiagPage, 32);
     ret = build_SAS_SSP_Diagnostic_Page(sasDiagPage, phyIdentifier, SAS_PHY_FUNC_STOP, 0, false, 0, linkRate, 0, 0);//I'm assuming the stop command doesn't need to specify anything else that matches the running test. - TJE
     if (ret == SUCCESS)
     {

@@ -125,8 +125,8 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
         {
             if (reset)
             {
-                uint8_t readCap10Data[8] = { 0 };
-                uint8_t readCap16Data[32] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, readCap10Data, 8);
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, readCap16Data, 32);
                 //read capacity command to get the max LBA
                 if (SUCCESS == scsi_Read_Capacity_10(device, readCap10Data, 8))
                 {

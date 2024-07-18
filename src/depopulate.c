@@ -69,7 +69,7 @@ bool is_Depopulation_Feature_Supported(tDevice *device, uint64_t *depopulationTi
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //send some report supported operation code commands to figure it out
-        uint8_t reportOpCodes[20] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, reportOpCodes, 20);
         bool getElementStatusSupported = false;
         bool removeAndTruncateSupported = false;
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x17, 20, reportOpCodes))
@@ -899,7 +899,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //send some report supported operation code commands to figure it out
-        uint8_t reportOpCodes[20] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, reportOpCodes, 20);
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x1A, 20, reportOpCodes))
         {
             switch (reportOpCodes[1] & 0x07)
@@ -989,7 +989,7 @@ bool is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //send some report supported operation code commands to figure it out
-        uint8_t reportOpCodes[20] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, reportOpCodes, 20);
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, 0x9E, 0x19, 20, reportOpCodes))
         {
             switch (reportOpCodes[1] & 0x07)

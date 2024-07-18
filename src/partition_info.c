@@ -441,7 +441,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
             gptHeaderOffset = gptDataSize - device->drive_info.deviceBlockSize;
         }
 
-        char gptSignature[9] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, 9);
         memcpy(gptSignature, &gptDataBuf[gptHeaderOffset], 8);
         if (strcmp(gptSignature, "EFI PART") == 0)
         {
@@ -573,7 +573,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
         {
             if (SUCCESS == read_LBA(device, lba, false, dataBuffer, dataSize))//using fua to make sure we are reading from the media, not cache
             {
-                char gptSignature[9] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(char, gptSignature, 9);
                 if (lba == 0)
                 {
                     memcpy(gptSignature, &dataBuffer[device->drive_info.deviceBlockSize], 8);

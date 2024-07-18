@@ -91,7 +91,7 @@ eReturnValues nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesS
     printf("===============================\n");
     for (featureID = 1; featureID <= 0xFF; featureID++)
     {
-        uint8_t featData[4096] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, featData, 4096);
         memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
         featureCmd.fid = C_CAST(uint8_t, featureID);
         featureCmd.sel = C_CAST(uint8_t, selectType);
@@ -414,7 +414,7 @@ static eReturnValues nvme_Print_Async_Config_Feature_Details(tDevice *device, eN
 static eReturnValues nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesSelectValue selectType)
 {
     eReturnValues ret = UNKNOWN;
-    uint8_t hmbData[4096] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, hmbData, 4096);
     nvmeFeaturesCmdOpt featureCmd;
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);

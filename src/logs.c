@@ -965,7 +965,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
 bool is_SCSI_Read_Buffer_16_Supported(tDevice *device)
 {
     bool supported = false;
-    uint8_t reportSupportedOperationCode[20] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, reportSupportedOperationCode, 20);
     if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, READ_BUFFER_16_CMD, 0, 20, reportSupportedOperationCode))
     {
         if (M_GETBITRANGE(reportSupportedOperationCode[1], 2, 0) == 3)//matches the spec
@@ -2719,7 +2719,7 @@ eReturnValues print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
         uint16_t supportedPagesLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]);
         uint8_t incrementAmount = subpagesSupported ? 2 : 1;
         uint16_t pageLength = 0;//for each page in the supported buffer so we can report the size
-        uint8_t logPage[4] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, logPage, 4);
         bool vsHeaderPrinted = false;
         bool reservedHeaderPrinted = false;
         printf("\n  Page Code  :  Subpage Code  :  Size (Bytes)\n");
@@ -3405,7 +3405,7 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uin
         if ((rb16 && SUCCESS == scsi_Read_Buffer_16(device, 0x1C, 0, 0, 0, errorHistorySize, errorHistoryDirectory)) || SUCCESS == scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory))
         {
             ret = SUCCESS;
-            char vendorIdentification[9] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, vendorIdentification, 9);
             uint8_t version = errorHistoryDirectory[1];
             uint16_t directoryLength = M_BytesTo2ByteValue(errorHistoryDirectory[30], errorHistoryDirectory[31]);
             memcpy(vendorIdentification, errorHistoryDirectory, 8);

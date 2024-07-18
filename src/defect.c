@@ -196,7 +196,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                     {
                         bool multipleCommandsSupported = false;
                         //possibly multiple commands (if address descriptor index is supported in the command...added in SBC3)
-                        uint8_t reportOPCodeSupport[16] = { 0 };
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, reportOPCodeSupport, 16);
                         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, READ_DEFECT_DATA_12_CMD, 0, 16, reportOPCodeSupport))
                         {
                             //skipping the support data since we shouldn't be this far if the command isn't supported!

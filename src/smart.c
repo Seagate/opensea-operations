@@ -2391,7 +2391,7 @@ static eReturnValues get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
     if (is_SMART_Command_Transport_Supported(device))
     {
         //try reading the SCT status log (ACS4 adds SMART status to this log)
-        uint8_t sctStatus[512] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, sctStatus, 512);
         ret = send_ATA_SCT_Status(device, sctStatus, 512);
         if (ret == SUCCESS)
         {
@@ -3227,7 +3227,7 @@ eReturnValues get_Pending_List_Count(tDevice *device, uint32_t *pendingCount)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //get by reading the pending defects log page (SBC4) parameter 0, which is a count
-        uint8_t pendingLog[12] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, pendingLog, 12);
         if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PENDING_DEFECTS, 1, 0, pendingLog, 12))
         {
             //parameter 0 has the count
@@ -3289,7 +3289,7 @@ eReturnValues get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t defectData[8] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, defectData, 8);
         //get by reading the grown list since it contains a number of entries at the beggining
         uint8_t defectListFormat = AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR;
         uint32_t listSizeDivisor = UINT32_C(8);
@@ -3611,7 +3611,7 @@ eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvT
     if (is_SMART_Command_Transport_Supported(device))
     {
         //try reading the SCT status log (ACS4 adds SMART status to this log)
-        uint8_t sctStatus[512] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, sctStatus, 512);
         ret = send_ATA_SCT_Status(device, sctStatus, 512);
         if (ret == SUCCESS)
         {
@@ -4467,7 +4467,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
             {
                 //extended comprehensive SMART error log
                 //We will read each sector of the log as we need it to help with some USB compatibility (and so we don't read more than we need)
-                uint8_t errorLog[512] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, errorLog, 512);
                 uint16_t pageNumber = 0;
                 get_ATA_Log_Size(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, &compErrLogSize, true, false);
                 uint16_t maxPage = C_CAST(uint16_t, compErrLogSize / UINT16_C(512));

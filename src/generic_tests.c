@@ -204,7 +204,7 @@ eReturnValues short_Generic_Write_Test(tDevice *device, custom_Update updateFunc
 eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData, bool hideLBACounter)
 {
     eReturnValues ret = SUCCESS;
-    char message[256] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, message, 256);
     uint16_t randomLBACount = 5000;
     uint64_t *randomLBAList = C_CAST(uint64_t*, calloc(randomLBACount, sizeof(uint64_t)));
     uint64_t iterator = 0;
@@ -789,7 +789,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         uint64_t odBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, odTest.sectorCount);
         double odTotalBytesTransferred = C_CAST(double, odBytesPerTransfer * odTest.numberOfCommandsIssued);
         double odDataRate = odTotalBytesTransferred / C_CAST(double, odTest.totalTimeNS) * 1e-9;
-        char odDataRateUnits[3] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, odDataRateUnits, 3);
         char *odDataRateUnit = &odDataRateUnits[0];
         metric_Unit_Convert(&odDataRate, &odDataRateUnit);
         printf("\tData Rate: %0.02f %s/s\n", odDataRate, odDataRateUnit);
@@ -818,7 +818,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         uint64_t idBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, idTest.sectorCount);
         double idTotalBytesTransferred = C_CAST(double, idBytesPerTransfer * idTest.numberOfCommandsIssued);
         double idDataRate = idTotalBytesTransferred / (C_CAST(double, idTest.totalTimeNS) * 1e-9);
-        char idDataRateUnits[3] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, idDataRateUnits, 3);
         char *idDataRateUnit = &idDataRateUnits[0];
         metric_Unit_Convert(&idDataRate, &idDataRateUnit);
         printf("\tData Rate: %0.02f %s/s\n", idDataRate, idDataRateUnit);
@@ -846,7 +846,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         uint64_t randomBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, randomTest.sectorCount);
         double randomTotalBytesTransferred = C_CAST(double, randomBytesPerTransfer * randomTest.numberOfCommandsIssued);
         double randomDataRate = randomTotalBytesTransferred / (C_CAST(double, randomTest.totalTimeNS) * 1e-9);
-        char randomDataRateUnits[3] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, randomDataRateUnits, 3);
         char *randomDataRateUnit = &randomDataRateUnits[0];
         metric_Unit_Convert(&randomDataRate, &randomDataRateUnit);
         printf("\tData Rate: %0.02f %s/s\n", randomDataRate, randomDataRateUnit);

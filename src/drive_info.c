@@ -1611,7 +1611,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (wordPtr[169] & BIT0)
         {
             //add additional info for deterministic and zeroes
-            char trimDetails[30] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, trimDetails, 30);
             if (deterministicTrim || zeroesAfterTrim)
             {
                 if (deterministicTrim && zeroesAfterTrim)
@@ -2619,7 +2619,7 @@ static eReturnValues get_Security_Features_From_Security_Protocol(tDevice *devic
             {
                 info->ataDeviceServer = true;
                 //read the data from this page to set ATA security information
-                uint8_t ataSecurityInfo[16] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, ataSecurityInfo, 16);
                 if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, 0, false, 16, ataSecurityInfo))
                 {
 
@@ -3464,11 +3464,11 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                     {
                         if (logicalBlockProvisioning[5] & BIT7)
                         {
-                            char unmapDetails[48] = { 0 };
+                            DECLARE_ZERO_INIT_ARRAY(char, unmapDetails, 48);
                             uint8_t lbprz = M_GETBITRANGE(logicalBlockProvisioning[5], 4, 2);
                             if (logicalBlockProvisioning[5] & BIT1 || lbprz)
                             {
-                                char lbprzStr[22] = { 0 };
+                                DECLARE_ZERO_INIT_ARRAY(char, lbprzStr, 22);
                                 if (lbprz == 0)
                                 {
                                     //vendor unique
@@ -6439,7 +6439,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice *device, ptrDrive
         memset(&getHostIdentifier, 0, sizeof(nvmeFeaturesCmdOpt));
         getHostIdentifier.fid = 0x81;
         getHostIdentifier.sel = 0;//current data
-        uint8_t hostIdentifier[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, hostIdentifier, 16);
         getHostIdentifier.dataPtr = hostIdentifier;
         getHostIdentifier.dataLength = 16;
         if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
@@ -6490,7 +6490,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice *device, ptrDrive
         //set Long DST Time before reading the log
         driveInfo->controllerData.longDSTTimeMinutes = M_BytesTo2ByteValue(nvmeIdentifyData[317], nvmeIdentifyData[316]);
         //Read the NVMe DST log
-        uint8_t nvmeDSTLog[564] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeDSTLog, 564);
         nvmeGetLogPageCmdOpts dstLogOpts;
         memset(&dstLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
         dstLogOpts.addr = nvmeDSTLog;
@@ -6773,7 +6773,7 @@ static eReturnValues get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe 
         return BAD_PARAMETER;
     }
     //Data from SMART log page
-    uint8_t nvmeSMARTData[512] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeSMARTData, 512);
     nvmeGetLogPageCmdOpts smartLogOpts;
     memset(&smartLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
     smartLogOpts.addr = nvmeSMARTData;
@@ -6903,7 +6903,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         //TODO: Print out the host identifier
     }
     printf("\tFGUID: ");
-    uint8_t zero128Bit[16] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, zero128Bit, 16);
     if (memcmp(zero128Bit, driveInfo->controllerData.fguid, 16))
     {
         for (uint8_t i = 0; i < 16; ++i)

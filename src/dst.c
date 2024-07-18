@@ -74,7 +74,7 @@ eReturnValues abort_DST(tDevice *device)
 eReturnValues ata_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
     eReturnValues result = UNKNOWN;
-    uint8_t temp_buf[512] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, temp_buf, 512);
     result = ata_SMART_Read_Data(device, temp_buf, sizeof(temp_buf));
     if (result == SUCCESS)
     {
@@ -429,7 +429,7 @@ bool is_Self_Test_Supported(tDevice *device)
                 //      Since the SAMART read data has been made obsolete on newer standards, we may need a version check or something to keep proper behavior
                 //      as new devices show up without support for this information.
                 //SMART read data is listed as optional in ata/atapi-7
-                uint8_t smartData[512] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, 512);
                 if (SUCCESS == ata_SMART_Read_Data(device, smartData, 512))
                 {
                     //check the pff-line data collection capability field
@@ -612,7 +612,7 @@ static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, 
             //      Since the SAMART read data has been made obsolete on newer standards, we may need a version check or something to keep proper behavior
             //      as new devices show up without support for this information.
             //SMART read data is listed as optional in ata/atapi-7
-            uint8_t smartData[512] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, 512);
             if (SUCCESS == ata_SMART_Read_Data(device, smartData, 512))
             {
                 //check the pff-line data collection capability field
@@ -654,7 +654,7 @@ static eReturnValues get_SMART_Offline_Status(tDevice* device, uint8_t *status)
     {
         return BAD_PARAMETER;
     }
-    uint8_t smartData[512] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, 512);
     ret = ata_SMART_Read_Data(device, smartData, 512);
     if (ret == SUCCESS)
     {
@@ -1844,7 +1844,7 @@ static eReturnValues get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries 
     {
         nvmeGetLogPageCmdOpts dstLogParms;
         memset(&dstLogParms, 0, sizeof(nvmeGetLogPageCmdOpts));
-        uint8_t nvmeDSTLog[564] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeDSTLog, 564);
         dstLogParms.addr = nvmeDSTLog;
         dstLogParms.dataLen = 564;
         dstLogParms.lid = 0x06;
@@ -1857,7 +1857,7 @@ static eReturnValues get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries 
             for (uint32_t offset = 4; offset < 564 && entries->numberOfEntries < 20; offset += 28)//maximum of 20 NVMe DST log entires
             {
                 //check if the entry is valid by checking for zeros
-                uint8_t zeros[28] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, zeros, 28);
                 if (memcmp(zeros, &nvmeDSTLog[offset], 28) && M_Nibble0(nvmeDSTLog[offset + 0]) != 0x0F)//0F in NVMe is an unused entry.
                 {
                     entries->dstEntry[entries->numberOfEntries].selfTestRun = M_Nibble1(nvmeDSTLog[offset + 0]);
@@ -2148,7 +2148,7 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
             }
             if (percentRemaining > 0)
             {
-                char percentRemainingString[8] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(char, percentRemainingString, 8);
                 snprintf(percentRemainingString, 8, " (%" PRIu8 "%%)", percentRemaining);
                 common_String_Concat(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, percentRemainingString);
             }

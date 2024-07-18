@@ -53,7 +53,7 @@ static bool are_Buffer_Commands_Available(tDevice *device)
         //SCSI 1 probably won't...but this is so old it may not be a problem
         //Only asking about read buffer command, since write buffer will likely be implemented for at least FWDL, so if this is supported, the equivalent write buffer command should also be supported
         bool driveReportedSupport = false;
-        uint8_t supportedCommandData[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCommandData, 16);
         if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, READ_BUFFER_CMD, 0x02, 14, supportedCommandData))//trying w/ service action (newer SPC spec allows this)
         {
             driveReportedSupport = true;
@@ -105,7 +105,7 @@ static eReturnValues get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint
     //get the size of the buffer for the drive.
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t bufferSizeData[4] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, bufferSizeData, 4);
         if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, bufferSizeData))
         {
             *offsetBoundary = bufferSizeData[0];//not sure if this is actually needed - TJE

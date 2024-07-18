@@ -7548,8 +7548,8 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            char week[3] = { 0 };
-            char year[5] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, week, 3);
+            DECLARE_ZERO_INIT_ARRAY(char, year, 5);
             year[0] = C_CAST(char, M_Byte3(theStatistic.statisticValue));
             year[1] = C_CAST(char, M_Byte2(theStatistic.statisticValue));
             year[2] = C_CAST(char, M_Byte1(theStatistic.statisticValue));
