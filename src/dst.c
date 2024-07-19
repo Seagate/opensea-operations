@@ -948,7 +948,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                 if (status == 0 && ret == SUCCESS)
                 {
                     //printf 35 characters + width of warning message to clear the line before printing this final status update
-                    printf("\r                                    %.*s", C_CAST(int, strlen(overTimeWarningMessage)), "                                                                        ");
+                    printf("\r                                    %.*s", C_CAST(int, safe_strlen(overTimeWarningMessage)), "                                                                        ");
                     printf("\r    Test progress: 100%% complete   ");
                     fflush(stdout);
                     ret = SUCCESS; //we passed.

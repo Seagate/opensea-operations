@@ -1553,7 +1553,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
                     {
                         printf(" (Next Active)");
                     }
-                    if (strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
+                    if (safe_strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
                     {
                         snprintf(slotRevision, 14, "%s", supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision);
                     }

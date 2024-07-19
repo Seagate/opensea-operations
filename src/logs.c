@@ -53,7 +53,7 @@ eReturnValues generate_Logfile_Name(tDevice *device, const char * const logName,
         //I thought about passing in a flag for this in case we read a SCSI log page over USB, 
         //but I figured we probably won't do that and/or don't care to do that so for now this will work and is simple-TJE
         serialNumber = device->drive_info.serialNumber;
-        if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && strlen(device->drive_info.bridge_info.childDriveSN) > 0)
+        if ((device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == IEEE_1394_INTERFACE) && safe_strlen(device->drive_info.bridge_info.childDriveSN) > 0)
         {
             serialNumber = device->drive_info.bridge_info.childDriveSN;
         }
@@ -132,7 +132,7 @@ eReturnValues create_And_Open_Log_File(tDevice *device,\
 
     if (logPath)
     {
-        if (logPath[strlen(logPath) - 1] == SYSTEM_PATH_SEPARATOR)
+        if (logPath[safe_strlen(logPath) - 1] == SYSTEM_PATH_SEPARATOR)
         {
             systemPathSeparatorInLogPath = true;
         }
@@ -213,7 +213,7 @@ eReturnValues create_And_Open_Log_File(tDevice *device,\
         if (logPath && (strcmp(logPath, "") != 0))
         {
             //need to append a path to the beginning of the file name!!!
-            size_t pathAndFileNameLength = strlen(logPath) + strlen(filename) + 2;
+            size_t pathAndFileNameLength = safe_strlen(logPath) + safe_strlen(filename) + 2;
             pathAndFileName = C_CAST(char*, safe_calloc(pathAndFileNameLength, sizeof(char)));
             if (!pathAndFileName)
             {

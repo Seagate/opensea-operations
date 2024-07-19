@@ -1776,7 +1776,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
 
             if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
             {
-                if (strlen(attributeName))
+                if (safe_strlen(attributeName))
                 {
                     printf("%u - %s\n", iter, attributeName);
                 }
@@ -2481,17 +2481,17 @@ eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                 tripInfo->ataAttribute.thresholdValue = attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
                                 char *attributeName = C_CAST(char *, safe_calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
                                 get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
-                                if (strlen(attributeName))
+                                if (safe_strlen(attributeName))
                                 {
                                     //use the name in the error reason
                                     snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] set to test trip!", attributeName, tripInfo->ataAttribute.attributeNumber);
-                                    tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                    tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                 }
                                 else
                                 {
                                     //Couldn't look up the name, so set a generic error reason
                                     snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " set to test trip!", tripInfo->ataAttribute.attributeNumber);
-                                    tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                    tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                 }
                             }
                             break;
@@ -2530,17 +2530,17 @@ eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                     {
                                         get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
                                     }
-                                    if (attributeName && strlen(attributeName) > 0)
+                                    if (attributeName && safe_strlen(attributeName) > 0)
                                     {
                                         //use the name in the error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, whenFailedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         //Couldn't look up the name, so set a generic error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenFailedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
                                     safe_Free(C_CAST(void**, &attributeName));
                                 }
@@ -2574,17 +2574,17 @@ eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                     {
                                         get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
                                     }
-                                    if (attributeName && strlen(attributeName) > 0)
+                                    if (attributeName && safe_strlen(attributeName) > 0)
                                     {
                                         //use the name in the error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] is warning! %s Value %" PRIu8 " below Threshold %" PRIu8 "", attributeName, tripInfo->ataAttribute.attributeNumber, whenWarnedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         //Couldn't look up the name, so set a generic error reason
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " is warning! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenWarnedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
-                                        tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                                        tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
                                     safe_Free(C_CAST(void**, &attributeName));
                                 }
@@ -2812,7 +2812,7 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t asc, uint8_t ascq, char
         //Don't do anything. This is not a valid sense combination for a SMART trip
         break;
     }
-    *reasonStringOutputLength = C_CAST(uint8_t, strlen(reasonString));
+    *reasonStringOutputLength = C_CAST(uint8_t, safe_strlen(reasonString));
 }
 //
 eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
@@ -3025,37 +3025,37 @@ eReturnValues nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
             {
                 tripInfo->nvmeCriticalWarning.spareSpaceBelowThreshold = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX, "Available Spare Space has fallen below the threshold");
-                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT1)
             {
                 tripInfo->nvmeCriticalWarning.temperatureExceedsThreshold = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX, "Temperature is above an over temperature threshold or below an under temperature threshold");
-                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT2)
             {
                 tripInfo->nvmeCriticalWarning.nvmSubsystemDegraded = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX, "NVM subsystem reliability has been degraded due to significant media related errors or an internal error that degrades reliability");
-                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT3)
             {
                 tripInfo->nvmeCriticalWarning.mediaReadOnly = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX, "Media has been placed in read only mode");
-                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT4)
             {
                 tripInfo->nvmeCriticalWarning.volatileMemoryBackupFailed = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX, "Volatile Memory backup device has failed");
-                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT5)
             {
                 tripInfo->nvmeCriticalWarning.persistentMemoryRegionReadOnlyOrUnreliable = true;
                 snprintf(tripInfo->reasonString, UINT8_MAX, "Persistent Memory Region has become read-only or unreliable");
-                tripInfo->reasonStringLength = C_CAST(uint8_t, strlen(tripInfo->reasonString));
+                tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT6)
             {
@@ -7540,7 +7540,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
     if (status & ATA_STATUS_BIT_ALIGNMENT_ERROR)
     {
         //device reports an alignment error
-        if (strlen(statusMessage) > 0)
+        if (safe_strlen(statusMessage) > 0)
         {
             common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
@@ -7548,7 +7548,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
     }
     if (isStream && (status & ATA_STATUS_BIT_DEFERRED_WRITE_ERROR))
     {
-        if (strlen(statusMessage) > 0)
+        if (safe_strlen(statusMessage) > 0)
         {
             common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
@@ -7558,7 +7558,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
 
     if (status & ATA_STATUS_BIT_ERROR)
     {
-        if (strlen(statusMessage) > 0)
+        if (safe_strlen(statusMessage) > 0)
         {
             common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
@@ -7571,7 +7571,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
         }
         if (error & ATA_ERROR_BIT_INTERFACE_CRC)//abort bit will also be set to 1 if this is set to 1
         {
-            if (strlen(errorMessage) > 0)
+            if (safe_strlen(errorMessage) > 0)
             {
                 common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
@@ -7579,7 +7579,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
         }
         if (error & ATA_ERROR_BIT_UNCORRECTABLE_DATA)
         {
-            if (strlen(errorMessage) > 0)
+            if (safe_strlen(errorMessage) > 0)
             {
                 common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
@@ -7587,7 +7587,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
         }
         if (error & ATA_ERROR_BIT_ID_NOT_FOUND)// - media access and possibly commands to set max lba
         {
-            if (strlen(errorMessage) > 0)
+            if (safe_strlen(errorMessage) > 0)
             {
                 common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
@@ -7595,7 +7595,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
         }
         if (isRecal && (error & ATA_ERROR_BIT_TRACK_ZERO_NOT_FOUND))// - recalibrate commands only
         {
-            if (strlen(errorMessage) > 0)
+            if (safe_strlen(errorMessage) > 0)
             {
                 common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
@@ -7603,17 +7603,17 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
         }
         if (isStream && (error & ATA_ERROR_BIT_COMMAND_COMPLETION_TIME_OUT))// - streaming
         {
-            if (strlen(errorMessage) > 0)
+            if (safe_strlen(errorMessage) > 0)
             {
                 common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
             common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Command Completion Time Out");
         }
-        if (strlen(errorMessage) == 0)
+        if (safe_strlen(errorMessage) == 0)
         {
             if (is_Possible_Recalibrate_Command(commandOpCodeThatCausedError))
             {
-                if (strlen(errorMessage) > 0)
+                if (safe_strlen(errorMessage) > 0)
                 {
                     common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
                 }
@@ -7621,7 +7621,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
             }
             else
             {
-                if (strlen(errorMessage) > 0)
+                if (safe_strlen(errorMessage) > 0)
                 {
                     common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
                 }
@@ -7637,7 +7637,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
     }
     else
     {
-        if (strlen(statusMessage) == 0)
+        if (safe_strlen(statusMessage) == 0)
         {
             snprintf(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Unknown Status Bits Set: %02" PRIX8 "h)", status);
         }

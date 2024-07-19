@@ -1698,8 +1698,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //Special case for SSD detection. One of these SSDs didn't set the media_type to SSD
     //but it is an SSD. So this match will catch it when this happens. It should be uncommon to find though -TJE
     if (driveInfo->rotationRate == 0 &&
-        strlen(driveInfo->modelNumber) > 0 && (strstr(driveInfo->modelNumber, "Seagate SSD") != M_NULLPTR) &&
-        strlen(driveInfo->firmwareRevision) > 0 && (strstr(driveInfo->firmwareRevision, "UHFS") != M_NULLPTR))
+        safe_strlen(driveInfo->modelNumber) > 0 && (strstr(driveInfo->modelNumber, "Seagate SSD") != M_NULLPTR) &&
+        safe_strlen(driveInfo->firmwareRevision) > 0 && (strstr(driveInfo->firmwareRevision, "UHFS") != M_NULLPTR))
     {
         driveInfo->rotationRate = 0x0001;
     }
@@ -3206,7 +3206,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                         uint16_t serialNumberLength = M_BytesTo2ByteValue(unitSerialNumber[2], unitSerialNumber[3]);
                         if (serialNumberLength > 0)
                         {
-                            if (strncmp(driveInfo->vendorID, "SEAGATE", strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
+                            if (strncmp(driveInfo->vendorID, "SEAGATE", safe_strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
                             {
                                 //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
                                 memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
@@ -3487,7 +3487,7 @@ device->drive_info.serialNumber[iter]))
                                 {
                                     snprintf(unmapDetails, 48, "UNMAP [Deterministic, %s]", lbprzStr);
                                 }
-                                else if (strlen(lbprzStr))
+                                else if (safe_strlen(lbprzStr))
                                 {
                                     snprintf(unmapDetails, 48, "UNMAP [%s]", lbprzStr);
                                 }
@@ -7211,26 +7211,26 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     double mCapacity = 0, capacity = 0;
     char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
     char* mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
-    if (strlen(driveInfo->vendorID))
+    if (safe_strlen(driveInfo->vendorID))
     {
         printf("\tVendor ID: %s\n", driveInfo->vendorID);
     }
     printf("\tModel Number: %s\n", driveInfo->modelNumber);
     printf("\tSerial Number: %s\n", driveInfo->serialNumber);
-    if (strlen(driveInfo->pcbaSerialNumber))
+    if (safe_strlen(driveInfo->pcbaSerialNumber))
     {
         printf("\tPCBA Serial Number: %s\n", driveInfo->pcbaSerialNumber);
     }
     printf("\tFirmware Revision: %s\n", driveInfo->firmwareRevision);
-    if (strlen(driveInfo->satVendorID))
+    if (safe_strlen(driveInfo->satVendorID))
     {
         printf("\tSAT Vendor ID: %s\n", driveInfo->satVendorID);
     }
-    if (strlen(driveInfo->satProductID))
+    if (safe_strlen(driveInfo->satProductID))
     {
         printf("\tSAT Product ID: %s\n", driveInfo->satProductID);
     }
-    if (strlen(driveInfo->satProductRevision))
+    if (safe_strlen(driveInfo->satProductRevision))
     {
         printf("\tSAT Product Rev: %s\n", driveInfo->satProductRevision);
     }
@@ -7252,7 +7252,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
         printf("\tDate Of Manufacture: Week %" PRIu8 ", %" PRIu16 "\n", driveInfo->manufactureWeek, driveInfo->manufactureYear);
     }
-    if (driveInfo->copyrightValid && strlen(driveInfo->copyrightInfo))
+    if (driveInfo->copyrightValid && safe_strlen(driveInfo->copyrightInfo))
     {
         printf("\tCopyright: %s\n", driveInfo->copyrightInfo);
     }
@@ -8170,11 +8170,11 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
         memset(externalDriveInfo->vendorID, 0, 8);
         memcpy(externalDriveInfo->vendorID, scsiDriveInfo->vendorID, 8);
         memset(externalDriveInfo->modelNumber, 0, MODEL_NUM_LEN);
-        memcpy(externalDriveInfo->modelNumber, scsiDriveInfo->modelNumber, strlen(scsiDriveInfo->modelNumber));
+        memcpy(externalDriveInfo->modelNumber, scsiDriveInfo->modelNumber, safe_strlen(scsiDriveInfo->modelNumber));
         memset(externalDriveInfo->serialNumber, 0, SERIAL_NUM_LEN);
-        memcpy(externalDriveInfo->serialNumber, scsiDriveInfo->serialNumber, strlen(scsiDriveInfo->serialNumber));
+        memcpy(externalDriveInfo->serialNumber, scsiDriveInfo->serialNumber, safe_strlen(scsiDriveInfo->serialNumber));
         memset(externalDriveInfo->firmwareRevision, 0, FW_REV_LEN);
-        memcpy(externalDriveInfo->firmwareRevision, scsiDriveInfo->firmwareRevision, strlen(scsiDriveInfo->firmwareRevision));
+        memcpy(externalDriveInfo->firmwareRevision, scsiDriveInfo->firmwareRevision, safe_strlen(scsiDriveInfo->firmwareRevision));
         externalDriveInfo->maxLBA = scsiDriveInfo->maxLBA;
         externalDriveInfo->nativeMaxLBA = scsiDriveInfo->nativeMaxLBA;
         externalDriveInfo->logicalSectorSize = scsiDriveInfo->logicalSectorSize;

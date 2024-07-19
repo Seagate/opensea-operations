@@ -2203,16 +2203,16 @@ static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData,
             switch (mpc)
             {
             case MPC_CURRENT_VALUES:
-                equalsLengthToPrint += C_CAST(int, strlen(" Current Values"));
+                equalsLengthToPrint += C_CAST(int, safe_strlen(" Current Values"));
                 break;
             case MPC_CHANGABLE_VALUES:
-                equalsLengthToPrint += C_CAST(int, strlen(" Changable Values"));
+                equalsLengthToPrint += C_CAST(int, safe_strlen(" Changable Values"));
                 break;
             case MPC_DEFAULT_VALUES:
-                equalsLengthToPrint += C_CAST(int, strlen(" Default Values"));
+                equalsLengthToPrint += C_CAST(int, safe_strlen(" Default Values"));
                 break;
             case MPC_SAVED_VALUES:
-                equalsLengthToPrint += C_CAST(int, strlen(" Saved Values"));
+                equalsLengthToPrint += C_CAST(int, safe_strlen(" Saved Values"));
                 if (subpage > 0)
                 {
                     ++equalsLengthToPrint;
@@ -2226,10 +2226,10 @@ static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData,
         //before going further, check if we have a page name to lookup and printout to adjust the size for
         DECLARE_ZERO_INIT_ARRAY(char, pageName, SCSI_MODE_PAGE_NAME_MAX_LENGTH);
         get_SCSI_MP_Name(scsiPeripheralDeviceType, pageNumber, subpage, pageName);
-        if (equalsLengthToPrint < (C_CAST(int, strlen(pageName)) + 6)) //name will go too far over the end, need to enlarge
+        if (equalsLengthToPrint < (C_CAST(int, safe_strlen(pageName)) + 6)) //name will go too far over the end, need to enlarge
         {
             //the equals length should be enlarged for this!!!
-            equalsLengthToPrint = C_CAST(int, strlen(pageName)) + 6;
+            equalsLengthToPrint = C_CAST(int, safe_strlen(pageName)) + 6;
             if (pageNumber >= 0x10)
             {
                 equalsLengthToPrint += 3;
@@ -2258,7 +2258,7 @@ static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData,
         {
             printf(" - %" PRIX8 "h", subpage);
         }
-        if (strlen(pageName) > 0)
+        if (safe_strlen(pageName) > 0)
         {
             printf(" %s", pageName);
         }
@@ -2313,16 +2313,16 @@ static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData,
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            equalsLengthToPrint += C_CAST(int, strlen(" Current Values"));
+            equalsLengthToPrint += C_CAST(int, safe_strlen(" Current Values"));
             break;
         case MPC_CHANGABLE_VALUES:
-            equalsLengthToPrint += C_CAST(int, strlen(" Changable Values"));
+            equalsLengthToPrint += C_CAST(int, safe_strlen(" Changable Values"));
             break;
         case MPC_DEFAULT_VALUES:
-            equalsLengthToPrint += C_CAST(int, strlen(" Default Values"));
+            equalsLengthToPrint += C_CAST(int, safe_strlen(" Default Values"));
             break;
         case MPC_SAVED_VALUES:
-            equalsLengthToPrint += C_CAST(int, strlen(" Saved Values"));
+            equalsLengthToPrint += C_CAST(int, safe_strlen(" Saved Values"));
             if (subpage > 0)
             {
                 ++equalsLengthToPrint;
