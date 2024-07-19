@@ -613,7 +613,7 @@ eReturnValues get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrR
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint16_t dataLength = C_CAST(uint16_t, (numberOfKeys * UINT16_C(8)) + UINT16_C(8));
-        uint8_t *registrationKeys = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *registrationKeys = C_CAST(uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!registrationKeys)
         {
             return MEMORY_FAILURE;
@@ -634,7 +634,7 @@ eReturnValues get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrR
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint32_t dataLength = (C_CAST(uint32_t, numberOfKeys) * UINT32_C(24)) + UINT32_C(24);//24 byte header, then 24 bytes per key....if extended, then it is even larger.
-        uint8_t *registrationKeys = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *registrationKeys = C_CAST(uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!registrationKeys)
         {
             return MEMORY_FAILURE;
@@ -744,7 +744,7 @@ eReturnValues get_Reservations(tDevice *device, uint16_t numberReservations, ptr
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint16_t reservationsLength = C_CAST(uint16_t, numberReservations * UINT16_C(16) + UINT16_C(8));
-        uint8_t *reservationKeys = C_CAST(uint8_t*, calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *reservationKeys = C_CAST(uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!reservationKeys)
         {
             return MEMORY_FAILURE;
@@ -819,7 +819,7 @@ eReturnValues get_Reservations(tDevice *device, uint16_t numberReservations, ptr
         if (SUCCESS == get_Registration_Key_Count(device, &totalReservationKeys))
         {
             uint32_t reservationsLength = (C_CAST(uint32_t, totalReservationKeys) * UINT32_C(24)) + UINT32_C(24);
-            uint8_t *reservationKeys = C_CAST(uint8_t*, calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *reservationKeys = C_CAST(uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!reservationKeys)
             {
                 return MEMORY_FAILURE;
@@ -890,10 +890,10 @@ void show_Reservations(ptrReservationsData reservations)
         for (uint32_t resIter = 0; resIter < UINT16_MAX && resIter < reservations->numberOfReservations; ++resIter)
         {
 #define RES_SCOPE_BUF_LEN 9
-            char scopeBuf[RES_SCOPE_BUF_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, scopeBuf, RES_SCOPE_BUF_LEN);
             char *scope = &scopeBuf[0];
 #define RES_TYPE_BUF_LEN 23
-            char typeBuf[RES_TYPE_BUF_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, typeBuf, RES_TYPE_BUF_LEN);
             char *type = &typeBuf[0];
             switch (reservations->reservation[resIter].scope)
             {
@@ -968,7 +968,7 @@ eReturnValues get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint32_t fullStatusDataLength = 32;//some drive FW have a bug where if this is read as 8 bytes, it returns that there are no keys, even when there are...-TJE
-        uint8_t *fullStatusData = C_CAST(uint8_t*, calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!fullStatusData)
         {
             return MEMORY_FAILURE;
@@ -980,7 +980,7 @@ eReturnValues get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
             fullStatusDataLength = 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
             //reallocate with enough memory
             safe_Free_aligned(C_CAST(void**, &fullStatusData));
-            fullStatusData = C_CAST(uint8_t*, calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!fullStatusData)
             {
                 return MEMORY_FAILURE;
@@ -1055,7 +1055,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint32_t fullStatusDataLength = 32;//some drive FW have a bug where if this is read as 8 bytes, it returns that there are no keys, even when there are...-TJE
-        uint8_t *fullStatusData = C_CAST(uint8_t*, calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!fullStatusData)
         {
             return MEMORY_FAILURE;
@@ -1067,7 +1067,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
             fullStatusDataLength = 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
             //reallocate with enough memory
             safe_Free_aligned(C_CAST(void**, &fullStatusData));
-            fullStatusData = C_CAST(uint8_t*, calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!fullStatusData)
             {
                 return MEMORY_FAILURE;
@@ -1165,8 +1165,8 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
             if (SUCCESS == get_Registration_Key_Count(device, &registrationCount) && SUCCESS == get_Reservation_Count(device, &reservationCount))
             {
                 //start with reading registrations first, then if the reservation count is > 0 read and map that information too.
-                ptrRegistrationKeysData registrations = C_CAST(ptrRegistrationKeysData, calloc(sizeof(registrationKeysData) + registrationCount * sizeof(uint64_t), sizeof(uint8_t)));
-                ptrReservationsData reservations = C_CAST(ptrReservationsData, calloc(sizeof(reservationsData) + reservationCount * sizeof(reservationInfo), sizeof(uint8_t)));
+                ptrRegistrationKeysData registrations = C_CAST(ptrRegistrationKeysData, safe_calloc(sizeof(registrationKeysData) + registrationCount * sizeof(uint64_t), sizeof(uint8_t)));
+                ptrReservationsData reservations = C_CAST(ptrReservationsData, safe_calloc(sizeof(reservationsData) + reservationCount * sizeof(reservationInfo), sizeof(uint8_t)));
                 if (!registrations || !reservations)
                 {
                     //not sure which of these failed, but these macros should be safe to use to make sure we don't leave any memory out there
@@ -1224,7 +1224,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         uint32_t nvmeFullDataLen = UINT32_C(24) + (UINT32_C(24) * C_CAST(uint32_t, numberOfKeys));
-        uint8_t *nvmeFullData = C_CAST(uint8_t*, calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *nvmeFullData = C_CAST(uint8_t*, safe_calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!nvmeFullData)
         {
             return MEMORY_FAILURE;
@@ -1299,9 +1299,9 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
         {
             char atp = 'N';
             char resHolder = 'N';
-            char scopeBuf[RES_SCOPE_BUF_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, scopeBuf, RES_SCOPE_BUF_LEN);
             char *scope = &scopeBuf[0];
-            char typeBuf[RES_TYPE_BUF_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, typeBuf, RES_TYPE_BUF_LEN);
             char *type = &typeBuf[0];
             if (fullReservation->reservationKey[keyIter].allTargetPorts)
             {
@@ -1472,7 +1472,7 @@ eReturnValues register_Key(tDevice * device, uint64_t registrationKey, bool allT
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t registerData[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
         memset(&prData, 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = 0;//when registering, set this to zero to begin.
@@ -1506,7 +1506,7 @@ eReturnValues unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t registerData[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
         memset(&prData, 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = currentRegistrationKey;
@@ -1536,7 +1536,7 @@ eReturnValues acquire_Reservation(tDevice *device, uint64_t key, eReservationTyp
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t acquireRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, acquireRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t scsiReservationType = 0;
         persistentReserveOutBasic prData;
         memset(&prData, 0, sizeof(persistentReserveOutBasic));
@@ -1623,7 +1623,7 @@ eReturnValues release_Reservation(tDevice *device, uint64_t key, eReservationTyp
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t releaseRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, releaseRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t scsiReservationType = 0;
         persistentReserveOutBasic prData;
         memset(&prData, 0, sizeof(persistentReserveOutBasic));
@@ -1710,7 +1710,7 @@ eReturnValues clear_Reservations(tDevice *device, uint64_t key)
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t clearRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, clearRes, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
         memset(&prData, 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
@@ -1738,7 +1738,7 @@ eReturnValues preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemp
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t preemptRes[PR_OUT_BASIC_MIN_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, preemptRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t scsiReservationType = 0;
         persistentReserveOutBasic prData;
         memset(&prData, 0, sizeof(persistentReserveOutBasic));

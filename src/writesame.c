@@ -67,7 +67,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
             {
                 //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
                 uint32_t supportLengthCheck = 20;//enough space to read all support data bytes for 16B version
-                uint8_t *writeSameSupported = C_CAST(uint8_t*, calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *writeSameSupported = C_CAST(uint8_t*, safe_calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!writeSameSupported)
                 {
                     perror("Error allocating memory to check write same support");
@@ -113,7 +113,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
             {
                 //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
                 uint32_t supportLengthCheck = 22;//enough space to read all support data bytes for 16B version with CmdDT
-                uint8_t *writeSameSupported = C_CAST(uint8_t*, calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *writeSameSupported = C_CAST(uint8_t*, safe_calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!writeSameSupported)
                 {
                     perror("Error allocating memory to check write same support");
@@ -170,7 +170,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
             if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_2 && maxNumberOfLogicalBlocksPerCommand)
             {
                 //also check the block limits vpd page to see what the maximum number of logical blocks is so that we don't get in a trouble spot...(we may need chunk the write same command...ugh).
-                uint8_t *blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *blockLimits = C_CAST(uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!blockLimits)
                 {
                     perror("Error allocating memory to check block limits VPD page");
@@ -223,7 +223,7 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //need to get status from SCT status command data
-        uint8_t *sctStatusBuf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *sctStatusBuf = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!sctStatusBuf)
         {
             return MEMORY_FAILURE;
@@ -271,7 +271,7 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
         //asc = 0x04, ascq = 0x07 - Logical Unit Not Ready, Operation In Progress
         //asc = 0x00, ascq = 0x16 - Operation In Progress
         //if the progress is reported, then we just have to return it... i think...
-        uint8_t *senseData = C_CAST(uint8_t*, calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *senseData = C_CAST(uint8_t*, safe_calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!senseData)
         {
             return MEMORY_FAILURE;
@@ -316,7 +316,7 @@ eReturnValues show_Write_Same_Current_LBA(tDevice *device)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //need to get status from SCT status command data
-        uint8_t *sctStatusBuf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *sctStatusBuf = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!sctStatusBuf)
         {
             return MEMORY_FAILURE;
@@ -409,7 +409,7 @@ eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOf
             {
                 //only allocate this memory for SCSI drives because they need a sector telling what to use as a pattern, whereas ATA has a feature that does not require this, and why bother sending an extra command/data transfer when it isn't neded for our application
                 zeroPatternBufLen = device->drive_info.deviceBlockSize;
-                zeroPatternBuf = C_CAST(uint8_t*, calloc_aligned(zeroPatternBufLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+                zeroPatternBuf = C_CAST(uint8_t*, safe_calloc_aligned(zeroPatternBufLen, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!zeroPatternBuf)
                 {
                     perror("Error allocating logical sector sized buffer for zero pattern\n");

@@ -149,7 +149,7 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percent
 
 static eReturnValues get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
-    uint8_t req_sense_buf[SPC3_SENSE_LEN] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, req_sense_buf, SPC3_SENSE_LEN);
     uint8_t acq = 0, ascq = 0, senseKey = 0, fru = 0;
     eReturnValues result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
     get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);

@@ -132,7 +132,7 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
             char vendorEvent = ' ';
             char maxedCount = ' ';
 #define PHY_COUNTER_DESCRIPTION_LEN 56
-            char counterDescription[PHY_COUNTER_DESCRIPTION_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, counterDescription, PHY_COUNTER_DESCRIPTION_LEN);
             if (counters->counters[iter].vendorUnique)
             {
                 vendorEvent = 'V';

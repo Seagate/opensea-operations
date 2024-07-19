@@ -748,7 +748,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                 supportedModes->deferredPowerCycleActivationSupported = true;
             }
             //now try reading the supportd capabilities page of the identify device data log for the remaining info (deferred download)
-            uint8_t supportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, ATA_LOG_PAGE_LEN_BYTES, 0))
             {
                 uint64_t supportedCapabilitiesQword = M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13], supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10], supportedCapabilities[9], supportedCapabilities[8]);
@@ -907,7 +907,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
         case SCSI_DRIVE:
         {
             //before trying all the code below, look at the extended inquiry data page so see if the download modes are supported or not.
-            uint8_t *extendedInq = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *extendedInq = C_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (extendedInq)
             {
                 if (SUCCESS == scsi_Inquiry(device, extendedInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
@@ -947,7 +947,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
             //PMC 8070 fails this command for some unknown reason even if a drive supports it, so skip these requests when this hack is set.-TJE
             if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)
             {
-                uint8_t* writeBufferSupportData = C_CAST(uint8_t*, calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* writeBufferSupportData = C_CAST(uint8_t*, safe_calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
                 //first try asking for supported operation code for Full Buffer download
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE, 14, writeBufferSupportData))
                 {
@@ -1074,7 +1074,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                     if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)
                     {
                         //report supported operation codes isn't supported, so try legacy inquiry cmdDT method
-                        uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(writeBufferSupportData, 14, 16, device->os_info.minimumAlignment));
+                        uint8_t* temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &writeBufferSupportData), 14, 16, device->os_info.minimumAlignment));
                         if (!temp)
                         {
                             return MEMORY_FAILURE;
@@ -1213,7 +1213,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                         {
                             safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
                                 uint32_t reportAllOPsLength = 4;
-                            uint8_t* reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* reportAllOPs = C_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                             if (reportAllOPs)
                             {
                                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs))
@@ -1221,7 +1221,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                                     //get the full length, then reallocate and reread
                                     reportAllOPsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
                                     safe_Free_aligned(C_CAST(void**, &reportAllOPs));
-                                        reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                                        reportAllOPs = C_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                                     if (reportAllOPs)
                                     {
                                         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs))
@@ -1347,7 +1347,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
             eSeagateFamily family = is_Seagate_Family(device);
             if ((family == SEAGATE || family == SEAGATE_VENDOR_A) && supportedModes->scsiInfoPossiblyIncomplete)
             {
-                uint8_t * c3VPD = C_CAST(uint8_t*, calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t * c3VPD = C_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (c3VPD)
                 {
                     //If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific for the supported features

@@ -58,7 +58,7 @@ eReturnValues sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64
     uint8_t *dataBuf = M_NULLPTR;
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+        dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -80,7 +80,7 @@ eReturnValues sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64
             if (rwvCommand != RWV_COMMAND_VERIFY)
             {
                 //reallocate the memory to be sized appropriately for this change
-                temp = C_CAST(uint8_t*, realloc_aligned(dataBuf, 0, C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize), device->os_info.minimumAlignment));
+                temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &dataBuf), 0, C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize), device->os_info.minimumAlignment));
                 if (!temp)
                 {
                     perror("memory reallocation failure");
@@ -206,7 +206,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
     eReturnValues ret = SUCCESS;
     DECLARE_ZERO_INIT_ARRAY(char, message, 256);
     uint16_t randomLBACount = 5000;
-    uint64_t *randomLBAList = C_CAST(uint64_t*, calloc(randomLBACount, sizeof(uint64_t)));
+    uint64_t *randomLBAList = C_CAST(uint64_t*, safe_calloc(randomLBACount, sizeof(uint64_t)));
     uint64_t iterator = 0;
     uint64_t onePercentOfDrive = C_CAST(uint64_t, C_CAST(double, device->drive_info.deviceMaxLba) * 0.01);//calculate how many LBAs are 1% of the drive so that we read that many
     uint8_t *dataBuf = M_NULLPTR;//will be allocated at the random read section
@@ -344,7 +344,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
     }
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sizeof(uint8_t)));
+        dataBuf = C_CAST(uint8_t*, safe_malloc(device->drive_info.deviceBlockSize * sizeof(uint8_t)));
         if (!dataBuf)
         {
             perror("malloc data buf failed\n");
@@ -458,7 +458,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount) * sizeof(uint8_t);
-        dataBuf = C_CAST(uint8_t*, malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
+        dataBuf = C_CAST(uint8_t*, safe_malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             perror("failed to allocate memory for reading data at OD\n");
@@ -914,11 +914,11 @@ eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, 
     if (errorLimit < 1)
     {
         //need to be able to store at least 1 error
-        errorList = C_CAST(errorLBA*, calloc(1 * sizeof(errorLBA), sizeof(errorLBA)));
+        errorList = C_CAST(errorLBA*, safe_calloc(1 * sizeof(errorLBA), sizeof(errorLBA)));
     }
     else
     {
-        errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
+        errorList = C_CAST(errorLBA*, safe_calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     }
     if (!errorList)
     {
@@ -1046,7 +1046,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
         //need to be able to store at least 1 error
         errorLimit = 1;
     }
-    errorList = C_CAST(errorLBA*, calloc(errorLimit, sizeof(errorLBA)));
+    errorList = C_CAST(errorLBA*, safe_calloc(errorLimit, sizeof(errorLBA)));
     if (!errorList)
     {
         perror("calloc failure\n");
@@ -1056,7 +1056,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
     {
         //allocate memory
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount);
-        dataBuf = C_CAST(uint8_t*, calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
@@ -1256,7 +1256,7 @@ eReturnValues butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount) * sizeof(uint8_t);
-        dataBuf = C_CAST(uint8_t*, malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
+        dataBuf = C_CAST(uint8_t*, safe_malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -1378,7 +1378,7 @@ eReturnValues random_Test(tDevice *device, eRWVCommandType rwvcommand, uint64_t 
     uint8_t *dataBuf = M_NULLPTR;
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
+        dataBuf = C_CAST(uint8_t*, safe_malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -1431,7 +1431,7 @@ eReturnValues sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t s
     uint8_t *dataBuf = M_NULLPTR;
     if (rwvcommand != RWV_COMMAND_VERIFY)
     {
-        dataBuf = C_CAST(uint8_t*, malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
+        dataBuf = C_CAST(uint8_t*, safe_malloc(device->drive_info.deviceBlockSize * sectorCount * sizeof(uint8_t)));
         if (!dataBuf)
         {
             return MEMORY_FAILURE;
@@ -1489,7 +1489,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
     if (testMode == RWV_COMMAND_READ || testMode == RWV_COMMAND_WRITE)
     {
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount) * sizeof(uint8_t);
-        dataBuf = C_CAST(uint8_t*, malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
+        dataBuf = C_CAST(uint8_t*, safe_malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
@@ -1882,7 +1882,7 @@ eReturnValues diameter_Test_Range(tDevice *device, eRWVCommandType testMode, boo
         return BAD_PARAMETER;
     }
     //eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
-    errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
+    errorLBA *errorList = C_CAST(errorLBA*, safe_calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
 
     //OD
@@ -2024,7 +2024,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvC
     {
         //allocate memory
         dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, sectorCount);
-        dataBuf = C_CAST(uint8_t*, calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
@@ -2150,7 +2150,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
         return BAD_PARAMETER;
     }
     //eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData)
-    errorLBA *errorList = C_CAST(errorLBA*, calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
+    errorLBA *errorList = C_CAST(errorLBA*, safe_calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t errorOffset = 0;
     uint64_t odOrMdLBAsAccessed = 0;
     uint16_t days = 0;
@@ -2308,7 +2308,7 @@ eReturnValues full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
     {
         uint32_t lbaRange = C_CAST(uint32_t, ((lbaIterator + sectorCount) > device->drive_info.deviceMaxLba) ? (device->drive_info.deviceMaxLba - lbaIterator) : sectorCount);
         uint32_t bufferSize = device->drive_info.deviceBlockSize * lbaRange;
-        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *dataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuffer)
         {
             perror("\nfailed to allocate memory for reading data\n");
@@ -2324,7 +2324,7 @@ eReturnValues full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
         if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, lbaIterator, dataBuffer, bufferSize))
         {
             //Validate it against zero buffer
-            uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *validationBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!validationBuffer)
             {
                 perror("\nfailed to allocate memory for validation data\n");
@@ -2379,7 +2379,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
     {
         uint32_t lbaRange = C_CAST(uint32_t, ((lbaIterator + sectorCount) > device->drive_info.deviceMaxLba) ? (device->drive_info.deviceMaxLba - lbaIterator) : sectorCount);
         uint32_t bufferSize = device->drive_info.deviceBlockSize * lbaRange;
-        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *dataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuffer)
         {
             perror("\nfailed to allocate memory for reading data\n");
@@ -2395,7 +2395,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
         if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, lbaIterator, dataBuffer, bufferSize))
         {
             //Validate it against zero buffer
-            uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *validationBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!validationBuffer)
             {
                 perror("\nfailed to allocate memory for validation data\n");
@@ -2437,7 +2437,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
     {
         uint32_t lbaRange = C_CAST(uint32_t, ((lbaIterator + sectorCount) > device->drive_info.deviceMaxLba) ? (device->drive_info.deviceMaxLba - lbaIterator) : sectorCount);
         uint32_t bufferSize = device->drive_info.deviceBlockSize * lbaRange;
-        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *dataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!dataBuffer)
         {
             perror("\nfailed to allocate memory for reading data\n");
@@ -2453,7 +2453,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
         if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, lbaIterator, dataBuffer, bufferSize))
         {
             //Validate it against zero buffer
-            uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *validationBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, bufferSize), sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!validationBuffer)
             {
                 perror("\nfailed to allocate memory for validation data\n");
@@ -2504,7 +2504,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 fflush(stdout);
             }
 
-            uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *dataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!dataBuffer)
             {
                 perror("\nfailed to allocate memory for reading data\n");
@@ -2514,7 +2514,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, randomLBA, dataBuffer, device->drive_info.deviceBlockSize))
             {
                 //Validate it against zero buffer
-                uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *validationBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!validationBuffer)
                 {
                     perror("\nfailed to allocate memory for validation data\n");
@@ -2555,7 +2555,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
                 fflush(stdout);
             }
 
-            uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *dataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!dataBuffer)
             {
                 perror("\nfailed to allocate memory for reading data\n");
@@ -2565,7 +2565,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             if (SUCCESS == read_Write_Seek_Command(device, RWV_COMMAND_READ, randomLBA, dataBuffer, device->drive_info.deviceBlockSize))
             {
                 //Validate it against zero buffer
-                uint8_t *validationBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *validationBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, device->drive_info.deviceBlockSize), sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!validationBuffer)
                 {
                     perror("\nfailed to allocate memory for validation data\n");

@@ -31,7 +31,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
     eReturnValues ret = UNKNOWN;
     uint16_t logicalPerPhysical = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
     uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
-    uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -50,7 +50,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
             uint8_t *temp = NULL;
             logicalPerPhysical = C_CAST(uint16_t, device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize);
             dataSize = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
-            temp = C_CAST(uint8_t*, realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment));
+            temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!temp)
             {
                 safe_Free_aligned(C_CAST(void**, &dataBuf));

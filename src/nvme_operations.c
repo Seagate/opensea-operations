@@ -429,8 +429,8 @@ static eReturnValues nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesS
     {
         double hmbRec = C_CAST(double, device->drive_info.IdentifyData.nvme.ctrl.hmpre) * 4096.0;
         double hmbMin = C_CAST(double, device->drive_info.IdentifyData.nvme.ctrl.hmmin) * 4096.0;
-        char hmbRecUnits[UNIT_STRING_LENGTH] = { 0 };
-        char hmbMinUnits[UNIT_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, hmbRecUnits, UNIT_STRING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, hmbMinUnits, UNIT_STRING_LENGTH);
         char* hmbRecUnit = &hmbRecUnits[0];
         char *hmbMinUnit = &hmbMinUnits[0];
         capacity_Unit_Convert(&hmbRec, &hmbRecUnit);
@@ -450,7 +450,7 @@ static eReturnValues nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesS
         if (pageSize > 0)
         {
             double hmbAllocedSize = C_CAST(double, hsize * pageSize);
-            char hmbAllocedUnits[UNIT_STRING_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, hmbAllocedUnits, UNIT_STRING_LENGTH);
             char* hmbAllocedUnit = &hmbAllocedUnits[0];
             capacity_Unit_Convert(&hmbAllocedSize, &hmbAllocedUnit);
             printf("\t\tBuffer size: %0.02f %s\n", hmbAllocedSize, hmbAllocedUnit);
@@ -885,7 +885,7 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrin
     {
         numOfErrToPrint = 32;
     }
-    pErrLogBuf = C_CAST(nvmeErrLogEntry *, calloc_aligned(C_CAST(size_t, numOfErrToPrint), sizeof(nvmeErrLogEntry), device->os_info.minimumAlignment));
+    pErrLogBuf = C_CAST(nvmeErrLogEntry *, safe_calloc_aligned(C_CAST(size_t, numOfErrToPrint), sizeof(nvmeErrLogEntry), device->os_info.minimumAlignment));
     if (pErrLogBuf != M_NULLPTR)
     {
         ret = nvme_Get_ERROR_Log_Page(device, C_CAST(uint8_t*, pErrLogBuf), C_CAST(uint32_t, numOfErrToPrint * sizeof(nvmeErrLogEntry)));

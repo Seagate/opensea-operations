@@ -76,7 +76,7 @@ eReturnValues scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset)
 eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
     eReturnValues ret = UNKNOWN;
-    uint8_t *scsiDataBuffer = C_CAST(uint8_t*, calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment));//this should be big enough to get back the block descriptor we care about
+    uint8_t *scsiDataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(0x18, sizeof(uint8_t), device->os_info.minimumAlignment));//this should be big enough to get back the block descriptor we care about
     if (scsiDataBuffer == M_NULLPTR)
     {
         perror("calloc failure");
@@ -351,7 +351,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
     uint16_t alignment = 0;
     //read capacity 10 first. If that reports FFFFFFFFh then do read capacity 16.
     //if read capacity 10 fails, retry with read capacity 16
-    uint8_t* readCapBuf = C_CAST(uint8_t*, calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* readCapBuf = C_CAST(uint8_t*, safe_calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!readCapBuf)
     {
         return maxLBA;
@@ -362,7 +362,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
         if (device->drive_info.scsiVersion > 3)//SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
         {
             //try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a physical sector size whereas readcap10 data will not
-            uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
+            uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
             if (!temp)
             {
                 safe_Free_aligned(C_CAST(void**, &readCapBuf));
@@ -385,7 +385,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
     else
     {
         //try read capacity 16, if that fails we are done trying
-        uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
+        uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
         if (temp == M_NULLPTR)
         {
             safe_Free_aligned(C_CAST(void**, &readCapBuf));
@@ -418,7 +418,7 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
         //It will either be software, a driver, or hardware.
         //opensea-transport has a software based translator present so all requests in here will be handled by it if there is not a driver or hardware translator
         //We need to first try reading VPD page 89h. This is the SAT page and it requires pulling fresh identify data....it MIGHT update the controller, but it might not.
-        uint8_t satVPDPage89[VPD_ATA_INFORMATION_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, satVPDPage89, VPD_ATA_INFORMATION_LEN);
         if (SUCCESS == scsi_Inquiry(device, satVPDPage89, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
         {
             //Note that the identify data in this page can be modified by the SATL in some versions of SAT, so do not trust it.
@@ -499,7 +499,7 @@ bool is_Change_Identify_String_Supported(tDevice* device)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint8_t idDataLogSupportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
         {
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLogSupportedCapabilities[7], idDataLogSupportedCapabilities[6], idDataLogSupportedCapabilities[5], idDataLogSupportedCapabilities[4], idDataLogSupportedCapabilities[3], idDataLogSupportedCapabilities[2], idDataLogSupportedCapabilities[1], idDataLogSupportedCapabilities[0]);
@@ -529,7 +529,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
         uint32_t capMNLogSizeBytes = 0;
         if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_CAPACITY_MODELNUMBER_MAPPING, &capMNLogSizeBytes, true, false) && capMNLogSizeBytes > 0)
         {
-            uint8_t* capMNMappingLog = C_CAST(uint8_t*, calloc_aligned(capMNLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* capMNMappingLog = C_CAST(uint8_t*, safe_calloc_aligned(capMNLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!capMNMappingLog)
             {
                 return M_NULLPTR;
@@ -539,7 +539,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                 //header is first 8bytes
                 uint32_t numberOfDescriptors = M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
                 uint32_t capModelMappingSz = C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors));
-                capModelMapping = C_CAST(ptrcapacityModelNumberMapping, calloc(capModelMappingSz, sizeof(uint8_t)));
+                capModelMapping = C_CAST(ptrcapacityModelNumberMapping, safe_calloc(capModelMappingSz, sizeof(uint8_t)));
                 capModelMapping->numberOfDescriptors = numberOfDescriptors;
                 //now loop through descriptors
                 for (uint32_t offset = 8, descriptorCounter = 0; offset < capMNLogSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
@@ -550,7 +550,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                     memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capMNMappingLog[offset + 8], mnLimit);
                     for (uint8_t iter = 0; iter < mnLimit; ++iter)
                     {
-                        if (!is_ASCII(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                        if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
                         {
                             capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
                         }
@@ -569,7 +569,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
         uint32_t capIDVPDSizeBytes = 0;
         if (SUCCESS == get_SCSI_VPD_Page_Size(device, CAPACITY_PRODUCT_IDENTIFICATION_MAPPING, &capIDVPDSizeBytes) && capIDVPDSizeBytes > 0)
         {
-            uint8_t* capProdIDMappingVPD = C_CAST(uint8_t*, calloc_aligned(capIDVPDSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* capProdIDMappingVPD = C_CAST(uint8_t*, safe_calloc_aligned(capIDVPDSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!capProdIDMappingVPD)
             {
                 return M_NULLPTR;
@@ -579,7 +579,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                 //calculate number of descriptors based on page length
                 uint32_t numberOfDescriptors = M_BytesTo2ByteValue(capProdIDMappingVPD[2], capProdIDMappingVPD[3]) / 48;//Each descriptor is 48B long
                 uint32_t capProdIDMappingSz = C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors));
-                capModelMapping = C_CAST(ptrcapacityModelNumberMapping, calloc(capProdIDMappingSz, sizeof(uint8_t)));
+                capModelMapping = C_CAST(ptrcapacityModelNumberMapping, safe_calloc(capProdIDMappingSz, sizeof(uint8_t)));
                 capModelMapping->numberOfDescriptors = numberOfDescriptors;
                 //loop through descriptors
                 for (uint32_t offset = 4, descriptorCounter = 0; offset < capIDVPDSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
@@ -591,7 +591,9 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                     memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capProdIDMappingVPD[offset + 8], mnLimit);
                     for (uint8_t iter = 0; iter < mnLimit; ++iter)
                     {
-                        if (!is_ASCII(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                        if (!safe_isascii(
+capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(
+capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
                         {
                             capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
                         }

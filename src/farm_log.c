@@ -83,7 +83,7 @@ static void addDataSetEntry(int32_t subPageType, uint8_t *dataSetHeader, uint16_
     uint32_t dataSetLength, uint64_t startTimeStamp, uint64_t endTimeStamp)
 {
     //farm current signature
-    char signature[FARM_DATASET_SIGNATURE_LENGTH + 1] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, signature, FARM_DATASET_SIGNATURE_LENGTH + 1);
     snprintf(signature, FARM_DATASET_SIGNATURE_LENGTH + 1, "%-*s", FARM_DATASET_SIGNATURE_LENGTH, farmSubPageSignatureId[subPageType]);
     memcpy(dataSetHeader, &signature, FARM_DATASET_SIGNATURE_LENGTH);
     memcpy(dataSetHeader + 12, &dataSetLength, sizeof(uint32_t));
@@ -204,7 +204,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
         if (is_FARM_Time_Series_Log_Supported(device))
         {
             //FARM Time series logpage 0xC6 - feature 0x00
-            uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC))
             {
@@ -277,7 +277,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
             safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
 
             //FARM Workload trace logpage 0xC6 - feature 0x02
-            uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
             {
@@ -317,7 +317,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
         if (is_FARM_Time_Series_Log_Supported(device))
         {
             //FARM Time series logpage 0xC6 - feature 0x01
-            uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *farmTimeSeriesFramesLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH))
             {
@@ -447,7 +447,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
             safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
 
             //FARM Workload trace logpage 0xC6 - feature 0x02
-            uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false, true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR))
             {
@@ -902,14 +902,14 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         return returnValue;
     }
 
-    uint8_t header[FARMC_LOG_HEADER_LENGTH] = { 0 };
-    uint8_t farmCurrentHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
-    uint8_t farmFactoryHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
-    uint8_t farmSavedHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
-    uint8_t farmTimeSeriesHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
-    uint8_t farmLongSavedHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
-    uint8_t farmStickyHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
-    uint8_t farmWorkLoadTraceHeader[FARMC_LOG_DATA_SET_HEADER_LENGTH] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, header, FARMC_LOG_HEADER_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, farmCurrentHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, farmFactoryHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, farmSavedHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, farmTimeSeriesHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, farmLongSavedHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, farmStickyHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, farmWorkLoadTraceHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH);
     uint8_t *farmCurrentLog = M_NULLPTR;
     uint8_t *farmFactoryLog = M_NULLPTR;
     uint8_t *farmSavedLog = M_NULLPTR;
@@ -927,7 +927,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
     tZeroPaddingBufferSize zeroPaddingBufferSize = { 0 };
 
     //set signature
-    char signature[FARM_SIGNATURE_LENGTH + 1] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, signature, FARM_SIGNATURE_LENGTH + 1);
     snprintf(signature, FARM_SIGNATURE_LENGTH + 1, "%-*s", FARM_SIGNATURE_LENGTH, FARMC_SIGNATURE_ID);
     memcpy(header, &signature, FARM_SIGNATURE_LENGTH);
 
@@ -940,7 +940,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
     memcpy(header + 18, &patchVersion, sizeof(uint16_t));
 
     //set interface type
-    char interfaceType[4 + 1] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, interfaceType, 4 + 1);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         snprintf(interfaceType, 4 + 1, "%-*s", 4, "SATA");
@@ -956,17 +956,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
     memcpy(header + 24, &interfaceType, 4);
 
     //set model#
-    char modelNumber[MODEL_NUM_LEN + 1] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, modelNumber, MODEL_NUM_LEN + 1);
     snprintf(modelNumber, MODEL_NUM_LEN + 1, "%-*s", MODEL_NUM_LEN, device->drive_info.product_identification);
     memcpy(header + 32, &modelNumber, MODEL_NUM_LEN);
 
     //set serial#
-    char serialNumber[SERIAL_NUM_LEN + 1] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, serialNumber, SERIAL_NUM_LEN + 1);
     snprintf(serialNumber, SERIAL_NUM_LEN + 1, "%-*s", SERIAL_NUM_LEN, device->drive_info.serialNumber);
     memcpy(header + 80, &serialNumber, SERIAL_NUM_LEN);
 
     //set firmware revision
-    char firmwareVersion[FW_REV_LEN + 1] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, firmwareVersion, FW_REV_LEN + 1);
     snprintf(firmwareVersion, FW_REV_LEN + 1, "%-*s", FW_REV_LEN, device->drive_info.product_revision);
     memcpy(header + 104, &firmwareVersion, FW_REV_LEN);
 
@@ -980,13 +980,13 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             //initialize log buffers
-            farmCurrentLog = C_CAST(uint8_t*, calloc_aligned(ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));               //96KB
-            farmFactoryLog = C_CAST(uint8_t*, calloc_aligned(ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));               //96KB
-            farmSavedLog = C_CAST(uint8_t*, calloc_aligned(ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));                 //96KB
-            farmTimeSeriesLog = C_CAST(uint8_t*, calloc_aligned(16 * ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));       //16 * 96KB
-            farmLongSavedLog = C_CAST(uint8_t*, calloc_aligned(2 * ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));         //2 * 96KB
-            farmStickyLog = C_CAST(uint8_t*, calloc_aligned(6 * ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));            //6 * 96KB
-            farmWorkLoadTraceLog = C_CAST(uint8_t*, calloc_aligned(ATA_WORKLOAD_TRACE_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));   //2048KB
+            farmCurrentLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));               //96KB
+            farmFactoryLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));               //96KB
+            farmSavedLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));                 //96KB
+            farmTimeSeriesLog = C_CAST(uint8_t*, safe_calloc_aligned(16 * ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));       //16 * 96KB
+            farmLongSavedLog = C_CAST(uint8_t*, safe_calloc_aligned(2 * ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));         //2 * 96KB
+            farmStickyLog = C_CAST(uint8_t*, safe_calloc_aligned(6 * ATA_FARM_LOG_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));            //6 * 96KB
+            farmWorkLoadTraceLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_WORKLOAD_TRACE_PAGE_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));   //2048KB
             if (!farmCurrentLog)
             {
                 if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1062,7 +1062,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //get length of FARM current page
                 returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, &logSize);
                 logpageSize.currentLog = logSize;
-                farmCurrentLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.currentLog, sizeof(uint8_t), device->os_info.minimumAlignment));
+                farmCurrentLog = C_CAST(uint8_t*, safe_calloc_aligned(logpageSize.currentLog, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmCurrentLog)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1078,7 +1078,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //get length of Factory FARM page
                 returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize);
                 logpageSize.factoryLog = logSize;
-                farmFactoryLog = C_CAST(uint8_t*, calloc_aligned(logpageSize.factoryLog, sizeof(uint8_t), device->os_info.minimumAlignment));
+                farmFactoryLog = C_CAST(uint8_t*, safe_calloc_aligned(logpageSize.factoryLog, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmFactoryLog)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1094,7 +1094,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //get length of FARM time series log 
                 returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_START, &logSize);
                 logpageSize.timeSeriesLog = logSize;
-                farmTimeSeriesLog = C_CAST(uint8_t*, calloc_aligned((logpageSize.timeSeriesLog * 16), sizeof(uint8_t), device->os_info.minimumAlignment));
+                farmTimeSeriesLog = C_CAST(uint8_t*, safe_calloc_aligned((logpageSize.timeSeriesLog * 16), sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmTimeSeriesLog)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1110,7 +1110,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //get length of Farm Long saved frames
                 returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_TIME_SERIES_ADD1, &logSize);
                 logpageSize.longSavedLog = logSize;
-                farmLongSavedLog = C_CAST(uint8_t*, calloc_aligned((logpageSize.longSavedLog * 2), sizeof(uint8_t), device->os_info.minimumAlignment));
+                farmLongSavedLog = C_CAST(uint8_t*, safe_calloc_aligned((logpageSize.longSavedLog * 2), sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmLongSavedLog)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1126,7 +1126,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //get length of FARM sticky log
                 returnValue = get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_STICKY_START, &logSize);
                 logpageSize.stickyLog = logSize;
-                farmStickyLog = C_CAST(uint8_t*, calloc_aligned((logpageSize.stickyLog * 6), sizeof(uint8_t), device->os_info.minimumAlignment));
+                farmStickyLog = C_CAST(uint8_t*, safe_calloc_aligned((logpageSize.stickyLog * 6), sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmStickyLog)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1298,7 +1298,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
             //write zero padding
             if (zeroPaddingBufferSize.headerZeroPadding != 0)
             {
-                zeroPaddingHeader = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                zeroPaddingHeader = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
                 if ((fwrite(zeroPaddingHeader, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding))
                     || ferror(farmCombinedLog))
                 {
@@ -1333,7 +1333,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //add zero padding
                 if (zeroPaddingBufferSize.farmCurrentZeroPadding != 0)
                 {
-                    farmCurrentZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    farmCurrentZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
                     if ((fwrite(farmCurrentZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding))
                         || ferror(farmCombinedLog))
                     {
@@ -1366,7 +1366,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //add zero padding
                 if (zeroPaddingBufferSize.farmFactoryZeroPadding != 0)
                 {
-                    farmFactoryZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    farmFactoryZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
                     if ((fwrite(farmFactoryZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding))
                         || ferror(farmCombinedLog))
                     {
@@ -1399,7 +1399,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //add zero padding
                 if (zeroPaddingBufferSize.farmSavedZeroPadding != 0)
                 {
-                    farmSavedZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    farmSavedZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
                     if ((fwrite(farmSavedZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding))
                         || ferror(farmCombinedLog))
                     {
@@ -1432,7 +1432,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //add zero padding
                 if (zeroPaddingBufferSize.farmTimeSeriesZeroPadding != 0)
                 {
-                    farmTimeSeriesZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    farmTimeSeriesZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
                     if ((fwrite(farmTimeSeriesZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding))
                         || ferror(farmCombinedLog))
                     {
@@ -1465,7 +1465,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //add zero padding
                 if (zeroPaddingBufferSize.farmLongSavedZeroPadding != 0)
                 {
-                    farmLongSavedZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmLongSavedZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    farmLongSavedZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmLongSavedZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
                     if ((fwrite(farmLongSavedZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmLongSavedZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmLongSavedZeroPadding))
                         || ferror(farmCombinedLog))
                     {
@@ -1498,7 +1498,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
                 //add zero padding
                 if (zeroPaddingBufferSize.farmStickyZeroPadding != 0)
                 {
-                    farmStickyZeroPaddingBuffer = C_CAST(uint8_t*, calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
+                    farmStickyZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
                     if ((fwrite(farmStickyZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding))
                         || ferror(farmCombinedLog))
                     {

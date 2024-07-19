@@ -41,7 +41,7 @@
 eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 {
     eReturnValues ret = UNKNOWN;
-    uint8_t *sctSATAPhySpeed = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *sctSATAPhySpeed = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (sctSATAPhySpeed == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
@@ -102,7 +102,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allP
         return NOT_SUPPORTED;
     }
     uint16_t phyControlLength = UINT16_C(104) + MODE_PARAMETER_HEADER_10_LEN;//size of 104 comes from 8 byte page header + (2 * 48bytes) for 2 phy descriptors + then add 8 bytes for mode parameter header. This is assuming drives only have 2...which is true right now, but the code will detect when it needs to reallocate and read more from the drive.
-    uint8_t *sasPhyControl = C_CAST(uint8_t*, calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *sasPhyControl = C_CAST(uint8_t*, safe_calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!sasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -121,7 +121,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allP
             {
                 //reread the page for the larger length
                 phyControlLength = C_CAST(uint16_t, pageLength + MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength);
-                uint8_t *temp = realloc_aligned(sasPhyControl, 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
+                uint8_t *temp = safe_reallocf_aligned(C_CAST(void**, &sasPhyControl), 0, phyControlLength * sizeof(uint8_t), device->os_info.minimumAlignment);
                 if (!temp)
                 {
                     return MEMORY_FAILURE;
@@ -656,7 +656,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *
                 }
                 return SUCCESS;
             }
-            uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *pcModePage = C_CAST(uint8_t*, safe_calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
@@ -748,7 +748,7 @@ eReturnValues seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode power
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         bool oldMethod = false;
-        uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *pcModePage = C_CAST(uint8_t*, safe_calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!pcModePage)
         {
             return MEMORY_FAILURE;
@@ -808,7 +808,7 @@ eReturnValues get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSuppor
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *smartData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *smartData = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!smartData)
             {
                 return MEMORY_FAILURE;
@@ -837,7 +837,7 @@ eReturnValues get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSuppor
         //IDD is seagate specific
         if (is_Seagate_Family(device) == SEAGATE)
         {
-            uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *iddDiagPage = C_CAST(uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (iddDiagPage)
             {
                 if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15))
@@ -934,7 +934,7 @@ eReturnValues get_IDD_Status(tDevice *device, uint8_t *status)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //read diagnostic page
-        uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *iddDiagPage = C_CAST(uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (iddDiagPage)
         {
             //do not use the return value from this since IDD can return a few different sense codes with unit attention, that we may otherwise call an error
@@ -1109,7 +1109,7 @@ static eReturnValues start_IDD_Operation(tDevice *device, eIDDTests iddOperation
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         //send diagnostic
-        uint8_t *iddDiagPage = C_CAST(uint8_t*, calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *iddDiagPage = C_CAST(uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (iddDiagPage)
         {
             uint32_t commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;
@@ -1434,7 +1434,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
         ret = get_ATA_Log_Size(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, &powerTelemetryLogSize, true, false);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            powerTelemetryLog = C_CAST(uint8_t *, safe_calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
                 ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, M_NULLPTR, M_NULLPTR, true, false, true, powerTelemetryLog, powerTelemetryLogSize, M_NULLPTR, 0, 0);
@@ -1455,7 +1455,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
         ret = get_SCSI_Error_History_Size(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, &powerTelemetryLogSize, false, rb16);
         if (ret == SUCCESS && powerTelemetryLogSize > 0)
         {
-            powerTelemetryLog = C_CAST(uint8_t *, calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            powerTelemetryLog = C_CAST(uint8_t *, safe_calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
                 ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, M_NULLPTR, false, rb16, M_NULLPTR, true, powerTelemetryLog, powerTelemetryLogSize, M_NULLPTR, 0, M_NULLPTR);
@@ -1622,7 +1622,7 @@ bool is_Seagate_Quick_Format_Supported(tDevice *device)
             {
                 if (is_SMART_Enabled(device))
                 {
-                    uint8_t smartData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+                    DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
                     {
                         if (smartData[0x1EE] & BIT3)
@@ -1893,7 +1893,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
     static uint64_t lsbGbErased = 0, msbGbErased = 0, lsbLifWrtToFlash = 0, msbLifWrtToFlash = 0, lsbLifWrtFrmHost = 0, msbLifWrtFrmHost = 0, lsbLifRdToHost = 0, msbLifRdToHost = 0, lsbTrimCnt = 0, msbTrimCnt = 0;
     DECLARE_ZERO_INIT_ARRAY(char, buf, 40);
 #define NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH 35
-    char strBuf[NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH);
     int hideAttr = 0;
 
     if (attr.AttributeNumber == VS_ATTR_ID_GB_ERASED_LSB)
@@ -2143,7 +2143,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(tDevice *device, ptrSeagat
     //need to get the seagate device statistics log
     if (SUCCESS == get_ATA_Log_Size(device, 0xC7, &deviceStatsSize, true, false))
     {
-        uint8_t* deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* deviceStatsLog = C_CAST(uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!deviceStatsLog)
         {
             return MEMORY_FAILURE;
@@ -2423,7 +2423,7 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice *device, ptrSeaga
     uint32_t deviceStatsSize = 0;
     if (SUCCESS == get_SCSI_Log_Size(device, 0x2F, 0x00, &deviceStatsSize))
     {
-        uint8_t* deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* deviceStatsLog = C_CAST(uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!deviceStatsLog)
         {
             return MEMORY_FAILURE;

@@ -90,7 +90,7 @@ eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
 {
     //04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
     eReturnValues result = UNKNOWN;
-    uint8_t *temp_buf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *temp_buf = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (temp_buf == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
@@ -337,7 +337,7 @@ eReturnValues print_DST_Progress(tDevice *device)
     else
     {
         bool isNVMeDrive = false;
-        char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, statusTranslation, MAX_DST_STATUS_STRING_LENGTH);
         if (device->drive_info.drive_type == NVME_DRIVE)
         {
             isNVMeDrive = true;
@@ -410,7 +410,7 @@ bool is_Self_Test_Supported(tDevice *device)
         break;
     case SCSI_DRIVE:
     {
-        uint8_t selfTestResultsLog[LP_SELF_TEST_RESULTS_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, selfTestResultsLog, LP_SELF_TEST_RESULTS_LEN);
         if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SELF_TEST_RESULTS, 0, 0, selfTestResultsLog, LP_SELF_TEST_RESULTS_LEN))
         {
             supported = true;
@@ -458,7 +458,7 @@ bool is_Conveyence_Self_Test_Supported(tDevice *device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, smartReadData, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
             if ((smartReadData[367] & BIT0) && (smartReadData[367] & BIT5))
@@ -475,7 +475,7 @@ bool is_Selective_Self_Test_Supported(tDevice* device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint8_t smartReadData[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, smartReadData, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, LEGACY_DRIVE_SEC_SIZE))
         {
             if ((smartReadData[367] & BIT0) && (smartReadData[367] & BIT6))
@@ -691,7 +691,7 @@ eReturnValues run_SMART_Offline(tDevice* device)
             }
             time_t currentTime = time(M_NULLPTR);
             time_t futureTime = get_Future_Date_And_Time(currentTime, offlineTimeInSeconds);
-            char timeFormat[TIME_STRING_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, timeFormat, TIME_STRING_LENGTH);
             printf("\tEstimated completion Time : sometime after %s\n", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
             ret = ata_SMART_Offline(device, 0, 15);
             if (ret == SUCCESS)
@@ -973,7 +973,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                     else
                     {
                         bool isNVMeDrive = false;
-                        char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
+                        DECLARE_ZERO_INIT_ARRAY(char, statusTranslation, MAX_DST_STATUS_STRING_LENGTH);
                         if (device->drive_info.drive_type == NVME_DRIVE)
                         {
                             isNVMeDrive = true;
@@ -1052,7 +1052,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     bool isNVMeDrive = false;
-                    char statusTranslation[MAX_DST_STATUS_STRING_LENGTH] = { 0 };
+                    DECLARE_ZERO_INIT_ARRAY(char, statusTranslation, MAX_DST_STATUS_STRING_LENGTH);
                     if (device->drive_info.drive_type == NVME_DRIVE)
                     {
                         isNVMeDrive = true;
@@ -1088,7 +1088,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
         if (is_Self_Test_Supported(device))
         {
             uint16_t longDSTTime = 0;
-            uint8_t *smartData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *smartData = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (smartData == M_NULLPTR)
             {
                 perror("calloc failure\n");
@@ -1121,7 +1121,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
     {
         uint16_t longDSTTime = 0;
         bool getTimeFromExtendedInquiryData = false;
-        uint8_t *controlMP = C_CAST(uint8_t*, calloc_aligned(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *controlMP = C_CAST(uint8_t*, safe_calloc_aligned(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (controlMP == M_NULLPTR)
         {
             perror("calloc failure!");
@@ -1169,7 +1169,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
         safe_Free_aligned(C_CAST(void**, &controlMP));
         if (getTimeFromExtendedInquiryData)
         {
-            uint8_t *extendedInqyData = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *extendedInqyData = C_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (extendedInqyData == M_NULLPTR)
             {
                 perror("calloc failure!\n");
@@ -1240,7 +1240,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
         {
             errorListAllocation = errorLimit * sizeof(errorLBA);
         }
-        errorList = C_CAST(errorLBA*, calloc_aligned(errorListAllocation, sizeof(errorLBA), device->os_info.minimumAlignment));
+        errorList = C_CAST(errorLBA*, safe_calloc_aligned(errorListAllocation, sizeof(errorLBA), device->os_info.minimumAlignment));
         if (!errorList)
         {
             perror("calloc failure\n");
@@ -1509,7 +1509,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries e
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
     {
         uint32_t extLogSize = logSize;
-        selfTestResults = C_CAST(uint8_t*, calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        selfTestResults = C_CAST(uint8_t*, safe_calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint16_t lastPage = C_CAST(uint16_t, (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1);//zero indexed
         if (!selfTestResults)
         {
@@ -1676,7 +1676,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries e
     }
     else if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device) && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
     {
-        selfTestResults = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        selfTestResults = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!selfTestResults)
         {
             return MEMORY_FAILURE;
@@ -1800,7 +1800,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries e
 static eReturnValues get_SCSI_DST_Log_Entries(tDevice *device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    uint8_t dstLog[LP_SELF_TEST_RESULTS_LEN] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, dstLog, LP_SELF_TEST_RESULTS_LEN);
     if (!entries)
     {
         return BAD_PARAMETER;
@@ -1967,7 +1967,7 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
             printf("%2" PRIu8 " ", iter + 1);
             //Test
 #define SELF_TEST_RUN_STRING_MAX_LENGTH 22
-            char selfTestRunString[SELF_TEST_RUN_STRING_MAX_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH);
             if (entries->logType == DST_LOG_TYPE_ATA)
             {
                 switch (entries->dstEntry[iter].selfTestRun)
@@ -2065,7 +2065,7 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
             printf("%-9" PRIu64 "  ", entries->dstEntry[iter].lifetimeTimestamp);
             //Execution Status
 #define SELF_TEST_EXECUTION_STATUS_MAX_LENGTH 30
-            char status[SELF_TEST_EXECUTION_STATUS_MAX_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH);
             uint8_t percentRemaining = 0;
             if (entries->logType == DST_LOG_TYPE_ATA)
             {
@@ -2155,7 +2155,7 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
             printf("%-26s  ", status);
             //Error LBA
 #define SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH 21
-            char errorLBAString[SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH);
             if (entries->dstEntry[iter].lbaOfFailure == UINT64_MAX)
             {
                 snprintf(errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH, "None");
@@ -2169,13 +2169,13 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
             printf("%-10" PRIX8 "  ", entries->dstEntry[iter].checkPointByte);
             //Sense Info
 #define SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH 21
-            char senseInfoString[SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH);
             if (entries->logType == DST_LOG_TYPE_NVME)
             {
                 //SCT - SC
 #define NVM_STATUS_CODE_STR_LEN 10
-                char sctVal[NVM_STATUS_CODE_STR_LEN] = { 0 };
-                char scVal[NVM_STATUS_CODE_STR_LEN] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(char, sctVal, NVM_STATUS_CODE_STR_LEN);
+                DECLARE_ZERO_INIT_ARRAY(char, scVal, NVM_STATUS_CODE_STR_LEN);
                 if (entries->dstEntry[iter].nvmeStatus.statusCodeTypeValid)
                 {
                     snprintf(sctVal, NVM_STATUS_CODE_STR_LEN, "%02" PRIX8 "", entries->dstEntry[iter].nvmeStatus.statusCodeType);

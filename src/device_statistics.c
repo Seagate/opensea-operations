@@ -55,7 +55,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
     {
         bool dsnFeatureSupported = M_ToBool(device->drive_info.IdentifyData.ata.Word119 & BIT9);
         bool dsnFeatureEnabled = M_ToBool(device->drive_info.IdentifyData.ata.Word120 & BIT9);
-        uint8_t *deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *deviceStatsLog = C_CAST(uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!deviceStatsLog)
         {
             return MEMORY_FAILURE;
@@ -63,7 +63,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
         //this is to get the threshold stuff
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
-            uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, safe_calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, M_NULLPTR, M_NULLPTR, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, M_NULLPTR, 0, 0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
@@ -1239,7 +1239,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
     {
         return BAD_PARAMETER;
     }
-    uint8_t supportedLogPages[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedLogPages, LEGACY_DRIVE_SEC_SIZE);
     //read list of supported logs, the with that list we'll populate the statistics data
     bool dummyUpLogPages = false;
     bool subpagesSupported = true;
@@ -1258,7 +1258,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
     if (!dummyUpLogPages)
     {
         //memcmp to make sure we weren't given zeros
-        uint8_t zeroMem[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, zeroMem, LEGACY_DRIVE_SEC_SIZE);
         if (memcmp(zeroMem, supportedLogPages, LEGACY_DRIVE_SEC_SIZE) == 0)
         {
             dummyUpLogPages = true;
@@ -1321,7 +1321,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
     uint16_t logPageIter = LOG_PAGE_HEADER_LENGTH;//log page descriptors start on offset 4 and are 2 bytes long each
     uint16_t supportedPagesLength = M_BytesTo2ByteValue(supportedLogPages[2], supportedLogPages[3]);
     uint8_t incrementAmount = subpagesSupported ? 2 : 1;
-    uint8_t tempLogBuf[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, tempLogBuf, LEGACY_DRIVE_SEC_SIZE);
     for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE); logPageIter += incrementAmount)
     {
         uint8_t pageCode = supportedLogPages[logPageIter] & 0x3F;//outer switch statement
@@ -6541,7 +6541,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                 //This page is read in a 64k size to make sure we get as much as possible in a single command.
             {
                 uint16_t protocolSpecificDataLength = UINT16_MAX;
-                uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* protSpData = C_CAST(uint8_t*, safe_calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (protSpData)
                 {
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
@@ -6828,7 +6828,7 @@ static void print_Count_Statistic(statistic theStatistic, char *statisticName, c
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6896,7 +6896,7 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, char *s
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6969,7 +6969,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7073,7 +7073,7 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, char *
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7138,7 +7138,7 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7210,7 +7210,7 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7288,7 +7288,7 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7352,7 +7352,7 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7421,7 +7421,7 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7498,7 +7498,7 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7579,7 +7579,7 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7679,7 +7679,7 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, ch
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7758,7 +7758,7 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7946,7 +7946,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatis
         for (uint8_t vendorSpecificIter = 0, statisticsFound = 0; vendorSpecificIter < 64 && statisticsFound < deviceStats->sataStatistics.vendorSpecificStatisticsPopulated; ++vendorSpecificIter)
         {
 #define VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH 64
-            char statisticName[VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH);
             if (SEAGATE == is_Seagate_Family(device))
             {
                 switch (vendorSpecificIter + 1)

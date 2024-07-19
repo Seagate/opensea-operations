@@ -37,7 +37,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
     //For non-ATA/IDE interfaces, we need to check if the translator (SATL) supports the ATA security protocol.
     if (device->drive_info.interface_type != IDE_INTERFACE)
     {
-        uint8_t securityBuf[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, securityBuf, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, LEGACY_DRIVE_SEC_SIZE, securityBuf))
         {
             uint16_t length = M_BytesTo2ByteValue(securityBuf[6], securityBuf[7]);
@@ -49,7 +49,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
                 case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
                 {
                     //the supported list shows this protocol, but try reading the page too...if that fails then we know it's only a partial implementation.
-                    uint8_t ataSecurityInfo[SAT_SECURITY_INFO_LEN] = { 0 };
+                    DECLARE_ZERO_INIT_ARRAY(uint8_t, ataSecurityInfo, SAT_SECURITY_INFO_LEN);
                     if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_READ_INFO, false, SAT_SECURITY_INFO_LEN, ataSecurityInfo))
                     {
                         if (ataSecurityInfo[1] == 0x0E)//Checking that the length matches to make sure we got a good response
@@ -439,7 +439,7 @@ static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
             bool isASCIIString = true;//assume it is a string since it will most likely be one.
             for (uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
             {
-                if (iscntrl(ataPassword->password[iter]) || ataPassword->password[iter] & BIT7)//this function is the opposite of isPrint and should work for what we want. We also want to check if bit 7 is set
+                if (safe_iscntrl(ataPassword->password[iter]) || ataPassword->password[iter] & BIT7)//this function is the opposite of isPrint and should work for what we want. We also want to check if bit 7 is set
                 {
                     isASCIIString = false;
                     break;
@@ -563,7 +563,7 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseTy
 eReturnValues set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *securityPassword = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -585,7 +585,7 @@ eReturnValues set_ATA_Security_Password(tDevice *device, ataSecurityPassword ata
 eReturnValues disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *securityPassword = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -607,7 +607,7 @@ eReturnValues disable_ATA_Security_Password(tDevice *device, ataSecurityPassword
 eReturnValues unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *securityPassword = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -629,7 +629,7 @@ eReturnValues unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPasswo
 eReturnValues start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t *securityErase = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *securityErase = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityErase)
     {
         return MEMORY_FAILURE;
@@ -1110,7 +1110,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
             time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
             uint16_t days = 0;
             uint8_t hours = 0, minutes = 0, seconds = 0;
-            char timeFormat[TIME_STRING_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, timeFormat, TIME_STRING_LENGTH);
             convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
             if (maxPossibleTime)
@@ -1168,7 +1168,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
         {
             hostResetDuringErase = true;
         }
-        uint8_t validateCompletion[SPC3_SENSE_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, validateCompletion, SPC3_SENSE_LEN);
         scsi_Request_Sense_Cmd(device, false, validateCompletion, SPC3_SENSE_LEN);
         get_Sense_Key_ASC_ASCQ_FRU(validateCompletion, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
@@ -1200,7 +1200,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
     if (satATASecuritySupported)
     {
         //force an identify information update to make sure the security protocol information is not being cached by the controller. VPD 89h will force the controller to issue a new identify command and it SHOULD also update anything the controller is caching.
-        uint8_t ataVPDPage[VPD_ATA_INFORMATION_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, ataVPDPage, VPD_ATA_INFORMATION_LEN);
         if (SUCCESS == scsi_Inquiry(device, ataVPDPage, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
         {
             //commenting this out because a controller could change this data from what the drive reported and we don't want to store that.

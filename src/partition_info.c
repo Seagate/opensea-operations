@@ -494,7 +494,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                         //calculate the LBA to read the beginning of the partition array!
                         partitionArrayLBA = device->drive_info.deviceMaxLba - (gptPartitionArrayDataLength / device->drive_info.deviceBlockSize);
                     }
-                    gptPartitionArray = C_CAST(uint8_t*, calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
+                    gptPartitionArray = C_CAST(uint8_t*, safe_calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
                     if (!gptPartitionArray)
                     {
                         return MEMORY_FAILURE;
@@ -559,12 +559,12 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
 
 ptrPartitionInfo get_Partition_Info(tDevice* device)
 {
-    ptrPartitionInfo partitionData = C_CAST(ptrPartitionInfo, calloc(1, sizeof(partitionInfo)));
+    ptrPartitionInfo partitionData = C_CAST(ptrPartitionInfo, safe_calloc(1, sizeof(partitionInfo)));
     //This function will read LBA 0 for 32KiB first, enough to handle most situations
     //It will check for MBR, APM, and GPT (not necessarily in that order), then fill in proper structures.
     //If everything is zeros, it will read the last 32KiB of the drive to see if a backup of the boot sector is available.
     uint32_t dataSize = UINT32_C(32768);
-    uint8_t* dataBuffer = C_CAST(uint8_t*, calloc(dataSize, sizeof(uint8_t)));
+    uint8_t* dataBuffer = C_CAST(uint8_t*, safe_calloc(dataSize, sizeof(uint8_t)));
     if (dataBuffer && partitionData)
     {
         uint64_t lba = 0;
@@ -599,7 +599,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                     else
                     {
                         //call functino to fill MBR data
-                        partitionData->mbrTable = C_CAST(ptrMBRData, calloc(1, sizeof(mbrData)));
+                        partitionData->mbrTable = C_CAST(ptrMBRData, safe_calloc(1, sizeof(mbrData)));
                         if (partitionData->mbrTable)
                         {
                             fill_MBR_Data(dataBuffer, dataSize, partitionData->mbrTable);
@@ -627,7 +627,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                 {
                     uint32_t partitionCount = number_Of_GPT_Partitions(dataBuffer, dataSize, device->drive_info.deviceBlockSize, lba);
                     uint32_t gptStructSize = C_CAST(uint32_t, (sizeof(gptData) - sizeof(gptPartitionEntry)) + (sizeof(gptPartitionEntry) * partitionCount));
-                    partitionData->gptTable = C_CAST(ptrGPTData, calloc(gptStructSize, sizeof(uint8_t)));
+                    partitionData->gptTable = C_CAST(ptrGPTData, safe_calloc(gptStructSize, sizeof(uint8_t)));
                     if (partitionData->gptTable)
                     {
                         partitionData->partitionDataType = PARTITION_TABLE_GPT;
