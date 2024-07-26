@@ -3209,23 +3209,22 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                             if (strncmp(driveInfo->vendorID, "SEAGATE", safe_strlen("SEAGATE")) == 0 && serialNumberLength == 0x14)//Check SEAGATE Vendor ID And check that the length matches the SCSI commands reference manual
                             {
                                 //get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
-                                memcpy(driveInfo->serialNumber, &unitSerialNumber[4], 8);
+                                safe_memcpy(driveInfo->serialNumber, SERIAL_NUM_LEN, &unitSerialNumber[4], 8);
                                 driveInfo->serialNumber[8] = '\0';
-                                remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                                remove_Leading_And_Trailing_Whitespace_Len(driveInfo->serialNumber, 8);
                                 //remaining is PCBA SN
-                                memcpy(driveInfo->pcbaSerialNumber, &unitSerialNumber[12], 12);
+                                safe_memcpy(driveInfo->pcbaSerialNumber, SERIAL_NUM_LEN, &unitSerialNumber[12], 12);
                                 driveInfo->pcbaSerialNumber[12] = '\0';
-                                remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                                remove_Leading_And_Trailing_Whitespace_Len(driveInfo->pcbaSerialNumber, 12);
                             }
                             else
                             {
-                                memcpy(driveInfo->serialNumber, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
+                                safe_memcpy(driveInfo->serialNumber, SERIAL_NUM_LEN, &unitSerialNumber[4], M_Min(SERIAL_NUM_LEN, serialNumberLength));
                                 driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
-                                remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
+                                remove_Leading_And_Trailing_Whitespace_Len(driveInfo->serialNumber, SERIAL_NUM_LEN);
                                 for (uint8_t iter = 0; iter < SERIAL_NUM_LEN; ++iter)
                                 {
-                                    if (!safe_isprint(
-device->drive_info.serialNumber[iter]))
+                                    if (!safe_isprint(device->drive_info.serialNumber[iter]))
                                     {
                                         device->drive_info.serialNumber[iter] = ' ';
                                     }
