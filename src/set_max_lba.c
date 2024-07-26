@@ -540,6 +540,10 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                 uint32_t numberOfDescriptors = M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
                 uint32_t capModelMappingSz = C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors));
                 capModelMapping = C_CAST(ptrcapacityModelNumberMapping, safe_calloc(capModelMappingSz, sizeof(uint8_t)));
+                if (capModelMapping == M_NULLPTR)
+                {
+                    return M_NULLPTR;
+                }
                 capModelMapping->numberOfDescriptors = numberOfDescriptors;
                 //now loop through descriptors
                 for (uint32_t offset = 8, descriptorCounter = 0; offset < capMNLogSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
@@ -556,9 +560,9 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                         }
                     }
 #if !defined(__BIG_ENDIAN__)
-                    byte_Swap_String(capModelMapping->descriptor[descriptorCounter].modelNumber);
+                    byte_Swap_String_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
 #endif
-                    remove_Leading_And_Trailing_Whitespace(capModelMapping->descriptor[descriptorCounter].modelNumber);
+                    remove_Leading_And_Trailing_Whitespace_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                 }
             }
             safe_Free_aligned(C_CAST(void**, &capMNMappingLog));
@@ -598,7 +602,7 @@ capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
                             capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
                         }
                     }
-                    remove_Leading_And_Trailing_Whitespace(capModelMapping->descriptor[descriptorCounter].modelNumber);
+                    remove_Leading_And_Trailing_Whitespace_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                 }
             }
             safe_Free_aligned(C_CAST(void**, &capProdIDMappingVPD));
