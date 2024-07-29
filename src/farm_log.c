@@ -24,6 +24,7 @@
 #include "error_translation.h"
 #include "io_utils.h"
 #include "time_utils.h"
+#include "secure_file.h"
 
 #include "farm_log.h"
 #include "logs.h"
@@ -879,6 +880,39 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
     return SUCCESS;
 }
 
+static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInfo *farmFile)
+{
+    eReturnValues returnValue = SUCCESS;
+    if (paddingSize > 0)
+    {
+        size_t zeroPaddingLen = uint32_to_sizet(paddingSize);
+        uint8_t* zeroPadding = C_CAST(uint8_t*, safe_calloc(zeroPaddingLen, sizeof(uint8_t)));
+        if (zeroPadding)
+        {
+            if (SEC_FILE_SUCCESS != secure_Write_File(farmFile, zeroPadding, zeroPaddingLen, sizeof(uint8_t), zeroPaddingLen, M_NULLPTR))
+            {
+                if (SEC_FILE_SUCCESS != secure_Close_File(farmFile))
+                {
+                    printf("Error closing file!\n");
+                }
+                free_Secure_File_Info(&farmFile);
+                returnValue = ERROR_WRITING_FILE;
+            }
+        }
+        else
+        {
+            if (SEC_FILE_SUCCESS != secure_Close_File(farmFile))
+            {
+                printf("Error closing file!\n");
+            }
+            free_Secure_File_Info(&farmFile);
+            returnValue = MEMORY_FAILURE;
+        }
+        safe_Free(C_CAST(void**, &zeroPadding));
+    }
+    return returnValue;
+}
+
 eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType)
 {
     eReturnValues returnValue = NOT_SUPPORTED;
@@ -917,14 +951,14 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
     uint8_t *farmLongSavedLog = M_NULLPTR;
     uint8_t *farmStickyLog = M_NULLPTR;
     uint8_t *farmWorkLoadTraceLog = M_NULLPTR;
-    uint8_t *zeroPaddingHeader = M_NULLPTR;
     uint8_t *farmCurrentZeroPaddingBuffer = M_NULLPTR;
     uint8_t *farmFactoryZeroPaddingBuffer = M_NULLPTR;
     uint8_t *farmSavedZeroPaddingBuffer = M_NULLPTR;
     uint8_t *farmTimeSeriesZeroPaddingBuffer = M_NULLPTR;
     uint8_t *farmLongSavedZeroPaddingBuffer = M_NULLPTR;
     uint8_t *farmStickyZeroPaddingBuffer = M_NULLPTR;
-    tZeroPaddingBufferSize zeroPaddingBufferSize = { 0 };
+    tZeroPaddingBufferSize zeroPaddingBufferSize;
+    memset(&zeroPaddingBufferSize, 0, sizeof(tZeroPaddingBufferSize));
 
     //set signature
     DECLARE_ZERO_INIT_ARRAY(char, signature, FARM_SIGNATURE_LENGTH + 1);
@@ -1053,7 +1087,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         }
         else if (device->drive_info.drive_type == SCSI_DRIVE)
         {
-            uint32_t logSize;
+            uint32_t logSize = 0;
             tSASLogpageSize logpageSize = { 0 };
 
             //get the log size of all log subpages
@@ -1163,9 +1197,8 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         }
 
         //create and open the log file
-        FILE *farmCombinedLog = M_NULLPTR;
-        char *fileNameUsed = M_NULLPTR;
-        if (SUCCESS != create_And_Open_Log_File(device, &farmCombinedLog, filePath, "FARMC", "frmc", NAMING_SERIAL_NUMBER_DATE_TIME, &fileNameUsed))
+        secureFileInfo *farmCombinedLog = M_NULLPTR;
+        if (SUCCESS != create_And_Open_Secure_Log_File_Dev_EZ(device, &farmCombinedLog, NAMING_SERIAL_NUMBER_DATE_TIME, filePath, "FARMC", "frmc"))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
@@ -1176,14 +1209,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         }
 
         //write header 
-        if ((fwrite(header, sizeof(uint8_t), FARMC_LOG_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_HEADER_LENGTH))
-            || ferror(farmCombinedLog))
+        if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, header,FARMC_LOG_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_HEADER_LENGTH, M_NULLPTR))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 perror("Error in writing header data to a file!\n");
             }
-            fclose(farmCombinedLog);
+            if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+            {
+                printf("Error closing file!\n");
+            }
+            free_Secure_File_Info(&farmCombinedLog);
             returnValue = ERROR_WRITING_FILE;
             break;
         }
@@ -1192,14 +1228,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         {
             if (farmContentField & BIT0)
             {
-                if ((fwrite(farmCurrentHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmCurrentHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm current header data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
@@ -1207,14 +1246,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
 
             if (farmContentField & BIT1)
             {
-                if ((fwrite(farmFactoryHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmFactoryHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm factory header data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
@@ -1222,14 +1264,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
 
             if (farmContentField & BIT5)
             {
-                if ((fwrite(farmSavedHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmSavedHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm saved header data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
@@ -1237,14 +1282,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
 
             if (farmContentField & BIT2)
             {
-                if ((fwrite(farmTimeSeriesHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmTimeSeriesHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm time series header data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
@@ -1252,14 +1300,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
 
             if (farmContentField & BIT6)
             {
-                if ((fwrite(farmLongSavedHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmLongSavedHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm long term saved header data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
@@ -1267,14 +1318,17 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
 
             if (farmContentField & BIT3)
             {
-                if ((fwrite(farmStickyHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmStickyHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm sticky frame header data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
@@ -1282,34 +1336,27 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
 
             if (farmContentField & BIT4)
             {
-                if ((fwrite(farmWorkLoadTraceHeader, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, farmCombinedLog) != C_CAST(size_t, FARMC_LOG_DATA_SET_HEADER_LENGTH))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmWorkLoadTraceHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, sizeof(uint8_t), FARMC_LOG_DATA_SET_HEADER_LENGTH, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm workload trace header data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
             }
 
             //write zero padding
-            if (zeroPaddingBufferSize.headerZeroPadding != 0)
+            returnValue = write_FARM_Zero_Padding(zeroPaddingBufferSize.headerZeroPadding, farmCombinedLog);
+            if (returnValue != SUCCESS)
             {
-                zeroPaddingHeader = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
-                if ((fwrite(zeroPaddingHeader, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.headerZeroPadding))
-                    || ferror(farmCombinedLog))
-                {
-                    if (device->deviceVerbosity > VERBOSITY_QUIET)
-                    {
-                        perror("Error in writing zero padding header data to a file!\n");
-                    }
-                    fclose(farmCombinedLog);
-                    returnValue = ERROR_WRITING_FILE;
-                    break;
-                }
+                break;
             }
         }
 
@@ -1318,230 +1365,199 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
             if (farmContentField & BIT0)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmCurrentHeader + 12);
-                if ((fwrite(farmCurrentLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmCurrentLog, *datasetlength, sizeof(uint8_t), *datasetlength, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm current log data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
 
                 //add zero padding
-                if (zeroPaddingBufferSize.farmCurrentZeroPadding != 0)
+                returnValue = write_FARM_Zero_Padding(zeroPaddingBufferSize.farmCurrentZeroPadding, farmCombinedLog);
+                if (returnValue != SUCCESS)
                 {
-                    farmCurrentZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if ((fwrite(farmCurrentZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmCurrentZeroPadding))
-                        || ferror(farmCombinedLog))
-                    {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
-                        {
-                            perror("Error in writing farm current zero padding data to a file!\n");
-                        }
-                        fclose(farmCombinedLog);
-                        returnValue = ERROR_WRITING_FILE;
-                        break;
-                    }
+                    break;
                 }
             }
 
             if (farmContentField & BIT1)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmFactoryHeader + 12);
-                if ((fwrite(farmFactoryLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmFactoryLog, *datasetlength, sizeof(uint8_t), *datasetlength, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm factory log data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
 
                 //add zero padding
-                if (zeroPaddingBufferSize.farmFactoryZeroPadding != 0)
+                returnValue = write_FARM_Zero_Padding(zeroPaddingBufferSize.farmFactoryZeroPadding, farmCombinedLog);
+                if (returnValue != SUCCESS)
                 {
-                    farmFactoryZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if ((fwrite(farmFactoryZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmFactoryZeroPadding))
-                        || ferror(farmCombinedLog))
-                    {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
-                        {
-                            perror("Error in writing farm factory zero padding data to a file!\n");
-                        }
-                        fclose(farmCombinedLog);
-                        returnValue = ERROR_WRITING_FILE;
-                        break;
-                    }
+                    break;
                 }
             }
 
             if (farmContentField & BIT5)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmSavedHeader + 12);
-                if ((fwrite(farmSavedLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmSavedLog, *datasetlength, sizeof(uint8_t), *datasetlength, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm save log data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
 
                 //add zero padding
-                if (zeroPaddingBufferSize.farmSavedZeroPadding != 0)
+                returnValue = write_FARM_Zero_Padding(zeroPaddingBufferSize.farmSavedZeroPadding, farmCombinedLog);
+                if (returnValue != SUCCESS)
                 {
-                    farmSavedZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if ((fwrite(farmSavedZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmSavedZeroPadding))
-                        || ferror(farmCombinedLog))
-                    {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
-                        {
-                            perror("Error in writing farm saved zero padding data to a file!\n");
-                        }
-                        fclose(farmCombinedLog);
-                        returnValue = ERROR_WRITING_FILE;
-                        break;
-                    }
+                    break;
                 }
             }
 
             if (farmContentField & BIT2)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmTimeSeriesHeader + 12);
-                if ((fwrite(farmTimeSeriesLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmTimeSeriesLog, *datasetlength, sizeof(uint8_t), *datasetlength, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm time series frame log data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
 
                 //add zero padding
-                if (zeroPaddingBufferSize.farmTimeSeriesZeroPadding != 0)
+                returnValue = write_FARM_Zero_Padding(zeroPaddingBufferSize.farmTimeSeriesZeroPadding, farmCombinedLog);
+                if (returnValue != SUCCESS)
                 {
-                    farmTimeSeriesZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if ((fwrite(farmTimeSeriesZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmTimeSeriesZeroPadding))
-                        || ferror(farmCombinedLog))
-                    {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
-                        {
-                            perror("Error in writing farm time series zero padding data to a file!\n");
-                        }
-                        fclose(farmCombinedLog);
-                        returnValue = ERROR_WRITING_FILE;
-                        break;
-                    }
+                    break;
                 }
             }
 
             if (farmContentField & BIT6)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmLongSavedHeader + 12);
-                if ((fwrite(farmLongSavedLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmLongSavedLog, *datasetlength, sizeof(uint8_t), *datasetlength, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm long term saved frame log data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
 
                 //add zero padding
-                if (zeroPaddingBufferSize.farmLongSavedZeroPadding != 0)
+                returnValue = write_FARM_Zero_Padding(zeroPaddingBufferSize.farmLongSavedZeroPadding, farmCombinedLog);
+                if (returnValue != SUCCESS)
                 {
-                    farmLongSavedZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmLongSavedZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if ((fwrite(farmLongSavedZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmLongSavedZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmLongSavedZeroPadding))
-                        || ferror(farmCombinedLog))
-                    {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
-                        {
-                            perror("Error in writing farm long term saved zero padding data to a file!\n");
-                        }
-                        fclose(farmCombinedLog);
-                        returnValue = ERROR_WRITING_FILE;
-                        break;
-                    }
+                    break;
                 }
             }
 
             if (farmContentField & BIT3)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmStickyHeader + 12);
-                if ((fwrite(farmStickyLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmStickyLog, *datasetlength, sizeof(uint8_t), *datasetlength, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm sticky frame log data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
 
                 //add zero padding
-                if (zeroPaddingBufferSize.farmStickyZeroPadding != 0)
+                returnValue = write_FARM_Zero_Padding(zeroPaddingBufferSize.farmStickyZeroPadding, farmCombinedLog);
+                if (returnValue != SUCCESS)
                 {
-                    farmStickyZeroPaddingBuffer = C_CAST(uint8_t*, safe_calloc_aligned(C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding), sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if ((fwrite(farmStickyZeroPaddingBuffer, sizeof(uint8_t), C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding), farmCombinedLog) != C_CAST(size_t, zeroPaddingBufferSize.farmStickyZeroPadding))
-                        || ferror(farmCombinedLog))
-                    {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
-                        {
-                            perror("Error in writing farm sticky frams zero padding data to a file!\n");
-                        }
-                        fclose(farmCombinedLog);
-                        returnValue = ERROR_WRITING_FILE;
-                        break;
-                    }
+                    break;
                 }
             }
 
             if (farmContentField & BIT4)
             {
                 uint32_t *datasetlength = C_CAST(uint32_t*, farmWorkLoadTraceHeader + 12);
-                if ((fwrite(farmWorkLoadTraceLog, sizeof(uint8_t), C_CAST(size_t, *datasetlength), farmCombinedLog) != C_CAST(size_t, *datasetlength))
-                    || ferror(farmCombinedLog))
+                if (SEC_FILE_SUCCESS != secure_Write_File(farmCombinedLog, farmWorkLoadTraceLog, *datasetlength, sizeof(uint8_t), *datasetlength, M_NULLPTR))
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
                         perror("Error in writing farm workload trace log data to a file!\n");
                     }
-                    fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
                     break;
                 }
             }
         }
 
-        if ((fflush(farmCombinedLog) != 0) || ferror(farmCombinedLog))
+        if (SEC_FILE_SUCCESS != secure_Flush_File(farmCombinedLog))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
                 perror("Error in flushing data!\n");
             }
-            fclose(farmCombinedLog);
+                    if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+                    {
+                        printf("Error closing file!\n");
+                    }
+            free_Secure_File_Info(&farmCombinedLog);
             returnValue = ERROR_WRITING_FILE;
             break;
         }
 
-        fclose(farmCombinedLog);
+        if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
+        {
+            printf("Error closing file!\n");
+        }
+        free_Secure_File_Info(&farmCombinedLog);
     } while (0);
 
     safe_Free_aligned(C_CAST(void**, &farmCurrentLog));
@@ -1551,7 +1567,6 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
     safe_Free_aligned(C_CAST(void**, &farmLongSavedLog));
     safe_Free_aligned(C_CAST(void**, &farmStickyLog));
     safe_Free_aligned(C_CAST(void**, &farmWorkLoadTraceLog));
-    safe_Free_aligned(C_CAST(void**, &zeroPaddingHeader));
     safe_Free_aligned(C_CAST(void**, &farmCurrentZeroPaddingBuffer));
     safe_Free_aligned(C_CAST(void**, &farmFactoryZeroPaddingBuffer));
     safe_Free_aligned(C_CAST(void**, &farmSavedZeroPaddingBuffer));

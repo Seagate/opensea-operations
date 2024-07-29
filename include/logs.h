@@ -16,18 +16,20 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "common_types.h"
+#include "code_attributes.h"
+#include "secure_file.h"
+
+#include <time.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-    #include <time.h>
-
     typedef enum _eLogFileNamingConvention
     {
-        NAMING_SERIAL_NUMBER_ONLY,
         NAMING_SERIAL_NUMBER_DATE_TIME,//this should be used most of the time to avoid collisions with existing files
-        NAMING_OPENSTACK,//not yet implemented
+        NAMING_SERIAL_NUMBER_ONLY,
         NAMING_BYUSER,   // a way for the command line user to name the file
     }eLogFileNamingConvention;
 
@@ -42,11 +44,18 @@ extern "C" {
     #define FARM_SUBLOGPAGE_LEN             16384
     #define TOTAL_CONSTITUENT_PAGES         32
 
-    OPENSEA_OPERATIONS_API eReturnValues generate_Logfile_Name(tDevice *device, \
-                                                    const char * const logName, \
-                                                    const char * const logExtension, \
-                                                    eLogFileNamingConvention logFileNamingConvention, \
-                                                    char **logFileNameUsed);
+    OPENSEA_OPERATIONS_API const char* get_Drive_ID_For_Logfile_Name(tDevice *device);
+
+    OPENSEA_OPERATIONS_API char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, /*required*/
+                         const char *deviceIdentifier, /*required*/
+                         size_t deviceIDLen, /*required*/
+                         const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
+                         size_t logPathLen, //may be 0
+                         const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
+                         size_t logNameLen, //may be 0
+                         const char *logExt,   //optional /*extension for the log file. If NULL, set to .bin*/
+                         size_t logExtLen //may be 0
+                                              );
 
     //-----------------------------------------------------------------------------
     //
@@ -67,14 +76,29 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Log_File(tDevice *device, \
-                                                    FILE **filePtr, \
-                                                    const char * const logPath, \
-                                                    const char * const logName, \
-                                                    const char * const logExtension, \
-                                                    eLogFileNamingConvention logFileNamingConvention, \
-                                                    char **logFileNameUsed);
+    OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File(const char *deviceIdentifier, /*required*/
+                                              size_t deviceIDLen, /*required*/
+                                              secureFileInfo **file, /*required*/
+                                              eLogFileNamingConvention logFileNamingConvention, /*required*/
+                                              const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
+                                              size_t logPathLen, //may be 0
+                                              const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
+                                              size_t logNameLen, //may be 0
+                                              const char *logExt, //optional /*extension for the log file. If NULL, set to .bin*/
+                                              size_t logExtLen //may be 0
+                                              //NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
+                                              );
 
+    //Meant to be a little simpler to call when you don't want to calculate a bunch of lengths for the function above using device info.
+    //NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
+    OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(tDevice *device,
+                                                secureFileInfo **file, /*required*/
+                                                eLogFileNamingConvention logFileNamingConvention, /*required*/
+                                                const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
+                                                const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
+                                                const char *logExt //optional /*extension for the log file. If NULL, set to .bin*/
+    );
+    
     //-----------------------------------------------------------------------------
     //
     //  get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
