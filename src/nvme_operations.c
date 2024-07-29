@@ -528,7 +528,7 @@ eReturnValues nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * l
     eReturnValues ret = SUCCESS;
     if (logSize)
     {
-        uint8_t logPageHeader[UINT32_C(16)] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, logPageHeader, UINT32_C(16));
         nvmeGetLogPageCmdOpts getLogHeader;
         memset(&getLogHeader, 0, sizeof(nvmeGetLogPageCmdOpts));
         getLogHeader.addr = logPageHeader;
@@ -565,7 +565,7 @@ eReturnValues nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * l
         case NVME_LOG_TELEMETRY_HOST_ID:
         case NVME_LOG_TELEMETRY_CTRL_ID:
         {
-            uint8_t telemetryHeader[UINT32_C(512)] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, telemetryHeader, UINT32_C(512));
             getLogHeader.addr = telemetryHeader;
             getLogHeader.dataLen = UINT32_C(512);
             getLogHeader.lid = logPageId;

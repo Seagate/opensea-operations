@@ -791,7 +791,7 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
         bool reportSuccess = false;
         //Trying to use report supported operation codes/inquiry cmdDT first on the read long command. 
         //Using read long since it was removed in latest specs, so if it is not supported, then we know write long won't work unless using the write uncorrectable bit.
-        uint8_t commandSupportInformation[30] = { 0 };//should be more than big enough
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, commandSupportInformation, 30);//should be more than big enough
         uint8_t operationCode = READ_LONG_10;
         uint32_t dataLength = 10;
         if (device->drive_info.deviceMaxLba > UINT32_MAX)

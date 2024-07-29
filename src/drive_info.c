@@ -4356,7 +4356,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
             uint16_t numberOfPages = 0;
             uint16_t offset = 0;
             //create a list of mode pages (and any subpages) we care about reading and go through that list reading each one
-            uint8_t listOfModePagesAndSubpages[512] = { 0 };//allow 10 entries in the list...update the loop condition below if this is adjusted
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, listOfModePagesAndSubpages, 512);//allow 10 entries in the list...update the loop condition below if this is adjusted
             //format for page list is first byte = page, 2nd byte = subpage, then increment and look at the next page
             listOfModePagesAndSubpages[offset] = MP_READ_WRITE_ERROR_RECOVERY;//AWRE, ARRE
             offset += 2;
@@ -4454,7 +4454,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         char* arreString = M_NULLPTR;
                         uint32_t awreStringLength = 0;
                         uint32_t arreStringLength = 0;
-                        uint8_t readWriteErrorRecovery[12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, defaultsRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, readWriteErrorRecovery, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -4619,7 +4619,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     case 0:
                         if (driveInfo->rotationRate == 0)
                         {
-                            uint8_t rigidGeometry[24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };
+                            DECLARE_ZERO_INIT_ARRAY(uint8_t, rigidGeometry, 24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);
                             bool pageRead = false, sixByte = false;
                             uint16_t headerLength = 0;
                             if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, rigidGeometry, 24 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -4661,7 +4661,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     {
                     case 0:
                     {
-                        uint8_t cachingPage[20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false;
                         bool sixByte = false;
                         uint16_t headerLength = 0;
@@ -4755,7 +4755,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     {
                     case 0://control mode page. No subpage
                     {
-                        uint8_t controlPage[MP_CONTROL_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, controlPage, MP_CONTROL_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false;
                         bool sixByte = false;
                         uint16_t headerLength = 0;
@@ -4805,7 +4805,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         //check if DLC is supported or can be changed before checking if they are enabled or not.
                         char* dlcString = M_NULLPTR;
                         uint32_t dlcStringLength = 0;
-                        uint8_t controlExtensionPage[MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, defaultsRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, controlExtensionPage, MP_CONTROL_EXTENSION_LEN + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -4909,7 +4909,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     break;
                     case 0x05://IO Advice Hints
                     {
-                        uint8_t ioAdviceHints[1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, ioAdviceHints, 1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, ioAdviceHints, 1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -4964,7 +4964,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     case 0xF1://PATA control
                         //if we can read this page, then the device supports PATA Control
                     {
-                        uint8_t pataControl[8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, pataControl, 8 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         //bool pageRead = false, 
                         bool sixByte = false;
                         //uint16_t headerLength = 0;
@@ -5004,7 +5004,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     {
                     case 0x00://Protocol specific port (Use this to get whether SAS or FC or SCSI, etc)
                     {
-                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -5039,7 +5039,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     break;
                     case 0x01://Phy control and discover mode page (SAS)
                     {
-                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -5170,7 +5170,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     break;
                     case 0x03://Negotiated Settings (Parallel SCSI)
                     {
-                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -5270,7 +5270,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     break;
                     case 0x04://Report Transfer Capabilities (Parallel SCSI)
                     {
-                        uint8_t protocolSpecificPort[LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, protocolSpecificPort, LEGACY_DRIVE_SEC_SIZE + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -5380,7 +5380,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         uint32_t epcFeatureStringLength = 0;
                         //read the default values to check if it's supported...then try the current page...
                         bool defaultsRead = false, sixByte = false;
-                        uint8_t powerConditions[40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, powerConditions, 40 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -5534,7 +5534,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     break;
                     case 0xF1://ata power conditions
                     {
-                        uint8_t ataPowerConditions[16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, ataPowerConditions, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, ataPowerConditions, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -5583,7 +5583,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     {
                     case 0:
                     {
-                        uint8_t informationalExceptions[12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, informationalExceptions, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, informationalExceptions, 12 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -5626,7 +5626,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         char* bmsPSString = M_NULLPTR;
                         uint32_t bmsStringLength = 0;
                         uint32_t bmsPSStringLength = 0;
-                        uint8_t backgroundControl[16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH] = { 0 };//need to include header length in this
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
                         bool pageRead = false, defaultsRead = false, sixByte = false;
                         uint16_t headerLength = 0;
                         if (SUCCESS == get_SCSI_Mode_Page(device, MPC_DEFAULT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, backgroundControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
@@ -6924,7 +6924,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     if (driveInfo->controllerData.totalNVMCapacityD > 0)
     {
         //convert this to an "easy" unit instead of tons and tons of bytes
-        char mTotalCapUnits[UNIT_STRING_LENGTH] = { 0 }, totalCapUnits[UNIT_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, mTotalCapUnits, UNIT_STRING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, totalCapUnits, UNIT_STRING_LENGTH);
         char* mTotalCapUnit = &mTotalCapUnits[0], *totalCapUnit = &totalCapUnits[0];
         double mTotalCapacity = driveInfo->controllerData.totalNVMCapacityD;
         double totalCapacity = mTotalCapacity;
@@ -6933,7 +6934,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tTotal NVM Capacity (%s/%s): %0.02f/%0.02f\n", mTotalCapUnit, totalCapUnit, mTotalCapacity, totalCapacity);
         if (driveInfo->controllerData.unallocatedNVMCapacityD > 0)
         {
-            char mUnCapUnits[4] = { 0 }, unCapUnits[4] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, mUnCapUnits, UNIT_STRING_LENGTH);
+            DECLARE_ZERO_INIT_ARRAY(char, unCapUnits, UNIT_STRING_LENGTH);
             char* mUnCapUnit = &mUnCapUnits[0], *unCapUnit = &unCapUnits[0];
             double mUnCapacity = driveInfo->controllerData.unallocatedNVMCapacityD;
             double unCapacity = mUnCapacity;
@@ -7107,7 +7109,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     if (driveInfo->namespaceData.valid)
     {
         //Namespace size
-        char mSizeUnits[UNIT_STRING_LENGTH] = { 0 }, sizeUnits[UNIT_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, mSizeUnits, UNIT_STRING_LENGTH), sizeUnits[UNIT_STRING_LENGTH] = { 0 };
         char* mSizeUnit = &mSizeUnits[0], *sizeUnit = &sizeUnits[0];
         double nvmMSize = C_CAST(double, driveInfo->namespaceData.namespaceSize * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmSize = nvmMSize;
@@ -7117,7 +7119,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tNamespace Size (LBAs): %" PRIu64 "\n", driveInfo->namespaceData.namespaceSize);
 
         //namespace capacity
-        char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, mCapUnits, UNIT_STRING_LENGTH), capUnits[UNIT_STRING_LENGTH] = { 0 };
         char* mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
         double nvmMCap = C_CAST(double, driveInfo->namespaceData.namespaceCapacity * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmCap = nvmMCap;
@@ -7127,7 +7129,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tNamespace Capacity (LBAs): %" PRIu64 "\n", driveInfo->namespaceData.namespaceCapacity);
 
         //namespace utilization
-        char mUtilizationUnits[UNIT_STRING_LENGTH] = { 0 }, utilizationUnits[UNIT_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, mUtilizationUnits, UNIT_STRING_LENGTH), utilizationUnits[UNIT_STRING_LENGTH] = { 0 };
         char* mUtilizationUnit = &mUtilizationUnits[0], *utilizationUnit = &utilizationUnits[0];
         double nvmMUtilization = C_CAST(double, driveInfo->namespaceData.namespaceUtilization * driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmUtilization = nvmMUtilization;
@@ -7208,7 +7210,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 {
     double mCapacity = 0, capacity = 0;
-    char mCapUnits[UNIT_STRING_LENGTH] = { 0 }, capUnits[UNIT_STRING_LENGTH] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, mCapUnits, UNIT_STRING_LENGTH), capUnits[UNIT_STRING_LENGTH] = { 0 };
     char* mCapUnit = &mCapUnits[0], *capUnit = &capUnits[0];
     if (safe_strlen(driveInfo->vendorID))
     {

@@ -578,7 +578,7 @@ eReturnValues get_Registration_Key_Count(tDevice *device, uint16_t *keyCount)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t readKeyCount[24] = { 0 };//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, readKeyCount, 24);//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
         if (SUCCESS == (ret = nvme_Reservation_Report(device, false, readKeyCount, 24)))
         {
             *keyCount = M_BytesTo2ByteValue(readKeyCount[6], readKeyCount[5]);
@@ -693,7 +693,7 @@ eReturnValues get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCou
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t readKeyCount[24] = { 0 };//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, readKeyCount, 24);//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
         if (SUCCESS == (ret = nvme_Reservation_Report(device, false, readKeyCount, 24)))
         {
             if (readKeyCount[4] > 0)
@@ -1007,7 +1007,7 @@ eReturnValues get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        uint8_t readKeyCount[24] = { 0 };//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, readKeyCount, 24);//may be able to get away with only 8 bytes, but this read up until the list begins - TJE
         if (SUCCESS == (ret = nvme_Reservation_Report(device, false, readKeyCount, 24)))
         {
             *keyCount = M_BytesTo2ByteValue(readKeyCount[6], readKeyCount[5]);

@@ -2165,7 +2165,7 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSe
         }
         epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
         //now time to read the mode pages for the other information (start with current, then saved, then default)
-        uint8_t epcModePage[MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, epcModePage, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
         for (eScsiModePageControl modePageControl = MPC_CURRENT_VALUES; modePageControl <= MPC_SAVED_VALUES; ++modePageControl)
         {
             memset(epcModePage, 0, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);

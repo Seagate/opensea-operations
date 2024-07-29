@@ -422,7 +422,7 @@ static eReturnValues seagate_SAS_Get_JIT_Modes(tDevice *device, ptrSeagateJITMod
         if (!is_SSD(device))
         {
             //HDD, so we can do this.
-            uint8_t seagateUnitAttentionParameters[12 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, seagateUnitAttentionParameters, 12 + MODE_PARAMETER_HEADER_10_LEN);
             bool readPage = false;
             uint8_t headerLength = MODE_PARAMETER_HEADER_10_LEN;
             if (SUCCESS == scsi_Mode_Sense_10(device, 0, 12 + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, seagateUnitAttentionParameters))
@@ -491,7 +491,7 @@ static eReturnValues seagate_SAS_Set_JIT_Modes(tDevice *device, bool disableVjit
         if (!is_SSD(device))
         {
             //HDD, so we can do this.
-            uint8_t seagateUnitAttentionParameters[12 + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, seagateUnitAttentionParameters, 12 + MODE_PARAMETER_HEADER_10_LEN);
             bool readPage = false;
             uint8_t headerLength = MODE_PARAMETER_HEADER_10_LEN;
             if (revertToDefaults)

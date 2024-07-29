@@ -453,7 +453,7 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice *device, bool *automati
         //Assume it's SCSI and read the read-write error recovery mode page
         bool readPage = false;
         uint8_t headerLength = MODE_PARAMETER_HEADER_10_LEN;
-        uint8_t readWriteErrorRecoveryMP[MP_READ_WRITE_ERROR_RECOVERY_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, readWriteErrorRecoveryMP, MP_READ_WRITE_ERROR_RECOVERY_LEN + MODE_PARAMETER_HEADER_10_LEN);
         if (SUCCESS == scsi_Mode_Sense_10(device, MP_READ_WRITE_ERROR_RECOVERY, MP_READ_WRITE_ERROR_RECOVERY_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, readWriteErrorRecoveryMP))
         {
             readPage = true;

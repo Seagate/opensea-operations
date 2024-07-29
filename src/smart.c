@@ -3161,7 +3161,7 @@ bool is_SMART_Check_Supported(tDevice *device)
         else
         {
             //check if the mode page is supported...at least then we can attempt the other methods we have in this code to check for a trip.
-            uint8_t informationalExceptionsModePage[MP_INFORMATION_EXCEPTIONS_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, informationalExceptionsModePage, MP_INFORMATION_EXCEPTIONS_LEN + MODE_PARAMETER_HEADER_10_LEN);
             if (SUCCESS == scsi_Mode_Sense_10(device, MP_INFORMATION_EXCEPTIONS_CONTROL, MP_INFORMATION_EXCEPTIONS_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, informationalExceptionsModePage))
             {
                 //check the page code to be sure we got the right page.
@@ -4341,7 +4341,7 @@ eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTE
             get_ATA_Log_Size(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, &smartErrorLogSize, false, true);
             if (smartErrorLogSize > 0)
             {
-                uint8_t errorLog[ATA_LOG_PAGE_LEN_BYTES] = { 0 }; //This log is only 1 page in spec
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, errorLog, ATA_LOG_PAGE_LEN_BYTES); //This log is only 1 page in spec
                 eReturnValues getLog = ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, ATA_LOG_PAGE_LEN_BYTES);
                 if (SUCCESS == getLog || WARN_INVALID_CHECKSUM == getLog)
                 {
@@ -4358,14 +4358,13 @@ eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTE
                     smartErrorLog->deviceErrorCount = M_BytesTo2ByteValue(errorLog[453], errorLog[452]);
                     if (errorLogIndex > 0 && errorLogIndex < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE)
                     {
-                        DECLARE_ZERO_INIT_ARRAY(uint8_t, zeros, SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);
                         uint32_t offset = UINT32_C(2) + ((C_CAST(uint32_t, errorLogIndex) - UINT32_C(1)) * SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE);//first entry is at offset 2, each entry is 90 bytes long
                         //offset should now be our starting point to populate the list
                         uint16_t entryCount = UINT16_C(0);
                         while (entryCount < SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && entryCount < smartErrorLog->deviceErrorCount)
                         {
                             //check if the entry is empty
-                            if (memcmp(&errorLog[offset], zeros, SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
+                            if (is_Empty(&errorLog[offset], SUMMARY_SMART_ERROR_LOG_ENTRY_SIZE))
                             {
                                 //restart the loop to find another entry (if any)
                                 //Adjust the offset to move past the empty entry.
@@ -4385,7 +4384,7 @@ eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTE
                             uint32_t commandEntryOffset = offset;
                             for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE)
                             {
-                                if (memcmp(&errorLog[commandEntryOffset + 0], zeros, SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
+                                if (is_Empty(&errorLog[commandEntryOffset + 0], SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE))
                                 {
                                     continue;
                                 }
@@ -4494,7 +4493,6 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                         {
                             //get the starting page number
                             uint8_t pageEntryNumber = errorLogIndex % EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE - 1;//which entry on the page (zero indexed)
-                            DECLARE_ZERO_INIT_ARRAY(uint8_t, zeros, EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE);
                             pageNumber = errorLogIndex / EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;//4 entries per page
                             while (smartErrorLog->numberOfEntries < SMART_EXT_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount && smartErrorLog->numberOfEntries < (UINT8_C(4) * maxPage)/*make sure we don't go beyond the number of pages the drive actually has*/)
                             {
@@ -4515,7 +4513,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                             uint32_t offset = (C_CAST(uint32_t, pageEntryNumber) * EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) + EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;
                                             --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
                                             //check if the entry is empty
-                                            if (memcmp(&errorLog[offset], zeros, EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
+                                            if (is_Empty(&errorLog[offset], EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE))
                                             {
                                                 //restart the loop to find another entry (if any)
                                                 continue;
@@ -4526,7 +4524,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                             uint32_t commandEntryOffset = offset;
                                             for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += EXT_COMP_SMART_ERROR_LOG_COMMAND_SIZE)
                                             {
-                                                if (memcmp(&errorLog[commandEntryOffset + 0], zeros, EXT_COMP_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
+                                                if (is_Empty(&errorLog[commandEntryOffset + 0], EXT_COMP_SMART_ERROR_LOG_COMMAND_SIZE))
                                                 {
                                                     continue;
                                                 }
@@ -4654,7 +4652,6 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                 //              this gets us entry 4 on page 5 which is entry number 28
                                 //Now, we need to loop through the data and jump between pages.
                                 //go until we fill up our structure with a max number of entries
-                                DECLARE_ZERO_INIT_ARRAY(uint8_t, zeros, COMP_SMART_ERROR_LOG_ENTRY_SIZE);
                                 while (smartErrorLog->numberOfEntries < SMART_COMPREHENSIVE_ERRORS_MAX && smartErrorLog->numberOfEntries < smartErrorLog->deviceErrorCount  && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                 {
                                     while (pageIter <= maxPages)
@@ -4667,7 +4664,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                             --pageEntryNumber;//decrement now before we forget. This is so that we roll backwards since this log appends. If this rolls over to UINT8_MAX, we'll break this loop and read another page.
                                             //read the entry into memory if it is valid, otherwise continue the loop
                                             //check if the entry is empty
-                                            if (memcmp(&errorLog[offset], zeros, COMP_SMART_ERROR_LOG_ENTRY_SIZE) == 0)
+                                            if (is_Empty(&errorLog[offset], COMP_SMART_ERROR_LOG_ENTRY_SIZE))
                                             {
                                                 //restart the loop to find another entry (if any)
                                                 continue;
@@ -4678,7 +4675,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                             uint32_t commandEntryOffset = offset;
                                             for (uint8_t commandEntry = 0; commandEntry < 5; ++commandEntry, commandEntryOffset += COMP_SMART_ERROR_LOG_COMMAND_SIZE)
                                             {
-                                                if (memcmp(&errorLog[commandEntryOffset + 0], zeros, COMP_SMART_ERROR_LOG_COMMAND_SIZE) == 0)
+                                                if (is_Empty(&errorLog[commandEntryOffset + 0], COMP_SMART_ERROR_LOG_COMMAND_SIZE))
                                                 {
                                                     continue;
                                                 }

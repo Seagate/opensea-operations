@@ -115,22 +115,22 @@ eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
 eReturnValues nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, uint8_t *status)
 {
     eReturnValues result = UNKNOWN;
-    uint8_t nvmeSelfTestLog[564] = { 0 };//strange size for the log, but it's what I see in the spec - TJE
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeSelfTestLogBuf, 564);//strange size for the log, but it's what I see in the spec - TJE
     nvmeGetLogPageCmdOpts getDSTLog;
     memset(&getDSTLog, 0, sizeof(nvmeGetLogPageCmdOpts));
-    getDSTLog.addr = nvmeSelfTestLog;
+    getDSTLog.addr = nvmeSelfTestLogBuf;
     getDSTLog.dataLen = 564;
     getDSTLog.lid = 0x06;
     if (SUCCESS == nvme_Get_Log_Page(device, &getDSTLog))
     {
         result = SUCCESS;
-        if (nvmeSelfTestLog[0] == 0)
+        if (nvmeSelfTestLogBuf[0] == 0)
         {
             //no self test in progress
             *percentComplete = 0;
             //need to set a status value based on the most recent result data
             uint32_t newestResultOffset = 4;
-            *status = M_Nibble0(nvmeSelfTestLog[newestResultOffset + 0]);//This should be fine for the rest of the running DST code.
+            *status = M_Nibble0(nvmeSelfTestLogBuf[newestResultOffset + 0]);//This should be fine for the rest of the running DST code.
             //According to spec, if status bit is 0x0F, that means entry is not valid(doesn't cantain valid test results.
             //and in that case, we have to ignore this bit, and consider this as completed/success.
             //I have seen this issue on the drive, where DST was never run. - Nidhi
@@ -142,7 +142,7 @@ eReturnValues nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
         else
         {
             //NVMe made this simple...if this is 25, then it's 25% complete. no silly business
-            *percentComplete = nvmeSelfTestLog[1];
+            *percentComplete = nvmeSelfTestLogBuf[1];
             //Setting the status to Fh to work with existing SCSI/ATA code in the run_DST_Function - TJE
             *status = 0x0F;
         }
@@ -1857,8 +1857,7 @@ static eReturnValues get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries 
             for (uint32_t offset = 4; offset < 564 && entries->numberOfEntries < 20; offset += 28)//maximum of 20 NVMe DST log entires
             {
                 //check if the entry is valid by checking for zeros
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, zeros, 28);
-                if (memcmp(zeros, &nvmeDSTLog[offset], 28) && M_Nibble0(nvmeDSTLog[offset + 0]) != 0x0F)//0F in NVMe is an unused entry.
+                if (!is_Empty(&nvmeDSTLog[offset], 28) && M_Nibble0(nvmeDSTLog[offset + 0]) != 0x0F)//0F in NVMe is an unused entry.
                 {
                     entries->dstEntry[entries->numberOfEntries].selfTestRun = M_Nibble1(nvmeDSTLog[offset + 0]);
                     entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus = M_Nibble0(nvmeDSTLog[offset + 0]);
