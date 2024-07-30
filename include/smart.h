@@ -157,6 +157,20 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+    //  print_SMART_Tripped_Message()
+    //
+    //! \brief   Description:  prints the SFF-8055 SMART trip approved warning message. Output modified to handle modern SSDs if passed in
+    //
+    //  Entry:
+    //!   \param[in] ssd = true means output showing the SSD is tripping SMART, otherwise output indicating it is an HDD tripping SMART
+    //!
+    //  Exit:
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void print_SMART_Tripped_Message(bool ssd);
+
+    //-----------------------------------------------------------------------------
+    //
     //  ata_SMART_Check()
     //
     //! \brief   Description:  Function to perform an ATA SMART check on a device (sends SMART return status and checks that the rtfrs come back as expected)

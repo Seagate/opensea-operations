@@ -2422,6 +2422,34 @@ static eReturnValues get_ATA_SMART_Status_From_SCT_Log(tDevice *device)
     return ret;
 }
 
+//SFF-8055 message.
+//slightly modified to handle HDD vs SSD
+void print_SMART_Tripped_Message(bool ssd)
+{
+    printf("WARNING: Immediately back-up your data and replace your\n");
+    if (ssd)
+    {
+        printf("SSD (Solid State Drive). ");
+    }
+    else
+    {
+        printf("HDD (Hard Disk Drive). ");
+    }
+    printf("A failure may be imminent.\n");
+}
+
+//checks if the current/worst ever value is within the valid range or not.
+//if outside of this range then it should not be used for evaluation.
+static bool is_Attr_In_Valid_Range(uint8_t attributeValue)
+{
+    bool validrange = false;
+    if (attributeValue >= ATA_SMART_ATTRIBUTE_MINIMUM && attributeValue <= ATA_SMART_ATTRIBUTE_MAXIMUM)
+    {
+        validrange = true;
+    }
+    return validrange;
+}
+
 eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 {
     eReturnValues ret = NOT_SUPPORTED; //command return value
@@ -2496,8 +2524,11 @@ eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                             }
                             break;
                         }
-                        else if (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue
-                            || attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
+                        /*before evaluating attributes, make sure all the values are in the valid range per SFF-8035 (01h-FDh)*/
+                        else if (/*threshold*/ is_Attr_In_Valid_Range(attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue) &&
+                                 ((/*nominal*/ is_Attr_In_Valid_Range(attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal) && (attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue))
+                                  || (/*worst ever*/ is_Attr_In_Valid_Range(attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver) && (attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)))
+                                  )
                         {
                             bool fromWorst = false;
                             if (attributes.attributes.ataSMARTAttr.attributes[counter].data.worstEver <= attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue)
