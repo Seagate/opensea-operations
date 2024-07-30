@@ -342,7 +342,7 @@ eReturnValues print_DST_Progress(tDevice *device)
         {
             isNVMeDrive = true;
         }
-        printf("\tTest Progress = %"PRIu32"%%\n", percentComplete);
+        printf("\tTest Progress = %" PRIu32 "%%\n", percentComplete);
         translate_DST_Status_To_String(status, statusTranslation, false, isNVMeDrive);
         printf("%s\n", statusTranslation);
         switch (status)
@@ -1336,7 +1336,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
                     }
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("Reparing LBA %"PRIu64"\n", errorList[*errorIndex].errorAddress);
+                        printf("Reparing LBA %" PRIu64 "\n", errorList[*errorIndex].errorAddress);
                     }
                     //we got a valid LBA, so time to fix it
                     eReturnValues repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite, autoWriteReassign, autoReadReassign);
@@ -1425,7 +1425,7 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
                             {
                                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                                 {
-                                    printf("Reparing LBA %"PRIu64"\n", iter);
+                                    printf("Reparing LBA %" PRIu64 "\n", iter);
                                 }
                                 //add the LBA to the error list we have going, then repair it
                                 errorList[*errorIndex].repairStatus = NOT_REPAIRED;
@@ -1469,9 +1469,9 @@ eReturnValues run_DST_And_Clean(tDevice *device, uint16_t errorLimit, custom_Upd
             break;
         }
     }
-    //printf("totalErrors:  %"PRIu64"\n", totalErrors);
-    //printf("errorIndex:  %"PRIu64"\n", errorIndex);
-    //printf("errorLimit:  %"PRIu16"\n", errorLimit);
+    //printf("totalErrors:  %" PRIu64 "\n", totalErrors);
+    //printf("errorIndex:  %" PRIu64 "\n", errorIndex);
+    //printf("errorLimit:  %" PRIu16 "\n", errorLimit);
     if (totalErrors > errorLimit)
     {
         ret = FAILURE;
@@ -2004,11 +2004,11 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
                 default:
                     if ((entries->dstEntry[iter].selfTestRun >= 0x40 && entries->dstEntry[iter].selfTestRun <= 0x7E) || (entries->dstEntry[iter].selfTestRun >= 0x90 /*&& entries->dstEntry[iter].selfTestRun <= 0xFF*/))
                     {
-                        snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Vendor Specific - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                        snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Vendor Specific - %" PRIX8 "h", entries->dstEntry[iter].selfTestRun);
                     }
                     else
                     {
-                        snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                        snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %" PRIX8 "h", entries->dstEntry[iter].selfTestRun);
                     }
                     break;
                 }
@@ -2033,7 +2033,7 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
                     snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Extended (foreground)");
                     break;
                 default:
-                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %" PRIX8 "h", entries->dstEntry[iter].selfTestRun);
                     break;
                 }
             }
@@ -2054,13 +2054,13 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
                     snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Vendor Specific");
                     break;
                 default:
-                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                    snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %" PRIX8 "h", entries->dstEntry[iter].selfTestRun);
                     break;
                 }
             }
             else //print the number
             {
-                snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %"PRIX8"h", entries->dstEntry[iter].selfTestRun);
+                snprintf(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %" PRIX8 "h", entries->dstEntry[iter].selfTestRun);
             }
             printf("%-21s  ", selfTestRunString);
             //Timestamp

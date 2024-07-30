@@ -40,7 +40,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
     LBA->repairStatus = NOT_REPAIRED;
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n\tAttempting repair on LBA %"PRIu64" (aligned)", LBA->errorAddress);
+        printf("\n\tAttempting repair on LBA %" PRIu64 " (aligned)", LBA->errorAddress);
     }
     if (forcePassthroughCommand && (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE))
     {

@@ -694,7 +694,7 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
             if (formatStatus->lastFormatParametersValid)
             {
                 printf("The last format unit was performed with the following parameters:\n");
-                printf("\tProtection Field Usage: %" PRIX8"h\n", formatStatus->lastFormatData.protectionFieldUsage);
+                printf("\tProtection Field Usage: %" PRIX8 "h\n", formatStatus->lastFormatData.protectionFieldUsage);
                 if (formatStatus->lastFormatData.formatOptionsValid)
                 {
                     printf("\tFormat Options Valid\n");
@@ -733,26 +733,26 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
                 }
                 if (formatStatus->lastFormatData.isLongList)
                 {
-                    printf("\tP_I_Information: %" PRIX8"h", formatStatus->lastFormatData.p_i_information);
-                    printf("\tProtection Interval Exponent: %" PRIu8"\n", formatStatus->lastFormatData.protectionIntervalExponent);
+                    printf("\tP_I_Information: %" PRIX8 "h", formatStatus->lastFormatData.p_i_information);
+                    printf("\tProtection Interval Exponent: %" PRIu8 "\n", formatStatus->lastFormatData.protectionIntervalExponent);
                 }
-                printf("\tDefect List Length: %" PRIu32"\n", formatStatus->lastFormatData.defectListLength);
+                printf("\tDefect List Length: %" PRIu32 "\n", formatStatus->lastFormatData.defectListLength);
             }
             if (formatStatus->grownDefectsDuringCertificationValid)
             {
-                printf("Grown Defects During Certification: %" PRIu64"\n", formatStatus->grownDefectsDuringCertification);
+                printf("Grown Defects During Certification: %" PRIu64 "\n", formatStatus->grownDefectsDuringCertification);
             }
             if (formatStatus->totalBlockReassignsDuringFormatValid)
             {
-                printf("Total Block Reassigns During Format: %" PRIu64"\n", formatStatus->totalBlockReassignsDuringFormat);
+                printf("Total Block Reassigns During Format: %" PRIu64 "\n", formatStatus->totalBlockReassignsDuringFormat);
             }
             if (formatStatus->totalNewBlocksReassignedValid)
             {
-                printf("Total New Blocks Reassigned: %" PRIu64"\n", formatStatus->totalNewBlocksReassigned);
+                printf("Total New Blocks Reassigned: %" PRIu64 "\n", formatStatus->totalNewBlocksReassigned);
             }
             if (formatStatus->powerOnMinutesSinceFormatValid)
             {
-                printf("Power On Minutes Since Last Format: %" PRIu32"\n", formatStatus->powerOnMinutesSinceFormat);
+                printf("Power On Minutes Since Last Format: %" PRIu32 "\n", formatStatus->powerOnMinutesSinceFormat);
                 //convert the time to seconds, then print it in a displayable format
                 printf("Power On Time Since Last Format: ");
                 uint16_t days = 0;

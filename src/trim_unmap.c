@@ -333,7 +333,7 @@ eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         }
         //send the command(s)
 #if defined(_DEBUG)
-        printf("TRIM buffer size: %"PRIu64"\n", trimBufferLen);
+        printf("TRIM buffer size: %" PRIu64 "\n", trimBufferLen);
 #endif
         os_Lock_Device(device);
         if (startLBA == 0)
@@ -345,7 +345,7 @@ eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         for (trimCommands = 0; trimCommands < numberOfTRIMCommandsRequired; trimCommands++)
         {
 #if defined(_DEBUG)
-            printf("TRIM Offset: %"PRIu32"\n", trimOffset);
+            printf("TRIM Offset: %" PRIu32 "\n", trimOffset);
 #endif
             if ((C_CAST(uint64_t, trimCommandLen) * (C_CAST(uint64_t, trimCommands) + UINT64_C(1))) > trimBufferLen)
             {
@@ -365,7 +365,7 @@ eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
         os_Unlock_Device(device);
         os_Update_File_System_Cache(device);
 #if defined(_DEBUG)
-        printf("TRIM Offset: %"PRIu32"\n", trimOffset);
+        printf("TRIM Offset: %" PRIu32 "\n", trimOffset);
 #endif
         safe_Free_aligned(C_CAST(void**, &trimBuffer));
     }
@@ -435,7 +435,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
         }
         //send the unmap command(s) to the device
 #if defined(_DEBUG)
-        printf("UNMAP buffer size: %"PRIu32"\n", unmapBufferLen);
+        printf("UNMAP buffer size: %" PRIu32 "\n", unmapBufferLen);
 #endif
         uint32_t unmapOffset = 0;
         //allocate a buffer to hold the descriptors AND header. Earlier buffer was just to build the descriptors into it.
@@ -454,7 +454,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
         for (unmapCommands = 0; unmapCommands < numberOfUnmapCommandsRequired; unmapCommands++)
         {
 #if defined(_DEBUG)
-            printf("UNMAP offset: %"PRIu32"\n", unmapOffset);
+            printf("UNMAP offset: %" PRIu32 "\n", unmapOffset);
 #endif
             //adjust the size to allocate a buffer based on the remaining number of descriptors in the buffer
             if (((unmapCommandDataLen - 8) * (unmapCommands + 1)) > unmapBufferLen)
@@ -500,7 +500,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
         os_Unlock_Device(device);
         os_Update_File_System_Cache(device);
 #if defined(_DEBUG)
-        printf("UNMAP offset: %"PRIu32"\n", unmapOffset);
+        printf("UNMAP offset: %" PRIu32 "\n", unmapOffset);
 #endif
         safe_Free_aligned(C_CAST(void**, &unmapCommandBuffer));
         safe_Free_aligned(C_CAST(void**, &unmapBuffer));

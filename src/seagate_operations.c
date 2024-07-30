@@ -2541,7 +2541,7 @@ static void print_TimeStamp_Statistics(char *statisticsName, seagateStatistic st
         uint64_t timeInMinutes = C_CAST(uint64_t, statistics.statisticsDataValue);
         if (!statistics.isTimeStampsInMinutes)
             timeInMinutes *= UINT64_C(60);
-        printf("%"PRIu64" minutes", timeInMinutes);
+        printf("%" PRIu64 " minutes", timeInMinutes);
     }
     else
         printf("Not Available");

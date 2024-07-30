@@ -365,9 +365,9 @@ eReturnValues show_Write_Same_Current_LBA(tDevice *device)
         break;
     case IN_PROGRESS:
         //currently running. Current LBA = %llu, calculate progress with this formula:
-        printf("\tA Write same is currently processing LBA %"PRIu64"\n", currentLBA);
+        printf("\tA Write same is currently processing LBA %" PRIu64 "\n", currentLBA);
         printf("\tTo calculate write same progress, use the following formula:\n");
-        printf("\t\t( %"PRIu64" - startLBA ) / range\n", currentLBA);
+        printf("\t\t( %" PRIu64 " - startLBA ) / range\n", currentLBA);
         break;
     case ABORTED:
         //Write same was aborted by host or due to ata security being locked

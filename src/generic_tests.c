@@ -242,7 +242,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
             snprintf(message, 256, "Unknown Sequential Test at OD");
             break;
         }
-        printf("%s for %"PRIu64" LBAs\n", message, onePercentOfDrive);
+        printf("%s for %" PRIu64 " LBAs\n", message, onePercentOfDrive);
     }
     if (SUCCESS != sequential_RWV(device, rwvCommand, 0, onePercentOfDrive, sectorCount, &failingLBA, M_NULLPTR, M_NULLPTR, hideLBACounter))
     {
@@ -291,7 +291,7 @@ eReturnValues short_Generic_Test(tDevice *device, eRWVCommandType rwvCommand, M_
             snprintf(message, 256, "Unknown Sequential Test at ID");
             break;
         }
-        printf("%s for %"PRIu64" LBAs\n", message, onePercentOfDrive);
+        printf("%s for %" PRIu64 " LBAs\n", message, onePercentOfDrive);
     }
     if (SUCCESS != sequential_RWV(device, rwvCommand, device->drive_info.deviceMaxLba - onePercentOfDrive, onePercentOfDrive, sectorCount, &failingLBA, M_NULLPTR, M_NULLPTR, hideLBACounter))
     {
@@ -784,7 +784,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         print_Time(odTest.fastestCommandTimeNS);
         printf("\tSlowest Command time: ");
         print_Time(odTest.slowestCommandTimeNS);
-        printf("\tIOPS: %"PRIu64"\n", odTest.iops);
+        printf("\tIOPS: %" PRIu64 "\n", odTest.iops);
         //calculate MB(/GB)/s performance
         uint64_t odBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, odTest.sectorCount);
         double odTotalBytesTransferred = C_CAST(double, odBytesPerTransfer * odTest.numberOfCommandsIssued);
@@ -793,9 +793,9 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         char *odDataRateUnit = &odDataRateUnits[0];
         metric_Unit_Convert(&odDataRate, &odDataRateUnit);
         printf("\tData Rate: %0.02f %s/s\n", odDataRate, odDataRateUnit);
-        printf("\tNumber of Commands Issued: %"PRIu64"\n", odTest.numberOfCommandsIssued);
-        printf("\tLBAs accessed per command: %"PRIu16"\n", odTest.sectorCount);
-        printf("\tTotal LBAs accessed: %"PRIu64"\n", odTest.numberOfCommandsIssued * odTest.sectorCount);
+        printf("\tNumber of Commands Issued: %" PRIu64 "\n", odTest.numberOfCommandsIssued);
+        printf("\tLBAs accessed per command: %" PRIu16 "\n", odTest.sectorCount);
+        printf("\tTotal LBAs accessed: %" PRIu64 "\n", odTest.numberOfCommandsIssued * odTest.sectorCount);
 
 
         printf("ID Test:\n");
@@ -813,7 +813,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         print_Time(idTest.fastestCommandTimeNS);
         printf("\tSlowest Command time: ");
         print_Time(idTest.slowestCommandTimeNS);
-        printf("\tIOPS: %"PRIu64"\n", idTest.iops);
+        printf("\tIOPS: %" PRIu64 "\n", idTest.iops);
         //calculate MB(/GB)/s performance
         uint64_t idBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, idTest.sectorCount);
         double idTotalBytesTransferred = C_CAST(double, idBytesPerTransfer * idTest.numberOfCommandsIssued);
@@ -822,9 +822,9 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         char *idDataRateUnit = &idDataRateUnits[0];
         metric_Unit_Convert(&idDataRate, &idDataRateUnit);
         printf("\tData Rate: %0.02f %s/s\n", idDataRate, idDataRateUnit);
-        printf("\tNumber of Commands Issued: %"PRIu64"\n", idTest.numberOfCommandsIssued);
-        printf("\tLBAs accessed per command: %"PRIu16"\n", idTest.sectorCount);
-        printf("\tTotal LBAs accessed: %"PRIu64"\n", idTest.numberOfCommandsIssued * idTest.sectorCount);
+        printf("\tNumber of Commands Issued: %" PRIu64 "\n", idTest.numberOfCommandsIssued);
+        printf("\tLBAs accessed per command: %" PRIu16 "\n", idTest.sectorCount);
+        printf("\tTotal LBAs accessed: %" PRIu64 "\n", idTest.numberOfCommandsIssued * idTest.sectorCount);
 
         printf("Random Test:\n");
         if (randomTest.asyncCommandsUsed)
@@ -841,7 +841,7 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         print_Time(randomTest.fastestCommandTimeNS);
         printf("\tSlowest Command time: ");
         print_Time(randomTest.slowestCommandTimeNS);
-        printf("\tIOPS: %"PRIu64"\n", randomTest.iops);
+        printf("\tIOPS: %" PRIu64 "\n", randomTest.iops);
         //calculate MB(/GB)/s performance
         uint64_t randomBytesPerTransfer = C_CAST(uint64_t, device->drive_info.deviceBlockSize) * C_CAST(uint64_t, randomTest.sectorCount);
         double randomTotalBytesTransferred = C_CAST(double, randomBytesPerTransfer * randomTest.numberOfCommandsIssued);
@@ -850,9 +850,9 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
         char *randomDataRateUnit = &randomDataRateUnits[0];
         metric_Unit_Convert(&randomDataRate, &randomDataRateUnit);
         printf("\tData Rate: %0.02f %s/s\n", randomDataRate, randomDataRateUnit);
-        printf("\tNumber of Commands Issued: %"PRIu64"\n", randomTest.numberOfCommandsIssued);
-        printf("\tLBAs accessed per command: %"PRIu16"\n", randomTest.sectorCount);
-        printf("\tTotal LBAs accessed: %"PRIu64"\n", randomTest.numberOfCommandsIssued * randomTest.sectorCount);
+        printf("\tNumber of Commands Issued: %" PRIu64 "\n", randomTest.numberOfCommandsIssued);
+        printf("\tLBAs accessed per command: %" PRIu16 "\n", randomTest.sectorCount);
+        printf("\tTotal LBAs accessed: %" PRIu64 "\n", randomTest.numberOfCommandsIssued * randomTest.sectorCount);
     }
     safe_Free_aligned(C_CAST(void**, &dataBuf));
     return ret;
@@ -940,7 +940,7 @@ eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, 
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\nError Found at LBA %"PRIu64"", errorList[errorIndex].errorAddress);
+                printf("\nError Found at LBA %" PRIu64 "", errorList[errorIndex].errorAddress);
                 if (errorLimit != 0)
                     printf("\n");
             }
@@ -996,7 +996,7 @@ eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, 
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\nError occured at LBA %"PRIu64"\n", errorList[0].errorAddress);
+            printf("\nError occured at LBA %" PRIu64 "\n", errorList[0].errorAddress);
         }
     }
     else
@@ -1130,7 +1130,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\nError Found at LBA %"PRIu64"\n", errorList[errorIndex].errorAddress);
+                printf("\nError Found at LBA %" PRIu64 "\n", errorList[errorIndex].errorAddress);
             }
             if (stopOnError || errorIndex >= errorLimit)
             {
@@ -1209,7 +1209,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\nError occured at LBA %"PRIu64"\n", errorList[0].errorAddress);
+            printf("\nError occured at LBA %" PRIu64 "\n", errorList[0].errorAddress);
         }
     }
     else
@@ -1443,7 +1443,7 @@ eReturnValues sweep_Test(tDevice *device, eRWVCommandType rwvcommand, uint32_t s
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("\rSweep Test count %"PRIu32"", (testCount + 1));
+            printf("\rSweep Test count %" PRIu32 "", (testCount + 1));
             fflush(stdout);
         }
         //seek to OD
@@ -1849,7 +1849,7 @@ static eReturnValues diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwv
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\nError Found at LBA %"PRIu64"\n", errorList[*errorOffset].errorAddress);
+                printf("\nError Found at LBA %" PRIu64 "\n", errorList[*errorOffset].errorAddress);
             }
             //set a new start for next time through the loop to 1 lba past the last error LBA
             startingLBA = errorList[*errorOffset].errorAddress + 1;
@@ -1985,7 +1985,7 @@ eReturnValues diameter_Test_Range(tDevice *device, eRWVCommandType testMode, boo
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\nError occured at LBA %"PRIu64"\n", errorList[0].errorAddress);
+            printf("\nError occured at LBA %" PRIu64 "\n", errorList[0].errorAddress);
         }
     }
     else
@@ -2110,7 +2110,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvC
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\nError Found at LBA %"PRIu64"\n", errorList[*errorOffset].errorAddress);
+                printf("\nError Found at LBA %" PRIu64 "\n", errorList[*errorOffset].errorAddress);
             }
             //set a new start for next time through the loop to 1 lba past the last error LBA
             startingLBA = errorList[*errorOffset].errorAddress + 1;
@@ -2287,7 +2287,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\nError occured at LBA %"PRIu64"\n", errorList[0].errorAddress);
+            printf("\nError occured at LBA %" PRIu64 "\n", errorList[0].errorAddress);
         }
     }
     else
@@ -2354,7 +2354,7 @@ eReturnValues full_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("\nValidation Failed for LBA Range : %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
+                    printf("\nValidation Failed for LBA Range : %" PRIu64 " - %" PRIu64 "\n", lbaIterator, (lbaIterator + lbaRange));
                 }
                 safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 safe_Free_aligned(C_CAST(void**, &validationBuffer));
@@ -2426,7 +2426,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("\nValidation Failed for LBA Range: %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
+                    printf("\nValidation Failed for LBA Range: %" PRIu64 " - %" PRIu64 "\n", lbaIterator, (lbaIterator + lbaRange));
                 }
                 safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 safe_Free_aligned(C_CAST(void**, &validationBuffer));
@@ -2484,7 +2484,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("\nValidation Failed for LBA Range: %"PRIu64" - %"PRIu64"\n", lbaIterator, (lbaIterator + lbaRange));
+                    printf("\nValidation Failed for LBA Range: %" PRIu64 " - %" PRIu64 "\n", lbaIterator, (lbaIterator + lbaRange));
                 }
                 safe_Free_aligned(C_CAST(void**, &dataBuffer));
                 safe_Free_aligned(C_CAST(void**, &validationBuffer));
@@ -2507,7 +2507,7 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
     //Random Section Validation
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\nVerification Test for Random LBAs from %"PRId32" sections\n", DRIVE_SECTIONS);
+        printf("\nVerification Test for Random LBAs from %" PRId32 " sections\n", DRIVE_SECTIONS);
     }
     uint64_t randomLBA = UINT64_MAX;
     uint64_t randomLBASectionSize = C_CAST(uint64_t, device->drive_info.deviceMaxLba / DRIVE_SECTIONS);

@@ -1374,7 +1374,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //NOTE: This should always fit within 16 chars as temperatures should never exceed 3 characters wide for any of them. Anything wider would be a drive bug or garbage.
             //      Min temps will never be -100C or more and max will never be 120C or more, let alone 999C or more. This should be ok as the output below will be truncated.
             //      At worst, the final parenthesis will be cut off. - TJE
-            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")", currentTemp, lowestTemp, highestTemp);
             break;
         case ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR:
             currentTemp = C_CAST(int16_t, M_BytesTo2ByteValue(currentAttribute->data.rawData[1], currentAttribute->data.rawData[0]));
@@ -1392,7 +1392,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue* currentAttribute, ch
             //NOTE: This should always fit within 16 chars as temperatures should never exceed 3 characters wide for any of them. Anything wider would be a drive bug or garbage.
             //      Min temps will never be -100C or more and max will never be 120C or more, let alone 999C or more. This should be ok as the output below will be truncated.
             //      At worst, the final parenthesis will be cut off. - TJE
-            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16")", currentTemp, lowestTemp, highestTemp);
+            snprintf(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")", currentTemp, lowestTemp, highestTemp);
             break;
         case ATA_SMART_ATTRIBUTE_TEMPERATURE_NOM_WST:
             currentTemp = currentAttribute->data.nominal;
@@ -2080,7 +2080,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
                             printf("Free Space (Term B dominated)\n");
                         }
                         printf("\n");
-                        printf("\tTerm A value: %" PRIu8" \n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1]);
+                        printf("\tTerm A value: %" PRIu8 " \n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1]);
                         printf("\n");
                         printf("\tTerm B value: %" PRIu8 "\n", smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]);
                         printf("\n");
@@ -3979,9 +3979,9 @@ eReturnValues print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         printf("\n===SMART Info===\n");
-        printf("SMART Version: %"PRIu16"\n", smartInfo->smartVersion);
+        printf("SMART Version: %" PRIu16 "\n", smartInfo->smartVersion);
         //off-line data collection status
-        printf("Off-line Data Collection Status: \n\t%"PRIX8 "h - ", smartInfo->offlineDataCollectionStatus);
+        printf("Off-line Data Collection Status: \n\t%" PRIX8 "h - ", smartInfo->offlineDataCollectionStatus);
         bool autoOfflineEnabled = smartInfo->offlineDataCollectionStatus & BIT7;
         switch (smartInfo->offlineDataCollectionStatus)
         {
@@ -4026,7 +4026,7 @@ eReturnValues print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
         printf("\n");
         //self test execution status
         printf("Self Test Execution Status: %02"PRIX8"h\n", smartInfo->selfTestExecutionStatus);
-        printf("\tPercent Remaining: %"PRIu32"\n", M_Nibble0(smartInfo->selfTestExecutionStatus) * 10);
+        printf("\tPercent Remaining: %" PRIu32 "\n", M_Nibble0(smartInfo->selfTestExecutionStatus) * 10);
         printf("\tStatus: ");
         switch (M_Nibble0(smartInfo->selfTestExecutionStatus))
         {
@@ -4123,21 +4123,21 @@ eReturnValues print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
         //short self test polling time
         if (smartInfo->offlineDataCollectionCapability & BIT4)
         {
-            printf("Short Self Test Polling Time: %"PRIu8" minutes\n", smartInfo->shortSelfTestPollingTime);
+            printf("Short Self Test Polling Time: %" PRIu8 " minutes\n", smartInfo->shortSelfTestPollingTime);
             //extended self test polling time
             if (smartInfo->extendedSelfTestPollingTime == 0xFF)
             {
-                printf("Extended Self Test Polling Time: %"PRIu16" minutes\n", smartInfo->longExtendedSelfTestPollingTime);
+                printf("Extended Self Test Polling Time: %" PRIu16 " minutes\n", smartInfo->longExtendedSelfTestPollingTime);
             }
             else
             {
-                printf("Extended Self Test Polling Time: %"PRIu8" minutes\n", smartInfo->extendedSelfTestPollingTime);
+                printf("Extended Self Test Polling Time: %" PRIu8 " minutes\n", smartInfo->extendedSelfTestPollingTime);
             }
         }
         //conveyance self test polling time
         if (smartInfo->offlineDataCollectionCapability & BIT5)
         {
-            printf("Conveyance Self Test Polling Time: %"PRIu8" minutes\n", smartInfo->conveyenceSelfTestPollingTime);
+            printf("Conveyance Self Test Polling Time: %" PRIu8 " minutes\n", smartInfo->conveyenceSelfTestPollingTime);
         }
     }
     return ret;
@@ -6834,7 +6834,7 @@ static void get_Command_Info(uint8_t commandOpCode, uint16_t features, uint16_t 
         {
             uint8_t filter = M_GETBITRANGE(features, 15, 14);
             uint8_t reportType = M_GETBITRANGE(features, 11, 8);
-            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8" Report Type: %" PRIu8 "", lba, filter, reportType);
+            snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8 " Report Type: %" PRIu8 "", lba, filter, reportType);
         }
         else if (count != 0)
         {
@@ -7694,7 +7694,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
         }
         else
         {
-            printf("\tFound %" PRIu8" errors! Total Error Count: %" PRIu16 "\n", errorLogData->numberOfEntries, errorLogData->deviceErrorCount);
+            printf("\tFound %" PRIu8 " errors! Total Error Count: %" PRIu16 "\n", errorLogData->numberOfEntries, errorLogData->deviceErrorCount);
             if (!errorLogData->checksumsValid)
             {
                 printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");

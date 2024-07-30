@@ -6852,7 +6852,7 @@ static void print_Count_Statistic(statistic theStatistic, char *statisticName, c
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -6920,7 +6920,7 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, char *s
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -6993,7 +6993,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7032,7 +7032,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
                 }
                 else
                 {
-                    printf("%"PRIu8"%%", utilizationUsageRate);
+                    printf("%" PRIu8 "%%", utilizationUsageRate);
                 }
                 switch (rateBasis)
                 {
@@ -7097,7 +7097,7 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, char *
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7162,7 +7162,7 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7234,7 +7234,7 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7273,7 +7273,7 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
                 printf("Nonvolatile indefinitely");
                 break;
             default://time in minutes
-                printf("Nonvolatile for %"PRIu64"m", theStatistic.statisticValue);
+                printf("Nonvolatile for %" PRIu64 "m", theStatistic.statisticValue);
                 break;
             }
         }
@@ -7312,7 +7312,7 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7339,7 +7339,7 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            printf("%"PRId8" C", C_CAST(int8_t, theStatistic.statisticValue));
+            printf("%" PRId8 " C", C_CAST(int8_t, theStatistic.statisticValue));
         }
         else
         {
@@ -7376,7 +7376,7 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7448,7 +7448,7 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7528,7 +7528,7 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7609,7 +7609,7 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7641,7 +7641,7 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
             //now byteswap the double words to get the correct endianness (for LSB machines)
             byte_Swap_32(&exponent);
             byte_Swap_32(&integer);
-            printf("%"PRIu32" ", integer);
+            printf("%" PRIu32 " ", integer);
             switch (exponent)
             {
             case 1://deci
@@ -7709,7 +7709,7 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, ch
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7788,7 +7788,7 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7817,7 +7817,7 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
         {
             if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
             {
-                printf("%"PRIu8"", C_CAST(uint8_t, theStatistic.statisticValue));
+                printf("%" PRIu8 "", C_CAST(uint8_t, theStatistic.statisticValue));
             }
             else if (theStatistic.statisticValue == 255)
             {

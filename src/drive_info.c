@@ -5267,7 +5267,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                                     driveInfo->interfaceSpeedInfo.speedIsValid = true;
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed = C_CAST(double, scalingMultiplier) * (C_CAST(double, transferWidthExponent) + UINT32_C(1));
-                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
+                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "", scalingMultiplier);
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
                                 }
                             }
@@ -5367,7 +5367,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                                     driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PARALLEL;
                                     driveInfo->interfaceSpeedInfo.speedIsValid = true;
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = C_CAST(double, scalingMultiplier) * (C_CAST(double, transferWidthExponent) + UINT32_C(1));
-                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16"", scalingMultiplier);
+                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "", scalingMultiplier);
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
                                 }
                             }
@@ -5632,7 +5632,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         if (pageRead)
                         {
                             DECLARE_ZERO_INIT_ARRAY(char, temp, MAX_FEATURE_LENGTH);
-                            snprintf(temp, MAX_FEATURE_LENGTH, "Informational Exceptions [Mode %"PRIu8"]", M_Nibble0(informationalExceptions[headerLength + 3]));
+                            snprintf(temp, MAX_FEATURE_LENGTH, "Informational Exceptions [Mode %" PRIu8 "]", M_Nibble0(informationalExceptions[headerLength + 3]));
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, temp);
 
                         }
@@ -7043,12 +7043,12 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
                 {
                     printf("Indeterminate\n");
                 }
-                printf("\t\tDST Status/Result: 0x%"PRIX8"\n", driveInfo->dstInfo.resultOrStatus);
-                printf("\t\tDST Test run: 0x%"PRIX8"\n", driveInfo->dstInfo.testNumber);
+                printf("\t\tDST Status/Result: 0x%" PRIX8 "\n", driveInfo->dstInfo.resultOrStatus);
+                printf("\t\tDST Test run: 0x%" PRIX8 "\n", driveInfo->dstInfo.testNumber);
                 if (driveInfo->dstInfo.resultOrStatus != 0 && driveInfo->dstInfo.resultOrStatus != 0xF && driveInfo->dstInfo.errorLBA != UINT64_MAX)
                 {
                     //Show the Error LBA
-                    printf("\t\tError occurred at LBA: %"PRIu64"\n", driveInfo->dstInfo.errorLBA);
+                    printf("\t\tError occurred at LBA: %" PRIu64 "\n", driveInfo->dstInfo.errorLBA);
                 }
             }
             else
@@ -7091,14 +7091,14 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         //Total Bytes Read
         printf("\tTotal Bytes Read ");
         double totalBytesRead = driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0;
-        char unitReadString[4] = { '\0' };
+        DECLARE_ZERO_INIT_ARRAY(char, unitReadString, UNIT_STRING_LENGTH);
         char* unitRead = &unitReadString[0];
         metric_Unit_Convert(&totalBytesRead, &unitRead);
         printf("(%s): %0.02f\n", unitRead, totalBytesRead);
         //Total Bytes Written
         printf("\tTotal Bytes Written ");
         double totalBytesWritten = driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0;
-        char unitWrittenString[4] = { '\0' };
+        DECLARE_ZERO_INIT_ARRAY(char, unitWrittenString, UNIT_STRING_LENGTH);
         char* unitWritten = &unitWrittenString[0];
         metric_Unit_Convert(&totalBytesWritten, &unitWritten);
         printf("(%s): %0.02f\n", unitWritten, totalBytesWritten);
@@ -7321,7 +7321,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     printf("\tTemperature Data:\n");
     if (driveInfo->temperatureData.temperatureDataValid)
     {
-        printf("\t\tCurrent Temperature (C): %"PRId16"\n", driveInfo->temperatureData.currentTemperature);
+        printf("\t\tCurrent Temperature (C): %" PRId16 "\n", driveInfo->temperatureData.currentTemperature);
     }
     else
     {
@@ -7330,7 +7330,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     //Highest Temperature
     if (driveInfo->temperatureData.highestValid)
     {
-        printf("\t\tHighest Temperature (C): %"PRId16"\n", driveInfo->temperatureData.highestTemperature);
+        printf("\t\tHighest Temperature (C): %" PRId16 "\n", driveInfo->temperatureData.highestTemperature);
     }
     else
     {
@@ -7339,7 +7339,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     //Lowest Temperature
     if (driveInfo->temperatureData.lowestValid)
     {
-        printf("\t\tLowest Temperature (C): %"PRId16"\n", driveInfo->temperatureData.lowestTemperature);
+        printf("\t\tLowest Temperature (C): %" PRId16 "\n", driveInfo->temperatureData.lowestTemperature);
     }
     else
     {
@@ -7357,7 +7357,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             }
             else
             {
-                printf("\t\tCurrent Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.currentHumidity);
+                printf("\t\tCurrent Humidity (%%): %" PRIu8 "\n", driveInfo->humidityData.currentHumidity);
             }
         }
         else
@@ -7372,7 +7372,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             }
             else
             {
-                printf("\t\tHighest Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.highestHumidity);
+                printf("\t\tHighest Humidity (%%): %" PRIu8 "\n", driveInfo->humidityData.highestHumidity);
             }
         }
         else
@@ -7387,7 +7387,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             }
             else
             {
-                printf("\t\tLowest Humidity (%%): %"PRIu8"\n", driveInfo->humidityData.lowestHumidity);
+                printf("\t\tLowest Humidity (%%): %" PRIu8 "\n", driveInfo->humidityData.lowestHumidity);
             }
         }
         else
@@ -7442,7 +7442,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     else
     {
         //MaxLBA
-        printf("\tMaxLBA: %"PRIu64"\n", driveInfo->maxLBA);
+        printf("\tMaxLBA: %" PRIu64 "\n", driveInfo->maxLBA);
         //Native Max LBA
         printf("\tNative MaxLBA: ");
         if (driveInfo->nativeMaxLBA == 0 || driveInfo->nativeMaxLBA == UINT64_MAX)
@@ -7451,7 +7451,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("%"PRIu64"\n", driveInfo->nativeMaxLBA);
+            printf("%" PRIu64 "\n", driveInfo->nativeMaxLBA);
         }
     }
     if (driveInfo->isFormatCorrupt)
@@ -7466,11 +7466,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     else
     {
         //Logical Sector Size
-        printf("\tLogical Sector Size (B): %"PRIu32"\n", driveInfo->logicalSectorSize);
+        printf("\tLogical Sector Size (B): %" PRIu32 "\n", driveInfo->logicalSectorSize);
         //Physical Sector Size
-        printf("\tPhysical Sector Size (B): %"PRIu32"\n", driveInfo->physicalSectorSize);
+        printf("\tPhysical Sector Size (B): %" PRIu32 "\n", driveInfo->physicalSectorSize);
         //Sector Alignment
-        printf("\tSector Alignment: %"PRIu16"\n", driveInfo->sectorAlignment);
+        printf("\tSector Alignment: %" PRIu16 "\n", driveInfo->sectorAlignment);
     }
     //Rotation Rate
     printf("\tRotation Rate (RPM): ");
@@ -7484,7 +7484,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("%"PRIu16"\n", driveInfo->rotationRate);
+        printf("%" PRIu16 "\n", driveInfo->rotationRate);
     }
     if (driveInfo->isWriteProtected)
     {
@@ -7542,12 +7542,12 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             {
                 printf("Indeterminate\n");
             }
-            printf("\t\tDST Status/Result: 0x%"PRIX8"\n", driveInfo->dstInfo.resultOrStatus);
-            printf("\t\tDST Test run: 0x%"PRIX8"\n", driveInfo->dstInfo.testNumber);
+            printf("\t\tDST Status/Result: 0x%" PRIX8 "\n", driveInfo->dstInfo.resultOrStatus);
+            printf("\t\tDST Test run: 0x%" PRIX8 "\n", driveInfo->dstInfo.testNumber);
             if (driveInfo->dstInfo.resultOrStatus != 0 && driveInfo->dstInfo.resultOrStatus != 0xF && driveInfo->dstInfo.errorLBA != UINT64_MAX)
             {
                 //Show the Error LBA
-                printf("\t\tError occurred at LBA: %"PRIu64"\n", driveInfo->dstInfo.errorLBA);
+                printf("\t\tError occurred at LBA: %" PRIu64 "\n", driveInfo->dstInfo.errorLBA);
             }
         }
         else
@@ -7644,7 +7644,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                 {
                     for (uint8_t portIter = 0; portIter < driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts && portIter < MAX_PORTS; portIter++)
                     {
-                        printf("\t\tPort %"PRIu8"", portIter);
+                        printf("\t\tPort %" PRIu8 "", portIter);
                         if (driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber == portIter && driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber != UINT8_MAX)
                         {
                             printf(" (Current Port)");

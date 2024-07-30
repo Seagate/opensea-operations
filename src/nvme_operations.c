@@ -898,7 +898,7 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice *device, uint64_t numOfErrToPrin
                 if (pErrLogBuf[err].errorCount)
                 {
 
-                    printf("%"PRIu64"\t%"PRIu64"\t%"PRIu16"\t%"PRIu16"\t0x%02"PRIX16"\t0x%02"PRIX16"\n", \
+                    printf("%" PRIu64 "\t%" PRIu64 "\t%" PRIu16 "\t%" PRIu16 "\t0x%02"PRIX16"\t0x%02"PRIX16"\n", \
                         pErrLogBuf[err].errorCount,
                         pErrLogBuf[err].lba,
                         pErrLogBuf[err].subQueueID,
@@ -930,7 +930,7 @@ eReturnValues print_Nvme_Ctrl_Regs(tDevice * device)
 
     if (ret == SUCCESS)
     {
-        printf("Controller Capabilities (CAP)\t:\t%"PRIx64"\n", ctrlRegs.cap);
+        printf("Controller Capabilities (CAP)\t:\t%" PRIx64 "\n", ctrlRegs.cap);
         printf("Version (VS)\t:\t0x%x\n", ctrlRegs.vs);
         printf("Interrupt Mask Set (INTMS)\t:\t0x%x\n", ctrlRegs.intms);
         printf("Interrupt Mask Clear (INTMC)\t:\t0x%x\n", ctrlRegs.intmc);
@@ -938,8 +938,8 @@ eReturnValues print_Nvme_Ctrl_Regs(tDevice * device)
         printf("Controller Status (CSTS)\t:\t0x%x\n", ctrlRegs.csts);
         //What about NSSR?
         printf("Admin Queue Attributes (AQA)\t:\t0x%x\n", ctrlRegs.aqa);
-        printf("Admin Submission Queue Base Address (ASQ)\t:\t%"PRIx64"\n", ctrlRegs.asq);
-        printf("Admin Completion Queue Base Address (ACQ)\t:\t%"PRIx64"\n", ctrlRegs.acq);
+        printf("Admin Submission Queue Base Address (ASQ)\t:\t%" PRIx64 "\n", ctrlRegs.asq);
+        printf("Admin Completion Queue Base Address (ACQ)\t:\t%" PRIx64 "\n", ctrlRegs.acq);
     }
     else
     {

@@ -662,7 +662,7 @@ static void print_MBR_CHS(mbrCHSAddress address)
 {
     uint16_t cylinder = M_BytesTo2ByteValue(M_GETBITRANGE(address.sector, 7, 6), address.cylinder);
     uint8_t sector = M_GETBITRANGE(address.sector, 5, 0);
-    printf("%" PRIu16 ":%" PRIu8":%" PRIu8, cylinder, address.head, sector);
+    printf("%" PRIu16 ":%" PRIu8 ":%" PRIu8, cylinder, address.head, sector);
 }
 
 static void print_MBR_Info(ptrMBRData mbrTable)
@@ -721,7 +721,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
                     printf("UEFI System Partition\n");
                     break;
                 default:
-                    printf("%" PRIX8"h\n", mbrTable->partition[partIter].partitionType);
+                    printf("%" PRIX8 "h\n", mbrTable->partition[partIter].partitionType);
                     break;
                 }
                 //check if bootable by looking for 80h in status
