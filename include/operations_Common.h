@@ -38,11 +38,6 @@ extern "C"
     #if defined(_WIN32) /*DLL/LIB....be VERY careful making modifications to this unless you know what you are doing!*/
         #if defined (EXPORT_OPENSEA_OPERATIONS) && defined(STATIC_OPENSEA_OPERATIONS)
             #error "The preprocessor definitions EXPORT_OPENSEA_OPERATIONS and STATIC_OPENSEA_OPERATIONS cannot be combined!"
-        #elif defined(STATIC_OPENSEA_OPERATIONS)
-            #if defined (_DEBUG)
-            #pragma message("Compiling opensea-operations as a static library!")
-            #endif
-            #define OPENSEA_OPERATIONS_API
         #elif defined(EXPORT_OPENSEA_OPERATIONS)
             #if defined (_DEBUG)
             #pragma message("Compiling opensea-operations as exporting DLL!")
@@ -54,7 +49,10 @@ extern "C"
             #endif
             #define OPENSEA_OPERATIONS_API __declspec(dllimport)
         #else
-            #error "You must specify STATIC_OPENSEA_OPERATIONS or EXPORT_OPENSEA_OPERATIONS or IMPORT_OPENSEA_OPERATIONS in the preprocessor definitions!"
+            #if defined (_DEBUG)
+            #pragma message("Compiling opensea-operations as a static library!")
+            #endif
+            #define OPENSEA_OPERATIONS_API
         #endif
     #else /*SO/A....as far as I know, nothing needs to be done here*/
         #define OPENSEA_OPERATIONS_API

@@ -105,7 +105,8 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
     uint8_t *farmCurrentHeader, uint8_t *farmFactoryHeader, uint8_t *farmSavedHeader, uint8_t *farmTimeSeriesHeader, uint8_t *farmLongSavedHeader, uint8_t *farmStickyHeader, uint8_t *farmWorkLoadTraceHeader,
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmSavedLog, uint8_t *farmTimeSeriesLog, uint8_t *farmLongSavedLog, uint8_t *farmStickyLog, uint8_t *farmWorkLoadTraceLog)
 {
-    uint64_t startTimeInMilliSecs = 0, endTimeInMilliSecs = 0;
+    uint64_t startTimeInMilliSecs = 0;
+    uint64_t endTimeInMilliSecs = 0;
     uint16_t numberOfDataSets = 0;
     uint16_t headerLength = FARMC_LOG_HEADER_LENGTH;
     uint32_t farmContentField = 0;
@@ -581,11 +582,14 @@ static eReturnValues pullSCSIFarmLogs(tDevice *device, uint8_t *header, tZeroPad
     uint8_t *farmCurrentLog, uint8_t *farmFactoryLog, uint8_t *farmTimeSeriesLog, uint8_t *farmLongSavedLog, uint8_t *farmStickyLog, tSASLogpageSize logpageSize)
 {
     eReturnValues returnValue = FAILURE;
-    uint64_t startTimeInMilliSecs = 0, endTimeInMilliSecs = 0;
+    uint64_t startTimeInMilliSecs = 0;
+    uint64_t endTimeInMilliSecs = 0;
     uint16_t numberOfDataSets = 0;
     uint16_t headerLength = FARMC_LOG_HEADER_LENGTH;
     uint32_t farmContentField = 0;
-    uint32_t longSavedLogLength = 0, timeSeriesLogLength = 0, stickyLogLength = 0;
+    uint32_t longSavedLogLength = 0;
+    uint32_t timeSeriesLogLength = 0;
+    uint32_t stickyLogLength = 0;
 
     //get Current FARM for SAS logpage 0x3D - feature 0x03
     if (is_FARM_Log_Supported(device))

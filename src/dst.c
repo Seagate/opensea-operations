@@ -678,7 +678,9 @@ eReturnValues run_SMART_Offline(tDevice* device)
         uint16_t offlineTimeInSeconds = 0;
         if (is_ATA_SMART_Offline_Supported(device, &abortRestart, &offlineTimeInSeconds))
         {
-            uint8_t hours = 0, minutes = 0, seconds = 0;
+            uint8_t hours = 0;
+            uint8_t minutes = 0;
+            uint8_t seconds = 0;
             convert_Seconds_To_Displayable_Time(offlineTimeInSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
             printf("Data Collection time: %2" PRIu8 " hours, %2" PRIu8 " minutes, %2" PRIu8 " seconds\n", hours, minutes, seconds);
             if (abortRestart)
@@ -845,7 +847,8 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                 maxTimeIncreases *= 3;
                 timeIncreaseWarningCount *= 3;
                 {
-                    uint8_t hours = 0, minutes = 0;
+                    uint8_t hours = 0;
+                    uint8_t minutes = 0;
                     if (SUCCESS == get_Long_DST_Time(device, &hours, &minutes))
                     {
                         if (captiveForeground)

@@ -86,7 +86,10 @@ eReturnValues get_Format_Progress(tDevice *device, double *percentComplete)
     *percentComplete = 0.0;
     if (SUCCESS == scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN))
     {
-        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+        uint8_t senseKey = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
+        uint8_t fru = 0;
         get_Sense_Key_ASC_ASCQ_FRU(senseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (senseKey == SENSE_KEY_NOT_READY)
         {
@@ -488,7 +491,9 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
             delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                uint8_t seconds = 0, minutes = 0, hours = 0;
+                uint8_t seconds = 0;
+                uint8_t minutes = 0;
+                uint8_t hours = 0;
                 convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
                 printf("Progress will be updated every ");
                 print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
@@ -751,7 +756,10 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
                 //convert the time to seconds, then print it in a displayable format
                 printf("Power On Time Since Last Format: ");
                 uint16_t days = 0;
-                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+                uint8_t years = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, formatStatus->powerOnMinutesSinceFormat) * UINT64_C(60), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
@@ -1899,7 +1907,9 @@ eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams
         delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            uint8_t seconds = 0, minutes = 0, hours = 0;
+            uint8_t seconds = 0;
+            uint8_t minutes = 0;
+            uint8_t hours = 0;
             convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
             printf("Progress will be updated every ");
             print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);

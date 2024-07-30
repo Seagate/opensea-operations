@@ -1533,7 +1533,8 @@ eReturnValues get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsump
                 ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
                 identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
-                uint32_t pcIter = 4, counter = 0;
+                uint32_t pcIter = 4;
+                uint32_t counter = 0;
                 //ctc changed the "<" conditions to "<=" so all the identifiers get parsed (was an "off-by-1" problem")
                 for (; pcIter <= powerConsumptionLength && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
                 {
@@ -1824,9 +1825,12 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, do
         bool exactMatchFound = false;
         //now map the watt value to a power consumption identifier
 //ctc had to change variable initialization of iter1 and inter2 to match now-nested for loops
-        uint8_t iter1 = 0, iter2 = 0;
-        uint8_t pcId1 = 0xFF, pcId2 = 0xFF;
-        uint64_t watts1 = 0, watts2 = 0;
+        uint8_t iter1 = 0;
+        uint8_t iter2 = 0;
+        uint8_t pcId1 = 0xFF;
+        uint8_t pcId2 = 0xFF;
+        uint64_t watts1 = 0;
+        uint64_t watts2 = 0;
 
         ret = NOT_SUPPORTED;
         //ctc changed to nested for loops here... not sure it's needed, but it's clearer

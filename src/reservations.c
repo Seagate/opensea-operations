@@ -1161,7 +1161,8 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
         {
             //Older drive, or just doesn't support the full status capability, so we can read registrations and reservations and then combine the two outputs into the expected full status results.
             //read registrations and reservations to match things up to the "equivalent" of the full status.
-            uint16_t registrationCount = 0, reservationCount = 0;
+            uint16_t registrationCount = 0;
+            uint16_t reservationCount = 0;
             if (SUCCESS == get_Registration_Key_Count(device, &registrationCount) && SUCCESS == get_Reservation_Count(device, &reservationCount))
             {
                 //start with reading registrations first, then if the reservation count is > 0 read and map that information too.

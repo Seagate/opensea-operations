@@ -49,7 +49,8 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
     {
         return BAD_PARAMETER;
     }
-    uint32_t deviceStatsSize = 0, deviceStatsNotificationsSize = 0;
+    uint32_t deviceStatsSize = 0;
+    uint32_t deviceStatsNotificationsSize = 0;
     //need to get the device statistics log
     if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true))
     {
@@ -7403,7 +7404,10 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
         if (theStatistic.isValueValid)
         {
             uint16_t days = 0;
-            uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+            uint8_t years = 0;
+            uint8_t hours = 0;
+            uint8_t minutes = 0;
+            uint8_t seconds = 0;
             //this is reported in milliseconds...convert to other displayable.
             uint64_t statisticSeconds = theStatistic.statisticValue / UINT64_C(1000);
             convert_Seconds_To_Displayable_Time(statisticSeconds, &years, &days, &hours, &minutes, &seconds);
@@ -7476,7 +7480,10 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
             if (statisticMinutes > 0)
             {
                 uint16_t days = 0;
-                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+                uint8_t years = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 convert_Seconds_To_Displayable_Time(statisticMinutes, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
             }

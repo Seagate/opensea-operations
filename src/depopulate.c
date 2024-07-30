@@ -230,7 +230,9 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
     if (depopulateTime > 0 && depopulateTime < UINT64_MAX)
     {
         uint16_t days = 0;
-        uint8_t hours = 0, minutes = 0, seconds = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         convert_Seconds_To_Displayable_Time(depopulateTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         printf("\n");
@@ -344,7 +346,9 @@ eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         bool workaroundIncompleteSense = false;
-        uint8_t senseKey = 0, asc = 0, ascq = 0;
+        uint8_t senseKey = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
         if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
         {
             if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x24)//depop in progress
@@ -638,7 +642,9 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elem
             else
             {
                 uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0, seconds = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
                 printf("Starting depopulation. Approximate time until completion: ");
                 print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
@@ -654,7 +660,10 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elem
             if (device->drive_info.drive_type == SCSI_DRIVE)
             {
                 //On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers do this for us and make this impossible to retrieve...so we need to work around this
-                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                uint8_t senseKey = 0;
+                uint8_t asc = 0;
+                uint8_t ascq = 0;
+                uint8_t fru = 0;
                 //First check what sense data we already have...
                 get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                 //if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext command.
@@ -675,7 +684,9 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elem
             else if (device->drive_info.drive_type == ATA_DRIVE)
             {
                 bool workaroundIncompleteSense = false;
-                uint8_t senseKey = 0, asc = 0, ascq = 0;
+                uint8_t senseKey = 0;
+                uint8_t asc = 0;
+                uint8_t ascq = 0;
                 if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
                 {
                     if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E)//microcode activation required
@@ -1054,7 +1065,9 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForP
             else
             {
                 uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0, seconds = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
                 printf("Starting repopulation. Approximate time until completion: ");
                 print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
@@ -1069,7 +1082,10 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForP
             if (device->drive_info.drive_type == SCSI_DRIVE)
             {
                 //On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers do this for us and make this impossible to retrieve...so we need to work around this
-                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                uint8_t senseKey = 0;
+                uint8_t asc = 0;
+                uint8_t ascq = 0;
+                uint8_t fru = 0;
                 //First check what sense data we already have...
                 get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                 //if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext command.
@@ -1089,7 +1105,9 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForP
             else if (device->drive_info.drive_type == ATA_DRIVE)
             {
                 bool workaroundIncompleteSense = false;
-                uint8_t senseKey = 0, asc = 0, ascq = 0;
+                uint8_t senseKey = 0;
+                uint8_t asc = 0;
+                uint8_t ascq = 0;
                 if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
                 {
                     if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E)//microcode activation required

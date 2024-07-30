@@ -291,6 +291,13 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
                 hpaSecurityEnabled = true;
             }
         }
+
+        //Before attempting any restore commands, get the current MaxLBA, HPA/AMAC native MaxLBA, and the DCO identify MaxLBA.
+        //Compare them to see which, if any, needs to be restored.
+        //This will reduce command aborts and errors in this process.
+        //TODO: Check if restoring HPA/AMAC can be done before DCO restore in the same power cycle or not!
+        //      If not, we will need to report a power cycle is required before running this option again.
+
         ret = ata_Set_Max_LBA(device, 0, true);
         if (ret != SUCCESS && hpaSecurityEnabled)
         {
@@ -347,7 +354,8 @@ static uint64_t get_ATA_MaxLBA(tDevice* device)
 static uint64_t get_SCSI_MaxLBA(tDevice* device)
 {
     uint64_t maxLBA = 0;
-    uint32_t blockSize = 0, physBlockSize = 0;
+    uint32_t blockSize = 0;
+    uint32_t physBlockSize = 0;
     uint16_t alignment = 0;
     //read capacity 10 first. If that reports FFFFFFFFh then do read capacity 16.
     //if read capacity 10 fails, retry with read capacity 16

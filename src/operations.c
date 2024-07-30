@@ -1033,7 +1033,8 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
 
     if (overwriteEraseTimeEstimateMinutes)//make sure the incoming value is zero in case time was set by something above here (like ata security erase)
     {
-        uint8_t hours = 0, minutes = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
         //let's set a time estimate!
         //base it off of the long DST time...as that is probably the closest match we'll get since that does access every LBA
         get_Long_DST_Time(device, &hours, &minutes);
@@ -1131,7 +1132,9 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     if (overwriteEraseTimeEstimateMinutes)
     {
         uint16_t days = 0;
-        uint8_t hours = 0, minutes = 0, seconds = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, *overwriteEraseTimeEstimateMinutes) * UINT64_C(60), M_NULLPTR, &days, &hours, &minutes, &seconds);
         //Example output: 
         //The minimum time to overwrite erase this drive is approximately x days y hours z minutes. 
@@ -1433,7 +1436,10 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
         {
             //requesting to reset all mode pages. Send the mode select command with the RTD bit set.
             ret = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);
-            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+            uint8_t senseKey = 0;
+            uint8_t asc = 0;
+            uint8_t ascq = 0;
+            uint8_t fru = 0;
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)//checking for invalid operation code
             {
@@ -1470,7 +1476,8 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                         offset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
                     }
                     uint16_t currentPageLength = 0;
-                    uint16_t counter = 0, failedModeSelects = 0;
+                    uint16_t counter = 0;
+                    uint16_t failedModeSelects = 0;
                     for (; offset < modePageLength; offset += currentPageLength, ++counter)
                     {
                         uint8_t* currentPageToSet = M_NULLPTR;

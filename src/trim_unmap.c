@@ -215,7 +215,8 @@ eReturnValues trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
 eReturnValues nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret = UNKNOWN;
-    uint32_t maxTrimOrUnmapBlockDescriptors = 0, maxLBACount = 0;
+    uint32_t maxTrimOrUnmapBlockDescriptors = 0;
+    uint32_t maxLBACount = 0;
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {
         //We SHOULD only need one command since each range is a uint32 and more than large enough to get a majority of the drive. Maybe even get a whole drive done in 2 ranges...
@@ -270,7 +271,8 @@ eReturnValues nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t
 eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret = UNKNOWN;
-    uint32_t maxTrimOrUnmapBlockDescriptors = 0, maxLBACount = 0;
+    uint32_t maxTrimOrUnmapBlockDescriptors = 0;
+    uint32_t maxLBACount = 0;
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {
         bool xlCommand = is_ATA_Data_Set_Management_XL_Supported(device);
@@ -377,7 +379,8 @@ eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret = UNKNOWN;
-    uint32_t maxTrimOrUnmapBlockDescriptors = 0, maxLBACount = 0;
+    uint32_t maxTrimOrUnmapBlockDescriptors = 0;
+    uint32_t maxLBACount = 0;
     if (is_Trim_Or_Unmap_Supported(device, &maxTrimOrUnmapBlockDescriptors, &maxLBACount))
     {
         //create the buffer first, then send the command

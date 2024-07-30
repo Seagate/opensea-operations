@@ -176,7 +176,8 @@ eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t er
 eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t eraseTime, uint8_t *pattern, uint32_t patternLength, bool hideLBACounter)
 {
     eReturnValues ret = UNKNOWN;
-    time_t currentTime = 0, startTime = 0;
+    time_t currentTime = 0;
+    time_t startTime = 0;
     //first figure out how many writes we'll need to issue, then allocate the memory we need
     uint32_t sectors = get_Sector_Count_For_Read_Write(device);
     uint64_t iter = 0;

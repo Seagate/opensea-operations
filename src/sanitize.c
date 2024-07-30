@@ -150,7 +150,10 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percent
 static eReturnValues get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, req_sense_buf, SPC3_SENSE_LEN);
-    uint8_t acq = 0, ascq = 0, senseKey = 0, fru = 0;
+    uint8_t acq = 0;
+    uint8_t ascq = 0;
+    uint8_t senseKey = 0;
+    uint8_t fru = 0;
     eReturnValues result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
     get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
     result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
@@ -609,7 +612,8 @@ eReturnValues run_Sanitize_Operation(tDevice* device, eSanitizeOperations saniti
 static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayTime)
 {
     eReturnValues ret = IN_PROGRESS;
-    uint8_t minutes = 0, seconds = 0;
+    uint8_t minutes = 0;
+    uint8_t seconds = 0;
     double percentComplete = 0;
     convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
     printf("Sanitize progress will be updated every");

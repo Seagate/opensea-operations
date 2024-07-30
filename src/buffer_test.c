@@ -161,7 +161,10 @@ static bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
 {
     bool crc = false;
     bool checkSenseData = false;
-    uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+    uint8_t senseKey = 0;
+    uint8_t asc = 0;
+    uint8_t ascq = 0;
+    uint8_t fru = 0;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (device->drive_info.lastCommandRTFRs.status & ATA_STATUS_BIT_ERROR)//error bit set

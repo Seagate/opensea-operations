@@ -679,7 +679,7 @@ eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice *device)
     eReturnValues ret = UNKNOWN;
     int slot = 0;
     nvmeFirmwareSlotInfo fwSlotsLogInfo;
-    char fwRev[9]; // 8 bytes for the FSR + 1 byte '\0'
+    DECLARE_ZERO_INIT_ARRAY(char, fwRev, 9);
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif

@@ -466,7 +466,10 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
                         }
                         else if (device->drive_info.drive_type == SCSI_DRIVE)
                         {
-                            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                            uint8_t senseKey = 0;
+                            uint8_t asc = 0;
+                            uint8_t ascq = 0;
+                            uint8_t fru = 0;
                             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
                             {
@@ -518,7 +521,10 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
                     //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
                     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
                     {
-                        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                        uint8_t senseKey = 0;
+                        uint8_t asc = 0;
+                        uint8_t ascq = 0;
+                        uint8_t fru = 0;
                         get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                         if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
                         {
@@ -587,7 +593,10 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
                         //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
                         if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
                         {
-                            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                            uint8_t senseKey = 0;
+                            uint8_t asc = 0;
+                            uint8_t ascq = 0;
+                            uint8_t fru = 0;
                             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
                             {
@@ -1069,7 +1078,10 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                 else
                 {
                     //check if unsupported op code versus invalid field in CDB
-                    uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                    uint8_t senseKey = 0;
+                    uint8_t asc = 0;
+                    uint8_t ascq = 0;
+                    uint8_t fru = 0;
                     get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                     if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)
                     {

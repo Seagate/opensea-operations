@@ -291,7 +291,8 @@ static void print_ATA_Security_Erase_Time(uint16_t eraseTime, bool extendedTimeF
     {
         uint64_t totalSeconds = C_CAST(uint64_t, eraseTime);
         uint16_t days = 0;
-        uint8_t hours = 0, minutes = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
         if (eraseTime == UINT16_MAX)
         {
             if (extendedTimeFormat)
@@ -1109,7 +1110,9 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
             time_t currentTime = time(M_NULLPTR);
             time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
             uint16_t days = 0;
-            uint8_t hours = 0, minutes = 0, seconds = 0;
+            uint8_t hours = 0;
+            uint8_t minutes = 0;
+            uint8_t seconds = 0;
             DECLARE_ZERO_INIT_ARRAY(char, timeFormat, TIME_STRING_LENGTH);
             convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
@@ -1162,7 +1165,10 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
     if (device->drive_info.interface_type != IDE_INTERFACE)
 #endif
     {
-        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+        uint8_t senseKey = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
+        uint8_t fru = 0;
         get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (senseKey == SENSE_KEY_UNIT_ATTENTION && asc == 0x29 && ascq == 0)
         {
@@ -1232,7 +1238,10 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         uint16_t days = 0;
-        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+        uint8_t years = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         double ataSecureEraseTimerSeconds = get_Seconds(ataSecureEraseTimer);
         convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, ataSecureEraseTimerSeconds), &years, &days, &hours, &minutes, &seconds);
         if (seconds > 0 || minutes > 0 || hours > 0 || days > 0 || years > 0)

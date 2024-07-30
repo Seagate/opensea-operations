@@ -2995,7 +2995,8 @@ eReturnValues print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
     if (gplLogBuffer || smartLogBuffer || legacyDriveNoLogDir)
     {
         uint16_t log = 0;
-        uint16_t gplLogSize = 0, smartLogSize = 0;
+        uint16_t gplLogSize = 0;
+        uint16_t smartLogSize = 0;
         bool bug = false;
         bool atLeastOneBug = false;
         printf("\nAccess Types:\n");

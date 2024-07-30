@@ -2939,7 +2939,10 @@ eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     {
         uint8_t *senseData = C_CAST(uint8_t*, safe_calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN);
-        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+        uint8_t senseKey = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
+        uint8_t fru = 0;
         get_Sense_Key_ASC_ASCQ_FRU(senseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (asc == 0x5D)
         {
@@ -3335,7 +3338,9 @@ eReturnValues sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, b
         //check if SCT and SCT feature control is supported
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
         {
-            uint16_t featureCode = 0, state = 0, optionFlags = 0;
+            uint16_t featureCode = 0;
+            uint16_t state = 0;
+            uint16_t optionFlags = 0;
             switch (sctFeature)
             {
             case SCT_FEATURE_CONTROL_WRITE_CACHE_STATE:
@@ -3421,7 +3426,9 @@ eReturnValues sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, b
         //check if SCT and SCT feature control is supported
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
         {
-            uint16_t featureCode = 0, state = 0, optionFlags = 0;
+            uint16_t featureCode = 0;
+            uint16_t state = 0;
+            uint16_t optionFlags = 0;
             switch (sctFeature)
             {
             case SCT_FEATURE_CONTROL_WRITE_CACHE_STATE:
@@ -4144,7 +4151,8 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice *device)
         int index;
         //uint64_t size = 0; 
         uint32_t temperature = 0, pcbTemp = 0, socTemp = 0, scCurrentTemp = 0, scMaxTemp = 0;
-        uint64_t maxTemperature = 0, maxSocTemp = 0;
+        uint64_t maxTemperature = 0;
+        uint64_t maxSocTemp = 0;
         nvmeGetLogPageCmdOpts   cmdOpts;
         nvmeSmartLog            smartLog;
         EXTENDED_SMART_INFO_T   extSmartLog;
@@ -4255,7 +4263,8 @@ eReturnValues nvme_Print_PCI_Statistics(tDevice *device)
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
         //uint64_t size = 0; 
-        uint32_t correctPcieEc = 0, uncorrectPcieEc = 0;
+        uint32_t correctPcieEc = 0;
+        uint32_t uncorrectPcieEc = 0;
         nvmeGetLogPageCmdOpts   cmdOpts;
         nvmePcieErrorLogPage    pcieErrorLog;
 
@@ -5691,7 +5700,8 @@ static void get_Idle_Or_Standby_Command_Info(const char* commandName, M_ATTR_UNU
         if (standbyTimerPeriod >= 0x01 && standbyTimerPeriod <= 0xF0)
         {
             uint64_t timerInSeconds = standbyTimerPeriod * 5;
-            uint8_t minutes = 0, seconds = 0;
+            uint8_t minutes = 0;
+            uint8_t seconds = 0;
             convert_Seconds_To_Displayable_Time(timerInSeconds, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
             if (minutes > 0 && seconds == 0)
             {
@@ -5740,7 +5750,9 @@ static void get_NV_Cache_Command_Info(const char* commandName, M_ATTR_UNUSED uin
     {
     case NV_SET_NV_CACHE_POWER_MODE:
     {
-        uint8_t hours = 0, minutes = 0, seconds = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         convert_Seconds_To_Displayable_Time(count, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set NV Cache Power Mode. Minimum High-Power Time: %" PRIu8 " hours %" PRIu8 " minutes %" PRIu8 " seconds", commandName, hours, minutes, seconds);
     }
@@ -7801,7 +7813,10 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 }
                 printf(" Life Timestamp: ");
                 uint16_t days = 0;
-                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+                uint8_t years = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 uint64_t lifeTimeStampSeconds = 0;
                 if (errorLogData->extLog)
                 {
@@ -7820,8 +7835,10 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     numberOfCommandsBeforeError = errorLogData->extSmartError[iter].numberOfCommands;
                 }
                 //Putting these vars here because we may need to look at them while parsing the error reason.
-                uint16_t features = 0, count = 0;
-                uint8_t commandOpCode = 0, device = 0;
+                uint16_t features = 0;
+                uint16_t count = 0;
+                uint8_t commandOpCode = 0;
+                uint8_t device = 0;
                 uint64_t lba = 0;
                 //Loop through and print out commands leading up to the error
                 //call get command info function above
@@ -7907,7 +7924,10 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     }
                 }
                 //print out the error command!
-                uint8_t status = 0, error = 0, errorDevice = 0, errorDeviceControl = 0;
+                uint8_t status = 0;
+                uint8_t error = 0;
+                uint8_t errorDevice = 0;
+                uint8_t errorDeviceControl = 0;
                 uint64_t errorlba = 0;
                 uint16_t errorCount = 0;
                 if (errorLogData->extLog)
@@ -8073,14 +8093,19 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 }
                 printf(" Life Timestamp: ");
                 uint16_t days = 0;
-                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+                uint8_t years = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, errorLogData->smartError[iter].error.lifeTimestamp) * UINT64_C(3600), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
                 uint8_t numberOfCommandsBeforeError = errorLogData->smartError[iter].numberOfCommands;
                 //Putting these vars here because we may need to look at them while parsing the error reason.
-                uint16_t features = 0, count = 0;
-                uint8_t commandOpCode = 0, device = 0;
+                uint16_t features = 0;
+                uint16_t count = 0;
+                uint8_t commandOpCode = 0;
+                uint8_t device = 0;
                 uint64_t lba = 0;
                 //Loop through and print out commands leading up to the error
                 //call get command info function above
@@ -8133,7 +8158,10 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     }
                 }
                 //print out the error command!
-                uint8_t status = 0, error = 0, errorDevice = 0, errorDeviceControl = 0;
+                uint8_t status = 0;
+                uint8_t error = 0;
+                uint8_t errorDevice = 0;
+                uint8_t errorDeviceControl = 0;
                 uint64_t errorlba = 0;
                 uint16_t errorCount = 0;
                 status = errorLogData->smartError[iter].error.status;

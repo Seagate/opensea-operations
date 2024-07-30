@@ -276,7 +276,10 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
         {
             return MEMORY_FAILURE;
         }
-        uint8_t asc = 0, ascq = 0, senseKey = 0, fru = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
+        uint8_t senseKey = 0;
+        uint8_t fru = 0;
         ret = scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
         get_Sense_Key_ASC_ASCQ_FRU(&senseData[0], SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
@@ -455,7 +458,8 @@ eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOf
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                uint8_t minutes = 0, seconds = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 printf("Write same progress will be updated every");
                 convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
                 print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);

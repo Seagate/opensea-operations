@@ -941,7 +941,10 @@ eReturnValues get_IDD_Status(tDevice *device, uint8_t *status)
             ret = scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15);
             if (ret != SUCCESS)
             {
-                uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                uint8_t senseKey = 0;
+                uint8_t asc = 0;
+                uint8_t ascq = 0;
+                uint8_t fru = 0;
                 get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                 //We are checking if the reset part of the test is still in progress by checking for this sense data and will try again after a second until we know this part of the test is complete.
                 if (senseKey == SENSE_KEY_UNIT_ATTENTION && asc == 0x29 && ascq == 0x01 && fru == 0x0A)
@@ -1159,7 +1162,10 @@ static eReturnValues start_IDD_Operation(tDevice *device, eIDDTests iddOperation
         if (device->drive_info.drive_type == SCSI_DRIVE)
         {
             //check the sense data. The problem may be that captive/foreground mode isn't supported for the long test
-            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+            uint8_t senseKey = 0;
+            uint8_t asc = 0;
+            uint8_t ascq = 0;
+            uint8_t fru = 0;
             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
             {
@@ -2655,7 +2661,8 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
     if (seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isValueValid
         && seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isValueValid)
     {
-        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        uint64_t timestampInMinutesForPass = 0;
+        uint64_t timestampInMinutesForFail = 0;
         if (seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isValueValid)
         {
             timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isTimeStampsInMinutes
@@ -2688,7 +2695,8 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
     if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid
         && seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isValueValid)
     {
-        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        uint64_t timestampInMinutesForPass = 0;
+        uint64_t timestampInMinutesForFail = 0;
         if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isValueValid)
         {
             timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isTimeStampsInMinutes
@@ -2721,7 +2729,8 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
     if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid
         && seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isValueValid)
     {
-        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        uint64_t timestampInMinutesForPass = 0;
+        uint64_t timestampInMinutesForFail = 0;
         if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isValueValid)
         {
             timestampInMinutesForPass = seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isTimeStampsInMinutes
@@ -2754,7 +2763,8 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
     if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid
         && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isValueValid)
     {
-        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        uint64_t timestampInMinutesForPass = 0;
+        uint64_t timestampInMinutesForFail = 0;
         if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isValueValid)
         {
             timestampInMinutesForPass = seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isTimeStampsInMinutes
@@ -2787,7 +2797,8 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
     if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid
         && seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isValueValid)
     {
-        uint64_t timestampInMinutesForPass = 0, timestampInMinutesForFail = 0;
+        uint64_t timestampInMinutesForPass = 0;
+        uint64_t timestampInMinutesForFail = 0;
         if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isValueValid)
         {
             timestampInMinutesForPass = seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isTimeStampsInMinutes

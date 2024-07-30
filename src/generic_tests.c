@@ -1250,7 +1250,8 @@ eReturnValues butterfly_Test(tDevice *device, eRWVCommandType rwvcommand, uint64
     eReturnValues ret = SUCCESS;
     time_t startTime = 0;//will be set to actual current time before we start the test
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
-    uint64_t outerLBA = 0, innerLBA = device->drive_info.deviceMaxLba;
+    uint64_t outerLBA = 0;
+    uint64_t innerLBA = device->drive_info.deviceMaxLba;
     uint8_t *dataBuf = M_NULLPTR;
     size_t dataBufSize = 0;
     if (rwvcommand != RWV_COMMAND_VERIFY)
@@ -1478,7 +1479,8 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
     uint64_t IDStartLBA = 0;
     uint64_t ODEndingLBA = 0;
     uint64_t randomLBA = 0;
-    uint64_t outerLBA = 0, innerLBA = device->drive_info.deviceMaxLba;
+    uint64_t outerLBA = 0;
+    uint64_t innerLBA = device->drive_info.deviceMaxLba;
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint32_t currentSectorCount = sectorCount;
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1503,7 +1505,9 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         uint16_t days = 0;
-        uint8_t hours = 0, minutes = 0, seconds = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1562,7 +1566,9 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         uint16_t days = 0;
-        uint8_t hours = 0, minutes = 0, seconds = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1623,7 +1629,9 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         uint16_t days = 0;
-        uint8_t hours = 0, minutes = 0, seconds = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1684,7 +1692,9 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         uint16_t days = 0;
-        uint8_t hours = 0, minutes = 0, seconds = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         switch (testMode)
         {
         case RWV_COMMAND_READ:
@@ -1876,7 +1886,10 @@ static eReturnValues diamter_Test_RWV_Range(tDevice *device, eRWVCommandType rwv
 //tests at OD, MD, and/or ID depending on what the caller requests.
 eReturnValues diameter_Test_Range(tDevice *device, eRWVCommandType testMode, bool outer, bool middle, bool inner, uint64_t numberOfLBAs, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update updateFunction, void *updateData, bool hideLBACounter)
 {
-    eReturnValues ret = SUCCESS, outerRet = SUCCESS, innerRet = SUCCESS, middleRet = SUCCESS;
+    eReturnValues ret = SUCCESS;
+    eReturnValues outerRet = SUCCESS;
+    eReturnValues innerRet = SUCCESS;
+    eReturnValues middleRet = SUCCESS;
     if ((repairOnTheFly && repairAtEnd) || errorLimit == 0)
     {
         return BAD_PARAMETER;
@@ -2144,7 +2157,10 @@ static eReturnValues diamter_Test_RWV_Time(tDevice *device, eRWVCommandType rwvC
 
 eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool outer, bool middle, bool inner, uint64_t timeInSecondsPerDiameter, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, bool hideLBACounter)
 {
-    eReturnValues ret = SUCCESS, outerRet = SUCCESS, middleRet = SUCCESS, innerRet = SUCCESS;
+    eReturnValues ret = SUCCESS;
+    eReturnValues outerRet = SUCCESS;
+    eReturnValues middleRet = SUCCESS;
+    eReturnValues innerRet = SUCCESS;
     if ((repairOnTheFly && repairAtEnd) || errorLimit == 0)
     {
         return BAD_PARAMETER;
@@ -2154,7 +2170,9 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
     uint16_t errorOffset = 0;
     uint64_t odOrMdLBAsAccessed = 0;
     uint16_t days = 0;
-    uint8_t hours = 0, minutes = 0, seconds = 0;
+    uint8_t hours = 0;
+    uint8_t minutes = 0;
+    uint8_t seconds = 0;
     convert_Seconds_To_Displayable_Time(timeInSecondsPerDiameter, M_NULLPTR, &days, &hours, &minutes, &seconds);
 
     //OD
@@ -2367,7 +2385,8 @@ eReturnValues quick_Zero_Verify_Test(tDevice * device, bool hideLBACounter)
 {
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
     uint64_t totalLBAToRead = C_CAST(uint64_t, (C_CAST(double, device->drive_info.deviceMaxLba) * 0.01 * DRIVE_CAPACITY_PERCENTAGE));        //for OD/ID
-    uint64_t startLBA = 0, endLBA = 0;
+    uint64_t startLBA = 0;
+    uint64_t endLBA = 0;
 
     //0.1% OD Validation
     startLBA = 0; endLBA = align_LBA(device, totalLBAToRead);
