@@ -1091,8 +1091,8 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         }
         else if (device->drive_info.drive_type == SCSI_DRIVE)
         {
-            uint32_t logSize = 0;
-            tSASLogpageSize logpageSize = { 0 };
+            uint32_t logSize = UINT32_C(0);
+            tSASLogpageSize logpageSize = { UINT32_C(0), UINT32_C(0), UINT32_C(0), UINT32_C(0), UINT32_C(0) };
 
             //get the log size of all log subpages
             if (is_FARM_Log_Supported(device))
