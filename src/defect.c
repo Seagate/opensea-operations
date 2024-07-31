@@ -1403,7 +1403,14 @@ eReturnValues get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList
                 {
                 case 0x07://read element failure
                     defectList[*numberOfDefects].lba = dstEntries.dstEntry[dstIter].lbaOfFailure;
-                    defectList[*numberOfDefects].powerOnHours = dstEntries.dstEntry[dstIter].lifetimeTimestamp;
+                    if (dstEntries.dstEntry[dstIter].lifetimeTimestamp > UINT32_MAX)
+                    {
+                        defectList[*numberOfDefects].powerOnHours = UINT32_MAX;
+                    }
+                    else
+                    {
+                        defectList[*numberOfDefects].powerOnHours = C_CAST(uint32_t, dstEntries.dstEntry[dstIter].lifetimeTimestamp);
+                    }
                     ++(*numberOfDefects);
                     break;
                 default:
