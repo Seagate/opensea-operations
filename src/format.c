@@ -1837,7 +1837,7 @@ eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams
     else
     {
         //need to figure out what format we want to run!
-        uint8_t flbas = M_GETBITRANGE(3, 0, device->drive_info.IdentifyData.nvme.ns.flbas);
+        uint8_t flbas = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
         //get the LBAF number. THis field varies depending on other things reported by the drive in NVMe 2.0
         if (device->drive_info.IdentifyData.nvme.ns.nlbaf > 16)
         {
