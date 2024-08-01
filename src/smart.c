@@ -6721,7 +6721,7 @@ static void get_Receive_FPDMA_Command_Info(const char* commandName, uint8_t comm
     break;
     case RECEIVE_FPDMA_ZAC_MANAGEMENT_IN:
     {
-#define NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH UINT8_C(53)
+#define NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH UINT8_C(54)
         DECLARE_ZERO_INIT_ARRAY(char, ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH);
         snprintf(ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH, "%s - ZAC Management In. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
         get_ZAC_Management_In_Command_Info(ncqZacMgmtInString, commandOpCode, features, count, lba, device, commandInfo);
