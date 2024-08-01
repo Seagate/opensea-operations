@@ -6719,7 +6719,7 @@ static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe dr
     uint8_t lbaFormatIdentifier = M_Nibble0(nvmeIdentifyData[26]);
     if (numLBAFormats > 16)
     {
-        lbaFormatIdentifier |= (M_GETBITRANGE(6, 5, nvmeIdentifyData[26])) << 4;
+        lbaFormatIdentifier |= (M_GETBITRANGE(nvmeIdentifyData[26], 6, 5)) << 4;
     }
     //lba formats start at byte 128, and are 4 bytes in size each
     uint32_t lbaFormatOffset = UINT32_C(128) + (C_CAST(uint32_t, lbaFormatIdentifier) * UINT32_C(4));
