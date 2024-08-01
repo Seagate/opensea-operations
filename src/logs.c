@@ -1104,7 +1104,7 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *lo
             {
                 if (toBuffer)
                 {
-                    if (0 != safe_memcpy(&myBuf[offset], bufSize - offset, historyBuffer, increment))
+                    if (0 != safe_memcpy(&myBuf[offset], uint64_to_sizet(C_CAST(uint64_t, bufSize) - offset), historyBuffer, increment))
                     {
                         ret = BAD_PARAMETER;
                         break;
@@ -3460,7 +3460,7 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPull
                     snprintf(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum);
                     if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &pLogFile, NAMING_SERIAL_NUMBER_DATE_TIME, M_NULLPTR, logName, "bin"))
                     {
-                        if (SEC_FILE_SUCCESS != secure_Write_File(pLogFile, logBuffer, size, sizeof(uint8_t), size, M_NULLPTR))
+                        if (SEC_FILE_SUCCESS != secure_Write_File(pLogFile, logBuffer, uint64_to_sizet(size), sizeof(uint8_t), uint64_to_sizet(size), M_NULLPTR))
                         {
                             printf("Error writing log to file!\n");
                         }
