@@ -1842,7 +1842,7 @@ eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams
         if (device->drive_info.IdentifyData.nvme.ns.nlbaf > 16)
         {
             //need to append 2 more bits to interpret this correctly since number of formats > 16
-            flbas |= M_GETBITRANGE(6, 5, device->drive_info.IdentifyData.nvme.ns.flbas) << 4;
+            flbas |= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
         }
         uint32_t fmtBlockSize = device->drive_info.deviceBlockSize;
         uint16_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].ms;
