@@ -47,8 +47,8 @@ CFLAGS += -c -fPIC -I. -std=gnu99
 
 LDFLAGS = -Wall
 LDLIBS = \
-	../../../opensea-common/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-common.a \
-	../../../opensea-transport/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-transport.a
+	../../../opensea-transport/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-transport.a \
+	../../../opensea-common/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-common.a
 
 ifneq (,$(findstring MINGW64,$(UNAME)))
 	#BR note: pragma comment(lib,"Version.lib") is not supported by gcc, use the below supply the version.lib functions
