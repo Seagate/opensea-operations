@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -17,8 +18,6 @@
 extern "C"
 {
 #endif
-
-    //TODO: NVMe drives can support persistent reservations, but are not currently supported by this code.
 
     OPENSEA_OPERATIONS_API bool is_Persistent_Reservations_Supported(tDevice *device);
 
@@ -113,11 +112,11 @@ extern "C"
         reservationTypesSupported reservationsCapabilities;
     }persistentReservationCapabilities, *ptrPersistentReservationCapabilities;
 
-    OPENSEA_OPERATIONS_API int get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReservationCapabilities prCapabilities);
+    OPENSEA_OPERATIONS_API eReturnValues get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersistentReservationCapabilities prCapabilities);
 
     OPENSEA_OPERATIONS_API void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities);
 
-    OPENSEA_OPERATIONS_API int get_Registration_Key_Count(tDevice *device, uint16_t *keyCount);
+    OPENSEA_OPERATIONS_API eReturnValues get_Registration_Key_Count(tDevice *device, uint16_t *keyCount);
 
     #define REGISTRATION_KEY_DATA_VERSION 1
 
@@ -130,11 +129,11 @@ extern "C"
         uint64_t registrationKey[1];//This is variable sized depending on how many are requested to be read and how many are filled in when read. 
     }registrationKeysData, *ptrRegistrationKeysData;
 
-    OPENSEA_OPERATIONS_API int get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistrationKeysData keys);
+    OPENSEA_OPERATIONS_API eReturnValues get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistrationKeysData keys);
 
     OPENSEA_OPERATIONS_API void show_Registration_Keys(ptrRegistrationKeysData keys);
 
-    OPENSEA_OPERATIONS_API int get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount);
+    OPENSEA_OPERATIONS_API eReturnValues get_Reservation_Count(tDevice *device, uint16_t *reservationKeyCount);
 
     typedef struct _reservationInfo
     {
@@ -156,11 +155,11 @@ extern "C"
         reservationInfo reservation[1];//variable length depending on how it was allocated. Should always be AT LEAST one of these
     }reservationsData, *ptrReservationsData;
 
-    OPENSEA_OPERATIONS_API int get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservationsData reservations);
+    OPENSEA_OPERATIONS_API eReturnValues get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservationsData reservations);
 
     OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData reservations);
 
-    OPENSEA_OPERATIONS_API int get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount);
+    OPENSEA_OPERATIONS_API eReturnValues get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount);
 
     typedef struct _fullReservationKeyInfo
     {
@@ -185,22 +184,22 @@ extern "C"
         fullReservationKeyInfo reservationKey[1];//Variable size depending on how many will be reported by the device at a given time.
     }fullReservationInfo, *ptrFullReservationInfo;
 
-    OPENSEA_OPERATIONS_API int get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation);
+    OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation);
 
     OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInfo fullReservation);
 
     //note: ignore existing may not be supported on older devices.
-    OPENSEA_OPERATIONS_API int register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts, bool persistThroughPowerLoss, bool ignoreExisting);
+    OPENSEA_OPERATIONS_API eReturnValues register_Key(tDevice * device, uint64_t registrationKey, bool allTargetPorts, bool persistThroughPowerLoss, bool ignoreExisting);
 
-    OPENSEA_OPERATIONS_API int unregister_Key(tDevice *device, uint64_t currentRegistrationKey);
+    OPENSEA_OPERATIONS_API eReturnValues unregister_Key(tDevice *device, uint64_t currentRegistrationKey);
 
-    OPENSEA_OPERATIONS_API int acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType);
+    OPENSEA_OPERATIONS_API eReturnValues acquire_Reservation(tDevice *device, uint64_t key, eReservationType resType);
 
-    OPENSEA_OPERATIONS_API int release_Reservation(tDevice *device, uint64_t key, eReservationType resType);
+    OPENSEA_OPERATIONS_API eReturnValues release_Reservation(tDevice *device, uint64_t key, eReservationType resType);
 
-    OPENSEA_OPERATIONS_API int clear_Reservations(tDevice *device, uint64_t key);
+    OPENSEA_OPERATIONS_API eReturnValues clear_Reservations(tDevice *device, uint64_t key);
 
-    OPENSEA_OPERATIONS_API int preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool abort, eReservationType resType);
+    OPENSEA_OPERATIONS_API eReturnValues preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemptKey, bool abort, eReservationType resType);
 
 #if defined (__cplusplus)
 }

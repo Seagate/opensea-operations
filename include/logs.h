@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -15,18 +16,20 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "common_types.h"
+#include "code_attributes.h"
+#include "secure_file.h"
+
+#include <time.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-    #include <time.h>
-
     typedef enum _eLogFileNamingConvention
     {
-        NAMING_SERIAL_NUMBER_ONLY,
         NAMING_SERIAL_NUMBER_DATE_TIME,//this should be used most of the time to avoid collisions with existing files
-        NAMING_OPENSTACK,//not yet implemented
+        NAMING_SERIAL_NUMBER_ONLY,
         NAMING_BYUSER,   // a way for the command line user to name the file
     }eLogFileNamingConvention;
 
@@ -41,11 +44,18 @@ extern "C" {
     #define FARM_SUBLOGPAGE_LEN             16384
     #define TOTAL_CONSTITUENT_PAGES         32
 
-    OPENSEA_OPERATIONS_API int generate_Logfile_Name(tDevice *device, \
-                                                    const char * const logName, \
-                                                    const char * const logExtension, \
-                                                    eLogFileNamingConvention logFileNamingConvention, \
-                                                    char **logFileNameUsed);
+    OPENSEA_OPERATIONS_API const char* get_Drive_ID_For_Logfile_Name(tDevice *device);
+
+    OPENSEA_OPERATIONS_API char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, /*required*/
+                         const char *deviceIdentifier, /*required*/
+                         size_t deviceIDLen, /*required*/
+                         const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
+                         size_t logPathLen, //may be 0
+                         const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
+                         size_t logNameLen, //may be 0
+                         const char *logExt,   //optional /*extension for the log file. If NULL, set to .bin*/
+                         size_t logExtLen //may be 0
+                                              );
 
     //-----------------------------------------------------------------------------
     //
@@ -56,24 +66,39 @@ extern "C" {
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle (used to get the serial number)
     //!   \param[in,out] filePtr = File pointer that will hold an open file handle upon successful completion
-    //!   \param[in] logPath = this is a directory/folder for where the fle should be created. NULL if current directory. 
+    //!   \param[in] logPath = this is a directory/folder for where the fle should be created. M_NULLPTR if current directory. 
     //!   \param[in] logName = this is a name to put into the name of the log. Examples: SMART, CEL
     //!   \param[in] logExtension = this is an ASCII representation of the extension to save the file with. If unsure, use bin. No DOT required in this parameter
     //!   \param[in] logFileNamingConvention = enum value to specify which log file naming convention to use
-    //!   \param[out] logFileNameUsed = sets this pointer to the string of the name and extension used for the log file name. This must be set to NULL when calling. Memory should be OPENSEA_PATH_MAX in size
+    //!   \param[out] logFileNameUsed = sets this pointer to the string of the name and extension used for the log file name. This must be set to M_NULLPTR when calling. Memory should be OPENSEA_PATH_MAX in size
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_And_Open_Log_File(tDevice *device, \
-                                                    FILE **filePtr, \
-                                                    const char * const logPath, \
-                                                    const char * const logName, \
-                                                    const char * const logExtension, \
-                                                    eLogFileNamingConvention logFileNamingConvention, \
-                                                    char **logFileNameUsed);
+    OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File(const char *deviceIdentifier, /*required*/
+                                              size_t deviceIDLen, /*required*/
+                                              secureFileInfo **file, /*required*/
+                                              eLogFileNamingConvention logFileNamingConvention, /*required*/
+                                              const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
+                                              size_t logPathLen, //may be 0
+                                              const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
+                                              size_t logNameLen, //may be 0
+                                              const char *logExt, //optional /*extension for the log file. If NULL, set to .bin*/
+                                              size_t logExtLen //may be 0
+                                              //NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
+                                              );
 
+    //Meant to be a little simpler to call when you don't want to calculate a bunch of lengths for the function above using device info.
+    //NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
+    OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(tDevice *device,
+                                                secureFileInfo **file, /*required*/
+                                                eLogFileNamingConvention logFileNamingConvention, /*required*/
+                                                const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
+                                                const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
+                                                const char *logExt //optional /*extension for the log file. If NULL, set to .bin*/
+    );
+    
     //-----------------------------------------------------------------------------
     //
     //  get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
@@ -94,7 +119,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, NOT_SUPPORTED = log is not supported by device, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart);
 
     //-----------------------------------------------------------------------------
     //
@@ -113,7 +138,7 @@ extern "C" {
     //!                     If SUCCESS is returned AND the logFileSize is UINT16_MAX, then the page should be supported, but determining the length was not possible due to a likely firmware bug in the device.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize);
 
     //-----------------------------------------------------------------------------
     //
@@ -130,7 +155,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, NOT_SUPPORTED = log is not supported by device, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSize);
 
     //-----------------------------------------------------------------------------
     //
@@ -148,14 +173,14 @@ extern "C" {
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer instead of file
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it
-    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working directory.
     //!   \param[in] featureRegister - this is the feature register for the command. default to zero for most commands.
     //! 
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Log(tDevice *device, uint8_t logAddress, \
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, \
                                         char *logName, char *fileExtension, \
                                         bool GPL, bool SMART, bool toBuffer, \
                                         uint8_t *myBuf, uint32_t bufSize, \
@@ -172,18 +197,18 @@ extern "C" {
     //!   \param[in]  device - file descriptor
     //!   \param[in]  logAddress - the address of the log you wish to pull
     //!   \param[in]  subpage - set this to something other than zero if looking for a specific subpage to a log
-    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) NULL if no file output needed
+    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) M_NULLPTR if no file output needed
     //!   \param[in]  fileExtension - a string for the file extension. You do not need to include a dot character.
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer 
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it (use get_SCSI_Log_Size)
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, \
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, \
                                         char *logName, char *fileExtension, bool toBuffer, \
                                         uint8_t *myBuf, uint32_t bufSize, \
                                         const char * const filePath);
@@ -202,13 +227,13 @@ extern "C" {
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer instead of file
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, \
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, \
                                         char *fileExtension, bool toBuffer, uint8_t *myBuf, \
                                         uint32_t bufSize, const char * const filePath);
 
@@ -220,13 +245,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device - file descriptor
-    //!   \param[in]  filePath - string for the file output path. Set to NULL for the current directory
+    //!   \param[in]  filePath - string for the file output path. Set to M_NULLPTR for the current directory
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Device_Statistics_Log(tDevice * device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(tDevice * device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -236,13 +261,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_EPC_log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -256,15 +281,15 @@ extern "C" {
     //!   \param currentOrSaved - boolean flag to switch between pulling the current log or the saved log (current is currently the only log supported so set this to true). On NVMe current = host, saved = controller
     //!   \param islDataSet - flag to pull the small, medium, or large dataset. 1 = small, 2 = medium, 3 = large, 4 = extra large (SAS only)
     //!   \param saveToFile - boolean flag to tell it to save to a file with an auto generated name (naming is based off of serial number and current date and time)
-    //!   \param ptrData - pointer to a data buffer. This MUST be non-NULL when saveToFile = false
+    //!   \param ptrData - pointer to a data buffer. This MUST be non-M_NULLPTR when saveToFile = false
     //!   \param dataSize - size of the buffer that ptrData points to. This should be at least 256K for the small data set.
-    //!   \param [in] filePath = pointer to the path where this log should be generated. Use NULL for current working directory.
+    //!   \param [in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working directory.
     //!
     //  Exit:
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Telemetry_Log(tDevice *device, \
+    OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(tDevice *device, \
                                                 bool currentOrSaved, \
                                                 uint8_t islDataSet, \
                                                 bool saveToFile, \
@@ -281,13 +306,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Pending_Defect_List(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -297,13 +322,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -314,13 +339,13 @@ extern "C" {
     //  Entry:
     //!   \param[in]  device file descriptor
     //!   \param[in] extLog - set to true to read the GPL log, false for the SMART log. Recommended you use device->drive_info.ata_Options.generalPurposeLoggingSupported for this value.
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -330,13 +355,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_DST_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -346,13 +371,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Identify_Device_Data_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -362,13 +387,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in]  device file descriptor
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -379,13 +404,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_SCSI_G_List(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -395,13 +420,13 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in] device = pointer to a valid device structure with a device handle
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -416,7 +441,7 @@ extern "C" {
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Supported_Logs(tDevice *device, uint64_t flags);
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_Logs(tDevice *device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -431,7 +456,7 @@ extern "C" {
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Supported_SCSI_Logs(tDevice *device, uint64_t flags);
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Logs(tDevice *device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -446,7 +471,7 @@ extern "C" {
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Supported_ATA_Logs(tDevice *device, uint64_t flags);
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_ATA_Logs(tDevice *device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -461,7 +486,7 @@ extern "C" {
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Supported_NVMe_Logs(tDevice *device, uint64_t flags);
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(tDevice *device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -473,18 +498,18 @@ extern "C" {
     //!   \param logNum - log # to pull 
     //!   \param subpage - subpage of the log # to pull (for SCSI)
     //!   \param mode   - what mode to pull the log
-    //!   \param filePath   - path for log file creation (if needed, otherwise set to NULL)
+    //!   \param filePath   - path for log file creation (if needed, otherwise set to M_NULLPTR)
     //!   \param transferSizeBytes - number of bytes to use with each read through a loop. For example: can be used to do 64k instead of a default amount
     //!   \param logLengthOverride - NVME only. Used to specify the total length of a log when known since the generic lookup may not get this correct or may not know the actual length
     //  Exit:
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, \
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, \
                                             eLogPullMode mode, const char * const filePath, \
                                             uint32_t transferSizeBytes, uint32_t logLengthOverride);
 
-    OPENSEA_OPERATIONS_API int pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -499,7 +524,7 @@ extern "C" {
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags);
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uint64_t flags);
 
     OPENSEA_OPERATIONS_API bool is_SCSI_Read_Buffer_16_Supported(tDevice *device);//use for determining how to use this command to pull error history
 
@@ -521,7 +546,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, NOT_SUPPORTED = log is not supported by device, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *errorHistorySize, bool createNewSnapshot, bool useReadBuffer16);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *errorHistorySize, bool createNewSnapshot, bool useReadBuffer16);
 
 
     //-----------------------------------------------------------------------------
@@ -535,24 +560,24 @@ extern "C" {
     //  Entry:
     //!   \param[in]  device - file descriptor
     //!   \param[in]  buffer ID - the buffer ID of the error history data
-    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) NULL if no file output needed
+    //!   \param[in]  logName - a string that is the name of the log (NO SPACES please!) M_NULLPTR if no file output needed
     //!   \param[in]  createNewSnapshot - set to true to generate a new snapshot when reading the error history directory.
     //!   \param[in]  useReadBuffer16 - use the SPC5 read buffer 16 command
     //!   \param[in]  fileExtension - a string for the file extension. You do not need to include a dot character.
     //!   \param[in]  toBuffer - boolean flag specifying if you want to return data in buffer 
     //!   \param[in]  myBuf - buffer to return data in if toBuffer is true
     //!   \param[in]  bufSize - size of the buffer to get data filled into it (use get_SCSI_Log_Size)
-    //!   \param[in]  filePath - string with path to output the file to. Can be NULL for current directory.
+    //!   \param[in]  filePath - string with path to output the file to. Can be M_NULLPTR for current directory.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
                                                     char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
                                                     const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
     
-    OPENSEA_OPERATIONS_API int pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
                                                 uint16_t logPage, uint8_t logAddress, eLogPullMode mode);
 
     //-----------------------------------------------------------------------------
@@ -563,7 +588,7 @@ extern "C" {
     //
     //  Entry:
     //!   \param[in] device = poiner to a valid device structure with a device handle
-    //!   \param[in] filePath = pointer to the path where this log should be generated. Use NULL for current working dir.
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working dir.
     //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
     //!   \param[in] issueFactory = if set 0-4 issue the command with the factory feature. 
     //!                             FARM pull Factory subpages   
@@ -576,7 +601,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode);
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode);
 
     //-----------------------------------------------------------------------------
     //
@@ -648,17 +673,17 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, uint32_t *modePageSize);
 
     //if using this and not sure if the 6byte or 10 byte command will be used, use this length when allocating your buffer: SCSI_MODE_PAGE_MIN_HEADER_LENGTH + length of mode page from standard
     //This is only needed if not calling the get_SCSI_Mode_Page_Size as that will already take this into account
     #define SCSI_MODE_PAGE_MIN_HEADER_LENGTH (M_Max(MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN, MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN))
 
-    OPENSEA_OPERATIONS_API int get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
 
     //This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes should be passed as 0 unless you know the length you want to pull.
     // nvmeLogSizeBytes is used since there is not a way to look up the length of most NVMe logs like you can with ATA and SCSI
-    OPENSEA_OPERATIONS_API int pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes);
 
 #if defined(__cplusplus)
 }

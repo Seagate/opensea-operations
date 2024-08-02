@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -22,14 +23,14 @@ extern "C"
 {
 #endif
 
-    typedef struct _smartLogData { 
+    typedef struct _smartLogData {
         union {
-        ataSMARTLog ataSMARTAttr;
-        nvmeSmartLog nvmeSMARTAttr;
+            ataSMARTLog ataSMARTAttr;
+            nvmeSmartLog nvmeSMARTAttr;
         } attributes;
-    } smartLogData; 
+    } smartLogData;
 
-    #define MAX_ATTRIBUTE_NAME_LENGTH 43 //This leaves room for a NULL terminating character
+    #define MAX_ATTRIBUTE_NAME_LENGTH 43 //This leaves room for a M_NULLPTR terminating character
 
     //SMART attributes are NOT standardized. Use these definitions with caution as they may have different meanings between vendors and firmwares. - TJE
     #define ATTRB_NUM_RETIRED_SECTOR    (5)
@@ -53,7 +54,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs);
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs);
 
     OPENSEA_OPERATIONS_API void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attributeName);
 
@@ -78,7 +79,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode);
+    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMode);
 
     //-----------------------------------------------------------------------------
     //
@@ -94,7 +95,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int show_NVMe_Health(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues show_NVMe_Health(tDevice* device);
 
     typedef enum _eSMARTTripInfoType
     {
@@ -152,7 +153,21 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected, all others - unknown status or error occured
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
+    OPENSEA_OPERATIONS_API eReturnValues run_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  print_SMART_Tripped_Message()
+    //
+    //! \brief   Description:  prints the SFF-8055 SMART trip approved warning message. Output modified to handle modern SSDs if passed in
+    //
+    //  Entry:
+    //!   \param[in] ssd = true means output showing the SSD is tripping SMART, otherwise output indicating it is an HDD tripping SMART
+    //!
+    //  Exit:
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void print_SMART_Tripped_Message(bool ssd);
 
     //-----------------------------------------------------------------------------
     //
@@ -171,7 +186,7 @@ extern "C"
     //!           UNKNOWN - didn't get back rtfrs, so unable to verify SMART status
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
+    OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -187,7 +202,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected, COMMAND_FAILURE = unknown error/smart not enabled undefined status, UNKNOWN - didn't get back rtfrs, so unable to verify SMART status
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -203,7 +218,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = SMART tripped, IN_PROGRESS = warning condition detected, COMMAND_FAILURE = unknown error/smart not enabled undefined status, UNKNOWN - didn't get back rtfrs, so unable to verify SMART status
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -222,9 +237,9 @@ extern "C"
 
     OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int get_Pending_List_Count(tDevice *device, uint32_t *pendingCount);
+    OPENSEA_OPERATIONS_API eReturnValues get_Pending_List_Count(tDevice *device, uint32_t *pendingCount);
 
-    OPENSEA_OPERATIONS_API int get_Grown_List_Count(tDevice *device, uint32_t *grownCount);
+    OPENSEA_OPERATIONS_API eReturnValues get_Grown_List_Count(tDevice *device, uint32_t *grownCount);
 
     //-----------------------------------------------------------------------------
     //
@@ -243,7 +258,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool isVolatile, uint16_t hdaTemperatureIntervalOrState);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool isVolatile, uint16_t hdaTemperatureIntervalOrState);
 
     //-----------------------------------------------------------------------------
     //
@@ -262,7 +277,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enableDisable, bool *defaultValue, uint16_t *hdaTemperatureIntervalOrState, uint16_t *featureOptionFlags);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool *enableDisable, bool *defaultValue, uint16_t *hdaTemperatureIntervalOrState, uint16_t *featureOptionFlags);
 
     typedef enum _eSCTErrorRecoveryCommand
     {
@@ -285,7 +300,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds, bool isVolatile);
 
     //-----------------------------------------------------------------------------
     //
@@ -302,7 +317,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t *timerValueMilliseconds, bool isVolatile);
 
     //-----------------------------------------------------------------------------
     //
@@ -317,7 +332,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand);
 
     //-----------------------------------------------------------------------------
     //
@@ -332,7 +347,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = sct not supported or feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds);
 
     //-----------------------------------------------------------------------------
     //
@@ -347,7 +362,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int enable_Disable_SMART_Feature(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Feature(tDevice *device, bool enable);
     
     //-----------------------------------------------------------------------------
     //
@@ -362,7 +377,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable);
 
     //-----------------------------------------------------------------------------
     //
@@ -377,12 +392,12 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable);
 
     typedef struct _smartFeatureInfo
     {
         uint16_t smartVersion;
-        //TODO: smart attributes?
+        //smart attributes? Currently in a separate API
         uint8_t offlineDataCollectionStatus;
         uint8_t selfTestExecutionStatus;
         uint16_t timeToCompleteOfflineDataCollection;//vendor specific in new specs
@@ -412,7 +427,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -427,11 +442,11 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo);
+    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo);
 
-    OPENSEA_OPERATIONS_API int nvme_Print_Temp_Statistics(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int nvme_Print_PCI_Statistics(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_PCI_Statistics(tDevice *device);
 
     typedef struct _informationalExceptionsControl
     {
@@ -475,7 +490,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc, ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc, ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData);
 
     //-----------------------------------------------------------------------------
     //
@@ -491,7 +506,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInformationalExceptionsControl controlData);
+    OPENSEA_OPERATIONS_API eReturnValues set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save, ptrInformationalExceptionsControl controlData);
 
     //-----------------------------------------------------------------------------
     //
@@ -507,7 +522,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault);
+    OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault);
 
     #define SMART_ERROR_STATE_MASK 0x0F //highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below
     typedef enum _eSMARTErrorState //Low nibble only!!! high nibble is vendor unique!
@@ -629,7 +644,7 @@ extern "C"
         uint8_t version;
         uint8_t numberOfEntries;
         bool extLog;
-        //TODO: This union isn't really needed...Can remove this sometime
+        //NOTE: This union isn't really needed...Can remove this sometime
         union
         {
             SMARTErrorDataStructure smartError[SMART_COMPREHENSIVE_ERRORS_MAX];//sorted in order from most recent to oldest
@@ -652,7 +667,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog);
 
     //-----------------------------------------------------------------------------
     //
@@ -682,7 +697,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this device
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool forceSMARTLog);
 
     //-----------------------------------------------------------------------------
     //

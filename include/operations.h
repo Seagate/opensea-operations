@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -36,7 +37,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff);
+    OPENSEA_OPERATIONS_API eReturnValues get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff);
 
     //-----------------------------------------------------------------------------
     //
@@ -53,7 +54,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
+    OPENSEA_OPERATIONS_API eReturnValues change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
 
 
     //-----------------------------------------------------------------------------
@@ -91,7 +92,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -107,7 +108,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -123,7 +124,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -139,7 +140,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -155,7 +156,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -171,7 +172,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -187,9 +188,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
-    OPENSEA_OPERATIONS_API int nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -341,7 +342,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS])
+    //  get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS])
     //
     //! \brief   Gets a list of the supported erase functions on a drive. list must be at least MAX_SUPPORTED_ERASE_METHODS in size. The list will be in order from fastest to slowest.
     //!          There is also a TCG version of this function in tcg_base_operations.h that will fill in the list including support for revert and revertSP if the drive supports these methods
@@ -355,7 +356,7 @@ extern "C"
     //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -372,7 +373,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
-    
+
     //-----------------------------------------------------------------------------
     //
     //  set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
@@ -389,21 +390,21 @@ extern "C"
     //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters);
+    OPENSEA_OPERATIONS_API eReturnValues set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters);
 
-    OPENSEA_OPERATIONS_API int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity);//if sensitivity is set to UINT16_MAX, then the feature is supported, but not enabled, so the value wouldn't otherwise make sense
+    OPENSEA_OPERATIONS_API eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity);//if sensitivity is set to UINT16_MAX, then the feature is supported, but not enabled, so the value wouldn't otherwise make sense
 
-    OPENSEA_OPERATIONS_API int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity);//enables the feature. Value of zero sets a vendor's recommended setting
+    OPENSEA_OPERATIONS_API eReturnValues set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity);//enables the feature. Value of zero sets a vendor's recommended setting
 
-    OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
+    OPENSEA_OPERATIONS_API eReturnValues disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
 
     OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int enable_Disable_AAM_Feature(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_AAM_Feature(tDevice *device, bool enable);
 
-    OPENSEA_OPERATIONS_API int set_AAM_Level(tDevice *device, uint8_t apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues set_AAM_Level(tDevice *device, uint8_t apmLevel);
 
-    OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
     OPENSEA_OPERATIONS_API bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device);//This is the reset to defaults bit in mode select command. Not anything else. If this is false, the old read the defaults and write it back should still work - TJE
 
@@ -414,7 +415,7 @@ extern "C"
         UPDATE_SCSI_MP_SAVE_CURRENT
     }eSCSI_MP_UPDATE_MODE;
 
-    OPENSEA_OPERATIONS_API int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode);
 
     OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput);
 
@@ -422,11 +423,11 @@ extern "C"
 
     //Should this go into a different file???
     //NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
-    OPENSEA_OPERATIONS_API int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.
 
     //NOTE: SPC4 and higher is required to reset only a specific page. Prior to that, all pages will be reset (logpage and logSubPage both set to zero)
     //This function will return BAD_PARAMETER if the device does not support resetting a specific page (logpage or subpage not equal to zero)
-    OPENSEA_OPERATIONS_API int reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
+    OPENSEA_OPERATIONS_API eReturnValues reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
 
     //The following functions are for help with devices that contain multiple logical units (actuators, for example).
     //These commands are intended to help inform users when certain things may affect multiple LUs.
@@ -489,7 +490,7 @@ extern "C"
     //!   \return SUCCESS = successfully read concurrent positioning data, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges);
+    OPENSEA_OPERATIONS_API eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges);
 
     //-----------------------------------------------------------------------------
     //
@@ -513,7 +514,7 @@ extern "C"
         uint64_t bytesBeingVerified;//if set to UINT64_MAX, then all bytes are being verified. Otherwise it will match the mode * current logical sector size.-TJE
         uint32_t wrv2sectorCount;//vendor specific. Technically only valid if enabled to mode 2
         uint32_t wrv3sectorCount;//user defined. Technocally only valid if enabled to mode 3
-        //TODO: Output number of bytes that are verified in addition to sectors???
+        //Output number of bytes that are verified in addition to sectors???
     }wrvInfo, *ptrWRVInfo;
 
     //-----------------------------------------------------------------------------
@@ -530,7 +531,7 @@ extern "C"
     //!   \return SUCCESS = successfully read write-read-verify data, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info);
+    OPENSEA_OPERATIONS_API eReturnValues get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info);
 
     //-----------------------------------------------------------------------------
     //
@@ -559,7 +560,7 @@ extern "C"
     //!   \return SUCCESS = successfully disabled write-read-verify, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int disable_Write_Read_Verify(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues disable_Write_Read_Verify(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -577,7 +578,7 @@ extern "C"
     //!   \return SUCCESS = successfully enabled write-read-verify with provided parameters, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount);
+    OPENSEA_OPERATIONS_API eReturnValues set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount);
 
     typedef enum _eWriteAfterErasereq
     {
@@ -593,7 +594,7 @@ extern "C"
     {
         eWriteAfterEraseReq cryptoErase;
         eWriteAfterEraseReq blockErase;
-    }writeAfterErase, * ptrWriteAfterErase;
+    }writeAfterErase, *ptrWriteAfterErase;
 
     //-----------------------------------------------------------------------------
     //
@@ -609,8 +610,8 @@ extern "C"
     //!   \return SUCCESS = successfully read write after erase data, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq);
+    OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq);
 
-    #if defined (__cplusplus)
+#if defined (__cplusplus)
 }
-    #endif
+#endif

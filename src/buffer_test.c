@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -11,6 +12,18 @@
 // 
 // \file buffer_test.c
 // \brief This file defines the function calls for performing buffer/cabling tests
+
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "pattern_utils.h"
 
 #include "buffer_test.h"
 
@@ -40,7 +53,7 @@ static bool are_Buffer_Commands_Available(tDevice *device)
         //SCSI 1 probably won't...but this is so old it may not be a problem
         //Only asking about read buffer command, since write buffer will likely be implemented for at least FWDL, so if this is supported, the equivalent write buffer command should also be supported
         bool driveReportedSupport = false;
-        uint8_t supportedCommandData[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCommandData, 16);
         if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations && SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, READ_BUFFER_CMD, 0x02, 14, supportedCommandData))//trying w/ service action (newer SPC spec allows this)
         {
             driveReportedSupport = true;
@@ -73,7 +86,6 @@ static bool are_Buffer_Commands_Available(tDevice *device)
             memset(supportedCommandData, 0, 16);
             if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, supportedCommandData))
             {
-                //TODO: check the buffer capacity for non-zero value?
                 supported = true;
             }
         }
@@ -81,9 +93,9 @@ static bool are_Buffer_Commands_Available(tDevice *device)
     return supported;
 }
 
-static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
+static eReturnValues get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offsetBoundary)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!bufferSize || !offsetBoundary)
     {
         return BAD_PARAMETER;
@@ -93,7 +105,7 @@ static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offse
     //get the size of the buffer for the drive.
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t bufferSizeData[4] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, bufferSizeData, 4);
         if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, bufferSizeData))
         {
             *offsetBoundary = bufferSizeData[0];//not sure if this is actually needed - TJE
@@ -107,7 +119,7 @@ static int get_Buffer_Size(tDevice *device, uint32_t *bufferSize, uint8_t *offse
     return ret;
 }
 
-static int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
+static eReturnValues send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -126,7 +138,7 @@ static int send_Read_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t 
     }
 }
 
-static int send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
+static eReturnValues send_Write_Buffer_Command(tDevice *device, uint8_t *ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -149,7 +161,10 @@ static bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
 {
     bool crc = false;
     bool checkSenseData = false;
-    uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+    uint8_t senseKey = 0;
+    uint8_t asc = 0;
+    uint8_t ascq = 0;
+    uint8_t fru = 0;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (device->drive_info.lastCommandRTFRs.status & ATA_STATUS_BIT_ERROR)//error bit set
@@ -199,7 +214,6 @@ static bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
             case 0x47:
                 switch (ascq)
                 {
-                    //TODO: other asc 0x47 cases may fit CRC error
                 case 0x01://DATA PHASE CRC ERROR DETECTED
                 case 0x03://INFORMATION UNIT iuCRC ERROR DETECTED - SAT will translate a CRC error into this! Definitely need this one. Less sure about the others...-TJE
                 case 0x05://PROTOCOL SERVICE CRC ERROR
@@ -227,8 +241,8 @@ static bool was_There_A_CRC_Error_On_Last_Command(tDevice *device)
 static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 5;
-    uint8_t *patternBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
-    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, safe_malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, safe_malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         fill_Pattern_Buffer_Into_Another_Buffer(C_CAST(uint8_t*, &pattern), sizeof(uint32_t), patternBuffer, deviceBufferSize);//sets the pattern to write into memory
@@ -238,7 +252,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
         for (uint32_t counter = 0; counter < numberOfTimesToTest; ++counter)
         {
             bool breakFromLoop = false;//this will be set to true when we need to exit the loop for one reason or another
-            int wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
+            eReturnValues wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (wbResult)
             {
@@ -267,7 +281,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
             }
             //now read back the pattern
             memset(returnBuffer, 0, deviceBufferSize);
-            int rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
+            eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
             {
@@ -304,15 +318,15 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
         stop_Timer(&patternTimer);
         testResults->totalTimeNS = get_Nano_Seconds(patternTimer);
     }
-    safe_Free_aligned(patternBuffer)
-    safe_Free_aligned(returnBuffer)
+    safe_Free_aligned(C_CAST(void**, &patternBuffer));
+    safe_Free_aligned(C_CAST(void**, &returnBuffer));
 }
 
 //Function for Walking 1's/0's test
 static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
-    uint8_t *patternBuffer = C_CAST(uint8_t*, calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));//only send this to the drive
-    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, safe_calloc_aligned(deviceBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, safe_malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t bitNumber = 0, byteNumber = 0; byteNumber < deviceBufferSize; ++bitNumber)
@@ -345,7 +359,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             {
                 patternBuffer[byteNumber] |= M_BitN(bitNumber);
             }
-            int wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
+            eReturnValues wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (wbResult)
             {
@@ -374,7 +388,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             }
             //now read back the pattern
             memset(returnBuffer, 0, deviceBufferSize);
-            int rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
+            eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
             {
@@ -409,22 +423,22 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             }
         }
     }
-    safe_Free_aligned(patternBuffer)
-    safe_Free_aligned(returnBuffer)
+    safe_Free_aligned(C_CAST(void**, &patternBuffer));
+    safe_Free_aligned(C_CAST(void**, &returnBuffer));
 }
 //Function for random data pattern test
 static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = 10;
-    uint8_t *patternBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
-    uint8_t *returnBuffer = C_CAST(uint8_t*, malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
+    uint8_t *patternBuffer = C_CAST(uint8_t*, safe_malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only send this to the drive
+    uint8_t *returnBuffer = C_CAST(uint8_t*, safe_malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment));//only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         for (uint32_t counter = 0; counter < numberOfTimesToTest; ++counter)
         {
             bool breakFromLoop = false;
             fill_Random_Pattern_In_Buffer(patternBuffer, deviceBufferSize);//set a new random pattern each time
-            int wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
+            eReturnValues wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (wbResult)
             {
@@ -453,7 +467,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             }
             //now read back the pattern
             memset(returnBuffer, 0, deviceBufferSize);
-            int rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
+            eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
             {
@@ -488,8 +502,8 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             }
         }
     }
-    safe_Free_aligned(patternBuffer)
-    safe_Free_aligned(returnBuffer)
+    safe_Free_aligned(C_CAST(void**, &patternBuffer));
+    safe_Free_aligned(C_CAST(void**, &returnBuffer));
 }
 
 //SATA Phy event counters: CRC = definitely bad
@@ -501,9 +515,9 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
 //Slower interface speed = longer test time to get a confident result.
 
 //master function for the whole test.
-int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
+eReturnValues perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!testResults)
     {
         return BAD_PARAMETER;

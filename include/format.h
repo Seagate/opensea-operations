@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -29,13 +30,13 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[out] fastFormatSupported = bool that will hold if fast format is supported. May be NULL if you don't care about checking for fast format support.
+    //!   \param[out] fastFormatSupported = bool that will hold if fast format is supported. May be M_NULLPTR if you don't care about checking for fast format support.
     //!
     //  Exit:
     //!   \return true = format unit supported, false = format unit not supported.
     //
     //-----------------------------------------------------------------------------
-    bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported);
+    OPENSEA_OPERATIONS_API bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported);
 
     //-----------------------------------------------------------------------------
     //
@@ -51,7 +52,7 @@ extern "C"
     //!   \return SUCCESS = format unit not in progress, IN_PROGRESS = format unit in progress, !SUCCESS = something when wrong trying to get progress
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Format_Progress(tDevice *device, double *percentComplete);
+    OPENSEA_OPERATIONS_API eReturnValues get_Format_Progress(tDevice *device, double *percentComplete);
 
     typedef enum _eFormatType
     {
@@ -93,7 +94,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int run_Format_Unit(tDevice *device, eFormatType formatType, bool currentBlockSize, uint16_t newBlockSize, uint8_t *gList, uint32_t glistSize, bool completeList, bool disablePrimaryList, bool disableCertification, uint8_t *pattern, uint32_t patternLength, bool securityInitialize, bool pollForProgress)
+    //  eReturnValues run_Format_Unit(tDevice *device, eFormatType formatType, bool currentBlockSize, uint16_t newBlockSize, uint8_t *gList, uint32_t glistSize, bool completeList, bool disablePrimaryList, bool disableCertification, uint8_t *pattern, uint32_t patternLength, bool securityInitialize, bool pollForProgress)
     //
     //! \brief   Description:  runs or starts a format unit operation on a specified device. All formats through this function are started with immed bit set to 1.
     //
@@ -102,12 +103,12 @@ extern "C"
     //!   \param[in] formatType = use this to specify a standard format or fast format
     //!   \param[in] currentBlockSize = use the current logical block size of the device for format (next parameter ignored)
     //!   \param[in] newBlockSize = if currentBlockSize is false, this is the new logical block size to format the drive with.
-    //!   \param[in] gList = pointer to the glist to use during format. When NULL, the device will use the current glist unless the completeList bool is set to true.
+    //!   \param[in] gList = pointer to the glist to use during format. When M_NULLPTR, the device will use the current glist unless the completeList bool is set to true.
     //!   \param[in] glistSize = size of the glist pointed to by gList
-    //!   \param[in] completeList = set to true to say the provided glist is the complete glist for the device. If this is true and gList is NULL, then this will clear the glist.
+    //!   \param[in] completeList = set to true to say the provided glist is the complete glist for the device. If this is true and gList is M_NULLPTR, then this will clear the glist.
     //!   \param[in] disablePrimaryList = set to true to disable using the primary list during a format.
     //!   \param[in] disableCertification = set to true to disable certification
-    //!   \param[in] pattern = pointer to a pattern to use during the format. If NULL, the device's default patter is used.
+    //!   \param[in] pattern = pointer to a pattern to use during the format. If M_NULLPTR, the device's default patter is used.
     //!   \param[in] patternLength = length of the data pointed to by pattern
     //!   \param[in] securityInitialize = set to true to set the security initialize bit which requests previously reallocated areas to be overwritten. (Seagate drive's don't currently support this) SBC spec recommends using Sanitize instead of this bit to overwrite previously reallocated sectors.
     //!   \param[in] pollForProgress = set to true for this function to poll for progress until complete. Set to false to use this function to kick off a format unit operation for you.
@@ -116,11 +117,11 @@ extern "C"
     //!   \return SUCCESS = format unit successfull or successfully started, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress);
+    OPENSEA_OPERATIONS_API eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
-    //  int show_Format_Unit_Progress(tDevice *device)
+    //  eReturnValues show_Format_Unit_Progress(tDevice *device)
     //
     //! \brief   Description:  shows the current progress of a format unit operation if one is in progress. - SCSI Format unit
     //
@@ -131,13 +132,13 @@ extern "C"
     //!   \return SUCCESS = format unit was successful, IN_PROGRESS = format unit in progress, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int show_Format_Unit_Progress(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues show_Format_Unit_Progress(tDevice *device);
 
     typedef struct _formatStatus
     {
         bool formatParametersAllFs;//This means that the last format failed, or the drive is new, or the data is not available right now
         bool lastFormatParametersValid;
-        struct 
+        struct
         {
             bool isLongList;
             uint8_t protectionFieldUsage;
@@ -177,7 +178,7 @@ extern "C"
     //!   \return true = changing sector size supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus);
+    OPENSEA_OPERATIONS_API eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus);
 
     //-----------------------------------------------------------------------------
     //
@@ -222,9 +223,9 @@ extern "C"
     //!   \return SUCCESS = successfully changed sector size, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Sector_Configuration(tDevice *device, uint32_t sectorSize);
+    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration(tDevice *device, uint32_t sectorSize);
 
-    OPENSEA_OPERATIONS_API int set_Sector_Configuration_With_Force(tDevice* device, uint32_t sectorSize, bool force);
+    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sectorSize, bool force);
 
     typedef struct protectionSupport
     {
@@ -285,7 +286,7 @@ extern "C"
         };
     }sectorSize;
 
-    typedef struct _supportedFormats 
+    typedef struct _supportedFormats
     {
         bool deviceSupportsOtherFormats;//if this is false, then
         bool scsiInformationNotReported;//This flag means, that on a SCSI device, we couldn't get the list of supported sector sizes, so the list includes common known sizes and it most likely a guesstimate. In otherwords, check the product manual
@@ -315,7 +316,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device);
-    
+
     //-----------------------------------------------------------------------------
     //
     //  get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
@@ -332,7 +333,7 @@ extern "C"
     //!   \return SUCCESS = successfully got the reported sector sizes, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Formats(tDevice *device, ptrSupportedFormats formats);
 
     //-----------------------------------------------------------------------------
     //
@@ -364,7 +365,7 @@ extern "C"
     //!   \return SUCCESS = successfully mapped sector size to a descriptor from the device, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex);
 
     typedef struct _nvmeFormatSupport
     {
@@ -373,7 +374,7 @@ extern "C"
         bool secureEraseAppliesToAllNamespaces;//if false, only to specified namespace
         bool cryptographicEraseSupported;
         bool formatNSIDAllNSSupport;//2.0 this. Should be true for all earlier devices
-    }nvmeFormatSupport, * ptrNvmeFormatSupport;
+    }nvmeFormatSupport, *ptrNvmeFormatSupport;
 
     //-----------------------------------------------------------------------------
     //
@@ -389,7 +390,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport);
 
     typedef enum _nvmFmtSecureErase
     {
@@ -448,7 +449,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress);
+    OPENSEA_OPERATIONS_API eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
@@ -464,7 +465,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete);
 
     //-----------------------------------------------------------------------------
     //
@@ -479,7 +480,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int show_NVM_Format_Progress(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues show_NVM_Format_Progress(tDevice *device);
 
 #if defined (__cplusplus)
 }

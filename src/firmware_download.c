@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -12,10 +13,24 @@
 // \file firmware_download.c
 // \brief This file defines the function for performing a firmware download to a drive
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "sleep.h"
+#if defined (_WIN32)
+#include "windows_version_detect.h" //for Windows API checks
+#endif
+
 #include "operations_Common.h"
 #include "firmware_download.h"
 #include "logs.h"
-#include "common_platform.h"
 #include "platform_helper.h"
 #include "power_control.h"
 
@@ -89,7 +104,7 @@ typedef struct _firmwareUpdateDataV3 {
     bool disableResetAfterCommit;//NVMe only
 } firmwareUpdateDataV3;
 
-static int check_For_Power_Cycle_Required(int ret, tDevice *device)
+static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice *device)
 {
 #if defined (_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
     //Check if the device needs a power cycle to complete the update...This has been necessary in Windows with the Intel NVMe driver in some cases
@@ -98,7 +113,7 @@ static int check_For_Power_Cycle_Required(int ret, tDevice *device)
         //we do not already have a "Power cycle is requied" return code, so need to check the firmware log for the NVMe device to see if the "next active" slot value is non-zero.
         //If it is non-zero then the low-level driver did not issue the necessary reset for activation.
         //read the firmware log for more information
-        uint8_t firmwareLog[512] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareLog, 512);
         nvmeGetLogPageCmdOpts firmwareLogOpts;
         firmwareLogOpts.addr = firmwareLog;
         firmwareLogOpts.dataLen = 512;
@@ -129,7 +144,7 @@ static int check_For_Power_Cycle_Required(int ret, tDevice *device)
                 //set the firmware revision in each slot
                 //for (uint32_t slotIter = 0, offset = 8; slotIter <= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1) && slotIter <= 7 /*max of 7 slots in spec and structure*/ && offset < 512; ++slotIter, offset += 8)
                 //{
-                //    char rev[9] = { 0 };
+                //    DECLARE_ZERO_INIT_ARRAY(char, rev, 9);
                 //    memcpy(rev, &firmwareLog[offset], 8);
                 //    rev[8] = '\0';
                 //    printf("slot %u: %s\n", slotIter, rev);
@@ -145,11 +160,11 @@ static int check_For_Power_Cycle_Required(int ret, tDevice *device)
 #endif //_WIN32 and WINVER >= WIN10
 }
 
-int firmware_Download(tDevice *device, firmwareUpdateData * options)
+eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
 #ifdef _DEBUG
-    printf("--> %s\n",__FUNCTION__);
+    printf("--> %s\n", __FUNCTION__);
 #endif
 
     //first verify the provided structure info to make sure it is compatible.
@@ -335,7 +350,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                 }
                 break;
             }
-            
+
             //multiple commands needed to do the download (segmented)
             if (options->segmentSize == 0)
             {
@@ -451,7 +466,10 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                         }
                         else if (device->drive_info.drive_type == SCSI_DRIVE)
                         {
-                            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                            uint8_t senseKey = 0;
+                            uint8_t asc = 0;
+                            uint8_t ascq = 0;
+                            uint8_t fru = 0;
                             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
                             {
@@ -503,7 +521,10 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                     //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
                     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
                     {
-                        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                        uint8_t senseKey = 0;
+                        uint8_t asc = 0;
+                        uint8_t ascq = 0;
+                        uint8_t fru = 0;
                         get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                         if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
                         {
@@ -572,7 +593,10 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
                         //We may need to expand this check if we encounter this problem in other OS's or on other kinds of controllers (currently this is from a motherboard)
                         if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 && device->drive_info.lastCommandRTFRs.error == 0)
                         {
-                            uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                            uint8_t senseKey = 0;
+                            uint8_t asc = 0;
+                            uint8_t ascq = 0;
+                            uint8_t fru = 0;
                             get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04)//Check fru?
                             {
@@ -617,7 +641,7 @@ int firmware_Download(tDevice *device, firmwareUpdateData * options)
     }
 
 #ifdef _DEBUG
-    printf("<-- %s (%d)\n",__FUNCTION__, ret);
+    printf("<-- %s (%d)\n", __FUNCTION__, ret);
 #endif
     return ret;
 }
@@ -676,11 +700,11 @@ typedef struct _supportedDLModesV2
     SCSIMicrocodeActivation codeActivation;//SAS Only
     eMLU multipleLogicalUnitsAffected;//This will only be set for multi-lun devices. NVMe will set this since firmware affects all namespaces on the controller
     firmwareSlotInfo firmwareSlotInfo;//Basically NVMe only at this point since such a concept doesn't exist for ATA or SCSI at this time - TJE
-}supportedDLModesV2, * ptrSupportedDLModesV2;
+}supportedDLModesV2, *ptrSupportedDLModesV2;
 
-int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
+eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (supportedModes && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 && supportedModes->size >= sizeof(supportedDLModesV1))
     {
         switch (device->drive_info.drive_type)
@@ -733,7 +757,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 supportedModes->deferredPowerCycleActivationSupported = true;
             }
             //now try reading the supportd capabilities page of the identify device data log for the remaining info (deferred download)
-            uint8_t supportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities, ATA_LOG_PAGE_LEN_BYTES, 0))
             {
                 uint64_t supportedCapabilitiesQword = M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13], supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10], supportedCapabilities[9], supportedCapabilities[8]);
@@ -857,7 +881,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 supportedModes->firmwareSlotInfo.numberOfSlots = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1);
                 supportedModes->firmwareSlotInfo.slot1ReadOnly = device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT0;
                 //read the firmware log for more information
-                uint8_t firmwareLog[512] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareLog, 512);
                 nvmeGetLogPageCmdOpts firmwareLogOpts;
                 firmwareLogOpts.addr = firmwareLog;
                 firmwareLogOpts.dataLen = 512;
@@ -892,7 +916,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
         case SCSI_DRIVE:
         {
             //before trying all the code below, look at the extended inquiry data page so see if the download modes are supported or not.
-            uint8_t *extendedInq = C_CAST(uint8_t*, calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *extendedInq = C_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (extendedInq)
             {
                 if (SUCCESS == scsi_Inquiry(device, extendedInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
@@ -926,13 +950,13 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         //bit 1 = dm_md_f - activate deferred code (part of mode e. If mode e is supported, so should f - TJE
                     }
                 }
-                safe_Free_aligned(extendedInq) // PRH valgrind check
+                safe_Free_aligned(C_CAST(void**, &extendedInq)) ;// PRH valgrind check
             }
 
             //PMC 8070 fails this command for some unknown reason even if a drive supports it, so skip these requests when this hack is set.-TJE
             if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)
             {
-                uint8_t* writeBufferSupportData = C_CAST(uint8_t*, calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* writeBufferSupportData = C_CAST(uint8_t*, safe_calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
                 //first try asking for supported operation code for Full Buffer download
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, WRITE_BUFFER_CMD, SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE, 14, writeBufferSupportData))
                 {
@@ -1054,12 +1078,15 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                 else
                 {
                     //check if unsupported op code versus invalid field in CDB
-                    uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+                    uint8_t senseKey = 0;
+                    uint8_t asc = 0;
+                    uint8_t ascq = 0;
+                    uint8_t fru = 0;
                     get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
                     if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 && ascq == 0x00)
                     {
                         //report supported operation codes isn't supported, so try legacy inquiry cmdDT method
-                        uint8_t* temp = C_CAST(uint8_t*, realloc_aligned(writeBufferSupportData, 14, 16, device->os_info.minimumAlignment));
+                        uint8_t* temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &writeBufferSupportData), 14, 16, device->os_info.minimumAlignment));
                         if (!temp)
                         {
                             return MEMORY_FAILURE;
@@ -1196,17 +1223,17 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         //else try requesting all supported OPs and parse that information??? It could be report all is supported, but other modes are not
                         else
                         {
-                            safe_Free_aligned(writeBufferSupportData)
+                            safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
                                 uint32_t reportAllOPsLength = 4;
-                            uint8_t* reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* reportAllOPs = C_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                             if (reportAllOPs)
                             {
                                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs))
                                 {
                                     //get the full length, then reallocate and reread
                                     reportAllOPsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
-                                    safe_Free_aligned(reportAllOPs)
-                                        reportAllOPs = C_CAST(uint8_t*, calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                                    safe_Free_aligned(C_CAST(void**, &reportAllOPs));
+                                        reportAllOPs = C_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                                     if (reportAllOPs)
                                     {
                                         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs))
@@ -1287,14 +1314,14 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                                 {
                                     supportedModes->scsiInfoPossiblyIncomplete = true;
                                 }
-                                safe_Free_aligned(reportAllOPs)
+                                safe_Free_aligned(C_CAST(void**, &reportAllOPs));
                             }
                         }
                     }
                 }
-                safe_Free_aligned(writeBufferSupportData)
+                safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
             }
-            uint8_t offsetReq[4] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, offsetReq, 4);
             if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
             {
                 supportedModes->driveOffsetBoundary = offsetReq[0];
@@ -1322,7 +1349,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                     supportedModes->driveOffsetBoundary = 12;
                 }
                 else
-                {   
+                {
                     supportedModes->driveOffsetBoundaryInBytes = LEGACY_DRIVE_SEC_SIZE;
                     supportedModes->driveOffsetBoundary = 9;
                 }
@@ -1332,7 +1359,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
             eSeagateFamily family = is_Seagate_Family(device);
             if ((family == SEAGATE || family == SEAGATE_VENDOR_A) && supportedModes->scsiInfoPossiblyIncomplete)
             {
-                uint8_t * c3VPD = C_CAST(uint8_t*, calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t * c3VPD = C_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (c3VPD)
                 {
                     //If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific for the supported features
@@ -1354,7 +1381,7 @@ int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes
                         //DO NOT turn the flag to false. It should already be false. If it was set to true, then the drive has already reported it supports this mode some other way.
                     }
                 }
-                safe_Free_aligned(c3VPD)
+                safe_Free_aligned(C_CAST(void**, &c3VPD));
             }
         }
         break;
@@ -1524,7 +1551,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
                 for (uint8_t counter = 0; counter < supportedModes->firmwareSlotInfo.numberOfSlots; ++counter)
                 {
                     //slot number, read only?, active slot?, next active slot?, firmware revision in that slot
-                    char slotRevision[14] = { 0 };
+                    DECLARE_ZERO_INIT_ARRAY(char, slotRevision, 14);
                     printf("\tSlot %" PRIu8, counter + 1);
                     if ((counter + 1) == 1 && supportedModes->firmwareSlotInfo.slot1ReadOnly)
                     {
@@ -1538,7 +1565,7 @@ void show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedMod
                     {
                         printf(" (Next Active)");
                     }
-                    if (strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
+                    if (safe_strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
                     {
                         snprintf(slotRevision, 14, "%s", supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision);
                     }

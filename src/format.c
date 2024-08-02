@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -12,6 +13,19 @@
 // \file format.c
 // \brief This file defines the functions for performing some format unit operations
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "sleep.h"
+#include "time_utils.h"
+
 #include "format.h"
 #include "logs.h"
 #include "nvme_helper_func.h"
@@ -20,7 +34,7 @@
 
 bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
 {
-    uint8_t formatSupportData[10] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, formatSupportData, 10);
     if (fastFormatSupported)
     {
         *fastFormatSupported = false;//make sure this defaults to false
@@ -66,13 +80,16 @@ bool is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
     }
 }
 
-int get_Format_Progress(tDevice *device, double *percentComplete)
+eReturnValues get_Format_Progress(tDevice *device, double *percentComplete)
 {
-    uint8_t senseData[SPC3_SENSE_LEN] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
     *percentComplete = 0.0;
     if (SUCCESS == scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN))
     {
-        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+        uint8_t senseKey = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
+        uint8_t fru = 0;
         get_Sense_Key_ASC_ASCQ_FRU(senseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (senseKey == SENSE_KEY_NOT_READY)
         {
@@ -102,19 +119,19 @@ int get_Format_Progress(tDevice *device, double *percentComplete)
     }
 }
 
-int show_Format_Unit_Progress(tDevice *device)
+eReturnValues show_Format_Unit_Progress(tDevice *device)
 {
-    int ret = UNKNOWN;
-    double percentComplete = 0;
+    eReturnValues ret = UNKNOWN;
+    double percentComplete = 0.0;
 
     ret = get_Format_Progress(device, &percentComplete);
 
     if (ret == IN_PROGRESS)
     {
         printf("\tFormat Unit Progress = %3.2f%% \n", percentComplete);
-    //add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
-    //we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
-    //with the format
+        //add 0.005 to round up since this is what is happening in the %f print above (more or less) and 
+        //we really don't need a call to round() to accomplish this. This is also simple enough and close enough to warn the user that the drive is not yet done
+        //with the format
         if (percentComplete + 0.005 >= 100.0)
         {
             printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
@@ -134,10 +151,10 @@ int show_Format_Unit_Progress(tDevice *device)
     return ret;
 }
 
-int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress)
+eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, bool pollForProgress)
 {
-    int ret = SUCCESS;
-    uint8_t *dataBuf = NULL;
+    eReturnValues ret = SUCCESS;
+    uint8_t *dataBuf = M_NULLPTR;
     uint32_t dataSize = 4;//assume short list for now
     bool longList = false;
     bool fastFormatSupported = false;//not used yet - TJE
@@ -195,7 +212,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     }
     //dataSize += 1;//adding 1 to make sure we don't go over the end of out memory
     //allocate memory
-    dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize *sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
+    dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(dataSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -302,7 +319,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
     if (!formatParameters.currentBlockSize || formatParameters.newMaxLBA)
     {
         bool modeSelect10 = true;
-        uint8_t modeParameterData[24] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, modeParameterData, 24);
         //try mode sense 10 with LongLBA bit set...if that fails, try mode sense 6
         if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, true, MPC_CURRENT_VALUES, modeParameterData))
         {
@@ -313,7 +330,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
                 //all else fails, try mode sense 6
                 if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
                 {
-                    safe_Free_aligned(dataBuf)
+                    safe_Free_aligned(C_CAST(void**, &dataBuf));
                     return NOT_SUPPORTED;
                 }
             }
@@ -409,7 +426,7 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         else
         {
             //invalid block descriptor length
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
             return NOT_SUPPORTED;
         }
         //now send a mode select command
@@ -446,11 +463,11 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
         //send the format command
         if (formatParameters.defaultFormat && formatParameters.disableImmediate)
         {
-            ret = scsi_Format_Unit(device, fmtpInfo, longList, false, formatParameters.completeList, defectListFormat, 0, NULL, 0, formatParameters.formatType, formatCommandTimeout);
+            ret = scsi_Format_Unit(device, fmtpInfo, longList, false, formatParameters.completeList, defectListFormat, 0, M_NULLPTR, 0, C_CAST(uint8_t, formatParameters.formatType), formatCommandTimeout);
         }
         else
         {
-            ret = scsi_Format_Unit(device, fmtpInfo, longList, true, formatParameters.completeList, defectListFormat, 0, dataBuf, dataSize, formatParameters.formatType, formatCommandTimeout);
+            ret = scsi_Format_Unit(device, fmtpInfo, longList, true, formatParameters.completeList, defectListFormat, 0, dataBuf, dataSize, C_CAST(uint8_t, formatParameters.formatType), formatCommandTimeout);
         }
 
         //poll for progress
@@ -474,10 +491,12 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                uint8_t seconds = 0, minutes = 0, hours = 0;
-                convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
+                uint8_t seconds = 0;
+                uint8_t minutes = 0;
+                uint8_t hours = 0;
+                convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
                 printf("Progress will be updated every ");
-                print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+                print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
                 printf("\n");
             }
             while (IN_PROGRESS == get_Format_Progress(device, &progress))
@@ -509,13 +528,13 @@ int run_Format_Unit(tDevice *device, runFormatUnitParameters formatParameters, b
             //check if there was an invalid parameter field specifying the security initialize bit...if so, print a message and return not supported - TJE
         }
     }
-    safe_Free_aligned(dataBuf)
+    safe_Free_aligned(C_CAST(void**, &dataBuf));
     return ret;
 }
 
-int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
+eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!device || !formatStatus)
     {
         return BAD_PARAMETER;
@@ -527,14 +546,14 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
     //4 + 8 for param 2
     //4 + 8 for param 3
     //4 + 4 for param 4
-    uint8_t *formatStatusPage = C_CAST(uint8_t*, calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *formatStatusPage = C_CAST(uint8_t*, safe_calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!formatStatusPage)
     {
         return MEMORY_FAILURE;
     }
     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_FORMAT_STATUS_LOG_PAGE, 0, 0, formatStatusPage, 307))
     {
-        //TODO: Parameters will be all F's when the data is not available or new or the last format failed
+        //NOTE: Parameters will be all F's when the data is not available or new or the last format failed
         if (M_GETBITRANGE(formatStatusPage[0], 5, 0) == LP_FORMAT_STATUS_LOG_PAGE && !(formatStatusPage[0] & BIT6) && formatStatusPage[0] & BIT7 && formatStatusPage[1] == 0)//make sure we got the right page!
         {
             //got the data, so let's loop through it.
@@ -556,14 +575,14 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                 case 0://format data out
                     formatStatus->lastFormatParametersValid = true;
                     {
-                        uint8_t *allFs = C_CAST(uint8_t*, calloc(formatStatusPage[offset + 3], sizeof(uint8_t*)));
+                        uint8_t *allFs = C_CAST(uint8_t*, safe_calloc(formatStatusPage[offset + 3], sizeof(uint8_t*)));
                         if (allFs)
                         {
                             if (memcmp(allFs, &formatStatusPage[offset + 4], formatStatusPage[offset + 3]) == 0)
                             {
                                 lastFormatUnitAllFs = true;
                             }
-                            safe_Free(allFs)
+                            safe_Free(C_CAST(void**, &allFs));
                         }
                         else
                         {
@@ -637,7 +656,6 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                 }
             }
             formatStatus->formatParametersAllFs = false;
-            //TODO: should we handle setting the flag below if we didn't get all the parameters? They are marked mandatory, but that doesn't mean much since there are many times that mandatory support is missing on various deviecs.
             if (lastFormatUnitAllFs && grownDefectsDuringCertificationAllFs && totalBlockReassignsDuringFormatAllFs && totalNewBlocksReassignedAllFs && powerOnMinutesSinceLastFormatAllFs)
             {
                 formatStatus->formatParametersAllFs = true;
@@ -652,7 +670,7 @@ int get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
             formatStatus->totalNewBlocksReassignedValid = false;
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(formatStatusPage)
+        safe_Free_aligned(C_CAST(void**, &formatStatusPage));
     }
     else
     {
@@ -676,7 +694,7 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
             if (formatStatus->lastFormatParametersValid)
             {
                 printf("The last format unit was performed with the following parameters:\n");
-                printf("\tProtection Field Usage: %" PRIX8"h\n", formatStatus->lastFormatData.protectionFieldUsage);
+                printf("\tProtection Field Usage: %" PRIX8 "h\n", formatStatus->lastFormatData.protectionFieldUsage);
                 if (formatStatus->lastFormatData.formatOptionsValid)
                 {
                     printf("\tFormat Options Valid\n");
@@ -715,30 +733,33 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
                 }
                 if (formatStatus->lastFormatData.isLongList)
                 {
-                    printf("\tP_I_Information: %" PRIX8"h", formatStatus->lastFormatData.p_i_information);
-                    printf("\tProtection Interval Exponent: %" PRIu8"\n", formatStatus->lastFormatData.protectionIntervalExponent);
+                    printf("\tP_I_Information: %" PRIX8 "h", formatStatus->lastFormatData.p_i_information);
+                    printf("\tProtection Interval Exponent: %" PRIu8 "\n", formatStatus->lastFormatData.protectionIntervalExponent);
                 }
-                printf("\tDefect List Length: %" PRIu32"\n", formatStatus->lastFormatData.defectListLength);
+                printf("\tDefect List Length: %" PRIu32 "\n", formatStatus->lastFormatData.defectListLength);
             }
             if (formatStatus->grownDefectsDuringCertificationValid)
             {
-                printf("Grown Defects During Certification: %" PRIu64"\n", formatStatus->grownDefectsDuringCertification);
+                printf("Grown Defects During Certification: %" PRIu64 "\n", formatStatus->grownDefectsDuringCertification);
             }
             if (formatStatus->totalBlockReassignsDuringFormatValid)
             {
-                printf("Total Block Reassigns During Format: %" PRIu64"\n", formatStatus->totalBlockReassignsDuringFormat);
+                printf("Total Block Reassigns During Format: %" PRIu64 "\n", formatStatus->totalBlockReassignsDuringFormat);
             }
             if (formatStatus->totalNewBlocksReassignedValid)
             {
-                printf("Total New Blocks Reassigned: %" PRIu64"\n", formatStatus->totalNewBlocksReassigned);
+                printf("Total New Blocks Reassigned: %" PRIu64 "\n", formatStatus->totalNewBlocksReassigned);
             }
             if (formatStatus->powerOnMinutesSinceFormatValid)
             {
-                printf("Power On Minutes Since Last Format: %" PRIu32"\n", formatStatus->powerOnMinutesSinceFormat);
+                printf("Power On Minutes Since Last Format: %" PRIu32 "\n", formatStatus->powerOnMinutesSinceFormat);
                 //convert the time to seconds, then print it in a displayable format
                 printf("Power On Time Since Last Format: ");
                 uint16_t days = 0;
-                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+                uint8_t years = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, formatStatus->powerOnMinutesSinceFormat) * UINT64_C(60), &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
                 printf("\n");
@@ -756,7 +777,7 @@ bool is_Set_Sector_Configuration_Supported(tDevice *device)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint8_t idDataLogSupportedCapabilities[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
         {
             uint64_t qword0 = M_BytesTo8ByteValue(idDataLogSupportedCapabilities[7], idDataLogSupportedCapabilities[6], idDataLogSupportedCapabilities[5], idDataLogSupportedCapabilities[4], idDataLogSupportedCapabilities[3], idDataLogSupportedCapabilities[2], idDataLogSupportedCapabilities[1], idDataLogSupportedCapabilities[0]);
@@ -807,8 +828,8 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
     {
         //pull the VPD page and determine how many are supported based on descriptor length and the VPD page length
         uint32_t scsiSectorSizesSupported = 0;
-        uint8_t supportedBlockLengthsData[4] = { 0 };
-        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, 4, NULL))
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedBlockLengthsData, 4);
+        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, M_NULLPTR, M_NULLPTR, true, supportedBlockLengthsData, 4, M_NULLPTR))
         {
             uint16_t pageLength = M_BytesTo2ByteValue(supportedBlockLengthsData[2], supportedBlockLengthsData[3]);
             scsiSectorSizesSupported = pageLength / 8;//each descriptor is 8 bytes in size
@@ -846,12 +867,12 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice *device)
     }
 }
 
-static int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static eReturnValues ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device))
     {
-        uint8_t sectorConfigurationLog[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, sectorConfigurationLog, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SECTOR_CONFIGURATION_LOG, 0, sectorConfigurationLog, LEGACY_DRIVE_SEC_SIZE, 0))
         {
             formats->deviceSupportsOtherFormats = true;
@@ -901,10 +922,10 @@ static int ata_Get_Supported_Formats(tDevice *device, ptrSupportedFormats format
     return ret;
 }
 
-static int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
-    int ret = NOT_SUPPORTED;
-    uint8_t *inquiryData = C_CAST(uint8_t*, calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret = NOT_SUPPORTED;
+    uint8_t *inquiryData = C_CAST(uint8_t*, safe_calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!inquiryData)
     {
         return MEMORY_FAILURE;
@@ -970,18 +991,18 @@ static int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats forma
             }
         }
     }
-    safe_Free_aligned(inquiryData)
+    safe_Free_aligned(C_CAST(void**, &inquiryData));
     bool dummyUpCommonSizes = true;
     uint32_t supportedSectorSizesDataLength = 0;
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
     if (formats->protectionInformationSupported.protectionReportedPerSectorSize || supportedSectorSizesDataLength)
     {
-        uint8_t *supportedBlockLengthsData = C_CAST(uint8_t*, calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *supportedBlockLengthsData = C_CAST(uint8_t*, safe_calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!supportedBlockLengthsData)
         {
             return MEMORY_FAILURE;
         }
-        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, NULL, NULL, true, supportedBlockLengthsData, supportedSectorSizesDataLength, NULL))
+        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, M_NULLPTR, M_NULLPTR, true, supportedBlockLengthsData, supportedSectorSizesDataLength, M_NULLPTR))
         {
             dummyUpCommonSizes = false;
             uint32_t numberOfSizes = formats->numberOfSectorSizes;
@@ -1053,7 +1074,7 @@ static int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats forma
             }
             ret = SUCCESS;
         }
-        safe_Free_aligned(supportedBlockLengthsData)
+        safe_Free_aligned(C_CAST(void**, &supportedBlockLengthsData));
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))
     {
@@ -1187,11 +1208,11 @@ static int scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFormats forma
         formats->sectorSizes[0].logicalBlockLength = device->drive_info.deviceBlockSize;
         formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
     }
-    
+
     return ret;
 }
 
-static int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+static eReturnValues nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
     //read the PI support from identify namespace structure
     if (device->drive_info.IdentifyData.nvme.ns.dpc > 0)
@@ -1241,9 +1262,9 @@ static int nvme_Get_Supported_Formats(tDevice *device, ptrSupportedFormats forma
     return SUCCESS;
 }
 
-int get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+eReturnValues get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!formats)
     {
         return BAD_PARAMETER;
@@ -1293,8 +1314,8 @@ void show_Supported_Formats(ptrSupportedFormats formats)
             char pi3 = 0;
 #define PERF_STRING_SIZE 10
 #define META_STRING_SIZE 10
-            char perf[PERF_STRING_SIZE] = { 0 };
-            char metaSize[META_STRING_SIZE] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, perf, PERF_STRING_SIZE);
+            DECLARE_ZERO_INIT_ARRAY(char, metaSize, META_STRING_SIZE);
             snprintf(perf, PERF_STRING_SIZE, "N/A");
             snprintf(metaSize, META_STRING_SIZE, "N/A");
             if (formats->protectionInformationSupported.deviceSupportsProtection)
@@ -1458,9 +1479,9 @@ void show_Supported_Formats(ptrSupportedFormats formats)
 }
 
 //this function takes a sector size and maps it to the descriptor check code to use in the set sector configuration command
-int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex)
+eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t *descriptorCheckCode, uint8_t *descriptorIndex)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!descriptorCheckCode || !descriptorIndex)
     {
         return BAD_PARAMETER;
@@ -1472,8 +1493,8 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
-        uint32_t formatsDataSize = sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats);
-        ptrSupportedFormats formats = C_CAST(ptrSupportedFormats, malloc(formatsDataSize));
+        uint32_t formatsDataSize = C_CAST(uint32_t, sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats));
+        ptrSupportedFormats formats = C_CAST(ptrSupportedFormats, safe_malloc(formatsDataSize));
         if (!formats)
         {
             return MEMORY_FAILURE;
@@ -1496,7 +1517,7 @@ int ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlo
                     break;
                 }
             }
-            if (*descriptorCheckCode == 0)//TODO: Verify this is safe to do for a check that we got something valid
+            if (*descriptorCheckCode == 0)
             {
                 ret = NOT_SUPPORTED;
             }
@@ -1525,14 +1546,14 @@ static bool is_Requested_Sector_Size_Multiple(tDevice *device, uint32_t sectorSi
     }
 }
 
-int set_Sector_Configuration(tDevice* device, uint32_t sectorSize)
+eReturnValues set_Sector_Configuration(tDevice* device, uint32_t sectorSize)
 {
     return set_Sector_Configuration_With_Force(device, sectorSize, false);
 }
 
-int set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bool force)
+eReturnValues set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bool force)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device) || force)
     {
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -1564,18 +1585,18 @@ int set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bo
         //The solution is simple: erase the MBR before the format.
         //This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
         bool mbrEraseWarning = false;
-        uint8_t* eraseMBR = C_CAST(uint8_t*, calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* eraseMBR = C_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (eraseMBR)
         {
             //write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is erased and not causing a problem
             //NOTE: last sector is sometimes used as a backup of the MBR, which is why it will also be erased
-            int writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-            int writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
+            eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+            eReturnValues writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
             if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
             {
                 mbrEraseWarning = true;
             }
-            safe_Free_aligned(eraseMBR);
+            safe_Free_aligned(C_CAST(void**, &eraseMBR));
         }
         else
         {
@@ -1651,12 +1672,12 @@ int set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bo
             formatUnitParameters.formatType = FORMAT_FAST_WRITE_NOT_REQUIRED;
             formatUnitParameters.currentBlockSize = false;
             formatUnitParameters.newBlockSize = C_CAST(uint16_t, sectorSize);
-            formatUnitParameters.gList = NULL;
+            formatUnitParameters.gList = M_NULLPTR;
             formatUnitParameters.glistSize = 0;
             formatUnitParameters.completeList = false;
             formatUnitParameters.disablePrimaryList = false;
             formatUnitParameters.disableCertification = false;
-            formatUnitParameters.pattern = NULL;
+            formatUnitParameters.pattern = M_NULLPTR;
             formatUnitParameters.patternLength = 0;
             formatUnitParameters.securityInitialize = false;
             formatUnitParameters.defaultFormat = true;//Don't need any option bits! In fact, this could cause an error if not set!
@@ -1676,9 +1697,9 @@ int set_Sector_Configuration_With_Force(tDevice *device, uint32_t sectorSize, bo
     return ret;
 }
 
-int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
+eReturnValues get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!percentComplete)
     {
         return BAD_PARAMETER;
@@ -1706,9 +1727,9 @@ int get_NVM_Format_Progress(tDevice *device, uint8_t *percentComplete)
     return ret;
 }
 
-int show_NVM_Format_Progress(tDevice *device)
+eReturnValues show_NVM_Format_Progress(tDevice *device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint8_t percentComplete = 0;
 
     ret = get_NVM_Format_Progress(device, &percentComplete);
@@ -1730,8 +1751,8 @@ int show_NVM_Format_Progress(tDevice *device)
 
 static uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSize, uint16_t metadataSize)
 {
-    uint8_t fmtNum = 16;//invalid value to catch errors!
-    for (uint8_t fmtIter = 0; fmtIter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++fmtIter)
+    uint8_t fmtNum = UINT8_MAX;
+    for (uint8_t fmtIter = 0; fmtIter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1) && fmtIter < 64; ++fmtIter)
     {
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
         {
@@ -1746,9 +1767,9 @@ static uint8_t map_NVM_Format_To_Format_Number(tDevice * device, uint32_t lbaSiz
     return fmtNum;
 }
 
-int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
+eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == NVME_DRIVE && formatSupport)
     {
         ret = SUCCESS;
@@ -1784,9 +1805,9 @@ int get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
     return ret;
 }
 
-int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
+eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     nvmeFormatCmdOpts formatCmdOptions;
     memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
     //Set metadata, PI, PIL settings to current device settings to start
@@ -1808,7 +1829,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
     {
         formatCmdOptions.pi = nvmParams.protectionType;
     }
-    
+
     if (nvmParams.formatNumberProvided)
     {
         formatCmdOptions.lbaf = nvmParams.formatNumber;
@@ -1816,8 +1837,15 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
     else
     {
         //need to figure out what format we want to run!
+        uint8_t flbas = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
+        //get the LBAF number. THis field varies depending on other things reported by the drive in NVMe 2.0
+        if (device->drive_info.IdentifyData.nvme.ns.nlbaf > 16)
+        {
+            //need to append 2 more bits to interpret this correctly since number of formats > 16
+            flbas |= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
+        }
         uint32_t fmtBlockSize = device->drive_info.deviceBlockSize;
-        uint16_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0)].ms;
+        uint16_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].ms;
 
         if (!nvmParams.newSize.currentBlockSize)
         {
@@ -1832,7 +1860,7 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
         formatCmdOptions.lbaf = map_NVM_Format_To_Format_Number(device, fmtBlockSize, fmtMetaDataSize);
     }
     //invalid format requested.
-    if (formatCmdOptions.lbaf > 15)
+    if (formatCmdOptions.lbaf > (device->drive_info.IdentifyData.nvme.ns.nlbaf - 1))
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
@@ -1879,10 +1907,12 @@ int run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pol
         delay_Seconds(2); //2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            uint8_t seconds = 0, minutes = 0, hours = 0;
-            convert_Seconds_To_Displayable_Time(delayTimeSeconds, NULL, NULL, &hours, &minutes, &seconds);
+            uint8_t seconds = 0;
+            uint8_t minutes = 0;
+            uint8_t hours = 0;
+            convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
             printf("Progress will be updated every ");
-            print_Time_To_Screen(NULL, NULL, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
             printf("\n");
         }
         while (IN_PROGRESS == (ret = get_NVM_Format_Progress(device, &progress)) && progress < 100.0)
