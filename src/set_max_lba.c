@@ -283,6 +283,11 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
     {
         //before calling the reset, check if HPA security might be active. This could block this from working
         bool hpaSecurityEnabled = false;
+        bool doDCOCheckAndRestore = false;
+        uint64_t currentMaxLBA = device->drive_info.deviceMaxLba;
+        uint64_t hpaamacMax = 0;
+        dcoData dcoIDData;
+        memset(&dcoIDData, 0, sizeof(dcoData));
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT8)
         {
             //HPA security is supported...check if enabled to be able to return proper error code if cannot do restoration
@@ -292,26 +297,90 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
             }
         }
 
+        if (device->drive_info.bridge_info.isValid)
+        {
+            currentMaxLBA = device->drive_info.bridge_info.childDeviceMaxLba;
+        }
+
         //Before attempting any restore commands, get the current MaxLBA, HPA/AMAC native MaxLBA, and the DCO identify MaxLBA.
         //Compare them to see which, if any, needs to be restored.
         //This will reduce command aborts and errors in this process.
-        //TODO: Check if restoring HPA/AMAC can be done before DCO restore in the same power cycle or not!
-        //      If not, we will need to report a power cycle is required before running this option again.
+        
+        eReturnValues readnativemaxret = ata_Get_Native_Max_LBA(device, &hpaamacMax);
 
-        ret = ata_Set_Max_LBA(device, 0, true);
-        if (ret != SUCCESS && hpaSecurityEnabled)
+        //First compare read native max to current max
+        if (readnativemaxret == SUCCESS && ((hpaamacMax - UINT64_C(1)) > currentMaxLBA))//minus 1 is due to how tDevice saves maxLBA as a SCSI value
         {
-            //most likely command aborted because this feature is active and has locked the HPA from being changed/restored
-            return DEVICE_ACCESS_DENIED;
+            ret = ata_Set_Max_LBA(device, 0, true);
+            if (ret != SUCCESS && hpaSecurityEnabled)
+            {
+                //most likely command aborted because this feature is active and has locked the HPA from being changed/restored
+                return DEVICE_ACCESS_DENIED;
+            }
+            else if (ret != SUCCESS)
+            {
+                //HPA and AMAC require a power cycle between each change to the max LBA.
+                //this could also cover when these features are frozen.
+                return POWER_CYCLE_REQUIRED;
+            }
+            else if (ret == SUCCESS)
+            {
+                currentMaxLBA = readnativemaxret - 1;
+            }
+            if (ret == SUCCESS && is_DCO_Supported(device, M_NULLPTR))
+            {
+                //check if DCO max is higher or not.
+                eReturnValues dcoret = dco_Identify(device, &dcoIDData);
+                if (SUCCESS == dcoret)
+                {
+                    if ((dcoIDData.maxLBA - UINT64_C(1)) > currentMaxLBA || ((dcoIDData.maxLBA - UINT64_C(1)) > hpaamacMax))
+                    {
+                        ret = dco_Restore(device);
+                        if (ret != SUCCESS)
+                        {
+                            //DCO restore is needed, but we cannot do it until the drive has been power cycled
+                            ret = POWER_CYCLE_REQUIRED;
+                        }
+                    }
+                    else
+                    {
+                        ret = SUCCESS;
+                    }
+                }
+                else
+                {
+                    //if we cannot read DCO identify, then we need to pass that error out
+                    return dcoret;
+                }
+            }
         }
-        //After the restore, check if DCO feature is on the drive and if it reports a higher max LBA to restore to. HPA must be restored first which should have already happened in the previous function.
-        if (ret == SUCCESS && is_DCO_Supported(device, M_NULLPTR))
+        else if (readnativemaxret == SUCCESS && is_DCO_Supported(device, M_NULLPTR))
         {
-            //need to restore DCO as well.
-            //TODO: one thing we may need to consider is that DCO has disabled features or more importantly DMA modes for compatibility.
-            //      This would be especially important on PATA drives if there was a controller bug where certain DMA modes do not work properly.
-            //      So the best thing to do would be to figure out what has been disabled by DCO, save that info, restore DCO, then go and disable those features/modes but leave the maxLBA as high as it can go.
-            ret = dco_Restore(device);
+            eReturnValues dcoret = dco_Identify(device, &dcoIDData);
+            if (SUCCESS == dcoret)
+            {
+                if ((dcoIDData.maxLBA - UINT64_C(1)) > currentMaxLBA || ((dcoIDData.maxLBA - UINT64_C(1)) > hpaamacMax))
+                {
+                    ret = dco_Restore(device);
+                }
+                else
+                {
+                    ret = SUCCESS;
+                }
+            }
+            else
+            {
+                //if we cannot read DCO identify, then we need to pass that error out
+                return dcoret;
+            }
+        }
+        else if (readnativemaxret == SUCCESS && ((hpaamacMax - UINT64_C(1)) == currentMaxLBA))
+        {
+            ret = SUCCESS;
+        }
+        else
+        {
+            ret = readnativemaxret;
         }
     }
     return ret;
@@ -548,29 +617,28 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                 uint32_t numberOfDescriptors = M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
                 uint32_t capModelMappingSz = C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors));
                 capModelMapping = C_CAST(ptrcapacityModelNumberMapping, safe_calloc(capModelMappingSz, sizeof(uint8_t)));
-                if (capModelMapping == M_NULLPTR)
+                if (capModelMapping != M_NULLPTR)
                 {
-                    return M_NULLPTR;
-                }
-                capModelMapping->numberOfDescriptors = numberOfDescriptors;
-                //now loop through descriptors
-                for (uint32_t offset = 8, descriptorCounter = 0; offset < capMNLogSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
-                {
-                    capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(0, 0, capMNMappingLog[offset + 5], capMNMappingLog[offset + 4], capMNMappingLog[offset + 3], capMNMappingLog[offset + 2], capMNMappingLog[offset + 1], capMNMappingLog[offset + 0]);
-                    uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
-                    memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
-                    memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capMNMappingLog[offset + 8], mnLimit);
-                    for (uint8_t iter = 0; iter < mnLimit; ++iter)
+                    capModelMapping->numberOfDescriptors = numberOfDescriptors;
+                    //now loop through descriptors
+                    for (uint32_t offset = 8, descriptorCounter = 0; offset < capMNLogSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
                     {
-                        if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                        capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(0, 0, capMNMappingLog[offset + 5], capMNMappingLog[offset + 4], capMNMappingLog[offset + 3], capMNMappingLog[offset + 2], capMNMappingLog[offset + 1], capMNMappingLog[offset + 0]);
+                        uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
+                        memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
+                        memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capMNMappingLog[offset + 8], mnLimit);
+                        for (uint8_t iter = 0; iter < mnLimit; ++iter)
                         {
-                            capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
+                            if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                            {
+                                capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
+                            }
                         }
-                    }
 #if !defined(__BIG_ENDIAN__)
-                    byte_Swap_String_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
+                        byte_Swap_String_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
 #endif
-                    remove_Leading_And_Trailing_Whitespace_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
+                        remove_Leading_And_Trailing_Whitespace_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
+                    }
                 }
             }
             safe_Free_aligned(C_CAST(void**, &capMNMappingLog));
@@ -592,25 +660,26 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                 uint32_t numberOfDescriptors = M_BytesTo2ByteValue(capProdIDMappingVPD[2], capProdIDMappingVPD[3]) / 48;//Each descriptor is 48B long
                 uint32_t capProdIDMappingSz = C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) + (sizeof(capacityModelDescriptor) * numberOfDescriptors));
                 capModelMapping = C_CAST(ptrcapacityModelNumberMapping, safe_calloc(capProdIDMappingSz, sizeof(uint8_t)));
-                capModelMapping->numberOfDescriptors = numberOfDescriptors;
-                //loop through descriptors
-                for (uint32_t offset = 4, descriptorCounter = 0; offset < capIDVPDSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
+                if (capModelMapping != M_NULLPTR)
                 {
-                    capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(capProdIDMappingVPD[offset + 0], capProdIDMappingVPD[offset + 1], capProdIDMappingVPD[offset + 2], capProdIDMappingVPD[offset + 3], capProdIDMappingVPD[offset + 4], capProdIDMappingVPD[offset + 5], capProdIDMappingVPD[offset + 6], capProdIDMappingVPD[offset + 7]);
-                    capModelMapping->descriptor[descriptorCounter].capacityMaxAddress -= 1; //Need to -1 for SCSI so that this will match the -i report. If this is not done, then  we end up with 1 less than the value provided.
-                    uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
-                    memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
-                    memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capProdIDMappingVPD[offset + 8], mnLimit);
-                    for (uint8_t iter = 0; iter < mnLimit; ++iter)
+                    capModelMapping->numberOfDescriptors = numberOfDescriptors;
+                    //loop through descriptors
+                    for (uint32_t offset = 4, descriptorCounter = 0; offset < capIDVPDSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors; offset += 48, ++descriptorCounter)
                     {
-                        if (!safe_isascii(
-capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(
-capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                        capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(capProdIDMappingVPD[offset + 0], capProdIDMappingVPD[offset + 1], capProdIDMappingVPD[offset + 2], capProdIDMappingVPD[offset + 3], capProdIDMappingVPD[offset + 4], capProdIDMappingVPD[offset + 5], capProdIDMappingVPD[offset + 6], capProdIDMappingVPD[offset + 7]);
+                        capModelMapping->descriptor[descriptorCounter].capacityMaxAddress -= 1; //Need to -1 for SCSI so that this will match the -i report. If this is not done, then  we end up with 1 less than the value provided.
+                        uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
+                        memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
+                        memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capProdIDMappingVPD[offset + 8], mnLimit);
+                        for (uint8_t iter = 0; iter < mnLimit; ++iter)
                         {
-                            capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
+                            if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                            {
+                                capModelMapping->descriptor[descriptorCounter].modelNumber[iter] = ' ';//replace with a space
+                            }
                         }
+                        remove_Leading_And_Trailing_Whitespace_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                     }
-                    remove_Leading_And_Trailing_Whitespace_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                 }
             }
             safe_Free_aligned(C_CAST(void**, &capProdIDMappingVPD));
