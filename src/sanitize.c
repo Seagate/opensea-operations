@@ -450,7 +450,7 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
             sanitizeOpts->noDeallocateInhibited = true;
 
         }
-        sanitizeOpts->nodmmas = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30);
+        sanitizeOpts->nodmmas = C_CAST(noDeallocateModifiesAfterSanitize, M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30));
         sanitizeOpts->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         sanitizeOpts->writeAfterBlockErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         if (sanitizeOpts->noDeallocateInhibited)

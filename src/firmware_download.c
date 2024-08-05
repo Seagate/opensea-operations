@@ -933,7 +933,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                     {
                         supportedModes->deferredVendorSpecificActivationSupported = true;
                     }
-                    supportedModes->codeActivation = M_GETBITRANGE(extendedInq[4], 7, 6);
+                    supportedModes->codeActivation = C_CAST(SCSIMicrocodeActivation, M_GETBITRANGE(extendedInq[4], 7, 6));
                     if (extendedInq[12] & BIT4)//dms valid
                     {
                         supportedModes->downloadMicrocodeSupported = true;
@@ -1247,7 +1247,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                                                 uint8_t operationCode = reportAllOPs[supportedCmdsIter];
                                                 uint16_t serviceAction = M_BytesTo2ByteValue(reportAllOPs[supportedCmdsIter + 2], reportAllOPs[supportedCmdsIter + 3]);
                                                 bool serviceActionValid = M_ToBool(reportAllOPs[supportedCmdsIter + 5] & BIT0);
-                                                eMLU mlu = M_GETBITRANGE(reportAllOPs[supportedCmdsIter + 5], 5, 4);
+                                                eMLU mlu = C_CAST(eMLU, M_GETBITRANGE(reportAllOPs[supportedCmdsIter + 5], 5, 4));
                                                 cmdDescriptorLength = (reportAllOPs[supportedCmdsIter + 5] & BIT1) ? 20 : 8;
                                                 switch (operationCode)
                                                 {

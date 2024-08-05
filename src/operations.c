@@ -704,8 +704,8 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
         DECLARE_ZERO_INIT_ARRAY(uint8_t, blockCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
         if (SUCCESS == scsi_Inquiry(device, blockCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, BLOCK_DEVICE_CHARACTERISTICS, true, false))
         {
-            writeReq->blockErase = M_GETBITRANGE(blockCharacteristics[7], 7, 6);
-            writeReq->cryptoErase = M_GETBITRANGE(blockCharacteristics[7], 5, 4);
+            writeReq->blockErase = C_CAST(eWriteAfterEraseReq, M_GETBITRANGE(blockCharacteristics[7], 7, 6));
+            writeReq->cryptoErase = C_CAST(eWriteAfterEraseReq, M_GETBITRANGE(blockCharacteristics[7], 5, 4));
             if ((writeReq->cryptoErase <= WAEREQ_READ_COMPLETES_GOOD_STATUS || writeReq->blockErase <= WAEREQ_READ_COMPLETES_GOOD_STATUS)
                 && device->drive_info.currentProtectionType > 0)
             {
