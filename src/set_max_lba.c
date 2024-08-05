@@ -283,7 +283,6 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
     {
         //before calling the reset, check if HPA security might be active. This could block this from working
         bool hpaSecurityEnabled = false;
-        bool doDCOCheckAndRestore = false;
         uint64_t currentMaxLBA = device->drive_info.deviceMaxLba;
         uint64_t hpaamacMax = 0;
         dcoData dcoIDData;
