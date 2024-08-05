@@ -324,7 +324,7 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
             }
             else if (ret == SUCCESS)
             {
-                currentMaxLBA = readnativemaxret - 1;
+                currentMaxLBA = hpaamacMax - 1;
             }
             if (ret == SUCCESS && is_DCO_Supported(device, M_NULLPTR))
             {
