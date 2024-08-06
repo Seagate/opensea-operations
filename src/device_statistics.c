@@ -6825,7 +6825,7 @@ void scsi_Threshold_Comparison(statistic *ptrStatistic)
 
 #define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
 
-static void print_Count_Statistic(statistic theStatistic, char *statisticName, char *statisticUnit)
+static void print_Count_Statistic(statistic theStatistic, const char *statisticName, const char *statisticUnit)
 {
     if (theStatistic.isSupported)
     {
@@ -6893,7 +6893,7 @@ static void print_Count_Statistic(statistic theStatistic, char *statisticName, c
     }
 }
 
-static void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisticName)
+static void print_Workload_Utilization_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -6966,7 +6966,7 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, char *s
     }
 }
 
-static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statisticName)
+static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7070,7 +7070,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
     }
 }
 
-static void print_Resource_Availability_Statistic(statistic theStatistic, char *statisticName)
+static void print_Resource_Availability_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7135,7 +7135,7 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, char *
     }
 }
 
-static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *statisticName)
+static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7207,7 +7207,7 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
     }
 }
 
-static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticName)
+static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7285,7 +7285,7 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
     }
 }
 
-static void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
+static void print_Temperature_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7349,7 +7349,7 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
     }
 }
 
-static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *statisticName)
+static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7421,7 +7421,7 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
     }
 }
 //the statistic value must be a time in minutes for this function
-static void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
+static void print_Time_Minutes_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7501,7 +7501,7 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
 }
 
 //for accounting date and date of manufacture
-static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
+static void print_SCSI_Date_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7582,7 +7582,7 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
     }
 }
 
-static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticName)
+static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -7682,7 +7682,7 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
 }
 
 //This is a different function to be more specific to SAS environmental limits/reporting pages
-static void print_Environmental_Temperature_Statistic(statistic theStatistic, char* statisticName, bool isLimit)
+static void print_Environmental_Temperature_Statistic(statistic theStatistic, const char* statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
@@ -7761,7 +7761,7 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, ch
     }
 }
 
-static void print_Humidity_Statistic(statistic theStatistic, char *statisticName, bool isLimit)
+static void print_Humidity_Statistic(statistic theStatistic, const char *statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {

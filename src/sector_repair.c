@@ -379,7 +379,7 @@ void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors)
     bool showAccessDeniedNote = false;
     for (errorIter = 1; errorIter <= numberOfErrors; errorIter++)
     {
-        char* repairString = NULL;
+        const char* repairString = M_NULLPTR;
         switch (LBAs[errorIter - 1].repairStatus)
         {
         case REPAIRED:

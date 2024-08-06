@@ -1682,7 +1682,7 @@ eReturnValues seagate_Quick_Format(tDevice *device)
 /***************************************
 * Extended-SMART Information
 ***************************************/
-char* print_ext_smart_id(uint8_t attrId)
+const char* print_ext_smart_id(uint8_t attrId)
 {
     switch (attrId) {
     case VS_ATTR_ID_SOFT_READ_ERROR_RATE:
@@ -2523,7 +2523,7 @@ eReturnValues get_Seagate_DeviceStatistics(tDevice *device, ptrSeagateDeviceStat
     return ret;
 }
 
-static void print_Count_Statistics(char *statisticsName, seagateStatistic statistics)
+static void print_Count_Statistics(const char *statisticsName, seagateStatistic statistics)
 {
     printf("%-60s", statisticsName);
     if (statistics.isValueValid)
@@ -2533,7 +2533,7 @@ static void print_Count_Statistics(char *statisticsName, seagateStatistic statis
     printf("\n");
 }
 
-static void print_TimeStamp_Statistics(char *statisticsName, seagateStatistic statistics)
+static void print_TimeStamp_Statistics(const char *statisticsName, seagateStatistic statistics)
 {
     printf("%-60s", statisticsName);
     if (statistics.isValueValid)

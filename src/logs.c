@@ -646,7 +646,7 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc,
     return ret;
 }
 
-eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd)
+eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, const char *logName, const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd)
 {
     eReturnValues ret = NOT_SUPPORTED;//assume the page is not supported
     uint32_t modeLength = 0;
@@ -1033,8 +1033,8 @@ eReturnValues get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uin
     return ret;
 }
 
-eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
-    char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
+eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const char *logName, bool createNewSnapshot, bool useReadBuffer16, \
+    const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
     const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed)
 {
     eReturnValues ret = UNKNOWN;
@@ -1427,7 +1427,7 @@ eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char
     }
 }
 
-eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, char *fileExtension, bool GPL, \
+eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logName, const char *fileExtension, bool GPL, \
     bool SMART, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, \
     uint32_t transferSizeBytes, uint16_t featureRegister)
 {
@@ -1759,8 +1759,8 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, char *logName, ch
 //
 //-----------------------------------------------------------------------------
 
-eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, char *logName, \
-                 char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize,\
+eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, const char *logName, \
+                 const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize,\
                  const char * const filePath)
 {
     eReturnValues ret = UNKNOWN;
@@ -1893,7 +1893,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
     return ret;
 }
 
-eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath)
+eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logName, const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath)
 {
     eReturnValues ret = UNKNOWN;
     uint32_t vpdBufferLength = 0;

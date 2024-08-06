@@ -499,7 +499,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     void get_SAS_Interface_Speeds(tDevice *device, char **scsiport0negSpeed, char **scsiport1negSpeed, char **scsiport0maxSpeed, char **scsiport1maxSpeed);
 
-    char * print_drive_type(tDevice *device);
+    const char * print_drive_type(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //

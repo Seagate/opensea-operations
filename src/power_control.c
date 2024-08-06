@@ -2311,7 +2311,7 @@ eReturnValues get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     }
 }
 
-static void print_Power_Condition(ptrPowerConditionInfo condition, char *conditionName)
+static void print_Power_Condition(ptrPowerConditionInfo condition, const char *conditionName)
 {
     printf("%-10s ", conditionName);
     if (condition->currentTimerEnabled)

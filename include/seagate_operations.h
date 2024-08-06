@@ -456,7 +456,7 @@ extern "C"
 
     OPENSEA_OPERATIONS_API void print_smart_log(uint16_t  verNo, SmartVendorSpecific attr, int lastAttr);
     OPENSEA_OPERATIONS_API uint64_t smart_attribute_vs(uint16_t  verNo, SmartVendorSpecific attr);
-    OPENSEA_OPERATIONS_API char* print_ext_smart_id(uint8_t  attrId);
+    OPENSEA_OPERATIONS_API const char* print_ext_smart_id(uint8_t  attrId);
 
     OPENSEA_OPERATIONS_API void print_smart_log_CF(fb_log_page_CF *pLogPageCF);
 

@@ -895,7 +895,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                 time_t startTime = time(M_NULLPTR);
                 uint32_t lastProgressIndication = 0;
                 uint8_t timeExtensionCount = 0;
-                char *overTimeWarningMessage = "WARNING: DST is taking longer than expected.";
+                const char *overTimeWarningMessage = "WARNING: DST is taking longer than expected.";
                 bool showTimeWarning = false;
                 bool abortForTooLong = false;
                 while (status == 0x0F && (ret == SUCCESS || ret == IN_PROGRESS))

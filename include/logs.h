@@ -181,7 +181,7 @@ extern "C" {
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, \
-                                        char *logName, char *fileExtension, \
+                                        const char *logName, const char *fileExtension, \
                                         bool GPL, bool SMART, bool toBuffer, \
                                         uint8_t *myBuf, uint32_t bufSize, \
                                         const char * const filePath, \
@@ -209,13 +209,13 @@ extern "C" {
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, \
-                                        char *logName, char *fileExtension, bool toBuffer, \
+                                        const char *logName, const char *fileExtension, bool toBuffer, \
                                         uint8_t *myBuf, uint32_t bufSize, \
                                         const char * const filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize)
+    //! get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logName, const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize)
     //
     //! \brief   generic function to pull an SCSI log and save it to a file
     //
@@ -233,8 +233,8 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, char *logName, \
-                                        char *fileExtension, bool toBuffer, uint8_t *myBuf, \
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logName, \
+                                        const char *fileExtension, bool toBuffer, uint8_t *myBuf, \
                                         uint32_t bufSize, const char * const filePath);
 
     //-----------------------------------------------------------------------------
@@ -551,8 +551,8 @@ extern "C" {
 
     //-----------------------------------------------------------------------------
     //
-    //! get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot,
-    //! char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize,
+    //! get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const char *logName, bool createNewSnapshot,
+    //! const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize,
     //! const char * const filePath);
     //
     //! \brief   generic function to pull an SCSI error history data and save it to a file
@@ -573,8 +573,8 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, char *logName, bool createNewSnapshot, bool useReadBuffer16, \
-                                                    char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const char *logName, bool createNewSnapshot, bool useReadBuffer16, \
+                                                    const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
                                                     const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
     
     OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
@@ -679,7 +679,7 @@ extern "C" {
     //This is only needed if not calling the get_SCSI_Mode_Page_Size as that will already take this into account
     #define SCSI_MODE_PAGE_MIN_HEADER_LENGTH (M_Max(MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN, MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN))
 
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, char *logName, char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, const char *logName, const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
 
     //This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes should be passed as 0 unless you know the length you want to pull.
     // nvmeLogSizeBytes is used since there is not a way to look up the length of most NVMe logs like you can with ATA and SCSI

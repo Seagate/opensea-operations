@@ -8506,7 +8506,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
     return ret;
 }
 
-char* print_drive_type(tDevice* device)
+const char* print_drive_type(tDevice* device)
 {
     if (device != M_NULLPTR)
     {
@@ -8545,6 +8545,6 @@ char* print_drive_type(tDevice* device)
     }
     else
     {
-        return "M_NULLPTR";
+        return "Invalid device structure pointer";
     }
 }
