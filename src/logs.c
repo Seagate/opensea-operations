@@ -222,6 +222,10 @@ eReturnValues create_And_Open_Secure_Log_File(const char *deviceIdentifier, //re
     {
         result = MEMORY_FAILURE;
     }
+    else if ((*file)->error == SEC_FILE_INSECURE_PATH)
+    {
+        result = INSECURE_PATH;
+    }
     else if ((*file)->error != SEC_FILE_SUCCESS)
     {
         result = FAILURE;

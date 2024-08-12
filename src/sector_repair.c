@@ -47,7 +47,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
         if (device->drive_info.interface_type != IDE_INTERFACE)
         {
             //need to use child drive info for write
-            uint8_t *temp = NULL;
+            uint8_t *temp = M_NULLPTR;
             logicalPerPhysical = C_CAST(uint16_t, device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize);
             dataSize = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
             temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment));
