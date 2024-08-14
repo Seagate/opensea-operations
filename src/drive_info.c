@@ -124,7 +124,6 @@ typedef struct _idDataCapabilitiesForDriveInfo
 static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA driveInfo, ptrIdDataCapabilitiesForDriveInfo ataCapabilities, uint8_t* identify, uint32_t dataLength)
 {
     eReturnValues ret = SUCCESS;
-    uint8_t* bytePtr = identify;
     uint16_t* wordPtr = C_CAST(uint16_t*, identify);
 
     if (dataLength != 512)
@@ -168,8 +167,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         driveInfo->ataLegacyCHSInfo.legacyCHSValid = true;
         driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders = wordPtr[1];
-        driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads = C_CAST(uint8_t, wordPtr[3]);
-        driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack = C_CAST(uint8_t, wordPtr[6]);
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads = M_Byte0(wordPtr[3]);
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack = M_Byte0(wordPtr[6]);
         //According to ATA, word 53, bit 0 set to 1 means the words 54,-58 are valid.
         //if set to zero they MAY be valid....so just check validity on everything
     }
@@ -177,8 +176,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //buffer type is in word 20. According to very old product manuals, if this is set to 3, then read-look ahead is supported.
     if (is_ATA_Identify_Word_Valid(wordPtr[20]))
     {
-        uint16_t bufferType = M_BytesTo2ByteValue(bytePtr[0x29], bytePtr[0x28]);
-        if (bufferType == 0x0003)
+        if (wordPtr[20] == 0x0003)
         {
             driveInfo->readLookAheadSupported = true;
             //NOTE: It is not possible to determine whether this is currently enabled or not.
@@ -188,11 +186,11 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //note: Changed from multiplying by logical sector size to 512 as that is what ATA says this is increments of.
     if (is_ATA_Identify_Word_Valid(wordPtr[21]))
     {
-        driveInfo->cacheSize = C_CAST(uint64_t, M_BytesTo2ByteValue(bytePtr[0x2B], bytePtr[0x2A])) * 512;
+        driveInfo->cacheSize = C_CAST(uint64_t, wordPtr[21]) * 512;
     }
 
     //these are words 10-19, 23-26, and 27-46
-    fill_ATA_Strings_From_Identify_Data(bytePtr, driveInfo->modelNumber, driveInfo->serialNumber, driveInfo->firmwareRevision);
+    fill_ATA_Strings_From_Identify_Data(identify, driveInfo->modelNumber, driveInfo->serialNumber, driveInfo->firmwareRevision);
 
     if (is_ATA_Identify_Word_Valid(wordPtr[47]) && M_Byte0(wordPtr[47]) > 0)
     {
@@ -347,10 +345,10 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         {
             driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid = true;
             driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders = wordPtr[54];
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads = C_CAST(uint8_t, wordPtr[55]);
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = C_CAST(uint8_t, wordPtr[56]);
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads = M_Byte0(wordPtr[55]);
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = M_Byte0(wordPtr[56]);
             //words 57 & 58
-            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_BytesTo4ByteValue(bytePtr[117], bytePtr[116], bytePtr[115], bytePtr[114]);
+            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_WordsTo4ByteValue(wordPtr[57], wordPtr[58]);
         }
     }
 
@@ -366,7 +364,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     if (lbaModeSupported || (is_ATA_Identify_Word_Valid(wordPtr[60]) || is_ATA_Identify_Word_Valid(wordPtr[61])))
     {
         lbaModeSupported = true;//workaround for some devices that may not have set the earlier LBA mode bit
-        driveInfo->maxLBA = M_BytesTo4ByteValue(bytePtr[123], bytePtr[122], bytePtr[121], bytePtr[120]);
+        driveInfo->maxLBA = M_WordsTo4ByteValue(wordPtr[60], wordPtr[61]);
     }
 
     //interface speed: NOTE: for old drives, word 51 indicates highest supported  PIO mode 0-2 supported
@@ -1467,13 +1465,13 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
     }
 
-    if (lbaModeSupported && driveInfo->maxLBA == MAX_28BIT)
+    if (lbaModeSupported && driveInfo->maxLBA >= MAX_28BIT)
     {
         //max LBA from other words since 28bit max field is maxed out
         //check words 100-103 are valid values
         if (is_ATA_Identify_Word_Valid(wordPtr[100]) || is_ATA_Identify_Word_Valid(wordPtr[101]) || is_ATA_Identify_Word_Valid(wordPtr[102]) || is_ATA_Identify_Word_Valid(wordPtr[103]))
         {
-            driveInfo->maxLBA = M_BytesTo8ByteValue(bytePtr[207], bytePtr[206], bytePtr[205], bytePtr[204], bytePtr[203], bytePtr[202], bytePtr[201], bytePtr[200]);
+            driveInfo->maxLBA = M_WordsTo8ByteValue(wordPtr[103], wordPtr[102], wordPtr[101], wordPtr[100]);
         }
     }
 
@@ -1483,7 +1481,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         //word 117 is only valid when word 106 bit 12 is set
         if ((wordPtr[106] & BIT12) == BIT12)
         {
-            driveInfo->logicalSectorSize = M_WordsTo4ByteValue(wordPtr[118], wordPtr[117]);
+            driveInfo->logicalSectorSize = M_WordsTo4ByteValue(wordPtr[117], wordPtr[118]);
             driveInfo->logicalSectorSize *= 2; //convert to words to bytes
         }
         else //means that logical sector size is 512bytes
@@ -1693,7 +1691,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //rotation rate
     if (is_ATA_Identify_Word_Valid(wordPtr[217]))
     {
-        driveInfo->rotationRate = M_BytesTo2ByteValue(bytePtr[435], bytePtr[434]);
+        driveInfo->rotationRate = wordPtr[217];
     }
     //Special case for SSD detection. One of these SSDs didn't set the media_type to SSD
     //but it is an SSD. So this match will catch it when this happens. It should be uncommon to find though -TJE
@@ -1859,7 +1857,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //if word 69 bit 3 is set, then words 230-233 re valid
     if (extendedLBAFieldValid && (is_ATA_Identify_Word_Valid(wordPtr[230]) || is_ATA_Identify_Word_Valid(wordPtr[231]) || is_ATA_Identify_Word_Valid(wordPtr[232]) || is_ATA_Identify_Word_Valid(wordPtr[233])))
     {
-        driveInfo->maxLBA = M_BytesTo8ByteValue(bytePtr[467], bytePtr[466], bytePtr[465], bytePtr[464], bytePtr[463], bytePtr[462], bytePtr[461], bytePtr[460]);
+        driveInfo->maxLBA = M_WordsTo8ByteValue(wordPtr[233], wordPtr[232], wordPtr[231], wordPtr[230]);
     }
 
     //adjust as reported value is one larger than last accessible LBA on the drive-TJE
