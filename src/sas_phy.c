@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -12,11 +13,22 @@
 // \file sas_phy.c
 // \brief This file holds options to do things on a SAS phy.
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "sas_phy.h"
 
 bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
 {
-    uint8_t supportedDiagnosticPages[50] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedDiagnosticPages, 50);
     if (SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 50, supportedDiagnosticPages, 50, 15) && SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x00, 50, supportedDiagnosticPages, 15))
     {
         //check that page 3F is supported.
@@ -26,7 +38,7 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
             switch (supportedDiagnosticPages[iter])
             {
             case DIAG_PAGE_PROTOCOL_SPECIFIC:
-                return true; //TODO: rather than just return true, we should make sure that the protocol is actually SAS by checking for protocol identifier 6h from somewhere...-TJE
+                return true;
             default:
                 break;
             }
@@ -35,9 +47,9 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice *device)
     return false;
 }
 
-static int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, eSASPhyTestFunction testFunction, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
+static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdentifier, eSASPhyTestFunction testFunction, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!diagPage)
     {
         return BAD_PARAMETER;
@@ -50,9 +62,9 @@ static int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdenti
     diagPage[5] = C_CAST(uint8_t, testFunction);
     diagPage[6] = C_CAST(uint8_t, pattern);
     //link rate
-    diagPage[7] = linkRate;
+    diagPage[7] = C_CAST(uint8_t, linkRate);
     //phy test function ssc
-    diagPage[7] |= C_CAST(uint8_t, testFunctionSSC) << 4;
+    diagPage[7] |= C_CAST(uint8_t, testFunctionSSC << 4);
     //phy test function SATA
     if (sataTestFunction)
     {
@@ -85,10 +97,10 @@ static int build_SAS_SSP_Diagnostic_Page(uint8_t diagPage[32], uint8_t phyIdenti
     return ret;
 }
 
-int start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern,  bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
+eReturnValues start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern,  bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords)
 {
-    int ret = SUCCESS;
-    uint8_t sasDiagPage[32] = { 0 };
+    eReturnValues ret = SUCCESS;
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, sasDiagPage, 32);
     ret = build_SAS_SSP_Diagnostic_Page(sasDiagPage, phyIdentifier, SAS_PHY_FUNC_TRANSMIT_PATTERN, pattern, sataTestFunction, testFunctionSSC, linkRate, dwordControl, phyTestPatternDwords);
     if (ret == SUCCESS)
     {
@@ -97,10 +109,10 @@ int start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPa
     return ret;
 }
 
-int stop_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
+eReturnValues stop_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
 {
-    int ret = SUCCESS;
-    uint8_t sasDiagPage[32] = { 0 };
+    eReturnValues ret = SUCCESS;
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, sasDiagPage, 32);
     ret = build_SAS_SSP_Diagnostic_Page(sasDiagPage, phyIdentifier, SAS_PHY_FUNC_STOP, 0, false, 0, linkRate, 0, 0);//I'm assuming the stop command doesn't need to specify anything else that matches the running test. - TJE
     if (ret == SUCCESS)
     {

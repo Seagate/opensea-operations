@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -29,8 +30,8 @@ extern "C"
     //
     //  Entry:
     //!   \param device - file descriptor
-    //!   \param maxTrimOrUnmapBlockDescriptors - pointer to a uint16_t to hold the number of decriptors that can be sent. This can be NULL. On ATA, this will be a value divisible by 64 since 64 descriptors can be placed inside each TRIM command.
-    //!   \param maxLBACount - this is only for SAS since SAS can specify the maximum number of LBA's to unmap in a single command. If maxTrimOrUnmapBlockDescriptors is non-NULL, this MUST be non-NULL as well or neither value will be filled in
+    //!   \param maxTrimOrUnmapBlockDescriptors - pointer to a uint16_t to hold the number of decriptors that can be sent. This can be M_NULLPTR. On ATA, this will be a value divisible by 64 since 64 descriptors can be placed inside each TRIM command.
+    //!   \param maxLBACount - this is only for SAS since SAS can specify the maximum number of LBA's to unmap in a single command. If maxTrimOrUnmapBlockDescriptors is non-M_NULLPTR, this MUST be non-M_NULLPTR as well or neither value will be filled in
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -53,7 +54,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -70,7 +71,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -87,7 +88,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -104,7 +105,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range);
 
 #if defined (__cplusplus)
 }

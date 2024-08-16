@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -12,6 +13,18 @@
 // \file power_control.c
 // \brief This file defines the functions for power related changes to drives.
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "prng.h"
+
 #include "operations_Common.h"
 #include "power_control.h"
 #include "logs.h"
@@ -19,9 +32,9 @@
 #include "operations.h" //for reset to defaults bit check
 
 //There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see with ATA
-static int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
+static eReturnValues scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
 
     if (lba_field == ENABLE_EPC_NOT_SET)
     {
@@ -58,9 +71,9 @@ static int scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_f
 //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
 //
 //-----------------------------------------------------------------------------
-int enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
+eReturnValues enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
 
     if (lba_field == ENABLE_EPC_NOT_SET)
     {
@@ -69,7 +82,7 @@ int enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, 0, lba_field, 0, 0);
+        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, 0, C_CAST(uint8_t, lba_field), 0, 0);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -82,16 +95,16 @@ int enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field)
     return ret;
 }
 
-int print_Current_Power_Mode(tDevice *device)
+eReturnValues print_Current_Power_Mode(tDevice *device)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint8_t powerMode = 0;
         //first check if EPC feature is supported and/or enabled
         uint8_t epcFeature = 0;//0 - disabled, 1 - supported, 2 - enabled.
-        uint8_t *identifyData = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (identifyData == NULL)
+        uint8_t *identifyData = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (identifyData == M_NULLPTR)
         {
             perror("Calloc Failure!\n");
             return MEMORY_FAILURE;
@@ -114,10 +127,10 @@ int print_Current_Power_Mode(tDevice *device)
         else
         {
             printf("Unable to detect if EPC feature status! Cannot continue!\n");//this SHOULDN'T happen
-            safe_Free_aligned(identifyData)
+            safe_Free_aligned(C_CAST(void**, &identifyData));
             return FAILURE;
         }
-        safe_Free_aligned(identifyData)
+        safe_Free_aligned(C_CAST(void**, &identifyData));
 
         if (SUCCESS == ata_Check_Power_Mode(device, &powerMode))
         {
@@ -186,7 +199,7 @@ int print_Current_Power_Mode(tDevice *device)
         NOTE: Removed the code which was checking to see if the power mode is supported
               mainly because it was changing the power state of the drive. -MA
         */
-        uint8_t *senseData = C_CAST(uint8_t*, calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *senseData = C_CAST(uint8_t*, safe_calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!senseData)
         {
             perror("Calloc Failure!\n");
@@ -258,7 +271,7 @@ int print_Current_Power_Mode(tDevice *device)
                 ret = FAILURE;
             }
         }
-        safe_Free_aligned(senseData)
+        safe_Free_aligned(C_CAST(void**, &senseData));
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -287,9 +300,9 @@ int print_Current_Power_Mode(tDevice *device)
     return ret;
 }
 
-int transition_Power_State(tDevice *device, ePowerConditionID newState)
+eReturnValues transition_Power_State(tDevice *device, ePowerConditionID newState)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         switch (newState)
@@ -314,16 +327,20 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
             ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_C, \
                                     EPC_GO_TO_POWER_CONDITION, RESERVED, RESERVED);
             break;
-        case PWR_CND_ACTIVE: //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly
-            seed_64(time(NULL));
+        case PWR_CND_ACTIVE: 
+            //No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly (Early SAT translation recommended this behavior)
+            seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
             for (uint8_t counter = 0; counter < 5; ++counter)
             {
                 uint64_t lba = 0;
                 lba = random_Range_64(0, device->drive_info.deviceMaxLba);
                 ata_Read_Verify(device, lba, 1);
             }
-            //TODO: better way to judge if tried commands worked or not...
-            //TODO: better handling for zoned devices...
+            //TODO: zoned devices will require a different method. See SAT4 or later for details.
+            //SAT-6 says:
+            //EPC: set features for all supported power conditions: ID set to FFh, enable set to zero, save set to zero to disable all current timers
+            //     Then issue an idle immediate. If no errors: In active condition, else return an error.
+            //non-EPC: send idle with feature 0, count 0, lba 0. If no error: In active state.
             ret = SUCCESS;
             break;
         case PWR_CND_IDLE://send idle immediate
@@ -424,9 +441,9 @@ int transition_Power_State(tDevice *device, ePowerConditionID newState)
     return ret;
 }
 
-int get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps)
+eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device && device->drive_info.drive_type == NVME_DRIVE && nvmps)
     {
         ret = SUCCESS;
@@ -576,7 +593,7 @@ static const char* convert_NVM_Latency_To_HR_Time_Str(uint64_t timeInNanoSeconds
         ++unitCounter;
     }
 #define NVM_LAT_UNIT_STR_LEN 3
-    char units[NVM_LAT_UNIT_STR_LEN] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, units, NVM_LAT_UNIT_STR_LEN);
     switch (unitCounter)
     {
     case 6://we shouldn't get to a days value, but room for future large drives I guess...-TJE
@@ -615,7 +632,6 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
     if (nvmps)
     {
         printf("\nSupported NVMe Power States\n");
-        //TODO: Print a header for what will be in each column
         //flags = non operational, current power state
         printf("\t* = current power state\n");
         printf("\t! = non-operational power state\n");
@@ -630,17 +646,16 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
         //flags | # | max power | idle power | active power | latencies and throughputs (can be N/A when not reported)
         printf("\n   #  Max Power: Idle Power: Active Power: RRT: RRL: RWT: RWL: Entry Time: Exit Time:\n");
         printf("-------------------------------------------------------------------------------------\n");
-        //TODO: latencies
         //all values should be in watts. 1.00 watts, 0.25 watts, etc
         //should relative values be scaled to percentages? 100% = max performance. This may be easier for some to understand than a random number
         for (uint16_t psIter = 0; psIter < nvmps->numberOfPowerStates && psIter < MAXIMUM_NVME_POWER_STATES; ++psIter)
         {
             char flags[3] = { ' ', ' ', '\0' };
-            char maxPowerWatts[NVM_POWER_WATTS_MAX_STR_LEN] = { 0 };
-            char idlePowerWatts[NVM_POWER_WATTS_MAX_STR_LEN] = { 0 };
-            char activePowerWatts[NVM_POWER_WATTS_MAX_STR_LEN] = { 0 };
-            char entryTime[NVM_POWER_ENT_EX_TIME_MAX_STR_LEN] = { 0 };
-            char exitTime[NVM_POWER_ENT_EX_TIME_MAX_STR_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN);
+            DECLARE_ZERO_INIT_ARRAY(char, idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN);
+            DECLARE_ZERO_INIT_ARRAY(char, activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN);
+            DECLARE_ZERO_INIT_ARRAY(char, entryTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN);
+            DECLARE_ZERO_INIT_ARRAY(char, exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN);
             if (nvmps->activePowerState == nvmps->powerState[psIter].powerStateNumber)
             {
                 //mark as active with a *
@@ -691,7 +706,7 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
             {
                 snprintf(exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
             }
-            printf("%s%2" PRIu16 " %10s  %10s    %10s %4" PRIu8 " %4" PRIu8 " %4" PRIu8 " %4" PRIu8 "  %10s %10s\n", flags, nvmps->powerState[psIter].powerStateNumber, maxPowerWatts, idlePowerWatts, activePowerWatts, 
+            printf("%s%2" PRIu16 " %10s  %10s    %10s %4" PRIu8 " %4" PRIu8 " %4" PRIu8 " %4" PRIu8 "  %10s %10s\n", flags, nvmps->powerState[psIter].powerStateNumber, maxPowerWatts, idlePowerWatts, activePowerWatts,
                 calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeReadThroughput, nvmps->numberOfPowerStates - 1),
                 calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeReadLatency, nvmps->numberOfPowerStates - 1),
                 calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeWriteThroughput, nvmps->numberOfPowerStates - 1),
@@ -703,9 +718,9 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
     return;
 }
 
-int transition_NVM_Power_State(tDevice *device, uint8_t newState)
+eReturnValues transition_NVM_Power_State(tDevice *device, uint8_t newState)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
@@ -725,9 +740,9 @@ int transition_NVM_Power_State(tDevice *device, uint8_t newState)
     return ret;
 }
 
-static int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, ptrPowerConditionSettings powerConditionSettings)
+static eReturnValues ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondition, ptrPowerConditionSettings powerConditionSettings)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!powerConditionSettings || powerCondition == PWR_CND_ACTIVE)
     {
         return BAD_PARAMETER;
@@ -737,7 +752,7 @@ static int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondit
         if (powerConditionSettings->restoreToDefault)
         {
             //this command is restoring the power conditions from the drive's default settings (bit6) and saving them upon completion (bit4)...the other option is to return to the saved settings, but we aren't going to support that with this option right now
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, EPC_RESTORE_POWER_CONDITION_SETTINGS | BIT6 | BIT4, RESERVED, RESERVED);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition), EPC_RESTORE_POWER_CONDITION_SETTINGS | BIT6 | BIT4, RESERVED, RESERVED);
         }
         else//we aren't restoring settings, so we need to set things up to save settings
         {
@@ -773,19 +788,19 @@ static int ata_Set_EPC_Power_Mode(tDevice *device, ePowerConditionID powerCondit
             //set the save bit
             lbalo |= BIT4;
             //issue the command
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, powerCondition, lbalo, lbaMid, lbaHi);
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition), lbalo, lbaMid, lbaHi);
         }
     }
     return ret;
 }
 
 //enableDisable = true means enable, false means disable
-int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
+eReturnValues ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
     ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     //first verify the device supports the EPC feature
-    uint8_t *ataDataBuffer = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *ataDataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!ataDataBuffer)
     {
         perror("calloc failure!\n");
@@ -801,7 +816,7 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
             {
                 printf("Device does not support the Extended Power Control Feature!\n");
             }
-            safe_Free_aligned(ataDataBuffer)
+            safe_Free_aligned(C_CAST(void**, &ataDataBuffer));
             return NOT_SUPPORTED;
         }
     }
@@ -811,10 +826,10 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
         {
             printf("Failed to check if drive supports EPC feature!!\n");
         }
-        safe_Free_aligned(ataDataBuffer)
+        safe_Free_aligned(C_CAST(void**, &ataDataBuffer));
         return FAILURE;
     }
-    safe_Free_aligned(ataDataBuffer)
+    safe_Free_aligned(C_CAST(void**, &ataDataBuffer));
     //if we go this far, then we know that we support the required EPC feature
     powerConditionSettings powerSettings;
     memset(&powerSettings, 0, sizeof(powerConditionSettings));
@@ -834,27 +849,24 @@ int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enable
     return ret;
 }
 
-//TODO: Only supports mode_Select_10. This should work 98% of the time. Add mode sense/select 6 commands??? May improve some devices, such as IEEE1394 or USB if this page is even supported by them (unlikely) - TJE
-int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
-    //TODO: This will need to work for both EPC and legacy modes, so no checking pages in advance or anything.
     //If restore all to defaults, then read the default mode page, then write it back.
-    //TODO: Check the powerConditions structure to see if there are any specific timers to restore up front, then copy the default data into that timer structure so it can be written back.
     //Write all applicable changes back to the drive, checking each structure as it goes.
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint16_t powerConditionsPageLength = 0;
-    uint8_t *powerConditionsPage = NULL;
+    uint8_t *powerConditionsPage = M_NULLPTR;
     if (restoreAllToDefaults)
     {
         if (scsi_MP_Reset_To_Defaults_Supported(device))
         {
-            ret = scsi_Mode_Select_10(device, 0, true, true, true, NULL, 0);//RTD bit is set and supported by the drive which will reset the page to defaults for us without a data transfer or multiple commands.
+            ret = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);//RTD bit is set and supported by the drive which will reset the page to defaults for us without a data transfer or multiple commands.
         }
         else
         {
             //read the default mode page, then send it to the drive with mode select.
             powerConditionsPageLength = MODE_PARAMETER_HEADER_10_LEN + MP_POWER_CONDITION_LEN;//*should* be maximum size we need assuming no block descriptor
-            powerConditionsPage = C_CAST(uint8_t*, calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            powerConditionsPage = C_CAST(uint8_t*, safe_calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!powerConditionsPage)
             {
                 return MEMORY_FAILURE;
@@ -864,7 +876,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 //got the page, now send it to the drive with a mode select
                 ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, true, false, powerConditionsPage, powerConditionsPageLength);
             }
-            safe_Free_aligned(powerConditionsPage)
+            safe_Free_aligned(C_CAST(void**, &powerConditionsPage));
         }
     }
     else
@@ -887,7 +899,7 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
         {
             //Read the default mode page, then save whichever things need defaults into the proper structure
             powerConditionsPageLength = MODE_PARAMETER_HEADER_10_LEN + MP_POWER_CONDITION_LEN;//*should* be maximum size we need assuming no block descriptor
-            powerConditionsPage = C_CAST(uint8_t*, calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            powerConditionsPage = C_CAST(uint8_t*, safe_calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!powerConditionsPage)
             {
                 return MEMORY_FAILURE;
@@ -945,7 +957,6 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                         powerConditions->standby_y.timerInHundredMillisecondIncrements = M_BytesTo4ByteValue(powerConditionsPage[mpStartOffset + 20], powerConditionsPage[mpStartOffset + 21], powerConditionsPage[mpStartOffset + 22], powerConditionsPage[mpStartOffset + 23]);
                         powerConditions->standby_y.restoreToDefault = false;//turn this off now that we have the other settings stored.
                     }
-                    //TODO: Other future power modes fields here
                     //CCF fields
                     if (powerConditions->checkConditionFlags.ccfIdleValid && powerConditions->checkConditionFlags.ccfIdleResetDefault)
                     {
@@ -966,15 +977,15 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
             }
             else
             {
-                safe_Free_aligned(powerConditionsPage)
+                safe_Free_aligned(C_CAST(void**, &powerConditionsPage));
                 return ret;
             }
-            safe_Free_aligned(powerConditionsPage)
+            safe_Free_aligned(C_CAST(void**, &powerConditionsPage));
         }
 
         //Now, read the current settings mode page, make any necessary changes, then send it to the drive and we're done.
         powerConditionsPageLength = MODE_PARAMETER_HEADER_10_LEN + MP_POWER_CONDITION_LEN;//*should* be maximum size we need assuming no block descriptor
-        powerConditionsPage = C_CAST(uint8_t*, calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        powerConditionsPage = C_CAST(uint8_t*, safe_calloc_aligned(powerConditionsPageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!powerConditionsPage)
         {
             return MEMORY_FAILURE;
@@ -991,11 +1002,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 {
                     if (powerConditions->idle_a.enable)
                     {
-                        M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 1);
+                        M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 1);
                     }
                     else
                     {
-                        M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 1);
+                        M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 1);
                     }
                 }
                 if (powerConditions->idle_a.timerValid)
@@ -1012,11 +1023,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                 {
                     if (powerConditions->standby_z.enable)
                     {
-                        M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 0);
+                        M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 0);
                     }
                     else
                     {
-                        M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 0);
+                        M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 0);
                     }
                 }
                 if (powerConditions->standby_z.timerValid)
@@ -1039,11 +1050,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     {
                         if (powerConditions->idle_b.enable)
                         {
-                            M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 2);
+                            M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 2);
                         }
                         else
                         {
-                            M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 2);
+                            M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 2);
                         }
                     }
                     if (powerConditions->idle_b.timerValid)
@@ -1060,11 +1071,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     {
                         if (powerConditions->idle_c.enable)
                         {
-                            M_SET_BIT(powerConditionsPage[mpStartOffset + 3], 3);
+                            M_SET_BIT8(powerConditionsPage[mpStartOffset + 3], 3);
                         }
                         else
                         {
-                            M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 3], 3);
+                            M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 3], 3);
                         }
                     }
                     if (powerConditions->idle_c.timerValid)
@@ -1081,11 +1092,11 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                     {
                         if (powerConditions->standby_y.enable)
                         {
-                            M_SET_BIT(powerConditionsPage[mpStartOffset + 2], 0);
+                            M_SET_BIT8(powerConditionsPage[mpStartOffset + 2], 0);
                         }
                         else
                         {
-                            M_CLEAR_BIT(powerConditionsPage[mpStartOffset + 2], 0);
+                            M_CLEAR_BIT8(powerConditionsPage[mpStartOffset + 2], 0);
                         }
                     }
                     if (powerConditions->standby_y.timerValid)
@@ -1096,7 +1107,6 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
                         powerConditionsPage[mpStartOffset + 23] = M_Byte0(powerConditions->standby_y.timerInHundredMillisecondIncrements);
                     }
                 }
-                //TODO: Other future power modes fields here
                 //CCF fields
                 if (powerConditions->checkConditionFlags.ccfIdleValid && !powerConditions->checkConditionFlags.ccfIdleResetDefault)
                 {
@@ -1113,35 +1123,33 @@ int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPow
             }
             //send the modified data to the drive
             ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, true, false, powerConditionsPage, powerConditionsPageLength);
-            safe_Free_aligned(powerConditionsPage)
+            safe_Free_aligned(C_CAST(void**, &powerConditionsPage));
         }
         else
         {
-            safe_Free_aligned(powerConditionsPage)
+            safe_Free_aligned(C_CAST(void**, &powerConditionsPage));
             return ret;
         }
-        safe_Free_aligned(powerConditionsPage)
+        safe_Free_aligned(C_CAST(void**, &powerConditionsPage));
     }
-    safe_Free_aligned(powerConditionsPage)
+    safe_Free_aligned(C_CAST(void**, &powerConditionsPage));
     return ret;
 }
 
-static int scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+static eReturnValues scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
-    //TODO: Check to make sure the changes being requested are supported by the device.
     return scsi_Set_Power_Conditions(device, restoreAllToDefaults, powerConditions);
 }
 
 //This function will go through and change each requested setting.
 //The first failure that happens will cause the function to fail and not proceed to set any other timer values.
-static int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) && device->drive_info.IdentifyData.ata.Word086 & BIT15)//words 119, 120 valid
     {
         if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) && device->drive_info.IdentifyData.ata.Word119 & BIT7)
         {
-            //TODO: Should each of the settings be validated that it is supported before issuing to the drive???
             if (restoreAllToDefaults)
             {
                 powerConditionSettings allSettings;
@@ -1207,9 +1215,9 @@ static int ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaul
     return ret;
 }
 
-int set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
+eReturnValues set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Set_EPC_Power_Conditions(device, restoreAllToDefaults, powerConditions);
@@ -1223,12 +1231,12 @@ int set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowe
 }
 
 //enableDisable = true means enable, false means disable
-int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
+eReturnValues scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
     ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     //first we need to check that VPD page 8Ah (power condition) exists...and we can possibly use that information to return "not supported, etc"
-    uint8_t *powerConditionVPD = C_CAST(uint8_t*, calloc_aligned(VPD_POWER_CONDITION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));//size of 18 is defined in SPC4 for this VPD page
+    uint8_t *powerConditionVPD = C_CAST(uint8_t*, safe_calloc_aligned(VPD_POWER_CONDITION_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));//size of 18 is defined in SPC4 for this VPD page
     if (!powerConditionVPD)
     {
         perror("calloc failure!");
@@ -1242,7 +1250,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             {
                 printf("Failed to check if drive supports modifying power conditions!\n");
             }
-            safe_Free_aligned(powerConditionVPD)
+            safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
             return FAILURE;
         }
     }
@@ -1252,7 +1260,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         {
             printf("Failed to check if drive supports modifying power conditions!\n");
         }
-        safe_Free_aligned(powerConditionVPD)
+        safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
         return FAILURE;
     }
 
@@ -1261,7 +1269,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
     {
         if (powerCondition == PWR_CND_ALL)
         {
-            ret = scsi_Set_Power_Conditions(device, true, NULL);
+            ret = scsi_Set_Power_Conditions(device, true, M_NULLPTR);
         }
         else
         {
@@ -1290,7 +1298,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
                 powerConditions.standby_z.restoreToDefault = true;
                 break;
             default:
-                safe_Free_aligned(powerConditionVPD)
+                safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
                 return BAD_PARAMETER;
             }
             ret = scsi_Set_Power_Conditions(device, false, &powerConditions);
@@ -1308,7 +1316,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_IDLE_A:
             if (!(powerConditionVPD[5] & BIT0))
             {
-                safe_Free_aligned(powerConditionVPD)
+                safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
                 return NOT_SUPPORTED;
             }
             powerConditions.idle_a.powerConditionValid = true;
@@ -1322,7 +1330,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_IDLE_B:
             if (!(powerConditionVPD[5] & BIT1))
             {
-                safe_Free_aligned(powerConditionVPD)
+                safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
                 return NOT_SUPPORTED;
             }
             powerConditions.idle_b.powerConditionValid = true;
@@ -1336,7 +1344,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_IDLE_C:
             if (!(powerConditionVPD[5] & BIT2))
             {
-                safe_Free_aligned(powerConditionVPD)
+                safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
                 return NOT_SUPPORTED;
             }
             powerConditions.idle_c.powerConditionValid = true;
@@ -1350,7 +1358,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_STANDBY_Y:
             if (!(powerConditionVPD[4] & BIT1))
             {
-                safe_Free_aligned(powerConditionVPD)
+                safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
                 return NOT_SUPPORTED;
             }
             powerConditions.standby_y.powerConditionValid = true;
@@ -1364,7 +1372,7 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
         case PWR_CND_STANDBY_Z:
             if (!(powerConditionVPD[4] & BIT0))
             {
-                safe_Free_aligned(powerConditionVPD)
+                safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
                 return NOT_SUPPORTED;
             }
             powerConditions.standby_z.powerConditionValid = true;
@@ -1429,20 +1437,20 @@ int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enabl
             }
             break;
         default:
-            safe_Free_aligned(powerConditionVPD)
+            safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
             return BAD_PARAMETER;
         }
         ret = scsi_Set_Power_Conditions(device, false, &powerConditions);
     }
-    safe_Free_aligned(powerConditionVPD)
+    safe_Free_aligned(C_CAST(void**, &powerConditionVPD));
     return ret;
 }
 
 //enableDisable = true means enable, false means disable
-int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
+eReturnValues set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, \
     ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1463,9 +1471,9 @@ int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisa
     return ret;
 }
 
-int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue)
+eReturnValues get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
@@ -1507,15 +1515,15 @@ int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect s
     return ret;
 }
 
-int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdentifiers identifiers)
+eReturnValues get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdentifiers identifiers)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)//this is only available on SCSI drives.
     {
         uint32_t powerConsumptionLength = 0;
         if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
         {
-            uint8_t *powerConsumptionPage = C_CAST(uint8_t*, calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *powerConsumptionPage = C_CAST(uint8_t*, safe_calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!powerConsumptionPage)
             {
                 return MEMORY_FAILURE;
@@ -1525,7 +1533,8 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
                 ret = SUCCESS;
                 //now get all the power consumption descriptors into the struct
                 identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
-                uint32_t pcIter = 4, counter = 0;
+                uint32_t pcIter = 4;
+                uint32_t counter = 0;
                 //ctc changed the "<" conditions to "<=" so all the identifiers get parsed (was an "off-by-1" problem")
                 for (; pcIter <= powerConsumptionLength && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4); pcIter += 4, counter++)
                 {
@@ -1538,11 +1547,11 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(powerConsumptionPage)
+            safe_Free_aligned(C_CAST(void**, &powerConsumptionPage));
         }
         if (ret != FAILURE)
         {
-            uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *pcModePage = C_CAST(uint8_t*, safe_calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!pcModePage)
             {
                 return MEMORY_FAILURE;
@@ -1585,7 +1594,7 @@ int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdenti
             {
                 ret = NOT_SUPPORTED;
             }
-            safe_Free_aligned(pcModePage)
+            safe_Free_aligned(C_CAST(void**, &pcModePage));
         }
     }
     return ret;
@@ -1603,7 +1612,7 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                 double currentConsumption = identifiers->identifiers[identifiers->currentIdentifier].value;
                 uint8_t currentUnit = identifiers->identifiers[identifiers->currentIdentifier].units;
 #define POWER_CONSUMPTION_UNIT_BUFFER_LENGTH 25
-                char unitBuff[POWER_CONSUMPTION_UNIT_BUFFER_LENGTH] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(char, unitBuff, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH);
                 char* currentUnits = &unitBuff[0];
                 //convert this to a smaller value that can be reprsented with minimal floating point (13500mw->13.5w)
                 while ((currentConsumption / 1000.0) > 1 && currentUnit > 0)
@@ -1731,12 +1740,12 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
     }
 }
 
-int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint8_t powerConsumptionIdentifier, bool resetToDefault)
+eReturnValues set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint8_t powerConsumptionIdentifier, bool resetToDefault)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *pcModePage = C_CAST(uint8_t*, calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *pcModePage = C_CAST(uint8_t*, safe_calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
         if (!pcModePage)
         {
@@ -1765,7 +1774,7 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                     //set the active level to what was requested (power consumption identifier is ignored here)
                     pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC;//clear lower 2 bits to 0
                     //now set it now that the bits are cleared out
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= activeLevelField;
+                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= C_CAST(uint8_t, activeLevelField);
                     break;
                 default:
                     ret = FAILURE;
@@ -1778,14 +1787,14 @@ int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint
                 ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
             }
         }
-        safe_Free_aligned(pcModePage)
+        safe_Free_aligned(C_CAST(void**, &pcModePage));
     }
     return ret;
 }
 
-int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts, uint8_t *pcIdentifier)
+eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts, uint8_t *pcIdentifier)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     powerConsumptionIdentifiers identifiers;
     memset(&identifiers, 0, sizeof(powerConsumptionIdentifiers));
     *pcIdentifier = 0xFF;//invalid
@@ -1816,9 +1825,12 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
         bool exactMatchFound = false;
         //now map the watt value to a power consumption identifier
 //ctc had to change variable initialization of iter1 and inter2 to match now-nested for loops
-        uint8_t iter1 = 0, iter2 = 0;
-        uint8_t pcId1 = 0xFF, pcId2 = 0xFF;
-        uint64_t watts1 = 0, watts2 = 0;
+        uint8_t iter1 = 0;
+        uint8_t iter2 = 0;
+        uint8_t pcId1 = 0xFF;
+        uint8_t pcId2 = 0xFF;
+        uint64_t watts1 = 0;
+        uint64_t watts2 = 0;
 
         ret = NOT_SUPPORTED;
         //ctc changed to nested for loops here... not sure it's needed, but it's clearer
@@ -1886,7 +1898,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
                 }
                 if (pcWatts1 <= roundedWatts)
                 {
-                    if (watts - watts1 > watts - pcWatts1)
+                    if (watts - C_CAST(double, watts1) > watts - C_CAST(double, pcWatts1))
                     {
                         pcId1 = identifiers.identifiers[iter1].identifierValue;
                         watts1 = pcWatts1;
@@ -1901,7 +1913,7 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
                 }
                 if (pcWatts2 <= roundedWatts)
                 {
-                    if (watts - watts2 > watts - pcWatts2)
+                    if (watts - C_CAST(double, watts2) > watts - C_CAST(double, pcWatts2))
                     {
                         pcId2 = identifiers.identifiers[iter2].identifierValue;
                         watts2 = pcWatts2;
@@ -1921,12 +1933,12 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
             //now compare the best results between the two iterators to see which is closer to the best match, or is the best match
             //need to check which one is closer and select it
 
-            if (watts - watts1 >= watts - watts2)
+            if (watts - C_CAST(double, watts1) >= watts - C_CAST(double, watts2))
             {
                 ret = SUCCESS;
                 *pcIdentifier = pcId2;
             }
-            else if (watts - watts1 <= watts - watts2)
+            else if (watts - C_CAST(double, watts1) <= watts - C_CAST(double, watts2))
             {
                 ret = SUCCESS;
                 *pcIdentifier = pcId1;
@@ -1936,9 +1948,9 @@ int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts
     return ret;
 }
 
-int enable_Disable_APM_Feature(tDevice *device, bool enable)
+eReturnValues enable_Disable_APM_Feature(tDevice *device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
@@ -1970,9 +1982,9 @@ int enable_Disable_APM_Feature(tDevice *device, bool enable)
 // 80h = minimum power consumption without standby mode
 // 81h - FDh = intermediate power management levels without standby mode
 // FEh = maximum performance.
-int set_APM_Level(tDevice *device, uint8_t apmLevel)
+eReturnValues set_APM_Level(tDevice *device, uint8_t apmLevel)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
@@ -1985,9 +1997,9 @@ int set_APM_Level(tDevice *device, uint8_t apmLevel)
     return ret;
 }
 
-int get_APM_Level(tDevice *device, uint8_t *apmLevel)
+eReturnValues get_APM_Level(tDevice *device, uint8_t *apmLevel)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure APM is supported.
@@ -2008,26 +2020,26 @@ int get_APM_Level(tDevice *device, uint8_t *apmLevel)
     return ret;
 }
 
-static int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
+static eReturnValues ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!epcSettings)
     {
         return BAD_PARAMETER;
     }
     uint32_t epcLogSize = LEGACY_DRIVE_SEC_SIZE * 2;//from ATA Spec
     //get_ATA_Log_Size(device, ATA_LOG_POWER_CONDITIONS, &epcLogSize, true, false) //uncomment this line to ask the drive for the EPC log size rather than use the hard coded value above.
-    uint8_t *epcLog = C_CAST(uint8_t*, calloc_aligned(epcLogSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *epcLog = C_CAST(uint8_t*, safe_calloc_aligned(epcLogSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!epcLog)
     {
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, NULL, NULL, true, false, true, epcLog, epcLogSize, NULL, epcLogSize, 0))
+    if (SUCCESS == get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, M_NULLPTR, M_NULLPTR, true, false, true, epcLog, epcLogSize, M_NULLPTR, epcLogSize, 0))
     {
         ret = SUCCESS;
         for (uint32_t offset = 0; offset < (LEGACY_DRIVE_SEC_SIZE * 2); offset += 64)
         {
-            ptrPowerConditionInfo currentPowerCondition = NULL;
+            ptrPowerConditionInfo currentPowerCondition = M_NULLPTR;
             switch (offset)
             {
             case 0://idle a
@@ -2090,19 +2102,19 @@ static int ata_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
             }
         }
     }
-    safe_Free_aligned(epcLog)
+    safe_Free_aligned(C_CAST(void**, &epcLog));
     return ret;
 }
 
-static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
+static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!epcSettings)
     {
         return BAD_PARAMETER;
     }
-    uint8_t epcVPDPage[VPD_POWER_CONDITION_LEN] = { 0 };
-    if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, NULL, NULL, true, epcVPDPage, VPD_POWER_CONDITION_LEN, NULL))
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, epcVPDPage, VPD_POWER_CONDITION_LEN);
+    if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, M_NULLPTR, M_NULLPTR, true, epcVPDPage, VPD_POWER_CONDITION_LEN, M_NULLPTR))
     {
         //NOTE: Recovery times are in milliseconds, not 100 milliseconds like other timers, so need to convert to 100 millisecond units for now-TJE
         //idle a
@@ -2157,7 +2169,7 @@ static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
         }
         epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
         //now time to read the mode pages for the other information (start with current, then saved, then default)
-        uint8_t epcModePage[MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, epcModePage, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
         for (eScsiModePageControl modePageControl = MPC_CURRENT_VALUES; modePageControl <= MPC_SAVED_VALUES; ++modePageControl)
         {
             memset(epcModePage, 0, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
@@ -2174,16 +2186,16 @@ static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
             }
             if (gotData)
             {
-                bool *idleAenabledBit = NULL;
-                uint32_t *idleAtimerSetting = NULL;
-                bool *idleBenabledBit = NULL;
-                uint32_t *idleBtimerSetting = NULL;
-                bool *idleCenabledBit = NULL;
-                uint32_t *idleCtimerSetting = NULL;
-                bool *standbyYenabledBit = NULL;
-                uint32_t *standbyYtimerSetting = NULL;
-                bool *standbyZenabledBit = NULL;
-                uint32_t *standbyZtimerSetting = NULL;
+                bool *idleAenabledBit = M_NULLPTR;
+                uint32_t *idleAtimerSetting = M_NULLPTR;
+                bool *idleBenabledBit = M_NULLPTR;
+                uint32_t *idleBtimerSetting = M_NULLPTR;
+                bool *idleCenabledBit = M_NULLPTR;
+                uint32_t *idleCtimerSetting = M_NULLPTR;
+                bool *standbyYenabledBit = M_NULLPTR;
+                uint32_t *standbyYtimerSetting = M_NULLPTR;
+                bool *standbyZenabledBit = M_NULLPTR;
+                uint32_t *standbyZtimerSetting = M_NULLPTR;
                 switch (modePageControl)
                 {
                 case MPC_CURRENT_VALUES:
@@ -2283,7 +2295,7 @@ static int scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     return ret;
 }
 
-int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
+eReturnValues get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -2299,7 +2311,7 @@ int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
     }
 }
 
-static void print_Power_Condition(ptrPowerConditionInfo condition, char *conditionName)
+static void print_Power_Condition(ptrPowerConditionInfo condition, const char *conditionName)
 {
     printf("%-10s ", conditionName);
     if (condition->currentTimerEnabled)
@@ -2392,7 +2404,7 @@ void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings)
 //More Notes: This function is similar to the EPC function, BUT this will not check for the VPD page as it doesn't exist on old drives.
 //            These functions should probaby be combined at some point
 
-int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer)
+eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer)
 {
     //Check the changable page for support of idle and standby timers before beginning???
     if (!restoreAllToDefaults || !standbyTimer || !idleTimer)
@@ -2413,9 +2425,9 @@ int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults,
 }
 
 //using 100 millisecond increments since that is what SCSI uses and the methodology in here will match SAT spec. This seemed simpler - TJE
-static int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements)
+static eReturnValues ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word049) && device->drive_info.IdentifyData.ata.Word049 & BIT13)//this is the only bit across all ATA standards that will most likely work. Prior to ATA3, there was no other support bit for the power management feature set.
     {
         uint8_t standbyTimer = 0;
@@ -2467,7 +2479,7 @@ static int ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondInc
     return ret;
 }
 
-int scsi_Set_Standby_Timer_State(tDevice *device, bool enable)
+eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable)
 {
     powerConditionSettings standbyTimer;
     memset(&standbyTimer, 0, sizeof(powerConditionSettings));
@@ -2475,12 +2487,12 @@ int scsi_Set_Standby_Timer_State(tDevice *device, bool enable)
     standbyTimer.enableValid = true;
     standbyTimer.enable = enable;
 
-    return scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, NULL);
+    return scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, M_NULLPTR);
 }
 
-int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
+eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (restoreToDefault)
@@ -2506,12 +2518,12 @@ int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bo
             standbyTimer.timerValid = true;
             standbyTimer.timerInHundredMillisecondIncrements = hundredMillisecondIncrements;
         }
-        ret = scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, NULL);
+        ret = scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, M_NULLPTR);
     }
     return ret;
 }
 
-int scsi_Set_Idle_Timer_State(tDevice *device, bool enable)
+eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable)
 {
     powerConditionSettings idleTimer;
     memset(&idleTimer, 0, sizeof(powerConditionSettings));
@@ -2519,12 +2531,12 @@ int scsi_Set_Idle_Timer_State(tDevice *device, bool enable)
     idleTimer.enableValid = true;
     idleTimer.enable = enable;
 
-    return scsi_Set_Legacy_Power_Conditions(device, false, NULL, &idleTimer);
+    return scsi_Set_Legacy_Power_Conditions(device, false, M_NULLPTR, &idleTimer);
 }
 
-int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
+eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         powerConditionSettings idleTimer;
@@ -2541,14 +2553,14 @@ int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool 
             idleTimer.timerValid = true;
             idleTimer.timerInHundredMillisecondIncrements = hundredMillisecondIncrements;
         }
-        ret = scsi_Set_Legacy_Power_Conditions(device, false, NULL, &idleTimer);
+        ret = scsi_Set_Legacy_Power_Conditions(device, false, M_NULLPTR, &idleTimer);
     }
     return ret;
 }
 
-int sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool *supported, bool *enabled)
+eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool *supported, bool *enabled)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
@@ -2579,13 +2591,13 @@ int sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device,
     return ret;
 }
 
-int sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool enable)
+eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         bool supported = false;
-        if (SUCCESS == sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, &supported, NULL))
+        if (SUCCESS == sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, &supported, M_NULLPTR))
         {
             if (enable)
             {
@@ -2609,10 +2621,9 @@ int sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice *device,
     return ret;
 }
 
-//TODO: Do we return a separate error if DIPM isn't enabled first? - TJE
-int sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool *supported, bool *enabled)
+eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool *supported, bool *enabled)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
@@ -2642,17 +2653,17 @@ int sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, 
     return ret;
 }
 
-int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool enable)
+eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         bool dipmEnabled = false;
-        int getDIPM = sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, NULL, &dipmEnabled);//DIPM must be ENABLED before we can change this feature!!
+        eReturnValues getDIPM = sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, M_NULLPTR, &dipmEnabled);//DIPM must be ENABLED before we can change this feature!!
         if (getDIPM == SUCCESS && dipmEnabled)
         {
             bool supported = false;
-            if (SUCCESS == sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(device, &supported, NULL))
+            if (SUCCESS == sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(device, &supported, M_NULLPTR))
             {
                 if (enable)
                 {
@@ -2673,22 +2684,18 @@ int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, 
                 }
             }
         }
-        else
-        {
-            //TODO: do we return failure, not supported, or some other exit code? For not, returning NOT_SUPPORTED - TJE
-        }
     }
     return ret;
 }
 
-int transition_To_Active(tDevice *device)
+eReturnValues transition_To_Active(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE)
     {
         //no ATA command to do this, so we need to issue something to perform a medium access.
         uint64_t randomLBA = 0;
-        seed_64(time(NULL));
+        seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
         randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
         ret = ata_Read_Verify(device, randomLBA, 1);
     }
@@ -2707,9 +2714,9 @@ int transition_To_Active(tDevice *device)
     return ret;
 }
 
-int transition_To_Standby(tDevice *device)
+eReturnValues transition_To_Standby(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Standby_Immediate(device);
@@ -2729,9 +2736,9 @@ int transition_To_Standby(tDevice *device)
     return ret;
 }
 
-int transition_To_Idle(tDevice *device, bool unload)
+eReturnValues transition_To_Idle(tDevice *device, bool unload)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (unload)
@@ -2769,9 +2776,9 @@ int transition_To_Idle(tDevice *device, bool unload)
     return ret;
 }
 
-int transition_To_Sleep(tDevice *device)
+eReturnValues transition_To_Sleep(tDevice *device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = ata_Sleep(device);
@@ -2786,9 +2793,9 @@ int transition_To_Sleep(tDevice *device)
     return ret;
 }
 
-int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber)
+eReturnValues scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!partialValid && !slumberValid)
     {
         return BAD_PARAMETER;
@@ -2796,7 +2803,7 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
     bool gotFullPageLength = false;
     bool alreadyHaveAllData = false;
     uint16_t enhPhyControlLength = MODE_PARAMETER_HEADER_10_LEN + 8 + 40;//first 8 bytes are a "header" followed by 20 bytes per phy and setting this for 2 phys since that is most common right now. -TJE
-    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned(enhPhyControlLength * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, safe_calloc_aligned(enhPhyControlLength * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -2807,9 +2814,9 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
         if (enhPhyControlLength < M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]))
         {
             //parse the header to figure out full page length
-            enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            enhPhyControlLength = C_CAST(uint16_t, M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]) + MODE_PARAMETER_HEADER_10_LEN + M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]));
             gotFullPageLength = true;
-            uint8_t *temp = realloc_aligned(enhSasPhyControl, 0, enhPhyControlLength, device->os_info.minimumAlignment);
+            uint8_t *temp = safe_reallocf_aligned(C_CAST(void**, &enhSasPhyControl), 0, enhPhyControlLength, device->os_info.minimumAlignment);
             if (!temp)
             {
                 return MEMORY_FAILURE;
@@ -2849,11 +2856,11 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                                 //byte 19, bit 1
                                 if (enablePartial)
                                 {
-                                    M_SET_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 1);
+                                    M_SET_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 1);
                                 }
                                 else
                                 {
-                                    M_CLEAR_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 1);
+                                    M_CLEAR_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 1);
                                 }
                             }
                             if (slumberValid)
@@ -2861,11 +2868,11 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
                                 //byte 19, bit 2
                                 if (enableSlumber)
                                 {
-                                    M_SET_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 2);
+                                    M_SET_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 2);
                                 }
                                 else
                                 {
-                                    M_CLEAR_BIT(enhSasPhyControl[phyDescriptorOffset + 19], 2);
+                                    M_CLEAR_BIT8(enhSasPhyControl[phyDescriptorOffset + 19], 2);
                                 }
                             }
                         }
@@ -2891,19 +2898,19 @@ int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlu
             ret = FAILURE;
         }
     }
-    safe_Free_aligned(enhSasPhyControl)
+    safe_Free_aligned(C_CAST(void**, &enhSasPhyControl));
     return ret;
 }
 
-int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCount)
+eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCount)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!phyCount)
     {
         return BAD_PARAMETER;
     }
     uint16_t enhPhyControlLength = 8;//only need 8 bytes to get the number of phys
-    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -2922,13 +2929,13 @@ int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCou
             }
         }
     }
-    safe_Free_aligned(enhSasPhyControl)
+    safe_Free_aligned(C_CAST(void**, &enhSasPhyControl));
     return ret;
 }
 
-int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool allPhys, uint8_t phyNumber, ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize)
+eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool allPhys, uint8_t phyNumber, ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     //make sure the structure that will be filled in makes sense at a quick check
     if (!enhPhyControlData || enhPhyControlDataSize == 0 || enhPhyControlDataSize % sizeof(sasEnhPhyControl))
     {
@@ -2937,7 +2944,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
 
     bool gotFullPageLength = false;
     uint16_t enhPhyControlLength = 0;
-    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *enhSasPhyControl = C_CAST(uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!enhSasPhyControl)
     {
         return MEMORY_FAILURE;
@@ -2948,8 +2955,8 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
         //parse the header to figure out full page length
         enhPhyControlLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
         gotFullPageLength = true;
-        safe_Free_aligned(enhSasPhyControl)
-        enhSasPhyControl = C_CAST(uint8_t*, calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
+        safe_Free_aligned(C_CAST(void**, &enhSasPhyControl));
+        enhSasPhyControl = C_CAST(uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!enhSasPhyControl)
         {
             return MEMORY_FAILURE;
@@ -3005,7 +3012,7 @@ int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool 
             ret = FAILURE;
         }
     }
-    safe_Free_aligned(enhSasPhyControl)
+    safe_Free_aligned(C_CAST(void**, &enhSasPhyControl));
 
     return ret;
 }
@@ -3063,9 +3070,9 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
     return;
 }
 
-int get_PUIS_Info(tDevice* device, ptrPuisInfo info)
+eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!info)
     {
         return BAD_PARAMETER;
@@ -3094,9 +3101,9 @@ int get_PUIS_Info(tDevice* device, ptrPuisInfo info)
     return ret;
 }
 
-int enable_Disable_PUIS_Feature(tDevice* device, bool enable)
+eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure PUIS is supported.
@@ -3115,9 +3122,9 @@ int enable_Disable_PUIS_Feature(tDevice* device, bool enable)
     return ret;
 }
 
-int puis_Spinup(tDevice* device)
+eReturnValues puis_Spinup(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //check the identify bits to make sure PUIS is supported.

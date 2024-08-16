@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -18,7 +19,7 @@ extern "C"
 {
 #endif
 
-#include "common.h"
+#include "common_types.h"
 #include "operations_Common.h"
 
     //There are a few other types out there that are not currently supported in here: 
@@ -76,7 +77,7 @@ extern "C"
         eMBRType mbrType;
         uint8_t numberOfPartitions;// set to how many of the following partitions contain something filled in.
         mbrPartitionEntry partition[MBR_MAX_PARTITIONS];
-        //TODO: MBR type unique fields?
+        //MBR type unique fields?
     }mbrData, * ptrMBRData;
 
     //Please read through the lists on both of these websites. This list may be incomplete and be aware that some identifiers are reused between OSs
@@ -531,7 +532,7 @@ extern "C"
         gptGUID diskGUID;
         uint32_t numberOfPartitionEntries;//reported in GPT header. may be greater than number read depending on how many empty entries are in the list
         bool crc32PartitionEntriesValid;
-        bool validBackupGPT; //TODO: gpt was able to read from last LBA. If reading from the backup, this bool means the primary copy...which will likely be false since the primary was not the data source
+        bool validBackupGPT; //gpt was able to read from last LBA. If reading from the backup, this bool means the primary copy...which will likely be false since the primary was not the data source
         uint32_t partitionDataAvailable;//number of partitions that were successfully read into the following partition entires
         gptPartitionEntry partition[1];//NOTE: This must be allocated based on how many partitions are actually available! ex: malloc(sizeof(gptData) + (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
     }gptData, * ptrGPTData;

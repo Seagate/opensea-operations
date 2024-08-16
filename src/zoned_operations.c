@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -10,16 +11,27 @@
 // ******************************************************************************************
 // 
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "zoned_operations.h"
 
-int get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones)
+eReturnValues get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!numberOfMatchingZones)
     {
         return BAD_PARAMETER;
     }
-    uint8_t reportZones[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, reportZones, LEGACY_DRIVE_SEC_SIZE);
     uint32_t zoneListLength = 0;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -43,17 +55,17 @@ int get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions,
     return SUCCESS;
 }
 
-int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors)
+eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors)
 {
-    int ret = SUCCESS;
-    uint8_t *reportZones = NULL;
+    eReturnValues ret = SUCCESS;
+    uint8_t *reportZones = M_NULLPTR;
     uint32_t sectorCount = get_Sector_Count_For_512B_Based_XFers(device);
     uint32_t dataBytesToRequest = numberOfZoneDescriptors * 64;
     if (!zoneDescriptors || numberOfZoneDescriptors == 0)
     {
         return BAD_PARAMETER;
     }
-    reportZones = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment));
+    reportZones = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE * sectorCount, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!reportZones)
     {
         return MEMORY_FAILURE;
@@ -83,7 +95,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
         }
         else
         {
-            safe_Free_aligned(reportZones)
+            safe_Free_aligned(C_CAST(void**, &reportZones));
             return NOT_SUPPORTED;
         }
         if (ret != SUCCESS)
@@ -121,7 +133,7 @@ int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions
             break;
         }
     }
-    safe_Free_aligned(reportZones)
+    safe_Free_aligned(C_CAST(void**, &reportZones));
     return SUCCESS;
 }
 
@@ -130,7 +142,7 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
     if (zoneDescriptor.descriptorValid)
     {
 #define ZONE_TYPE_STRING_LENGTH 27
-        char zoneTypeString[ZONE_TYPE_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, zoneTypeString, ZONE_TYPE_STRING_LENGTH);
         switch (zoneDescriptor.zoneType)
         {
         case ZONE_TYPE_CONVENTIONAL:
@@ -154,7 +166,7 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
             break;
         }
 #define ZONE_CONDITION_STRING_LENGTH 18
-        char zoneCondition[ZONE_CONDITION_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, zoneCondition, ZONE_CONDITION_STRING_LENGTH);
         switch (zoneDescriptor.zoneCondition)
         {
         case ZONE_CONDITION_NOT_WRITE_POINTER:
@@ -189,7 +201,7 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
             break;
         }
 #define ZONE_ATTR_OTHER_FLAGS_LENGTH 4
-        char otherFlags[ZONE_ATTR_OTHER_FLAGS_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH);
         if (zoneDescriptor.resetBit)
         {
             common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "R");
@@ -237,7 +249,7 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions, uint32_t num
     printf("\t  P - PREDICTED UNRECOVERED ERRORS bit, Predicted Unrecovered Errors Present\n");
     printf("--------------------------------------------------------------------------------\n");
 #define SHOWING_ZONES_STRING_LENGTH 40
-    char showingZones[SHOWING_ZONES_STRING_LENGTH] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(char, showingZones, SHOWING_ZONES_STRING_LENGTH);
     switch (reportingOptions)
     {
     case ZONE_REPORT_LIST_ALL_ZONES:

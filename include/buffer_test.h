@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -67,7 +68,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    int perform_Cable_Test(tDevice *device, ptrCableTestResults testResults);
+    eReturnValues perform_Cable_Test(tDevice *device, ptrCableTestResults testResults);
 
     //-----------------------------------------------------------------------------
     //

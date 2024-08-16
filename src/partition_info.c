@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -16,7 +17,17 @@
 //This file has a function to read the partition info from MBR, APM, or GPT partitioning on a storage drive.
 //This only reads the information and does not modify it.
 
-#include "common.h"
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "operations_Common.h"
 #include "partition_info.h"
 
@@ -29,16 +40,16 @@ ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
         case PARTITION_TABLE_NOT_FOUND:
             break;
         case PARTITION_TABLE_MRB:
-            safe_Free(partInfo->mbrTable);
+            safe_Free(C_CAST(void**, &partInfo->mbrTable));
             break;
         case PARTITION_TABLE_APM:
-            safe_Free(partInfo->apmTable);
+            safe_Free(C_CAST(void**, &partInfo->apmTable));
             break;
         case PARTITION_TABLE_GPT:
-            safe_Free(partInfo->gptTable);
+            safe_Free(C_CAST(void**, &partInfo->gptTable));
             break;
         }
-        safe_Free(partInfo);
+        safe_Free(C_CAST(void**, &partInfo));
     }
     return partInfo;
 }
@@ -72,9 +83,9 @@ static void fill_OG_MBR_Partitions(uint8_t* mbrDataBuf, uint32_t mbrDataSize, pt
     return;
 }
 
-static int fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData mbr)
+static eReturnValues fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData mbr)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (mbrDataBuf && mbr && mbrDataSize >= 512 && !is_Empty(mbrDataBuf, 512) && mbrDataBuf[510] == MBR_SIGNATURE_LO && mbrDataBuf[511] == MBR_SIGNATURE_HI)
     {
         fill_OG_MBR_Partitions(mbrDataBuf, mbrDataSize, mbr);//fill in the original 4 records first since these are in the same place for any format
@@ -292,7 +303,6 @@ static uint32_t gpt_CRC_32(uint8_t* dataBuf, uint32_t dataLength)
 
 //This will work, but the crappy thing is they need to be in ORDER for best performance.
 //Rather than ordering this ourselves, put these in a list that is manageable and trackable ourselves, then sort it before using it.-TJE
-//TODO: Expand list of "known" partition GUIDs
 //https://en.m.wikipedia.org/wiki/GUID_Partition_Table#Partition_type_GUIDs
 bool gptGUIDsSorted = false;
 gptPartitionTypeName gptGUIDNameLookup[] = {
@@ -386,11 +396,9 @@ gptPartitionTypeName gptGUIDNameLookup[] = {
 };
 
 //used with bsearch to locate the name quicker
-//TODO: check if memcmp of whole GUID is faster
 static int cmp_GPT_Part_GUID(const void* a, const void* b)
 {
-    // compare ASC, if they are same, compare ASCQ
-    return memcmp(&(C_CAST(gptPartitionTypeName*, a))->guid, &(C_CAST(gptPartitionTypeName *, b))->guid, sizeof(gptGUID));
+    return memcmp(&(C_CAST(const gptPartitionTypeName*, a))->guid, &(C_CAST(const gptPartitionTypeName *, b))->guid, sizeof(gptGUID));
 }
 
 //This copies the mixed endianness GUID from the dataBuf into a format that can easily be output with a for-loop into the GUID variable
@@ -410,24 +418,20 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
         //next 4 chars (2 bytes) -be
         guid->part4 = M_BytesTo2ByteValue(dataBuf[8], dataBuf[9]);
         //last 12 chars (6 bytes) -be
-        guid->part5[0] =  dataBuf[10];
-        guid->part5[1] =  dataBuf[11];
-        guid->part5[2] =  dataBuf[12];
-        guid->part5[3] =  dataBuf[13];
-        guid->part5[4] =  dataBuf[14];
-        guid->part5[5] =  dataBuf[15];
+        guid->part5[0] = dataBuf[10];
+        guid->part5[1] = dataBuf[11];
+        guid->part5[2] = dataBuf[12];
+        guid->part5[3] = dataBuf[13];
+        guid->part5[4] = dataBuf[14];
+        guid->part5[5] = dataBuf[15];
     }
     return;
 }
 
-//This is currently written expecting the primary copy.
-//TODO: Add validating the secondary copy and error checking between the copies!
-//TODO: Handle parsing from the backup LBA
-//TODO: When a CRC is invalid, compare to the backup and use that data instead
-static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
+static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
-    int ret = NOT_SUPPORTED;
-    if (gptDataBuf && gpt && gptDataSize >= 32768 && gptDataSize >= (2 * device->drive_info.deviceBlockSize))
+    eReturnValues ret = NOT_SUPPORTED;
+    if (gptDataBuf && gpt && gptDataSize >= UINT32_C(32768) && gptDataSize >= (2 * device->drive_info.deviceBlockSize))
     {
         //In order to "easily" adapt this code for GPT backup, it will move the buffer data around since at the beginning the header is before the partitions, but for the backup
         //the partitions come before the header.
@@ -437,7 +441,7 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
             gptHeaderOffset = gptDataSize - device->drive_info.deviceBlockSize;
         }
 
-        char gptSignature[9] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, 9);
         memcpy(gptSignature, &gptDataBuf[gptHeaderOffset], 8);
         if (strcmp(gptSignature, "EFI PART") == 0)
         {
@@ -446,8 +450,6 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
             if (lba == 0 && SUCCESS == fill_MBR_Data(gptDataBuf, 512, &gpt->protectiveMBR))
             {
                 gpt->mbrValid = true;
-                //TODO: Check partitions in MBR to see if protective or hybrid style
-                //TODO: Make sure only one partition is listed.
             }
             gpt->revision = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 11], gptDataBuf[gptHeaderOffset + 10], gptDataBuf[gptHeaderOffset + 9], gptDataBuf[gptHeaderOffset + 8]);
             uint32_t gptHeaderSize = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 15], gptDataBuf[gptHeaderOffset + 14], gptDataBuf[gptHeaderOffset + 13], gptDataBuf[gptHeaderOffset + 12]);
@@ -472,11 +474,10 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                 uint32_t sizeOfPartitionEntry = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 87], gptDataBuf[gptHeaderOffset + 86], gptDataBuf[gptHeaderOffset + 85], gptDataBuf[gptHeaderOffset + 84]);
                 if (lba != 0)
                 {
-                    //gpt->numberOfPartitionEntries //TODO: does this need to be taken into account to find the "beginning" of the backup partitions??? -TJE
                     gptPartitionArray = &gptDataBuf[gptDataSize - device->drive_info.deviceBlockSize - (gpt->numberOfPartitionEntries * sizeOfPartitionEntry)];//for backup this will point to the beginning of the partition array
                 }
                 gpt->crc32HeaderValid = true;
-                uint32_t gptStructPartitionEntriesAvailable = (sizeOfGPTDataStruct - (sizeof(gptData) - sizeof(gptPartitionEntry))) / sizeof(gptPartitionEntry);
+                uint32_t gptStructPartitionEntriesAvailable = C_CAST(uint32_t, (sizeOfGPTDataStruct - (sizeof(gptData) - sizeof(gptPartitionEntry))) / sizeof(gptPartitionEntry));
                 //the header passed, so time to validate the CRC of the partition data!
                 //need to know how many partition structs we have available to read into before beginning to read
                 //need to make sure we have all the databuffer necessary to read all partitions...it is possible that there are more than is in the passed in data pointer
@@ -487,13 +488,13 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                     usedLocalPartitionBuf = true;
                     //allocate a new buffer to read this in and read only the partition array
                     //calculate the data length and round up to the nearest full logical block
-                    gptPartitionArrayDataLength = (((sizeOfPartitionEntry * gpt->numberOfPartitionEntries) + (device->drive_info.deviceBlockSize - UINT64_C(1))) / device->drive_info.deviceBlockSize) * device->drive_info.deviceBlockSize;
+                    gptPartitionArrayDataLength = C_CAST(uint32_t, (((sizeOfPartitionEntry * gpt->numberOfPartitionEntries) + (device->drive_info.deviceBlockSize - UINT64_C(1))) / device->drive_info.deviceBlockSize) * device->drive_info.deviceBlockSize);
                     if (lba != 0)
                     {
                         //calculate the LBA to read the beginning of the partition array!
                         partitionArrayLBA = device->drive_info.deviceMaxLba - (gptPartitionArrayDataLength / device->drive_info.deviceBlockSize);
                     }
-                    gptPartitionArray = C_CAST(uint8_t*, calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
+                    gptPartitionArray = C_CAST(uint8_t*, safe_calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
                     if (!gptPartitionArray)
                     {
                         return MEMORY_FAILURE;
@@ -501,7 +502,7 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                     ret = read_LBA(device, partitionArrayLBA, false, gptPartitionArray, gptPartitionArrayDataLength);
                     if (ret != SUCCESS)
                     {
-                        safe_Free(gptPartitionArray);
+                        safe_Free(C_CAST(void**, &gptPartitionArray));
                         return FAILURE;
                     }
                 }
@@ -513,7 +514,7 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                     gpt->crc32PartitionEntriesValid = true;
                     for (uint64_t partIter = 0, dataOffset = 0; partIter < gpt->numberOfPartitionEntries && partIter < gptStructPartitionEntriesAvailable; ++partIter, dataOffset += sizeOfPartitionEntry)
                     {
-                        gptPartitionTypeName* gptName = NULL;
+                        gptPartitionTypeName* gptName = M_NULLPTR;
                         copy_GPT_GUID(&gptPartitionArray[dataOffset + 0], &gpt->partition[partIter].partitionTypeGUID.guid);
                         if (!gptGUIDsSorted)
                         {
@@ -524,7 +525,7 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                         gptName = C_CAST(gptPartitionTypeName*, bsearch(
                             &gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
                             sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]), sizeof(gptGUIDNameLookup[0]),
-                            (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
+                            (int(*)(const void*, const void*))cmp_GPT_Part_GUID));
 
                         if (gptName)
                         {
@@ -548,7 +549,7 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
                 }
                 if (usedLocalPartitionBuf)
                 {
-                    safe_Free(gptPartitionArray);
+                    safe_Free(C_CAST(void**, &gptPartitionArray));
                 }
             }
         }
@@ -558,21 +559,21 @@ static int fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataS
 
 ptrPartitionInfo get_Partition_Info(tDevice* device)
 {
-    ptrPartitionInfo partitionData = C_CAST(ptrPartitionInfo, calloc(1, sizeof(partitionInfo)));
+    ptrPartitionInfo partitionData = C_CAST(ptrPartitionInfo, safe_calloc(1, sizeof(partitionInfo)));
     //This function will read LBA 0 for 32KiB first, enough to handle most situations
     //It will check for MBR, APM, and GPT (not necessarily in that order), then fill in proper structures.
     //If everything is zeros, it will read the last 32KiB of the drive to see if a backup of the boot sector is available.
     uint32_t dataSize = UINT32_C(32768);
-    uint8_t* dataBuffer = C_CAST(uint8_t*, calloc(dataSize, sizeof(uint8_t)));
+    uint8_t* dataBuffer = C_CAST(uint8_t*, safe_calloc(dataSize, sizeof(uint8_t)));
     if (dataBuffer && partitionData)
     {
         uint64_t lba = 0;
         partitionData->diskBlockSize = device->drive_info.deviceBlockSize;
-        do 
+        do
         {
             if (SUCCESS == read_LBA(device, lba, false, dataBuffer, dataSize))//using fua to make sure we are reading from the media, not cache
             {
-                char gptSignature[9] = { 0 };
+                DECLARE_ZERO_INIT_ARRAY(char, gptSignature, 9);
                 if (lba == 0)
                 {
                     memcpy(gptSignature, &dataBuffer[device->drive_info.deviceBlockSize], 8);
@@ -598,7 +599,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                     else
                     {
                         //call functino to fill MBR data
-                        partitionData->mbrTable = C_CAST(ptrMBRData, calloc(1, sizeof(mbrData)));
+                        partitionData->mbrTable = C_CAST(ptrMBRData, safe_calloc(1, sizeof(mbrData)));
                         if (partitionData->mbrTable)
                         {
                             fill_MBR_Data(dataBuffer, dataSize, partitionData->mbrTable);
@@ -624,10 +625,9 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                 }
                 else if (partitionData->partitionDataType == PARTITION_TABLE_GPT)
                 {
-                    //TODO: These functions expect LBA 0 right now. Need to pass the LBA in so they can adjust where to look.-TJE
                     uint32_t partitionCount = number_Of_GPT_Partitions(dataBuffer, dataSize, device->drive_info.deviceBlockSize, lba);
-                    uint32_t gptStructSize = (sizeof(gptData) - sizeof(gptPartitionEntry)) + (sizeof(gptPartitionEntry) * partitionCount);
-                    partitionData->gptTable = C_CAST(ptrGPTData, calloc(gptStructSize, sizeof(uint8_t)));
+                    uint32_t gptStructSize = C_CAST(uint32_t, (sizeof(gptData) - sizeof(gptPartitionEntry)) + (sizeof(gptPartitionEntry) * partitionCount));
+                    partitionData->gptTable = C_CAST(ptrGPTData, safe_calloc(gptStructSize, sizeof(uint8_t)));
                     if (partitionData->gptTable)
                     {
                         partitionData->partitionDataType = PARTITION_TABLE_GPT;
@@ -662,7 +662,7 @@ static void print_MBR_CHS(mbrCHSAddress address)
 {
     uint16_t cylinder = M_BytesTo2ByteValue(M_GETBITRANGE(address.sector, 7, 6), address.cylinder);
     uint8_t sector = M_GETBITRANGE(address.sector, 5, 0);
-    printf("%" PRIu16 ":%" PRIu8":%" PRIu8, cylinder, address.head, sector);
+    printf("%" PRIu16 ":%" PRIu8 ":%" PRIu8, cylinder, address.head, sector);
 }
 
 static void print_MBR_Info(ptrMBRData mbrTable)
@@ -708,7 +708,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
             {
                 printf("\n\t---Partition %" PRIu8 "---\n", partIter);
                 printf("\tPartition Type: ");
-                //TODO: Print out the type that it is. There are a lot, some reused between systems so this may not always be possible.
+                //Print out the type that it is. There are a lot, some reused between systems so this may not always be possible.
                 //      Currently focussing on what is most likely to be seen: Windows, Linux, UEFI, MacOSX, one of the BSDs still active today
                 //https://en.m.wikipedia.org/wiki/Partition_type
                 //https://www.win.tue.nl/~aeb/partitions/partition_types.html
@@ -721,7 +721,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
                     printf("UEFI System Partition\n");
                     break;
                 default:
-                    printf("%" PRIX8"h\n", mbrTable->partition[partIter].partitionType);
+                    printf("%" PRIX8 "h\n", mbrTable->partition[partIter].partitionType);
                     break;
                 }
                 //check if bootable by looking for 80h in status
@@ -755,7 +755,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
 
 static void print_GPT_GUID(gptGUID guid)
 {
-    printf("%08" PRIX32 "-%04" PRIX16 "-%04" PRIX16 "-%04" PRIX16 "-%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 ,
+    printf("%08" PRIX32 "-%04" PRIX16 "-%04" PRIX16 "-%04" PRIX16 "-%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8,
         guid.part1, guid.part2, guid.part3, guid.part4, guid.part5[0], guid.part5[1], guid.part5[2], guid.part5[3], guid.part5[4], guid.part5[5]);
     return;
 }

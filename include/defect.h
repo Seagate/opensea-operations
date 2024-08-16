@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -80,7 +81,7 @@ extern "C" {
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects);
 
     //-----------------------------------------------------------------------------
     //
@@ -128,7 +129,7 @@ extern "C" {
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData);
+    OPENSEA_OPERATIONS_API eReturnValues create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData);
 
     //-----------------------------------------------------------------------------
     //
@@ -148,7 +149,7 @@ extern "C" {
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData);
+    OPENSEA_OPERATIONS_API eReturnValues create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, custom_Update updateFunction, void *updateData);
 
     //-----------------------------------------------------------------------------
     //
@@ -167,7 +168,7 @@ extern "C" {
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData);
+    OPENSEA_OPERATIONS_API eReturnValues flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, custom_Update updateFunction, void *updateData);
 
     //-----------------------------------------------------------------------------
     //
@@ -199,7 +200,7 @@ extern "C" {
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt);
 
     //-----------------------------------------------------------------------------
     //
@@ -220,7 +221,7 @@ extern "C" {
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData);
 
     //-----------------------------------------------------------------------------
     //
@@ -240,7 +241,40 @@ extern "C" {
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData);
+
+    typedef struct _pendingDefect
+    {
+        uint32_t powerOnHours;
+        uint64_t lba;
+    }pendingDefect, * ptrPendingDefect;
+
+    #define MAX_PLIST_ENTRIES UINT16_C(65534) //This is from ACS spec and is more than enough for SCSI
+
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    OPENSEA_OPERATIONS_API void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList);
+
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+
+    #define MAX_BACKGROUND_SCAN_RESULTS UINT32_C(2048) //parameter codes 1 - 800h
+    typedef struct _backgroundResults
+    {
+        uint8_t reassignStatus;//scsi reassign status value. Use this to know if it's been reassigned or not
+        uint64_t accumulatedPowerOnMinutes;
+        uint8_t senseKey;
+        uint8_t additionalSenseCode;
+        uint8_t additionalSenseCodeQualifier;
+        uint64_t lba;
+    }backgroundResults, * ptrBackgroundResults;
+
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults);
+
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
 
 #if defined(__cplusplus)
 }

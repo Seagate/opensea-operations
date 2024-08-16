@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -276,9 +277,7 @@ extern "C"
 
     typedef struct _driveInformationNVMe
     {
-        //TODO: How to get interface speed? (PCIe gen 3, 2, 1, etc)
-        //TODO: Other information people might want to show
-
+        //How to get interface speed? (PCIe gen 3, 2, 1, etc)
         //controller data
         struct {
             char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
@@ -381,7 +380,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -397,9 +396,9 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(tDevice *device, ptrDriveInformationSAS_SATA driveInfo);
 
-    OPENSEA_OPERATIONS_API int get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(tDevice *device, ptrDriveInformationNVMe driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -480,7 +479,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Drive_Information(tDevice *device, bool showChildInformation);
+    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(tDevice *device, bool showChildInformation);
 
     //-----------------------------------------------------------------------------
     //
@@ -500,7 +499,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     void get_SAS_Interface_Speeds(tDevice *device, char **scsiport0negSpeed, char **scsiport1negSpeed, char **scsiport0maxSpeed, char **scsiport1maxSpeed);
 
-    char * print_drive_type(tDevice *device);
+    const char * print_drive_type(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -515,7 +514,7 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    int print_Nvme_Ctrl_Information(tDevice *device);
+    eReturnValues print_Nvme_Ctrl_Information(tDevice *device);
 
 #if defined (__cplusplus)
 }

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -35,7 +36,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
@@ -51,7 +52,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
+    OPENSEA_OPERATIONS_API eReturnValues get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
@@ -69,11 +70,11 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
 
     // deprecated wrapper for scsi_Set_Max_LBA_2
     // TODO: remove me when next major version bump
-    OPENSEA_OPERATIONS_API int scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
@@ -91,11 +92,11 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
 
     // deprecated wrapper for ata_Set_Max_LBA_2
     // TODO: remove me when next major version bump
-    OPENSEA_OPERATIONS_API int ata_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
@@ -114,11 +115,11 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
 
     // deprecated wrapper for set_Max_LBA_2
     // TODO: remove me when next major version bump
-    OPENSEA_OPERATIONS_API int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
+    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
@@ -136,7 +137,7 @@ extern "C"
     //!   \return SUCCESS = good, DEVICE_ACCESS_DENIED means HPA security is active and blocked the restoration of the maxLBA
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int restore_Max_LBA_For_Erase(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues restore_Max_LBA_For_Erase(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -161,13 +162,13 @@ extern "C"
     {
         uint64_t capacityMaxAddress;
         char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
-    }capacityModelDescriptor, * ptrDriveCapacityModelDescriptor;
+    }capacityModelDescriptor, *ptrDriveCapacityModelDescriptor;
 
     typedef struct _capacityModelNumberMapping
     {
         uint32_t numberOfDescriptors;
         capacityModelDescriptor descriptor[1];//NOTE: This must be allocated based on how many descriptors are actually available! ex: malloc(sizeof(capacityModelNumberMapping) + (get_capacityModelDescriptor_Count() * sizeof(capacityModelDescriptor)));
-    }capacityModelNumberMapping, * ptrcapacityModelNumberMapping;
+    }capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
 
     //-----------------------------------------------------------------------------
     //
@@ -194,7 +195,7 @@ extern "C"
     //!   \param[in] device = file descriptor
     //!
     //  Exit:
-    //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = NULL.
+    //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = M_NULLPTR.
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device);

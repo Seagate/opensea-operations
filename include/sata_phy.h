@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -17,7 +18,7 @@
 extern "C" {
 #endif //__cplusplus
 
-#include "common.h"
+#include "common_types.h"
 #include "operations_Common.h"
 
 typedef enum _eSATA_Phy_Event_ID
@@ -66,7 +67,7 @@ typedef struct _sataPhyEventCounters
     phyEventCounter counters[MAX_PHY_EVENT_COUNTERS];
 }sataPhyEventCounters, *ptrSATAPhyEventCounters;
 
-OPENSEA_OPERATIONS_API int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters);
+OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters);
 
 OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters);
 

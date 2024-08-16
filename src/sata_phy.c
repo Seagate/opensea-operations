@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -12,13 +13,24 @@
 // \file sata_phy.c
 // \brief functions to help with configuring or reading info about the SATA PHY
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "sata_phy.h"
 #include "ata_helper.h"
 #include "ata_helper_func.h"
 
-int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
+eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!device || !counters)
     {
         return BAD_PARAMETER;
@@ -29,8 +41,7 @@ int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counter
         //SATA defines this as 512B and no more.
         if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word076) && device->drive_info.IdentifyData.ata.Word076 & BIT10)
         {
-            //TODO: Add read and reset option to pass a 1 in feature register?
-            uint8_t phyEventLog[512] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, phyEventLog, 512);
             ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, 0, phyEventLog, 512, 0);
             if (SUCCESS == ret || WARN_INVALID_CHECKSUM == ret)
             {
@@ -46,7 +57,7 @@ int get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counter
                 }
                 uint8_t counterLength = 0;
                 counters->numberOfCounters = 0;
-                for (uint16_t offset = 4; offset < 512; offset += 2 + counterLength)
+                for (uint16_t offset = UINT16_C(4); offset < UINT16_C(512); offset += C_CAST(uint16_t, UINT16_C(2) + counterLength))
                 {
                     counters->counters[counters->numberOfCounters].rawID = M_BytesTo2ByteValue(phyEventLog[offset + 1], phyEventLog[offset]);
                     if (counters->counters[counters->numberOfCounters].rawID == 0)
@@ -121,7 +132,7 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
             char vendorEvent = ' ';
             char maxedCount = ' ';
 #define PHY_COUNTER_DESCRIPTION_LEN 56
-            char counterDescription[PHY_COUNTER_DESCRIPTION_LEN] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, counterDescription, PHY_COUNTER_DESCRIPTION_LEN);
             if (counters->counters[iter].vendorUnique)
             {
                 vendorEvent = 'V';

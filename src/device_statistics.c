@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -12,14 +13,26 @@
 // \file device_statistics.c
 // \brief This file defines the functions related to getting/displaying device statistics
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+
 #include "device_statistics.h"
 #include "logs.h"
 
 //this is ued to determine which device statistic is being talked about by the DSN log on ata
 /*
-int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics deviceStats)
+eReturnValues map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = FAILURE;
+    eReturnValues ret = FAILURE;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
 
@@ -29,20 +42,21 @@ int map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *devi
 */
 void scsi_Threshold_Comparison(statistic *ptrStatistic);//prototype
 
-static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return BAD_PARAMETER;
     }
-    uint32_t deviceStatsSize = 0, deviceStatsNotificationsSize = 0;
+    uint32_t deviceStatsSize = 0;
+    uint32_t deviceStatsNotificationsSize = 0;
     //need to get the device statistics log
     if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true))
     {
         bool dsnFeatureSupported = M_ToBool(device->drive_info.IdentifyData.ata.Word119 & BIT9);
         bool dsnFeatureEnabled = M_ToBool(device->drive_info.IdentifyData.ata.Word120 & BIT9);
-        uint8_t *deviceStatsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *deviceStatsLog = C_CAST(uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!deviceStatsLog)
         {
             return MEMORY_FAILURE;
@@ -50,8 +64,8 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
         //this is to get the threshold stuff
         if (dsnFeatureSupported && dsnFeatureEnabled && SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize, true, false))
         {
-            uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, NULL, NULL, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, NULL, 0, 0))
+            uint8_t *devStatsNotificationsLog = C_CAST(uint8_t*, safe_calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, M_NULLPTR, M_NULLPTR, true, false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, M_NULLPTR, 0, 0))
             {
                 //Start at page 1 since we want all the details, not just the summary from page 0
                 //increment by 2 qwords and go through each statistic and it's condition individually
@@ -577,13 +591,13 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
                     }
                 }
             }
-            safe_Free_aligned(devStatsNotificationsLog)
+            safe_Free_aligned(C_CAST(void**, &devStatsNotificationsLog));
         }
-        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, NULL, NULL, true, true, true, deviceStatsLog, deviceStatsSize, NULL, 0, 0))
+        if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, M_NULLPTR, M_NULLPTR, true, true, true, deviceStatsLog, deviceStatsSize, M_NULLPTR, 0, 0))
         {
             ret = SUCCESS;
             uint32_t offset = 0;//start offset 1 sector to get to the general statistics
-            uint64_t *qwordPtrDeviceStatsLog = NULL;
+            uint64_t *qwordPtrDeviceStatsLog = M_NULLPTR;
             for (uint8_t pageIter = 0; pageIter < deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET]; ++pageIter)
             {
                 //statistics flags:
@@ -1214,19 +1228,19 @@ static int get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceS
                 }
             }
         }
-        safe_Free_aligned(deviceStatsLog)
+        safe_Free_aligned(C_CAST(void**, &deviceStatsLog));
     }
     return ret;
 }
 
-static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return BAD_PARAMETER;
     }
-    uint8_t supportedLogPages[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedLogPages, LEGACY_DRIVE_SEC_SIZE);
     //read list of supported logs, the with that list we'll populate the statistics data
     bool dummyUpLogPages = false;
     bool subpagesSupported = true;
@@ -1245,7 +1259,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     if (!dummyUpLogPages)
     {
         //memcmp to make sure we weren't given zeros
-        uint8_t zeroMem[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, zeroMem, LEGACY_DRIVE_SEC_SIZE);
         if (memcmp(zeroMem, supportedLogPages, LEGACY_DRIVE_SEC_SIZE) == 0)
         {
             dummyUpLogPages = true;
@@ -1308,7 +1322,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     uint16_t logPageIter = LOG_PAGE_HEADER_LENGTH;//log page descriptors start on offset 4 and are 2 bytes long each
     uint16_t supportedPagesLength = M_BytesTo2ByteValue(supportedLogPages[2], supportedLogPages[3]);
     uint8_t incrementAmount = subpagesSupported ? 2 : 1;
-    uint8_t tempLogBuf[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, tempLogBuf, LEGACY_DRIVE_SEC_SIZE);
     for (; logPageIter < M_Min(supportedPagesLength + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE); logPageIter += incrementAmount)
     {
         uint8_t pageCode = supportedLogPages[logPageIter] & 0x3F;//outer switch statement
@@ -1329,7 +1343,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -1658,7 +1672,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -1869,7 +1883,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -2198,7 +2212,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -2408,7 +2422,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -2737,7 +2751,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -2947,7 +2961,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -3276,7 +3290,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -3486,7 +3500,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -3550,7 +3564,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -3604,7 +3618,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -3863,7 +3877,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -3997,7 +4011,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4027,7 +4041,6 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                 }
                             }
                             deviceStats->sasStatistics.availableLBAMappingresourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 2://used LBA mapping resource count
@@ -4054,7 +4067,6 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                 }
                             }
                             deviceStats->sasStatistics.usedLBAMappingResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 3://available provisioning resource percentage
@@ -4081,7 +4093,6 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                 }
                             }
                             deviceStats->sasStatistics.availableProvisioningResourcePercentage.statisticValue = M_BytesTo2ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 0x100://de-duplicated LBA resource count
@@ -4108,7 +4119,6 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                 }
                             }
                             deviceStats->sasStatistics.deduplicatedLBAResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 0x101://compressed LBA resource count
@@ -4135,7 +4145,6 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                 }
                             }
                             deviceStats->sasStatistics.compressedLBAResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         case 0x102://total efficiency LBA resource count
@@ -4162,7 +4171,6 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                 }
                             }
                             deviceStats->sasStatistics.totalEfficiencyLBAResourceCount.statisticValue = M_BytesTo4ByteValue(tempLogBuf[iter + 4], tempLogBuf[iter + 5], tempLogBuf[iter + 6], tempLogBuf[iter + 7]);
-                            //todo: ?should we |= the "scope" field to the statistic value? - TJE
                             ++deviceStats->sasStatistics.statisticsPopulated;
                             break;
                         default:
@@ -4180,7 +4188,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -4263,7 +4271,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4336,7 +4344,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -4379,7 +4387,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4560,7 +4568,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4731,7 +4739,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -4912,7 +4920,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -4993,7 +5001,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5066,7 +5074,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5115,7 +5123,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5162,7 +5170,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5200,7 +5208,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5240,7 +5248,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5287,7 +5295,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5334,7 +5342,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5370,7 +5378,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5417,7 +5425,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5457,7 +5465,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5530,7 +5538,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5577,7 +5585,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -5845,7 +5853,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -5980,7 +5988,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -6157,7 +6165,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                         parameterLength = 0;
                         //loop through the data and gather the data from each parameter we care about getting.
-                        for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                        for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                         {
                             uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                             parameterLength = tempLogBuf[iter + 3];
@@ -6244,7 +6252,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -6349,7 +6357,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                     uint16_t pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
                     uint8_t parameterLength = 0;
                     //loop through the data and gather the data from each parameter we care about getting.
-                    for (uint16_t iter = 4; iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (parameterLength + 4))
+                    for (uint16_t iter = UINT16_C(4); iter < pageLength && iter < LEGACY_DRIVE_SEC_SIZE; iter += (C_CAST(uint16_t, parameterLength + UINT16_C(4))))
                     {
                         uint16_t parameterCode = M_BytesTo2ByteValue(tempLogBuf[iter], tempLogBuf[iter + 1]);
                         parameterLength = tempLogBuf[iter + 3];
@@ -6534,7 +6542,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                 //This page is read in a 64k size to make sure we get as much as possible in a single command.
             {
                 uint16_t protocolSpecificDataLength = UINT16_MAX;
-                uint8_t* protSpData = C_CAST(uint8_t*, calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* protSpData = C_CAST(uint8_t*, safe_calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (protSpData)
                 {
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData, protocolSpecificDataLength))
@@ -6585,7 +6593,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                             deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].perPhy[deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount].phyResetProblemCount.statisticValue = M_BytesTo4ByteValue(protSpData[phyOffset + 44], protSpData[phyOffset + 45], protSpData[phyOffset + 46], protSpData[phyOffset + 47]);
                                             ++deviceStats->sasStatistics.statisticsPopulated;
                                             ++deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[deviceStats->sasStatistics.sasProtStats.portCount].phyCount;
-                                            //TODO: Phy event descriptors? Not sure this is needed right now -TJE
+                                            //Phy event descriptors? Not sure this is needed right now -TJE
                                             //      Events would be yet another loop depending on how many are reported.
                                         }
                                         else
@@ -6595,7 +6603,6 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                                     }
                                     ++deviceStats->sasStatistics.sasProtStats.portCount;
                                 }
-                                //TODO: If other protocols report data here, we will need to add it. So far no other protocol spec lists a log page - TJE
                             }
                             else
                             {
@@ -6604,7 +6611,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
                             }
                         }
                     }
-                    safe_Free_aligned(protSpData)
+                    safe_Free_aligned(C_CAST(void**, &protSpData));
                 }
             }
             break;
@@ -6628,7 +6635,7 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     //Get the Grown list count
     bool gotGrownDefectCount = false;
     eSCSIAddressDescriptors defectFormat = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
-    int defectRet = SUCCESS;
+    eReturnValues defectRet = SUCCESS;
     if (device->drive_info.deviceMaxLba > UINT32_MAX)
     {
         defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
@@ -6646,14 +6653,14 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
         //NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = 0;
         memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, false, true, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, false, true, C_CAST(uint8_t, defectFormat), 0, 8, tempLogBuf)) == SUCCESS)
         {
             gotGrownDefectCount = true;
             defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
         }
         else
         {
-            defectRet = scsi_Read_Defect_Data_10(device, false, true, defectFormat, 4, tempLogBuf);
+            defectRet = scsi_Read_Defect_Data_10(device, false, true, C_CAST(uint8_t, defectFormat), 4, tempLogBuf);
             if (defectRet == SUCCESS)
             {
                 gotGrownDefectCount = true;
@@ -6703,14 +6710,14 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
         //NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = 0;
         memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
-        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, true, false, defectFormat, 0, 8, tempLogBuf)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, true, false, C_CAST(uint8_t, defectFormat), 0, 8, tempLogBuf)) == SUCCESS)
         {
             gotPrimaryDefectCount = true;
             defectListLength = M_BytesTo4ByteValue(tempLogBuf[4], tempLogBuf[5], tempLogBuf[6], tempLogBuf[7]);
         }
         else
         {
-            defectRet = scsi_Read_Defect_Data_10(device, true, false, defectFormat, 4, tempLogBuf);
+            defectRet = scsi_Read_Defect_Data_10(device, true, false, C_CAST(uint8_t, defectFormat), 4, tempLogBuf);
             if (defectRet == SUCCESS)
             {
                 gotPrimaryDefectCount = true;
@@ -6762,9 +6769,9 @@ static int get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatistics device
     return ret;
 }
 
-int get_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+eReturnValues get_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return BAD_PARAMETER;
@@ -6818,11 +6825,11 @@ void scsi_Threshold_Comparison(statistic *ptrStatistic)
 
 #define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
 
-static void print_Count_Statistic(statistic theStatistic, char *statisticName, char *statisticUnit)
+static void print_Count_Statistic(statistic theStatistic, const char *statisticName, const char *statisticUnit)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6845,7 +6852,7 @@ static void print_Count_Statistic(statistic theStatistic, char *statisticName, c
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -6886,11 +6893,11 @@ static void print_Count_Statistic(statistic theStatistic, char *statisticName, c
     }
 }
 
-static void print_Workload_Utilization_Statistic(statistic theStatistic, char *statisticName)
+static void print_Workload_Utilization_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6913,7 +6920,7 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, char *s
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -6959,11 +6966,11 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, char *s
     }
 }
 
-static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char *statisticName)
+static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -6986,7 +6993,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7025,7 +7032,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
                 }
                 else
                 {
-                    printf("%"PRIu8"%%", utilizationUsageRate);
+                    printf("%" PRIu8 "%%", utilizationUsageRate);
                 }
                 switch (rateBasis)
                 {
@@ -7063,11 +7070,11 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, char 
     }
 }
 
-static void print_Resource_Availability_Statistic(statistic theStatistic, char *statisticName)
+static void print_Resource_Availability_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7090,7 +7097,7 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, char *
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7128,11 +7135,11 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, char *
     }
 }
 
-static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, char *statisticName)
+static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7155,7 +7162,7 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7200,11 +7207,11 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
     }
 }
 
-static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *statisticName)
+static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7227,7 +7234,7 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7266,7 +7273,7 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
                 printf("Nonvolatile indefinitely");
                 break;
             default://time in minutes
-                printf("Nonvolatile for %"PRIu64"m", theStatistic.statisticValue);
+                printf("Nonvolatile for %" PRIu64 "m", theStatistic.statisticValue);
                 break;
             }
         }
@@ -7278,11 +7285,11 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, char *stat
     }
 }
 
-static void print_Temperature_Statistic(statistic theStatistic, char *statisticName)
+static void print_Temperature_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7305,7 +7312,7 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7332,7 +7339,7 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            printf("%"PRId8" C", C_CAST(int8_t, theStatistic.statisticValue));
+            printf("%" PRId8 " C", C_CAST(int8_t, theStatistic.statisticValue));
         }
         else
         {
@@ -7342,11 +7349,11 @@ static void print_Temperature_Statistic(statistic theStatistic, char *statisticN
     }
 }
 
-static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char *statisticName)
+static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7369,7 +7376,7 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7397,7 +7404,10 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
         if (theStatistic.isValueValid)
         {
             uint16_t days = 0;
-            uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+            uint8_t years = 0;
+            uint8_t hours = 0;
+            uint8_t minutes = 0;
+            uint8_t seconds = 0;
             //this is reported in milliseconds...convert to other displayable.
             uint64_t statisticSeconds = theStatistic.statisticValue / UINT64_C(1000);
             convert_Seconds_To_Displayable_Time(statisticSeconds, &years, &days, &hours, &minutes, &seconds);
@@ -7411,11 +7421,11 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, char
     }
 }
 //the statistic value must be a time in minutes for this function
-static void print_Time_Minutes_Statistic(statistic theStatistic, char *statisticName)
+static void print_Time_Minutes_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7438,7 +7448,7 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7470,7 +7480,10 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
             if (statisticMinutes > 0)
             {
                 uint16_t days = 0;
-                uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+                uint8_t years = 0;
+                uint8_t hours = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 convert_Seconds_To_Displayable_Time(statisticMinutes, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
             }
@@ -7488,11 +7501,11 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, char *statistic
 }
 
 //for accounting date and date of manufacture
-static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticName)
+static void print_SCSI_Date_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7515,7 +7528,7 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7542,15 +7555,15 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            char week[3] = { 0 };
-            char year[5] = { 0 };
-            year[0] = M_Byte3(theStatistic.statisticValue);
-            year[1] = M_Byte2(theStatistic.statisticValue);
-            year[2] = M_Byte1(theStatistic.statisticValue);
-            year[3] = M_Byte0(theStatistic.statisticValue);
+            DECLARE_ZERO_INIT_ARRAY(char, week, 3);
+            DECLARE_ZERO_INIT_ARRAY(char, year, 5);
+            year[0] = C_CAST(char, M_Byte3(theStatistic.statisticValue));
+            year[1] = C_CAST(char, M_Byte2(theStatistic.statisticValue));
+            year[2] = C_CAST(char, M_Byte1(theStatistic.statisticValue));
+            year[3] = C_CAST(char, M_Byte0(theStatistic.statisticValue));
             year[4] = '\0';
-            week[0] = M_Byte5(theStatistic.statisticValue);
-            week[1] = M_Byte4(theStatistic.statisticValue);
+            week[0] = C_CAST(char, M_Byte5(theStatistic.statisticValue));
+            week[1] = C_CAST(char, M_Byte4(theStatistic.statisticValue));
             week[2] = '\0';
             if (strcmp(year, "    ") == 0 && strcmp(week, "  ") == 0)
             {
@@ -7569,11 +7582,11 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, char *statisticNam
     }
 }
 
-static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *statisticName)
+static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const char *statisticName)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7596,7 +7609,7 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7628,7 +7641,7 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
             //now byteswap the double words to get the correct endianness (for LSB machines)
             byte_Swap_32(&exponent);
             byte_Swap_32(&integer);
-            printf("%"PRIu32" ", integer);
+            printf("%" PRIu32 " ", integer);
             switch (exponent)
             {
             case 1://deci
@@ -7669,11 +7682,11 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, char *sta
 }
 
 //This is a different function to be more specific to SAS environmental limits/reporting pages
-static void print_Environmental_Temperature_Statistic(statistic theStatistic, char* statisticName, bool isLimit)
+static void print_Environmental_Temperature_Statistic(statistic theStatistic, const char* statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7696,7 +7709,7 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, ch
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7748,11 +7761,11 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, ch
     }
 }
 
-static void print_Humidity_Statistic(statistic theStatistic, char *statisticName, bool isLimit)
+static void print_Humidity_Statistic(statistic theStatistic, const char *statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
-        char displayThreshold[DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
         if (theStatistic.monitoredConditionMet)
         {
             printf("!");
@@ -7775,7 +7788,7 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%"PRIu64" (Always Trigger)", theStatistic.threshold);
+                snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
                 snprintf(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%"PRIu64, theStatistic.threshold);
@@ -7804,7 +7817,7 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
         {
             if (/*theStatistic.statisticValue >= 0 &&*/ theStatistic.statisticValue <= 100)
             {
-                printf("%"PRIu8"", C_CAST(uint8_t, theStatistic.statisticValue));
+                printf("%" PRIu8 "", C_CAST(uint8_t, theStatistic.statisticValue));
             }
             else if (theStatistic.statisticValue == 255)
             {
@@ -7830,9 +7843,9 @@ static void print_Humidity_Statistic(statistic theStatistic, char *statisticName
     }
 }
 
-static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!deviceStats)
     {
         return MEMORY_FAILURE;
@@ -7845,14 +7858,14 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
     if (deviceStats->sataStatistics.generalStatisticsSupported)
     {
         printf("\n---General Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.lifetimePoweronResets, "LifeTime Power-On Resets", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.lifetimePoweronResets, "LifeTime Power-On Resets", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.powerOnHours, "Power-On Hours", "hours");
-        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsWritten, "Logical Sectors Written", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfWriteCommands, "Number Of Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsRead, "Logical Sectors Read", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReadCommands, "Number Of Read Commands", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsWritten, "Logical Sectors Written", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfWriteCommands, "Number Of Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsRead, "Logical Sectors Read", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReadCommands, "Number Of Read Commands", M_NULLPTR);
         print_Date_And_Time_Timestamp_Statistic(deviceStats->sataStatistics.dateAndTimeTimestamp, "Date And Time Timestamp");
-        print_Count_Statistic(deviceStats->sataStatistics.pendingErrorCount, "Pending Error Count", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.pendingErrorCount, "Pending Error Count", M_NULLPTR);
         print_Workload_Utilization_Statistic(deviceStats->sataStatistics.workloadUtilization, "Workload Utilization");
         print_Utilization_Usage_Rate_Statistic(deviceStats->sataStatistics.utilizationUsageRate, "Utilization Usage Rate");
         print_Resource_Availability_Statistic(deviceStats->sataStatistics.resourceAvailability, "Resource Availability");
@@ -7861,27 +7874,27 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
     if (deviceStats->sataStatistics.freeFallStatisticsSupported)
     {
         printf("\n---Free Fall Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfFreeFallEventsDetected, "Number Of Free-Fall Events Detected", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.overlimitShockEvents, "Overlimit Shock Events", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfFreeFallEventsDetected, "Number Of Free-Fall Events Detected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.overlimitShockEvents, "Overlimit Shock Events", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.rotatingMediaStatisticsSupported)
     {
         printf("\n---Rotating Media Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.spindleMotorPoweronHours, "Spindle Motor Power-On Hours", "hours");
         print_Count_Statistic(deviceStats->sataStatistics.headFlyingHours, "Head Flying Hours", "hours");
-        print_Count_Statistic(deviceStats->sataStatistics.headLoadEvents, "Head Load Events", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocatedLogicalSectors, "Number Of Reallocated Logical Sectors", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.readRecoveryAttempts, "Read Recovery Attempts", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfMechanicalStartFailures, "Number Of Mechanical Start Failures", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors, "Number Of Reallocation Candidate Logical Sectors", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents, "Number Of High Priority Unload Events", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.headLoadEvents, "Head Load Events", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocatedLogicalSectors, "Number Of Reallocated Logical Sectors", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.readRecoveryAttempts, "Read Recovery Attempts", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfMechanicalStartFailures, "Number Of Mechanical Start Failures", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors, "Number Of Reallocation Candidate Logical Sectors", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents, "Number Of High Priority Unload Events", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.generalErrorsStatisticsSupported)
     {
         printf("\n---General Errors Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReportedUncorrectableErrors, "Number Of Reported Uncorrectable Errors", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion, "Number Of Resets Between Command Acceptance and Completion", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.physicalElementStatusChanged, "Physical Element Status Changed", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfReportedUncorrectableErrors, "Number Of Reported Uncorrectable Errors", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion, "Number Of Resets Between Command Acceptance and Completion", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.physicalElementStatusChanged, "Physical Element Status Changed", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.temperatureStatisticsSupported)
     {
@@ -7903,9 +7916,9 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
     if (deviceStats->sataStatistics.transportStatisticsSupported)
     {
         printf("\n---Transport Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfHardwareResets, "Number Of Hardware Resets", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfASREvents, "Number Of ASR Events", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfInterfaceCRCErrors, "Number Of Interface CRC Errors", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfHardwareResets, "Number Of Hardware Resets", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfASREvents, "Number Of ASR Events", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.numberOfInterfaceCRCErrors, "Number Of Interface CRC Errors", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.ssdStatisticsSupported)
     {
@@ -7915,17 +7928,17 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
     if (deviceStats->sataStatistics.zonedDeviceStatisticsSupported)
     {
         printf("\n---Zoned Device Statistics---\n");
-        print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.zonesEmptied, "Zones Emptied", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", NULL);
-        print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", NULL);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.minimumEmptyZones, "Minumum Empty Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.zonesEmptied, "Zones Emptied", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.vendorSpecificStatisticsSupported)
     {
@@ -7940,7 +7953,7 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
         for (uint8_t vendorSpecificIter = 0, statisticsFound = 0; vendorSpecificIter < 64 && statisticsFound < deviceStats->sataStatistics.vendorSpecificStatisticsPopulated; ++vendorSpecificIter)
         {
 #define VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH 64
-            char statisticName[VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(char, statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH);
             if (SEAGATE == is_Seagate_Family(device))
             {
                 switch (vendorSpecificIter + 1)
@@ -7959,7 +7972,7 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
             }
             if (deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter].isSupported)
             {
-                print_Count_Statistic(deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter], statisticName, NULL);
+                print_Count_Statistic(deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter], statisticName, M_NULLPTR);
                 ++statisticsFound;
             }
         }
@@ -7967,9 +7980,9 @@ static int print_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatistics devic
     return ret;
 }
 
-static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (!deviceStats)
     {
         return MEMORY_FAILURE;
@@ -7983,68 +7996,68 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
     if (deviceStats->sasStatistics.writeErrorCountersSupported)
     {
         printf("\n---Write Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay, "Write Errors Corrected Without Substantial Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithPossibleDelays, "Write Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalReWrites, "Write Total Rewrites", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrected, "Write Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed, "Write Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalBytesProcessed, "Write Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeTotalUncorrectedErrors, "Write Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay, "Write Errors Corrected Without Substantial Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithPossibleDelays, "Write Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalReWrites, "Write Total Rewrites", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrected, "Write Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalTimeCorrectionAlgorithmProcessed, "Write Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalBytesProcessed, "Write Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeTotalUncorrectedErrors, "Write Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.readErrorCountersSupported)
     {
         printf("\n---Read Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrectedWithPossibleDelays, "Read Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalRereads, "Read Total Rereads", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrected, "Read Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed, "Read Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalBytesProcessed, "Read Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readTotalUncorrectedErrors, "Read Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrectedWithPossibleDelays, "Read Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalRereads, "Read Total Rereads", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrected, "Read Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalTimeCorrectionAlgorithmProcessed, "Read Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalBytesProcessed, "Read Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readTotalUncorrectedErrors, "Read Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.readReverseErrorCountersSupported)
     {
         printf("\n---Read Reverse Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay, "Read Reverse Errors Corrected Without Substantial Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays, "Read Reverse Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalReReads, "Read Reverse Total Rereads", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrected, "Read Reverse Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed, "Read Reverse Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalBytesProcessed, "Read Reverse Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalUncorrectedErrors, "Read Reverse Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay, "Read Reverse Errors Corrected Without Substantial Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays, "Read Reverse Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalReReads, "Read Reverse Total Rereads", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrected, "Read Reverse Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalTimeCorrectionAlgorithmProcessed, "Read Reverse Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalBytesProcessed, "Read Reverse Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readReverseTotalUncorrectedErrors, "Read Reverse Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.verifyErrorCountersSupported)
     {
         printf("\n---Verify Error Counters---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay, "Verify Errors Corrected Without Substantial Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays, "Verify Errors Corrected With Possible Delay", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalReVerifies, "Verify Total Rereads", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrected, "Verify Errors Corrected", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed, "Verify Total Times Corrective Algorithm Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalBytesProcessed, "Verify Total Bytes Processed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalUncorrectedErrors, "Verify Total Uncorrected Errors", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay, "Verify Errors Corrected Without Substantial Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays, "Verify Errors Corrected With Possible Delay", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalReVerifies, "Verify Total Rereads", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrected, "Verify Errors Corrected", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalTimeCorrectionAlgorithmProcessed, "Verify Total Times Corrective Algorithm Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalBytesProcessed, "Verify Total Bytes Processed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.verifyTotalUncorrectedErrors, "Verify Total Uncorrected Errors", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.nonMediumErrorSupported)
     {
         printf("\n---Non Medium Error---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.nonMediumErrorCount, "Non-Medium Error Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.nonMediumErrorCount, "Non-Medium Error Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.formatStatusSupported)
     {
         printf("\n---Format Status---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.grownDefectsDuringCertification, "Grown Defects During Certification", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat, "Total Blocks Reassigned During Format", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.totalNewBlocksReassigned, "Total New Blocks Reassigned", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.grownDefectsDuringCertification, "Grown Defects During Certification", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat, "Total Blocks Reassigned During Format", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.totalNewBlocksReassigned, "Total New Blocks Reassigned", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.powerOnMinutesSinceFormat, "Power On Minutes Since Last Format", "minutes");
     }
     if (deviceStats->sasStatistics.logicalBlockProvisioningSupported)
     {
         printf("\n---Logical Block Provisioning---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.availableLBAMappingresourceCount, "Available LBA Mapping Resource Count", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.usedLBAMappingResourceCount, "Used LBA Mapping Resource Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.availableLBAMappingresourceCount, "Available LBA Mapping Resource Count", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.usedLBAMappingResourceCount, "Used LBA Mapping Resource Count", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.availableProvisioningResourcePercentage, "Available Provisioning Resource Percentage", "%");
-        print_Count_Statistic(deviceStats->sasStatistics.deduplicatedLBAResourceCount, "De-duplicted LBA Resource Count", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.compressedLBAResourceCount, "Compressed LBA Resource Count", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.totalEfficiencyLBAResourceCount, "Total Efficiency LBA Resource Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.deduplicatedLBAResourceCount, "De-duplicted LBA Resource Count", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.compressedLBAResourceCount, "Compressed LBA Resource Count", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.totalEfficiencyLBAResourceCount, "Total Efficiency LBA Resource Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.temperatureSupported)
     {
@@ -8095,20 +8108,20 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
         printf("\n---Start-Stop Cycle Counter---\n");
         print_SCSI_Date_Statistic(deviceStats->sasStatistics.dateOfManufacture, "Date Of Manufacture");
         print_SCSI_Date_Statistic(deviceStats->sasStatistics.accountingDate, "Accounting Date");
-        print_Count_Statistic(deviceStats->sasStatistics.specifiedCycleCountOverDeviceLifetime, "Specified Cycle Count Over Device Lifetime", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.accumulatedStartStopCycles, "Accumulated Start-Stop Cycles", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime, "Specified Load-Unload Count Over Device Lifetime", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.accumulatedLoadUnloadCycles, "Accumulated Load-Unload Cycles", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.specifiedCycleCountOverDeviceLifetime, "Specified Cycle Count Over Device Lifetime", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.accumulatedStartStopCycles, "Accumulated Start-Stop Cycles", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.specifiedLoadUnloadCountOverDeviceLifetime, "Specified Load-Unload Count Over Device Lifetime", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.accumulatedLoadUnloadCycles, "Accumulated Load-Unload Cycles", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.powerConditionTransitionsSupported)
     {
         printf("\n---Power Condition Transitions---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToActive, "Accumulated Transitions to Active", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleA, "Accumulated Transitions to Idle A", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleB, "Accumulated Transitions to Idle B", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleC, "Accumulated Transitions to Idle C", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyZ, "Accumulated Transitions to Standby Z", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyY, "Accumulated Transitions to Standby Y", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToActive, "Accumulated Transitions to Active", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleA, "Accumulated Transitions to Idle A", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleB, "Accumulated Transitions to Idle B", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleC, "Accumulated Transitions to Idle C", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyZ, "Accumulated Transitions to Standby Z", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.transitionsToStandbyY, "Accumulated Transitions to Standby Y", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.utilizationSupported)
     {
@@ -8125,24 +8138,24 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
     {
         printf("\n---Background Scan Results---\n");
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedPowerOnMinutes, "Accumulated Power On Minutes", "minutes");
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundScansPerformed, "Number Of Background Scans Performed", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundMediaScansPerformed, "Number Of Background Media Scans Performed", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundScansPerformed, "Number Of Background Scans Performed", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundMediaScansPerformed, "Number Of Background Media Scans Performed", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.defectStatisticsSupported)
     {
         printf("\n---Defect Statistics---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.pendingDefectsSupported)
     {
         printf("\n---Pending Defects---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.pendingDefectCount, "Pending Defect Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.pendingDefectCount, "Pending Defect Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.lpsMisalignmentSupported)
     {
         printf("\n---LPS Misalignment---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.lpsMisalignmentCount, "LPS Misalignment Count", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.lpsMisalignmentCount, "LPS Misalignment Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.nvCacheSupported)
     {
@@ -8153,33 +8166,33 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
     if (deviceStats->sasStatistics.generalStatisticsAndPerformanceSupported)
     {
         printf("\n---General Statistics And Performance---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadCommands, "Number Of Read Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteCommands, "Number Of Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksReceived, "Number Of Logical Blocks Received", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksTransmitted, "Number Of Logical Blocks Transmitted", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readCommandProcessingIntervals, "Read Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeCommandProcessingIntervals, "Write Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.weightedNumberOfReadCommandsPlusWriteCommands, "Weighted Number Of Read Commands Plus Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.weightedReadCommandProcessingPlusWriteCommandProcessing, "Weighted Number Of Read Command Processing Plus Write Command Processing", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.idleTimeIntervals, "Idle Time Intervals", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadCommands, "Number Of Read Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteCommands, "Number Of Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksReceived, "Number Of Logical Blocks Received", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksTransmitted, "Number Of Logical Blocks Transmitted", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readCommandProcessingIntervals, "Read Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeCommandProcessingIntervals, "Write Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.weightedNumberOfReadCommandsPlusWriteCommands, "Weighted Number Of Read Commands Plus Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.weightedReadCommandProcessingPlusWriteCommandProcessing, "Weighted Number Of Read Command Processing Plus Write Command Processing", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.idleTimeIntervals, "Idle Time Intervals", M_NULLPTR);
         print_SCSI_Time_Interval_Statistic(deviceStats->sasStatistics.timeIntervalDescriptor, "Time Interval Desriptor");
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUACommands, "Number Of Read FUA Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUACommands, "Number Of Write FUA Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUANVCommands, "Number Of Read FUA NV Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUANVCommands, "Number Of Write FUA NV Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readFUACommandProcessingIntervals, "Read FUA Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeFUACommandProcessingIntervals, "Write FUA Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readFUANVCommandProcessingIntervals, "Read FUA NV Command Processing Intervals", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeFUANVCommandProcessingIntervals, "Write FUA NV Command Processing Intervals", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUACommands, "Number Of Read FUA Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUACommands, "Number Of Write FUA Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfReadFUANVCommands, "Number Of Read FUA NV Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteFUANVCommands, "Number Of Write FUA NV Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readFUACommandProcessingIntervals, "Read FUA Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeFUACommandProcessingIntervals, "Write FUA Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readFUANVCommandProcessingIntervals, "Read FUA NV Command Processing Intervals", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeFUANVCommandProcessingIntervals, "Write FUA NV Command Processing Intervals", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.cacheMemoryStatisticsSupported)
     {
         printf("\n---Cache Memory Statistics---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.readCacheMemoryHits, "Read Cache Memory Hits", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readsToCacheMemory, "Reads To Cache Memory", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeCacheMemoryHits, "Write Cache Memory Hits", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writesFromCacheMemory, "Writes From Cache Memory", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.timeFromLastHardReset, "Last Hard Reset Intervals", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.readCacheMemoryHits, "Read Cache Memory Hits", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readsToCacheMemory, "Reads To Cache Memory", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeCacheMemoryHits, "Write Cache Memory Hits", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writesFromCacheMemory, "Writes From Cache Memory", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.timeFromLastHardReset, "Last Hard Reset Intervals", M_NULLPTR);
         print_SCSI_Time_Interval_Statistic(deviceStats->sasStatistics.cacheTimeInterval, "Cache Memory Time Interval");
     }
     if (deviceStats->sasStatistics.timeStampSupported)
@@ -8190,18 +8203,18 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
     if (deviceStats->sasStatistics.zonedDeviceStatisticsSupported)
     {
         printf("\n---Zoned Device Statistics---\n");
-        print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.zonesEmptied, "Zones Emptied", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", NULL);
-        print_Count_Statistic(deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones, "Maximum Implicitly Open Sequential Or Before Required Zones", NULL);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumImplicitlyOpenZones, "Maximum Implicitly Open Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.minimumEmptyZones, "Minumum Empty Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maximumNonSequentialZones, "Maximum Non-sequential Zones", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.zonesEmptied, "Zones Emptied", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.suboptimalWriteCommands, "Suboptimal Write Commands", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.commandsExceedingOptimalLimit, "Commands Exceeding Optimal Limit", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.failedExplicitOpens, "Failed Explicit Opens", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.readRuleViolations, "Read Rule Violations", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.writeRuleViolations, "Write Rule Violations", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sasStatistics.maxImplicitlyOpenSeqOrBeforeReqZones, "Maximum Implicitly Open Sequential Or Before Required Zones", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.protocolSpecificStatisticsSupported)
     {
@@ -8219,10 +8232,10 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
                         if (deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].sasPhyStatsValid)
                         {
                             printf("\t--Port %" PRIu16 " - Phy %" PRIu16 "--\n", deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].portID, deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyID);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].invalidDWORDCount, "Invalid Dword Count", NULL);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].runningDisparityErrorCount, "Running Disparit Error Count", NULL);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].lossOfDWORDSynchronizationCount, "Loss of Dword Snchronization Count", NULL);
-                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyResetProblemCount, "Phy Reset Problem Count", NULL);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].invalidDWORDCount, "Invalid Dword Count", M_NULLPTR);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].runningDisparityErrorCount, "Running Disparit Error Count", M_NULLPTR);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].lossOfDWORDSynchronizationCount, "Loss of Dword Snchronization Count", M_NULLPTR);
+                            print_Count_Statistic(deviceStats->sasStatistics.sasProtStats.sasStatsPerPort[portIter].perPhy[phyIter].phyResetProblemCount, "Phy Reset Problem Count", M_NULLPTR);
                         }
                     }
                 }
@@ -8232,9 +8245,9 @@ static int print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice *device, ptrDeviceS
     return ret;
 }
 
-int print_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
+eReturnValues print_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (!deviceStats)
     {
         return MEMORY_FAILURE;

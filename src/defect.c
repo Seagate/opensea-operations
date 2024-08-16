@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -12,11 +13,26 @@
 // \file defect.h
 // \brief This file defines the functions for creating and reading defect information
 
-#include "defect.h"
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "prng.h"
 
-int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects)
+#include "defect.h"
+#include "smart.h"
+#include "logs.h"
+#include "dst.h"
+
+eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool primaryList, scsiDefectList **defects)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     if (defects)
     {
         bool tenByte = false;
@@ -26,9 +42,9 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         uint16_t generationCode = 0;
         uint8_t returnedDefectListFormat = UINT8_MAX;
         uint32_t dataLength = 8;
-        uint8_t *defectData = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *defectData = C_CAST(uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint32_t defectListLength = 0;
-        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)) == SUCCESS)
+        if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), 0, dataLength, defectData)) == SUCCESS)
         {
             gotDefectData = true;
             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
@@ -40,7 +56,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
         else
         {
             dataLength = 4;
-            ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, C_CAST(uint16_t, dataLength), defectData);
+            ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), C_CAST(uint16_t, dataLength), defectData);
             if (ret == SUCCESS)
             {
                 tenByte = true;
@@ -80,7 +96,6 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     break;
                 case AD_VENDOR_SPECIFIC:
                 case AD_RESERVED:
-                    //TODO: should we just return the raw data in an array?
                     ret = BAD_PARAMETER;
                     break;
                 }
@@ -94,12 +109,12 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                         {
                             dataLength = UINT16_MAX; //we cannot pull more than this with this command. - TJE
                         }
-                        uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
+                        uint8_t *temp = C_CAST(uint8_t*, safe_realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
                         if (temp)
                         {
                             defectData = temp;
                             memset(defectData, 0, dataLength);
-                            if (SUCCESS == (ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, defectListFormat, C_CAST(uint16_t, dataLength), defectData)))
+                            if (SUCCESS == (ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), C_CAST(uint16_t, dataLength), defectData)))
                             {
                                 uint32_t offset = 4;
                                 defectListLength = M_BytesTo2ByteValue(defectData[2], defectData[3]);
@@ -107,7 +122,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                 listHasGrownDescriptors = defectData[1] & BIT3;
                                 returnedDefectListFormat = M_GETBITRANGE(defectData[1], 2, 0);
                                 //now allocate our list to return to the caller!
-                                *defects = C_CAST(ptrSCSIDefectList, malloc(sizeof(scsiDefectList) + defectAlloc));
+                                *defects = C_CAST(ptrSCSIDefectList, safe_malloc(sizeof(scsiDefectList) + defectAlloc));
                                 if (*defects)
                                 {
                                     ptrSCSIDefectList ptrDefects = *defects;
@@ -181,7 +196,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                     {
                         bool multipleCommandsSupported = false;
                         //possibly multiple commands (if address descriptor index is supported in the command...added in SBC3)
-                        uint8_t reportOPCodeSupport[16] = { 0 };
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, reportOPCodeSupport, 16);
                         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE, READ_DEFECT_DATA_12_CMD, 0, 16, reportOPCodeSupport))
                         {
                             //skipping the support data since we shouldn't be this far if the command isn't supported!
@@ -191,7 +206,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                 multipleCommandsSupported = true;
                                 //before we say this works, we need to do one more test due to some drive firmware bugs
                                 //try setting the offset to the end of the element list and see what the reported defect length is. If it is zero, then this is supported, otherwise it's a firmware bug reporting incorrectly
-                                if (SUCCESS == scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, numberOfElements + 1, dataLength, defectData))
+                                if (SUCCESS == scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), numberOfElements + 1, dataLength, defectData))
                                 {
                                     //If this reported length is less than the saved list length we already have, then this is responding to the index properly, and is therefore supported.
                                     if (M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]) < defectListLength)
@@ -209,12 +224,12 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                         {
                             //read the list in multiple commands! Do this in 64k chunks.
                             dataLength = 65536;//this is 64k
-                            uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
+                            uint8_t *temp = C_CAST(uint8_t*, safe_realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
                             if (temp)
                             {
                                 defectData = temp;
                                 memset(defectData, 0, dataLength);
-                                *defects = C_CAST(ptrSCSIDefectList, malloc(sizeof(scsiDefectList) + defectAlloc));
+                                *defects = C_CAST(ptrSCSIDefectList, safe_malloc(sizeof(scsiDefectList) + defectAlloc));
                                 if (*defects)
                                 {
                                     uint32_t elementNumber = 0;
@@ -229,7 +244,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
                                         memset(defectData, 0, dataLength);
-                                        if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, elementNumber * increment, dataLength, defectData)))
+                                        if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), elementNumber * increment, dataLength, defectData)))
                                         {
                                             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
                                             listHasPrimaryDescriptors = defectData[1] & BIT4;
@@ -330,12 +345,12 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                             {
                                 dataLength += defectListLength;
                             }
-                            uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
+                            uint8_t *temp = C_CAST(uint8_t*, safe_realloc_aligned(defectData, 0, dataLength, device->os_info.minimumAlignment));
                             if (temp)
                             {
                                 defectData = temp;
                                 memset(defectData, 0, dataLength);
-                                if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, defectListFormat, 0, dataLength, defectData)))
+                                if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), 0, dataLength, defectData)))
                                 {
                                     uint32_t offset = 8;
                                     defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
@@ -344,7 +359,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                                     returnedDefectListFormat = M_GETBITRANGE(defectData[1], 2, 0);
                                     generationCode = M_BytesTo2ByteValue(defectData[2], defectData[3]);
                                     //now allocate our list to return to the caller!
-                                    *defects = C_CAST(ptrSCSIDefectList, malloc(sizeof(scsiDefectList) + defectAlloc));
+                                    *defects = C_CAST(ptrSCSIDefectList, safe_malloc(sizeof(scsiDefectList) + defectAlloc));
                                     if (*defects)
                                     {
                                         ptrSCSIDefectList ptrDefects = *defects;
@@ -420,7 +435,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
             else
             {
                 //defect list length is zero, so we don't have anything else to do but allocate the struct and populate the data, then return it
-                *defects = C_CAST(ptrSCSIDefectList, calloc(1, sizeof(scsiDefectList)));
+                *defects = C_CAST(ptrSCSIDefectList, safe_calloc(1, sizeof(scsiDefectList)));
                 if (*defects)
                 {
                     ptrSCSIDefectList temp = *defects;
@@ -438,7 +453,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
                 }
             }
         }
-        safe_Free_aligned(defectData)
+        safe_Free_aligned(C_CAST(void**, &defectData));
     }
     else
     {
@@ -449,7 +464,7 @@ int get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListForm
 
 void free_Defect_List(scsiDefectList **defects)
 {
-    safe_Free(*defects)
+    safe_Free(C_CAST(void**, defects));
 }
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
@@ -603,7 +618,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
                     }
                     if (switchMultiOff)
                     {
-                        multiBit = false; 
+                        multiBit = false;
                         printf("------------------------------\n");
                     }
                 }
@@ -643,11 +658,11 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
     }
 }
 
-int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData)
+eReturnValues create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, bool readUncorrectables, bool flaggedErrors, custom_Update updateFunction, void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint16_t iterator = 0;
-    seed_64(time(NULL));//start the random number generator
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
@@ -670,9 +685,9 @@ int create_Random_Uncorrectables(tDevice *device, uint16_t numberOfRandomLBAs, b
     return ret;
 }
 
-int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
+eReturnValues create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, bool readUncorrectables, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t iterator = 0;
     bool wue = is_Write_Psuedo_Uncorrectable_Supported(device);
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
@@ -709,7 +724,7 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
         if (readUncorrectables)
         {
             size_t dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, logicalPerPhysicalSectors);
-            uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!dataBuf)
             {
                 return MEMORY_FAILURE;
@@ -721,15 +736,15 @@ int create_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range,
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
         }
     }
     return ret;
 }
 
-int flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
+eReturnValues flag_Uncorrectables(tDevice *device, uint64_t startingLBA, uint64_t range, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t iterator = 0;
     if (is_Write_Flagged_Uncorrectable_Supported(device))
     {
@@ -776,7 +791,7 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
         bool reportSuccess = false;
         //Trying to use report supported operation codes/inquiry cmdDT first on the read long command. 
         //Using read long since it was removed in latest specs, so if it is not supported, then we know write long won't work unless using the write uncorrectable bit.
-        uint8_t commandSupportInformation[30] = { 0 };//should be more than big enough
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, commandSupportInformation, 30);//should be more than big enough
         uint8_t operationCode = READ_LONG_10;
         uint32_t dataLength = 10;
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
@@ -829,14 +844,14 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
             //try issuing a read long command with no data transfer and see if it's treated as an error or not.
             if (device->drive_info.deviceMaxLba > UINT32_MAX)
             {
-                if (SUCCESS == scsi_Read_Long_16(device, false, false, 0, 0, NULL))
+                if (SUCCESS == scsi_Read_Long_16(device, false, false, 0, 0, M_NULLPTR))
                 {
                     supported = true;
                 }
             }
             else
             {
-                if (SUCCESS == scsi_Read_Long_10(device, false, false, 0, 0, NULL))
+                if (SUCCESS == scsi_Read_Long_10(device, false, false, 0, 0, M_NULLPTR))
                 {
                     supported = true;
                 }
@@ -846,9 +861,9 @@ bool is_Read_Long_Write_Long_Supported(tDevice *device)
     return supported;
 }
 
-int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
+eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     bool multipleLogicalPerPhysical = false;//used to set the physical block bit when applicable
     uint16_t logicalPerPhysicalBlocks = C_CAST(uint16_t, (device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize));
     if (logicalPerPhysicalBlocks > 1)
@@ -870,7 +885,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             uint16_t numberOfECCCRCBytes = 0;
             uint16_t numberOfBlocksRequested = 0;
             uint32_t dataSize = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
-            uint8_t *data = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *data = C_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!data)
             {
                 return MEMORY_FAILURE;
@@ -878,7 +893,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_READ_LONG, corruptLBA, data, dataSize, &numberOfECCCRCBytes, &numberOfBlocksRequested);
             if (ret == SUCCESS)
             {
-                //seed_64(time(NULL));
+                //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                 //modify the user data to cause a uncorrectable error
                 for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                 {
@@ -890,9 +905,9 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     dataSize = LEGACY_DRIVE_SEC_SIZE * numberOfBlocksRequested;
                 }
                 //now write back the data with a write long command
-                ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, NULL, NULL);
+                ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, M_NULLPTR, M_NULLPTR);
             }
-            safe_Free_aligned(data)
+            safe_Free_aligned(C_CAST(void**, &data));
         }
         else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word022) && corruptLBA < MAX_28_BIT_LBA)/*a value of zero may be valid on really old drives which otherwise accept this command, but this should be ok for now*/
         {
@@ -906,7 +921,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
             }
             uint32_t dataSize = device->drive_info.deviceBlockSize + device->drive_info.IdentifyData.ata.Word022;
-            uint8_t *data = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *data = C_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!data)
             {
                 return MEMORY_FAILURE;
@@ -924,7 +939,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
                     if (ret == SUCCESS)
                     {
-                        //seed_64(time(NULL));
+                        //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                         //modify the user data to cause a uncorrectable error
                         for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                         {
@@ -943,7 +958,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 ret = ata_Legacy_Read_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
                 if (ret == SUCCESS)
                 {
-                    //seed_64(time(NULL));
+                    //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
                     {
@@ -960,7 +975,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                     setFeaturesToChangeECCBytes = false;
                 }
             }
-            safe_Free_aligned(data)
+            safe_Free_aligned(C_CAST(void**, &data));
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -968,7 +983,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         senseDataFields senseFields;
         memset(&senseFields, 0, sizeof(senseDataFields));
         uint16_t dataLength = C_CAST(uint16_t, device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks);//start with this size for now...
-        uint8_t *dataBuffer = C_CAST(uint8_t*, calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *dataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
         {
             ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
@@ -990,7 +1005,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
             {
                 dataLength += C_CAST(uint16_t, M_2sCOMPLEMENT(senseFields.descriptorInformation));//length different is a twos compliment value since we requested less than is available.
             }
-            uint8_t *temp = C_CAST(uint8_t*, realloc_aligned(dataBuffer, 0, dataLength, device->os_info.minimumAlignment));
+            uint8_t *temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuffer, 0, dataLength, device->os_info.minimumAlignment));
             if (temp)
             {
                 dataBuffer = temp;
@@ -1009,7 +1024,7 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
                 }
                 else
                 {
-                    //seed_64(time(NULL));
+                    //seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                     //modify the user data to cause a uncorrectable error
                     for (uint32_t iter = 0; iter < numberOfBytesToCorrupt && iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1); ++iter)
                     {
@@ -1036,14 +1051,14 @@ int corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t n
         {
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(dataBuffer)
+        safe_Free_aligned(C_CAST(void**, &dataBuffer));
     }
     return ret;
 }
 
-int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
+eReturnValues corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, M_ATTR_UNUSED custom_Update updateFunction, M_ATTR_UNUSED void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t iterator = 0;
     bool readWriteLong = is_Read_Long_Write_Long_Supported(device);
     uint16_t logicalPerPhysicalSectors = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
@@ -1075,7 +1090,7 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
         if (readCorruptedLBAs)
         {
             size_t dataBufSize = C_CAST(size_t, device->drive_info.deviceBlockSize) * C_CAST(size_t, logicalPerPhysicalSectors);
-            uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t *dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!dataBuf)
             {
                 return MEMORY_FAILURE;
@@ -1087,17 +1102,17 @@ int corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool rea
             }
             read_LBA(device, iterator, false, dataBuf, logicalPerPhysicalSectors * device->drive_info.deviceBlockSize);
             //scsi_Read_16(device, 0, false, false, false, iterator, 0, logicalPerPhysicalSectors, dataBuf);
-            safe_Free_aligned(dataBuf)
+            safe_Free_aligned(C_CAST(void**, &dataBuf));
         }
     }
     return ret;
 }
 
-int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
+eReturnValues corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint16_t iterator = 0;
-    seed_64(time(NULL));//start the random number generator
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR)));//start the random number generator
     for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
     {
         uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
@@ -1108,6 +1123,300 @@ int corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readC
         if (ret != SUCCESS)
         {
             break;
+        }
+    }
+    return ret;
+}
+
+eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfDefects = 0;//set to zero since it will be incremented as we read in the bad LBAs
+    uint32_t totalPendingReported = 0;
+    bool validPendingReportedCount = false;
+    if (SUCCESS == get_Pending_List_Count(device, &totalPendingReported))//This is useful so we know whether or not to bother reading the log
+    {
+        validPendingReportedCount = true;
+        ret = SUCCESS;//change this to SUCCESS since we know we will get a valid count & list before we read it
+    }
+    if (totalPendingReported > 0 && validPendingReportedCount)
+    {
+        uint32_t pendingLogSize = 0;
+        get_SCSI_Log_Size(device, LP_PENDING_DEFECTS, 0x01, &pendingLogSize);
+        if (pendingLogSize > 0)
+        {
+            uint8_t* pendingDefectsLog = C_CAST(uint8_t*, safe_calloc_aligned(pendingLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!pendingDefectsLog)
+            {
+                return MEMORY_FAILURE;
+            }
+            if (SUCCESS == get_SCSI_Log(device, LP_PENDING_DEFECTS, 0x01, M_NULLPTR, M_NULLPTR, true, pendingDefectsLog, pendingLogSize, M_NULLPTR))
+            {
+                //First, validate that we got the right SCSI log page...I've seen some USB devices ignore the subpage code and return the wrong data. - TJE
+                if (M_GETBITRANGE(pendingDefectsLog[0], 5, 0) == 0x15 && pendingDefectsLog[0] & BIT6 && pendingDefectsLog[1] == 0x01)
+                {
+                    uint16_t pageLength = M_BytesTo2ByteValue(pendingDefectsLog[2], pendingDefectsLog[3]);//does not include 4 byte header!
+                    if (pageLength > 4)
+                    {
+                        uint32_t pendingDefectCount = 1;//will be set in loop shortly...but use this for now to enter the loop
+                        uint8_t parameterLength = 0;
+                        uint32_t offset = LOG_PAGE_HEADER_LENGTH;//setting to this so we start with the first parameter we are given...which should be zero
+                        for (uint32_t defectCounter = 0; offset < C_CAST(uint32_t, C_CAST(uint32_t, pageLength) + LOG_PAGE_HEADER_LENGTH) && defectCounter < pendingDefectCount; offset += (parameterLength + 4))
+                        {
+                            uint16_t parameterCode = M_BytesTo2ByteValue(pendingDefectsLog[offset + 0], pendingDefectsLog[offset + 1]);
+                            parameterLength = pendingDefectsLog[offset + 3];//does not include 4 byte header. The increment in the loop takes this into account
+                            if (parameterCode == 0)
+                            {
+                                //this is the total count in the log
+                                pendingDefectCount = M_BytesTo4ByteValue(pendingDefectsLog[offset + 4], pendingDefectsLog[offset + 5], pendingDefectsLog[offset + 6], pendingDefectsLog[offset + 7]);
+                            }
+                            else if (parameterCode >= 0x0001 && parameterCode <= 0xF000)
+                            {
+                                //this is a pending defect entry
+                                defectList[defectCounter].powerOnHours = M_BytesTo4ByteValue(pendingDefectsLog[offset + 4], pendingDefectsLog[offset + 5], pendingDefectsLog[offset + 6], pendingDefectsLog[offset + 7]);
+                                defectList[defectCounter].lba = M_BytesTo8ByteValue(pendingDefectsLog[offset + 8], pendingDefectsLog[offset + 9], pendingDefectsLog[offset + 10], pendingDefectsLog[offset + 11], pendingDefectsLog[offset + 12], pendingDefectsLog[offset + 13], pendingDefectsLog[offset + 14], pendingDefectsLog[offset + 15]);
+                                ++defectCounter;
+                                ++(*numberOfDefects);
+                            }
+                            else
+                            {
+                                //all other parameters are reserved, so exit
+                                break;
+                            }
+                        }
+                        ret = SUCCESS;
+                    }
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            safe_Free_aligned(C_CAST(void**, &pendingDefectsLog));
+        }
+    }
+    return ret;
+}
+
+eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfDefects = 0;//set to zero since it will be incremented as we read in the bad LBAs
+    uint32_t totalPendingReported = 0;
+    bool validPendingReportedCount = false;
+    if (SUCCESS == get_Pending_List_Count(device, &totalPendingReported))//This is useful so we know whether or not to bother reading the log
+    {
+        validPendingReportedCount = true;
+        ret = SUCCESS;//change this to SUCCESS since we know we will get a valid count & list before we read it
+    }
+    if ((totalPendingReported > 0 && validPendingReportedCount) || !validPendingReportedCount)//if we got a valid count and a number greater than zero, we read the list. If we didn't get a valid count, then we still read the list...this may be an optimization in some cases
+    {
+        //Check if the ACS pending log is supported and use that INSTEAD of the Seagate log...always use std spec when we can
+        uint32_t pendingLogSize = 0;
+        get_ATA_Log_Size(device, ATA_LOG_PENDING_DEFECTS_LOG, &pendingLogSize, true, false);
+        if (pendingLogSize > 0)
+        {
+            //ACS Pending List
+            uint8_t* pendingList = C_CAST(uint8_t*, safe_calloc_aligned(pendingLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!pendingList)
+            {
+                return MEMORY_FAILURE;
+            }
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, M_NULLPTR, M_NULLPTR, true, false, true, pendingList, pendingLogSize, M_NULLPTR, 0, 0))
+            {
+                uint32_t numberOfDescriptors = M_BytesTo4ByteValue(pendingList[3], pendingList[2], pendingList[1], pendingList[0]);
+                for (uint32_t descriptorIter = 0, offset = 16; descriptorIter < numberOfDescriptors && offset < pendingLogSize; ++descriptorIter, offset += 16, ++(*numberOfDefects))
+                {
+                    defectList[*numberOfDefects].powerOnHours = M_BytesTo4ByteValue(pendingList[3 + offset], pendingList[2 + offset], pendingList[1 + offset], pendingList[0 + offset]);
+                    defectList[*numberOfDefects].lba = M_BytesTo8ByteValue(pendingList[15 + offset], pendingList[14 + offset], pendingList[13 + offset], pendingList[12 + offset], pendingList[11 + offset], pendingList[10 + offset], pendingList[9 + offset], pendingList[8 + offset]);
+                }
+                ret = SUCCESS;
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            safe_Free_aligned(C_CAST(void**, &pendingList));
+        }
+    }
+    return ret;
+}
+
+
+eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        return get_LBAs_From_ATA_Pending_List(device, defectList, numberOfDefects);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        return get_LBAs_From_SCSI_Pending_List(device, defectList, numberOfDefects);
+    }
+    return NOT_SUPPORTED;
+}
+
+void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList)
+{
+    printf("Pending Defects:\n");
+    printf("================\n");
+    if (numberOfItemsInPendingList > 0)
+    {
+        printf(" #\tLBA\t\t\tTimestamp\n");
+        for (uint32_t pendingListIter = 0; pendingListIter < numberOfItemsInPendingList; ++pendingListIter)
+        {
+            printf("%" PRIu32 "\t%" PRIu64 "\t\t\t%" PRIu32 "\n", pendingListIter, pendingList[pendingListIter].lba, pendingList[pendingListIter].powerOnHours);
+        }
+    }
+    else
+    {
+        printf("No items in pending defect list.\n");
+    }
+}
+
+eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (!results || !numberOfResults)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfResults = 0;
+    uint32_t backgroundScanResultsLength = 0;
+    if (SUCCESS == get_SCSI_Log_Size(device, LP_BACKGROUND_SCAN_RESULTS, 0, &backgroundScanResultsLength))
+    {
+        if (backgroundScanResultsLength > 0)
+        {
+            //now allocate memory and read it
+            uint8_t* backgroundScanResults = C_CAST(uint8_t*, safe_calloc_aligned(backgroundScanResultsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (!backgroundScanResults)
+            {
+                return MEMORY_FAILURE;
+            }
+            if (SUCCESS == get_SCSI_Log(device, LP_BACKGROUND_SCAN_RESULTS, 0, M_NULLPTR, M_NULLPTR, true, backgroundScanResults, backgroundScanResultsLength, M_NULLPTR))
+            {
+                uint16_t parameterCode = 0;
+                uint8_t parameterLength = 0;
+                for (uint32_t offset = LOG_PAGE_HEADER_LENGTH; offset < backgroundScanResultsLength && *numberOfResults < MAX_BACKGROUND_SCAN_RESULTS; offset += parameterLength + LOG_PAGE_HEADER_LENGTH)
+                {
+                    parameterCode = M_BytesTo2ByteValue(backgroundScanResults[offset + 0], backgroundScanResults[offset + 1]);
+                    parameterLength = backgroundScanResults[offset + 3];
+                    if (parameterCode == 0)
+                    {
+                        //status parameter...don't need anything from here right now
+                        continue;
+                    }
+                    else if (parameterCode >= 0x0001 && parameterCode <= 0x0800)
+                    {
+                        //result entry.
+                        results[*numberOfResults].accumulatedPowerOnMinutes = M_BytesTo4ByteValue(backgroundScanResults[offset + 4], backgroundScanResults[offset + 5], backgroundScanResults[offset + 6], backgroundScanResults[offset + 7]);
+                        results[*numberOfResults].lba = M_BytesTo8ByteValue(backgroundScanResults[offset + 16], backgroundScanResults[offset + 17], backgroundScanResults[offset + 18], backgroundScanResults[offset + 19], backgroundScanResults[offset + 20], backgroundScanResults[offset + 21], backgroundScanResults[offset + 22], backgroundScanResults[offset + 23]);
+                        results[*numberOfResults].reassignStatus = M_Nibble1(backgroundScanResults[offset + 8]);
+                        results[*numberOfResults].senseKey = M_Nibble0(backgroundScanResults[offset + 8]);
+                        results[*numberOfResults].additionalSenseCode = backgroundScanResults[offset + 9];
+                        results[*numberOfResults].additionalSenseCodeQualifier = backgroundScanResults[offset + 10];
+                        ++(*numberOfResults);
+                    }
+                    else
+                    {
+                        //reserved or vendor specific parameter...just exit
+                        break;
+                    }
+                }
+                ret = SUCCESS;
+            }
+            else
+            {
+                ret = FAILURE;
+            }
+            safe_Free_aligned(C_CAST(void**, &backgroundScanResults));
+        }
+    }
+    return ret;
+}
+
+eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        return ret;
+    }
+    *numberOfDefects = 0;
+    ptrBackgroundResults bmsResults = C_CAST(ptrBackgroundResults, safe_malloc(sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS));
+    if (!bmsResults)
+    {
+        return MEMORY_FAILURE;
+    }
+    memset(bmsResults, 0, sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS);
+    uint16_t numberOfBMSResults = 0;
+    ret = get_SCSI_Background_Scan_Results(device, bmsResults, &numberOfBMSResults);
+    if (ret == SUCCESS)
+    {
+        for (uint16_t bmsIter = 0; bmsIter < numberOfBMSResults; ++bmsIter)
+        {
+            defectList[*numberOfDefects].lba = bmsResults[bmsIter].lba;
+            defectList[*numberOfDefects].powerOnHours = C_CAST(uint32_t, bmsResults[bmsIter].accumulatedPowerOnMinutes / UINT64_C(60));
+            ++(*numberOfDefects);
+        }
+    }
+    safe_Free(C_CAST(void**, &bmsResults));
+    return ret;
+}
+
+//Defect list for this should be at least MAX_DST_ENTRIES in size
+eReturnValues get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (!defectList || !numberOfDefects)
+    {
+        return BAD_PARAMETER;
+    }
+    *numberOfDefects = 0;
+    dstLogEntries dstEntries;
+    memset(&dstEntries, 0, sizeof(dstLogEntries));
+    ret = get_DST_Log_Entries(device, &dstEntries);
+    if (ret == SUCCESS)
+    {
+        //Got the DST log entries, so we need to find error LBAs from read element failures to add that to the list
+        for (uint8_t dstIter = 0; dstIter < dstEntries.numberOfEntries; ++dstIter)
+        {
+            if (dstEntries.dstEntry[dstIter].descriptorValid)
+            {
+                switch (M_Nibble1(dstEntries.dstEntry[dstIter].selfTestExecutionStatus))
+                {
+                case 0x07://read element failure
+                    defectList[*numberOfDefects].lba = dstEntries.dstEntry[dstIter].lbaOfFailure;
+                    if (dstEntries.dstEntry[dstIter].lifetimeTimestamp > UINT32_MAX)
+                    {
+                        defectList[*numberOfDefects].powerOnHours = UINT32_MAX;
+                    }
+                    else
+                    {
+                        defectList[*numberOfDefects].powerOnHours = C_CAST(uint32_t, dstEntries.dstEntry[dstIter].lifetimeTimestamp);
+                    }
+                    ++(*numberOfDefects);
+                    break;
+                default:
+                    break;
+                }
+            }
         }
     }
     return ret;

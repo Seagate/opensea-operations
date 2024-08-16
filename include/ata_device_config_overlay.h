@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -28,7 +29,7 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = file descriptor
-    //!   \param[out] dmaSupport = DMA mode DCO commands are supported by the device. This is optional. NULL can be passed for this parameter.
+    //!   \param[out] dmaSupport = DMA mode DCO commands are supported by the device. This is optional. M_NULLPTR can be passed for this parameter.
     //!
     //  Exit:
     //!   \return true = supported, false = not supported
@@ -38,7 +39,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Restore(tDevice* device)
+    //  eReturnValues dco_Restore(tDevice* device)
     //
     //! \brief   Description:  Issue the DCO restore command. NOTE: This will only succeed if no HPA is established and not DCO frozen
     //
@@ -49,11 +50,11 @@ extern "C"
     //!   \return SUCCESS = successfully restored DCO features, FROZEN = DCO is frozen and cannot be restored, FAILURE = Error issuing command or HPA is established
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Restore(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Restore(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Freeze_Lock(tDevice* device)
+    //  eReturnValues dco_Freeze_Lock(tDevice* device)
     //
     //! \brief   Description:  Issue the DCO freeze lock command to block other DCO commands from processing
     //
@@ -64,7 +65,7 @@ extern "C"
     //!   \return SUCCESS = successfully froze DCO feature, FAILURE/ABORTED = command aborted by the device for some unknown reason.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Freeze_Lock(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Freeze_Lock(tDevice* device);
 
     //NOTE: This structure only supports the few words defined in the ACS and ACS-2 specs.
     //      Since many were reserved, those are not supported in here at this time.
@@ -127,11 +128,11 @@ extern "C"
             bool extendedPowerConditions;//EPC
         }feat2;
         bool validChecksum;//ident only. Recalculated for set
-    }dcoData, * ptrDcoData;
+    }dcoData, *ptrDcoData;
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Identify(tDevice* device, ptrDcoData data)
+    //  eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
     //
     //! \brief   Description:  Issue DCO identify and populate the output data structure. The output data indicated which features can be changed/disabled/blocked
     //
@@ -143,7 +144,7 @@ extern "C"
     //!   \return SUCCESS = successfully identified DCO chagable fields, FROZEN = device is DCO frozen FAILURE/ABORTED = command aborted by the device. Possible HPA feature error due to HPA established
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Identify(tDevice* device, ptrDcoData data);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Identify(tDevice* device, ptrDcoData data);
 
     //-----------------------------------------------------------------------------
     //
@@ -161,7 +162,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  int dco_Set(tDevice* device, ptrDcoData data)
+    //  eReturnValues dco_Set(tDevice* device, ptrDcoData data)
     //
     //! \brief   Description: Takes the DCO data structure and turns and fields set to "false" to 0's in the data to disable the feature. 
     //!          Anything left as "true" is left as-is when sent to the device.
@@ -177,7 +178,7 @@ extern "C"
     //    \return SUCCESS = successfully changed features with DCO, FROZEN = DCO is frozen and cannot be changed, ABORTED/FAILURE = command aborted. Possible HPA established blocking DCO command from completing.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int dco_Set(tDevice* device, ptrDcoData data);
+    OPENSEA_OPERATIONS_API eReturnValues dco_Set(tDevice* device, ptrDcoData data);
 
 
 #if defined (__cplusplus)
