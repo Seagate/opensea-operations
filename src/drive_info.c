@@ -3083,6 +3083,7 @@ static int get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_SATA driveI
         {
             return MEMORY_FAILURE;
         }
+        bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
         //some devices (external) don't support VPD pages or may have issue when trying to read them, so check if this hack is set before attempting to read them
         if ((!device->drive_info.passThroughHacks.scsiHacks.noVPDPages || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) && (scsiInfo->version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)) //VPD pages indroduced in SCSI 2...also a USB hack
         {
