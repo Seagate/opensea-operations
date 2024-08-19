@@ -428,6 +428,8 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
     return;
 }
 
+#define GPT_SIGNATURE_STR_LEN 9
+
 static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -441,8 +443,9 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
             gptHeaderOffset = gptDataSize - device->drive_info.deviceBlockSize;
         }
 
-        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, 9);
+        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN);
         memcpy(gptSignature, &gptDataBuf[gptHeaderOffset], 8);
+        gptSignature[GPT_SIGNATURE_STR_LEN - 1] = '\0';
         if (strcmp(gptSignature, "EFI PART") == 0)
         {
             ret = SUCCESS;
