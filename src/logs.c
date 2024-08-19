@@ -1630,7 +1630,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                if (!toBuffer)
+                if (!toBuffer && fp_log)
                 {
                     printf("\nBinary log saved to: %s\n", fp_log->fullpath);
                 }
