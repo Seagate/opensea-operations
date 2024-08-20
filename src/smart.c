@@ -100,7 +100,7 @@ eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                 }
             }
         }
-        safe_Free_aligned(C_CAST(void**, &ATAdataBuffer));
+        safe_free_aligned(&ATAdataBuffer);
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -1150,7 +1150,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
     printf("%% - attribute is currently issuing a warning (thresholds required)\n");
     printf("~ - attribute has previously warned about its condition (thresholds required)\n");
     printf("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
-    safe_Free(C_CAST(void**, &attributeName));
+    safe_free(&attributeName);
 }
 
 //returns UINT64_MAX when you specify invalid RAW data offsets.
@@ -1753,7 +1753,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
         printf("WARNING: Interpretation of RAW data has not been verified on this device/firmware.\n");
         printf("         Product manuals and/or specifications are required for full data verification.\n");
     }
-    safe_Free(C_CAST(void**, &attributeName));
+    safe_free(&attributeName);
 }
 
 static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartData)
@@ -2211,7 +2211,7 @@ static void print_Analyzed_ATA_Attributes(tDevice *device, smartLogData *smartDa
             }
         }
     }
-    safe_Free(C_CAST(void**, &attributeName));
+    safe_free(&attributeName);
     return;
 }
 
@@ -2573,7 +2573,7 @@ eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenFailedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
-                                    safe_Free(C_CAST(void**, &attributeName));
+                                    safe_free(&attributeName);
                                 }
                                 break;
                             }
@@ -2617,7 +2617,7 @@ eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                                         snprintf(tripInfo->reasonString, UINT8_MAX, "Attribute %" PRIu8 " is warning! %s Value %" PRIu8 " below Threshold %" PRIu8 "", tripInfo->ataAttribute.attributeNumber, whenWarnedStr, fromWorst ? tripInfo->ataAttribute.worstValue : tripInfo->ataAttribute.nominalValue, tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
-                                    safe_Free(C_CAST(void**, &attributeName));
+                                    safe_free(&attributeName);
                                 }
                             }
                         }
@@ -3010,7 +3010,7 @@ eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
                 ret = UNKNOWN;
             }
         }
-        safe_Free_aligned(C_CAST(void**, &senseData));
+        safe_free_aligned(&senseData);
     }
     if (temporarilyEnableMRIEMode6)
     {
@@ -3163,7 +3163,7 @@ bool is_SMART_Enabled(tDevice *device)
                 enabled = true;
             }
         }
-        safe_Free_aligned(C_CAST(void**, &infoExceptionsControl));
+        safe_free_aligned(&infoExceptionsControl);
     }
     break;
     default:
@@ -3773,7 +3773,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModeP
                     logData->mostRecentTemperatureReading = infoLogPage[10];
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &infoLogPage));
+            safe_free_aligned(&infoLogPage);
         }
     }
     //read the mode page
@@ -3813,7 +3813,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModeP
                 controlData->reportCount = M_BytesTo4ByteValue(infoControlPage[headerLength + 8], infoControlPage[headerLength + 9], infoControlPage[headerLength + 10], infoControlPage[headerLength + 11]);
             }
         }
-        safe_Free_aligned(C_CAST(void**, &infoControlPage));
+        safe_free_aligned(&infoControlPage);
     }
     return ret;
 }
@@ -3904,7 +3904,7 @@ eReturnValues set_SCSI_Informational_Exceptions_Info(tDevice *device, bool save,
     {
         ret = scsi_Mode_Select_10(device, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN, true, save, false, infoControlPage, modePageDataOffset + MP_INFORMATION_EXCEPTIONS_LEN);
     }
-    safe_Free_aligned(C_CAST(void**, &infoControlPage));
+    safe_free_aligned(&infoControlPage);
     return ret;
 }
 
@@ -4668,7 +4668,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                             uint8_t *temp = C_CAST(uint8_t*, safe_realloc_aligned(errorLog, 512, compErrLogSize * sizeof(uint8_t), device->os_info.minimumAlignment));
                             if (!temp)
                             {
-                                safe_Free_aligned(C_CAST(void**, &errorLog));
+                                safe_free_aligned(&errorLog);
                                 return MEMORY_FAILURE;
                             }
                             errorLog = temp;
@@ -4774,7 +4774,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                     {
                         ret = FAILURE;
                     }
-                    safe_Free_aligned(C_CAST(void**, &errorLog));
+                    safe_free_aligned(&errorLog);
                 }
             }
         }
@@ -7670,7 +7670,7 @@ static void get_Error_Info(uint8_t commandOpCodeThatCausedError, uint8_t command
                 if (dup)
                 {
                     snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sUnknown Error Condition (%02" PRIX8 "h)", dup, error);
-                    safe_Free(C_CAST(void**, &dup));
+                    safe_free(&dup);
                 }
             }
         }

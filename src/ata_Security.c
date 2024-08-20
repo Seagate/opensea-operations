@@ -579,7 +579,7 @@ eReturnValues set_ATA_Security_Password(tDevice *device, ataSecurityPassword ata
         ret = ata_Security_Set_Password(device, securityPassword);
     }
     explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(C_CAST(void**, &securityPassword));
+    safe_free_aligned(&securityPassword);
     return ret;
 }
 
@@ -601,7 +601,7 @@ eReturnValues disable_ATA_Security_Password(tDevice *device, ataSecurityPassword
         ret = ata_Security_Disable_Password(device, securityPassword);
     }
     explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(C_CAST(void**, &securityPassword));
+    safe_free_aligned(&securityPassword);
     return ret;
 }
 
@@ -623,7 +623,7 @@ eReturnValues unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPasswo
         ret = ata_Security_Unlock(device, securityPassword);
     }
     explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(C_CAST(void**, &securityPassword));
+    safe_free_aligned(&securityPassword);
     return ret;
 }
 
@@ -659,7 +659,7 @@ eReturnValues start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataP
         }
     }
     explicit_zeroes(securityErase, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(C_CAST(void**, &securityErase));
+    safe_free_aligned(&securityErase);
     return ret;
 }
 

@@ -167,7 +167,7 @@ eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t er
     {
         printf("\n");
     }
-    safe_Free_aligned(C_CAST(void**, &writeBuffer));
+    safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
     os_Update_File_System_Cache(device);
     return ret;
@@ -191,7 +191,7 @@ eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t erase
     }
     if (device->drive_info.deviceMaxLba == 0)
     {
-        safe_Free(C_CAST(void**, &writeBuffer));
+        safe_free(&writeBuffer);
         return NOT_SUPPORTED;
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -280,7 +280,7 @@ eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t erase
     {
         printf("\n");
     }
-    safe_Free_aligned(C_CAST(void**, &writeBuffer));
+    safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
     os_Update_File_System_Cache(device);
     return ret;
@@ -331,7 +331,7 @@ eReturnValues erase_Boot_Sectors(tDevice* device)
     {
         printf("\n");
     }
-    safe_Free_aligned(C_CAST(void**, &writeBuffer));
+    safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
     os_Update_File_System_Cache(device);
     return ret;

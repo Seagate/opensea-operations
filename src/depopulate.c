@@ -210,7 +210,7 @@ eReturnValues get_Physical_Element_Descriptors(tDevice *device, uint32_t numberO
                 }
             }
         }
-        safe_Free_aligned(C_CAST(void**, &getPhysicalElements));
+        safe_free_aligned(&getPhysicalElements);
     }
     else
     {

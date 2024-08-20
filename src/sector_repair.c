@@ -53,7 +53,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
             temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!temp)
             {
-                safe_Free_aligned(C_CAST(void**, &dataBuf));
+                safe_free_aligned(&dataBuf);
                 return MEMORY_FAILURE;
             }
             dataBuf = temp;
@@ -325,7 +325,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &dataBuf));
+    safe_free_aligned(&dataBuf);
     switch (ret)
     {
     case SUCCESS:

@@ -1223,7 +1223,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                         //else try requesting all supported OPs and parse that information??? It could be report all is supported, but other modes are not
                         else
                         {
-                            safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
+                            safe_free_aligned(&writeBufferSupportData);
                                 uint32_t reportAllOPsLength = 4;
                             uint8_t* reportAllOPs = C_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                             if (reportAllOPs)
@@ -1232,7 +1232,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                                 {
                                     //get the full length, then reallocate and reread
                                     reportAllOPsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
-                                    safe_Free_aligned(C_CAST(void**, &reportAllOPs));
+                                    safe_free_aligned(&reportAllOPs);
                                         reportAllOPs = C_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                                     if (reportAllOPs)
                                     {
@@ -1314,12 +1314,12 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                                 {
                                     supportedModes->scsiInfoPossiblyIncomplete = true;
                                 }
-                                safe_Free_aligned(C_CAST(void**, &reportAllOPs));
+                                safe_free_aligned(&reportAllOPs);
                             }
                         }
                     }
                 }
-                safe_Free_aligned(C_CAST(void**, &writeBufferSupportData));
+                safe_free_aligned(&writeBufferSupportData);
             }
             DECLARE_ZERO_INIT_ARRAY(uint8_t, offsetReq, 4);
             if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
@@ -1381,7 +1381,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                         //DO NOT turn the flag to false. It should already be false. If it was set to true, then the drive has already reported it supports this mode some other way.
                     }
                 }
-                safe_Free_aligned(C_CAST(void**, &c3VPD));
+                safe_free_aligned(&c3VPD);
             }
         }
         break;

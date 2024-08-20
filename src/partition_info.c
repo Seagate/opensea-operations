@@ -505,7 +505,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                     ret = read_LBA(device, partitionArrayLBA, false, gptPartitionArray, gptPartitionArrayDataLength);
                     if (ret != SUCCESS)
                     {
-                        safe_Free(C_CAST(void**, &gptPartitionArray));
+                        safe_free(&gptPartitionArray);
                         return FAILURE;
                     }
                 }
@@ -552,7 +552,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                 }
                 if (usedLocalPartitionBuf)
                 {
-                    safe_Free(C_CAST(void**, &gptPartitionArray));
+                    safe_free(&gptPartitionArray);
                 }
             }
         }
