@@ -1171,8 +1171,8 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
                 if (!registrations || !reservations)
                 {
                     //not sure which of these failed, but these macros should be safe to use to make sure we don't leave any memory out there
-                    safe_Free(C_CAST(void**, &registrations));
-                    safe_Free(C_CAST(void**, &reservations));
+                    safe_free_registration_key_data(&registrations);
+                    safe_free_reservation_data(&reservations);
                     return MEMORY_FAILURE;
                 }
                 registrations->size = sizeof(registrationKeysData);

@@ -366,6 +366,11 @@ extern "C"
         };
     }driveInformation, *ptrDriveInformation;
 
+    static M_INLINE void safe_free_drive_info(driveInformation **info)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, info));
+    }
+
     //-----------------------------------------------------------------------------
     //
     //  get_ATA_Drive_Information(tDevice *device, ptrDriveInformation driveInfo)

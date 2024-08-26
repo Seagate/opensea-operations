@@ -249,6 +249,11 @@ extern "C" {
         uint64_t lba;
     }pendingDefect, * ptrPendingDefect;
 
+    static M_INLINE void safe_free_pending_defect(pendingDefect **defect)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, defect));
+    }
+
     #define MAX_PLIST_ENTRIES UINT16_C(65534) //This is from ACS spec and is more than enough for SCSI
 
     OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
@@ -271,6 +276,11 @@ extern "C" {
         uint8_t additionalSenseCodeQualifier;
         uint64_t lba;
     }backgroundResults, * ptrBackgroundResults;
+
+    static M_INLINE void safe_free_background_results(backgroundResults **bg)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, bg));
+    }
 
     OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults);
 

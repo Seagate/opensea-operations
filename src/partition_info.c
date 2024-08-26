@@ -40,16 +40,16 @@ ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
         case PARTITION_TABLE_NOT_FOUND:
             break;
         case PARTITION_TABLE_MRB:
-            safe_Free(C_CAST(void**, &partInfo->mbrTable));
+            safe_free_mbrdata(&partInfo->mbrTable);
             break;
         case PARTITION_TABLE_APM:
-            safe_Free(C_CAST(void**, &partInfo->apmTable));
+            safe_free_apmdata(&partInfo->apmTable);
             break;
         case PARTITION_TABLE_GPT:
-            safe_Free(C_CAST(void**, &partInfo->gptTable));
+            safe_free_gptdata(&partInfo->gptTable);
             break;
         }
-        safe_Free(C_CAST(void**, &partInfo));
+        safe_free_partition_info(&partInfo);
     }
     return partInfo;
 }

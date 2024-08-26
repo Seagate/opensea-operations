@@ -1021,7 +1021,7 @@ eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, 
             }
         }
     }
-    safe_Free(C_CAST(void**, &errorList));
+    safe_free_error_lba(&errorList);
     return ret;
 }
 
@@ -1060,7 +1060,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
         if (!dataBuf)
         {
             perror("failed to allocate memory!\n");
-            safe_Free(C_CAST(void**, &errorList));
+            safe_free_error_lba(&errorList);
             return MEMORY_FAILURE;
         }
     }
@@ -1226,7 +1226,7 @@ eReturnValues user_Timed_Test(tDevice *device, eRWVCommandType rwvCommand, uint6
             }
         }
     }
-    safe_Free(C_CAST(void**, &errorList));
+    safe_free_error_lba(&errorList);
     return ret;
 }
 
@@ -2002,7 +2002,7 @@ eReturnValues diameter_Test_Range(tDevice *device, eRWVCommandType testMode, boo
             }
         }
     }
-    safe_Free(C_CAST(void**, &errorList));
+    safe_free_error_lba(&errorList);
     return ret;
 }
 
@@ -2304,7 +2304,7 @@ eReturnValues diameter_Test_Time(tDevice *device, eRWVCommandType testMode, bool
             }
         }
     }
-    safe_Free(C_CAST(void**, &errorList));
+    safe_free_error_lba(&errorList);
     return ret;
 }
 

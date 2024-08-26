@@ -689,7 +689,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
 
 void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
 {
-    safe_Free(C_CAST(void**, &capModelMapping));
+    safe_free_cap_mn_map(&capModelMapping);
 }
 
 void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)

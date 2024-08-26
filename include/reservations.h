@@ -12,6 +12,9 @@
 // 
 #pragma once
 
+#include "common_types.h"
+#include "type_conversion.h"
+#include "memory_safety.h"
 #include "operations_Common.h"
 
 #if defined (__cplusplus)
@@ -129,6 +132,11 @@ extern "C"
         uint64_t registrationKey[1];//This is variable sized depending on how many are requested to be read and how many are filled in when read. 
     }registrationKeysData, *ptrRegistrationKeysData;
 
+    static M_INLINE void safe_free_registration_key_data(registrationKeysData **regKeyData)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, regKeyData));
+    }
+
     OPENSEA_OPERATIONS_API eReturnValues get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrRegistrationKeysData keys);
 
     OPENSEA_OPERATIONS_API void show_Registration_Keys(ptrRegistrationKeysData keys);
@@ -154,6 +162,11 @@ extern "C"
         uint16_t numberOfReservations;//will most likely be 0 or 1 since element and extent types are obsolete.
         reservationInfo reservation[1];//variable length depending on how it was allocated. Should always be AT LEAST one of these
     }reservationsData, *ptrReservationsData;
+
+    static M_INLINE void safe_free_reservation_data(reservationsData **resData)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, resData));
+    }
 
     OPENSEA_OPERATIONS_API eReturnValues get_Reservations(tDevice *device, uint16_t numberReservations, ptrReservationsData reservations);
 
@@ -183,6 +196,11 @@ extern "C"
         uint16_t numberOfKeys;
         fullReservationKeyInfo reservationKey[1];//Variable size depending on how many will be reported by the device at a given time.
     }fullReservationInfo, *ptrFullReservationInfo;
+
+    static M_INLINE void safe_free_full_reservation_info(fullReservationInfo **resInfo)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, resInfo));
+    }
 
     OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation);
 

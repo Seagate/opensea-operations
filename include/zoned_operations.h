@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include "common_types.h"
+#include "type_conversion.h"
+#include "memory_safety.h"
 #include "operations_Common.h"
 #include "common_public.h"
 
@@ -60,6 +63,11 @@ extern "C"
         uint64_t zoneStartingLBA;
         uint64_t writePointerLBA;
     }zoneDescriptor, *ptrZoneDescriptor;
+
+    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor ** zd)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, zd));
+    }
 
     OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors);
 

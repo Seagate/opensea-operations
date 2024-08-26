@@ -68,6 +68,11 @@ extern "C" {
         bool restorationAllowed;//can run the Restore elements and rebuild and this element will return to use.
     }physicalElement, *ptrPhysicalElement;
 
+    static M_INLINE void safe_free_physical_element(physicalElement **pe)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, pe));
+    }
+
     //-----------------------------------------------------------------------------
     //
     //  get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsExpected, ptrPhysicalElement elementList)

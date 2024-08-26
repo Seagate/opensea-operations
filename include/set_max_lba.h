@@ -170,6 +170,11 @@ extern "C"
         capacityModelDescriptor descriptor[1];//NOTE: This must be allocated based on how many descriptors are actually available! ex: malloc(sizeof(capacityModelNumberMapping) + (get_capacityModelDescriptor_Count() * sizeof(capacityModelDescriptor)));
     }capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
 
+    static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping **mnmap)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, mnmap));
+    }
+
     //-----------------------------------------------------------------------------
     //
     //  is_Change_Identify_String_Supported(tDevice *device)

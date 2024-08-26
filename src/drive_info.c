@@ -8497,10 +8497,10 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
             }
         }
     }
-    safe_Free(C_CAST(void**, &ataDriveInfo));
-    safe_Free(C_CAST(void**, &scsiDriveInfo));
-    safe_Free(C_CAST(void**, &usbDriveInfo));
-    safe_Free(C_CAST(void**, &nvmeDriveInfo));
+    safe_free_drive_info(&ataDriveInfo);
+    safe_free_drive_info(&scsiDriveInfo);
+    safe_free_drive_info(&usbDriveInfo);
+    safe_free_drive_info(&nvmeDriveInfo);
     return ret;
 }
 

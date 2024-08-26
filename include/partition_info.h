@@ -80,6 +80,11 @@ extern "C"
         //MBR type unique fields?
     }mbrData, * ptrMBRData;
 
+    static M_INLINE void safe_free_mbrdata(mbrData **mbr)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, mbr));
+    }
+
     //Please read through the lists on both of these websites. This list may be incomplete and be aware that some identifiers are reused between OSs
     //https://en.m.wikipedia.org/wiki/Partition_type
     //https://www.win.tue.nl/~aeb/partitions/partition_types.html
@@ -386,6 +391,11 @@ extern "C"
         apmPartitionEntry partition[APM_MAX_PARTITIONS];
     }apmData, * ptrAPMData;
 
+    static M_INLINE void safe_free_apmdata(apmData **apm)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, apm));
+    }
+
     //----------------------------------------GPT--------------------------------------
 
 #define GPT_HEADER_SIGNATURE_STR "EFI PART"
@@ -537,6 +547,11 @@ extern "C"
         gptPartitionEntry partition[1];//NOTE: This must be allocated based on how many partitions are actually available! ex: malloc(sizeof(gptData) + (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
     }gptData, * ptrGPTData;
 
+    static M_INLINE void safe_free_gptdata(gptData **gpt)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, gpt));
+    }
+
     //Ideas when reading this info. Note whether the partitions are aligned per the drive's requirements (physical sector size for SAS/SATA, nvme alignment???)
 
     typedef struct _partitionInfo
@@ -550,7 +565,10 @@ extern "C"
         };
     }partitionInfo, * ptrPartitionInfo;
 
-    
+    static M_INLINE void safe_free_partition_info(partitionInfo **info)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, info));
+    }
 
     OPENSEA_OPERATIONS_API ptrPartitionInfo get_Partition_Info(tDevice* device);
 

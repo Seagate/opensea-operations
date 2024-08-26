@@ -302,6 +302,11 @@ extern "C"
         sectorSize sectorSizes[1];//ANYSIZE ARRAY. This means that you should over-allocate this function based on the number of supported sector sizes from the drive.
     }supportedFormats, *ptrSupportedFormats;
 
+    static M_INLINE void safe_free_supported_formats(supportedFormats **formats)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, formats));
+    }
+
     //-----------------------------------------------------------------------------
     //
     //  get_Number_Of_Supported_Sector_Sizes(tDevice *device)

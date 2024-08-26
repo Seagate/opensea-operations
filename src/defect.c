@@ -464,7 +464,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
 
 void free_Defect_List(scsiDefectList **defects)
 {
-    safe_Free(C_CAST(void**, defects));
+    safe_Free(M_REINTERPRET_CAST(void**, defects));
 }
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
@@ -1376,7 +1376,7 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPending
             ++(*numberOfDefects);
         }
     }
-    safe_Free(C_CAST(void**, &bmsResults));
+    safe_free_background_results(&bmsResults);
     return ret;
 }
 

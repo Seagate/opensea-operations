@@ -37,6 +37,11 @@ extern "C"
         eRepairStatus repairStatus;
     }errorLBA, *ptrErrorLBA;
 
+    static M_INLINE void safe_free_error_lba(errorLBA **errlba)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, errlba));
+    }
+
     //-----------------------------------------------------------------------------
     //
     //  repair_LBA()
