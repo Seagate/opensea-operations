@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -73,7 +74,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int firmware_Download(tDevice *device, firmwareUpdateData * options);
+    OPENSEA_OPERATIONS_API eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options);
 
     //See extended inquiry VPD page in SPC spec for details
     typedef enum _eSCSIMicrocodeActivation
@@ -89,7 +90,7 @@ extern "C"
         char revision[9];//8 characters and a null terminator - TJE
     }firmwareSlotRevision;
 
-    typedef struct _firmwareSlotInfo 
+    typedef struct _firmwareSlotInfo
     {
         bool firmwareSlotInfoValid;//must be true to be valid
         bool slot1ReadOnly;
@@ -145,7 +146,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes);
 
     //-----------------------------------------------------------------------------
     //

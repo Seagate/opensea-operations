@@ -1,7 +1,8 @@
+# SPDX-License-Identifier: MPL-2.0
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012 - 2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,11 +15,11 @@
 
 NAME = opensea-operations
 #Change the Major version when major interface changes are made. E.g. tDevice changes
-MAJOR = 3
+MAJOR = 8
 #Change the Minor version when new features are added.
 MINOR = 0
 #Change the patch version when only bug fixes are made.
-PATCH = 5
+PATCH = 1
 VERSION = $(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR = ../../src/
 INC_DIR = -I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
@@ -46,8 +47,8 @@ CFLAGS += -c -fPIC -I. -std=gnu99
 
 LDFLAGS = -Wall
 LDLIBS = \
-	../../../opensea-common/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-common.a \
-	../../../opensea-transport/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-transport.a
+	../../../opensea-transport/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-transport.a \
+	../../../opensea-common/Make/gccWin/$(FILE_OUTPUT_DIR)/libopensea-common.a
 
 ifneq (,$(findstring MINGW64,$(UNAME)))
 	#BR note: pragma comment(lib,"Version.lib") is not supported by gcc, use the below supply the version.lib functions
@@ -84,7 +85,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)reservations.c\
 	$(SRC_DIR)farm_log.c\
 	$(SRC_DIR)partition_info.c\
-	$(SRC_DIR)ata_device_config_overlay.c
+	$(SRC_DIR)ata_device_config_overlay.c\
+	$(SRC_DIR)sata_phy.c
 
 PROJECT_DEFINES += -DSTATIC_OPENSEA_OPERATIONS -DSTATIC_OPENSEA_TRANSPORT
 PROJECT_DEFINES += -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE

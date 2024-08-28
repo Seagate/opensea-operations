@@ -1,7 +1,8 @@
+# SPDX-License-Identifier: MPL-2.0
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012 - 2022 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,11 +16,11 @@
 NAME=opensea-operations
 FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
-MAJOR=3
+MAJOR=8
 #Change the Minor version when new features are added. 
 MINOR=0
 #Change the patch version when only bug fixes are made.
-PATCH=5
+PATCH=1
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
@@ -93,6 +94,10 @@ else
 		
 		CFLAGS += -Wvla -Wfloat-equal -Wjump-misses-init -Wlogical-op -Wdouble-promotion -Wformat-security \
 			-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
+	else
+		CFLAGS += -std=gnu99
+		CFLAGS += -Wvla -Wfloat-equal -Wjump-misses-init -Wlogical-op -Wdouble-promotion -Wformat-security \
+				-Wold-style-definition -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes
 	endif
 endif
 UNAME := $(shell uname -s)
@@ -131,7 +136,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)nvme_operations.c\
 	$(SRC_DIR)reservations.c\
 	$(SRC_DIR)partition_info.c\
-	$(SRC_DIR)ata_device_config_overlay.c
+	$(SRC_DIR)ata_device_config_overlay.c\
+	$(SRC_DIR)sata_phy.c
 
 UNAME := $(shell uname)
 

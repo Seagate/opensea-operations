@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +14,18 @@
 // \file ata_Security.c
 // \brief This file defines the function calls for performing some ATA Security operations
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+
 #include "operations_Common.h"
 #include "ata_Security.h"
 #include <ctype.h>
@@ -22,10 +35,9 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
 {
     bool supported = false;
     //For non-ATA/IDE interfaces, we need to check if the translator (SATL) supports the ATA security protocol.
-    //TODO: we may not need this check since software SAT in the opensea-transport library can do this translation
     if (device->drive_info.interface_type != IDE_INTERFACE)
     {
-        uint8_t securityBuf[LEGACY_DRIVE_SEC_SIZE] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, securityBuf, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, LEGACY_DRIVE_SEC_SIZE, securityBuf))
         {
             uint16_t length = M_BytesTo2ByteValue(securityBuf[6], securityBuf[7]);
@@ -37,7 +49,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
                 case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
                 {
                     //the supported list shows this protocol, but try reading the page too...if that fails then we know it's only a partial implementation.
-                    uint8_t ataSecurityInfo[SAT_SECURITY_INFO_LEN] = { 0 };
+                    DECLARE_ZERO_INIT_ARRAY(uint8_t, ataSecurityInfo, SAT_SECURITY_INFO_LEN);
                     if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_READ_INFO, false, SAT_SECURITY_INFO_LEN, ataSecurityInfo))
                     {
                         if (ataSecurityInfo[1] == 0x0E)//Checking that the length matches to make sure we got a good response
@@ -55,21 +67,21 @@ bool sat_ATA_Security_Protocol_Supported(tDevice *device)
     }
     return supported;
 }
-//TODO: we may want to revisit this function since there are up to 3 places to get the information we need between SAT translation, ID, and IDData log
+
 void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus, bool useSAT)
 {
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
-        uint8_t ataSecurityInfo[16] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, ataSecurityInfo, 16);
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_READ_INFO, false, SAT_SECURITY_INFO_LEN, ataSecurityInfo))
         {
-            securityStatus->securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]) * 2;
-            if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+            securityStatus->securityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[2], ataSecurityInfo[3]) * ATA_SECURITY_TIME_MULTIPLIER;
+            if (securityStatus->securityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
             {
                 securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
             }
-            securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[4], ataSecurityInfo[5]) * 2;
-            if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+            securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_BytesTo2ByteValue(ataSecurityInfo[4], ataSecurityInfo[5]) * ATA_SECURITY_TIME_MULTIPLIER;
+            if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
             {
                 securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
             }
@@ -107,7 +119,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //word 128
-        if (device->drive_info.IdentifyData.ata.Word128 != 0 && device->drive_info.IdentifyData.ata.Word128 != UINT16_MAX && device->drive_info.IdentifyData.ata.Word128 & BIT0)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word128) && device->drive_info.IdentifyData.ata.Word128 & BIT0)
         {
             securityStatus->securitySupported = true;
             if (device->drive_info.IdentifyData.ata.Word128 & BIT1)
@@ -135,49 +147,59 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 securityStatus->masterPasswordCapability = true;
             }
             //word 89
-            if (device->drive_info.IdentifyData.ata.Word089 & BIT15)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word089))
             {
-                securityStatus->extendedTimeFormat = true;
-                //bits 14:0
-                securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * 2;
-                if (securityStatus->securityEraseUnitTimeMinutes == (32767 * 2))
+                if (device->drive_info.IdentifyData.ata.Word089 & BIT15)
                 {
-                    securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    securityStatus->extendedTimeFormat = true;
+                    //bits 14:0
+                    securityStatus->securityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
+                    {
+                        securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
-            }
-            else
-            {
-                //bits 7:0
-                securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * 2;
-                if (securityStatus->securityEraseUnitTimeMinutes == (255 * 2))
+                else
                 {
-                    securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    //bits 7:0
+                    securityStatus->securityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word089) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->securityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
+                    {
+                        securityStatus->securityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
             }
             //word 90
-            if (device->drive_info.IdentifyData.ata.Word090 & BIT15)
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word090))
             {
-                securityStatus->extendedTimeFormat = true;
-                //bits 14:0
-                securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * 2;
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
+                if (device->drive_info.IdentifyData.ata.Word090 & BIT15)
                 {
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    securityStatus->extendedTimeFormat = true;
+                    //bits 14:0
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
+                    {
+                        securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
-            }
-            else
-            {
-                //bits 7:0
-                securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * 2;
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
+                else
                 {
-                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    //bits 7:0
+                    securityStatus->enhancedSecurityEraseUnitTimeMinutes = M_Byte0(device->drive_info.IdentifyData.ata.Word090) * ATA_SECURITY_TIME_MULTIPLIER;
+                    if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == (ATA_SECURITY_GREATER_THAN_MAX_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
+                    {
+                        securityStatus->enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
+                    }
                 }
             }
             //word 92
-            securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
+            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word092))
+            {
+                securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
+            }
         }
-        if (device->drive_info.IdentifyData.ata.Word069 != 0 && device->drive_info.IdentifyData.ata.Word069 != UINT16_MAX)
+        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT12))
         {
             securityStatus->encryptAll = device->drive_info.IdentifyData.ata.Word069 & BIT4;
         }
@@ -185,7 +207,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     //read ID data log page for security bits to get restrictedSanitizeOverridesSecurity bit
     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.ata_Options.generalPurposeLoggingSupported)
     {
-        uint8_t securityPage[512] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, securityPage, 512);
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, 0, 0, securityPage, 512, 0))
         {
             if (M_BytesTo2ByteValue(securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * 512 > 0)
@@ -196,10 +218,10 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                 {
                     uint8_t pageNumber = securityPage[2];
                     uint16_t revision = M_BytesTo2ByteValue(securityPage[1], securityPage[0]);
-                    if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= 0x0001)
+                    if (pageNumber == C_CAST(uint8_t, ATA_ID_DATA_LOG_SUPPORTED_PAGES) && revision >= ATA_ID_DATA_VERSION_1)
                     {
-                        uint8_t listLen = securityPage[8];
-                        for (uint16_t iter = 9; iter < C_CAST(uint16_t, listLen + 8) && iter < UINT16_C(512); ++iter)
+                        uint8_t listLen = securityPage[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
+                        for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(512); ++iter)
                         {
                             bool foundSecurityPage = false;
                             switch (securityPage[iter])
@@ -210,10 +232,10 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SECURITY, securityPage, 512, 0))
                                 {
                                     //make sure we got the right page first!
-                                    uint64_t header = M_BytesTo8ByteValue(securityPage[7], securityPage[6],securityPage[5],securityPage[4],securityPage[3],securityPage[2],securityPage[1],securityPage[0]);
-                                    if (header & BIT63 && M_Word0(header) >= 0x0001  && M_Byte2(header) == ATA_ID_DATA_LOG_SECURITY)
+                                    uint64_t header = M_BytesTo8ByteValue(securityPage[7], securityPage[6], securityPage[5], securityPage[4], securityPage[3], securityPage[2], securityPage[1], securityPage[0]);
+                                    if (header & ATA_ID_DATA_QWORD_VALID_BIT && M_Word0(header) >= ATA_ID_DATA_VERSION_1 && M_Byte2(header) == ATA_ID_DATA_LOG_SECURITY)
                                     {
-                                        uint64_t securityCapabilities = M_BytesTo8ByteValue(securityPage[55], securityPage[54],securityPage[53],securityPage[52],securityPage[51],securityPage[50],securityPage[49],securityPage[48]);
+                                        uint64_t securityCapabilities = M_BytesTo8ByteValue(securityPage[55], securityPage[54], securityPage[53], securityPage[52], securityPage[51], securityPage[50], securityPage[49], securityPage[48]);
                                         if (securityCapabilities & BIT63)
                                         {
                                             securityStatus->restrictedSanitizeOverridesSecurity = securityCapabilities & BIT7;
@@ -256,6 +278,40 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
     else if (securityStatus->securityEnabled == true && securityStatus->securityLocked == false && securityStatus->securityFrozen == true)
     {
         securityStatus->securityState = ATA_SEC6;
+    }
+}
+
+static void print_ATA_Security_Erase_Time(uint16_t eraseTime, bool extendedTimeFormat)
+{
+    if (eraseTime == 0)
+    {
+        printf("Not reported\n");
+    }
+    else
+    {
+        uint64_t totalSeconds = C_CAST(uint64_t, eraseTime);
+        uint16_t days = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        if (eraseTime == UINT16_MAX)
+        {
+            if (extendedTimeFormat)
+            {
+                totalSeconds = ATA_SECURITY_MAX_EXTENDED_TIME_MINUTES;
+            }
+            else
+            {
+                totalSeconds = ATA_SECURITY_MAX_TIME_MINUTES;
+            }
+        }
+        totalSeconds *= UINT64_C(60);
+        convert_Seconds_To_Displayable_Time(totalSeconds, M_NULLPTR, &days, &hours, &minutes, M_NULLPTR);
+        if (eraseTime == UINT16_MAX)
+        {
+            printf(">");
+        }
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, M_NULLPTR);
+        printf("\n");
     }
 }
 
@@ -313,7 +369,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
             printf("High\n");
         }
         printf("Master Password Identifier: ");
-        if (securityStatus->masterPasswordIdentifier != 0x0000 && securityStatus->masterPasswordIdentifier != UINT16_MAX)
+        if (is_ATA_Identify_Word_Valid(securityStatus->masterPasswordIdentifier))
         {
             printf("%" PRIu16, securityStatus->masterPasswordIdentifier);
             if (securityStatus->masterPasswordIdentifier == 0xFFFE)
@@ -331,116 +387,14 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
         printf("Enhanced Erase Time Estimate: ");
         if (securityStatus->enhancedEraseSupported)
         {
-            if (securityStatus->extendedTimeFormat)
-            {
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == 0)
-                {
-                    printf("Not reported\n");
-                }
-                else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
-                {
-                    uint64_t totalSeconds = UINT64_C(65532) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    printf(">");
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-                else
-                {
-                    uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->enhancedSecurityEraseUnitTimeMinutes) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-            }
-            else
-            {
-                if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == 0)
-                {
-                    printf("Not reported\n");
-                }
-                else if (securityStatus->enhancedSecurityEraseUnitTimeMinutes == UINT16_MAX)
-                {
-                    uint64_t totalSeconds = UINT64_C(508) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    printf(">");
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-                else
-                {
-                    uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->enhancedSecurityEraseUnitTimeMinutes) * UINT64_C(60);
-                    uint16_t days = 0;
-                    uint8_t hours = 0, minutes = 0;
-                    convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                    print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                    printf("\n");
-                }
-            }
+            print_ATA_Security_Erase_Time(securityStatus->enhancedSecurityEraseUnitTimeMinutes, securityStatus->extendedTimeFormat);
         }
         else
         {
             printf("Not Supported\n");
         }
         printf("Security Erase Time Estimate: ");
-        if (securityStatus->extendedTimeFormat)
-        {
-            if (securityStatus->securityEraseUnitTimeMinutes == 0)
-            {
-                printf("Not reported\n");
-            }
-            else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
-            {
-                uint64_t totalSeconds = UINT64_C(65532) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                printf(">");
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-            else
-            {
-                uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->securityEraseUnitTimeMinutes) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-        }
-        else
-        {
-            if (securityStatus->securityEraseUnitTimeMinutes == 0)
-            {
-                printf("Not reported\n");
-            }
-            else if (securityStatus->securityEraseUnitTimeMinutes == UINT16_MAX)
-            {
-                uint64_t totalSeconds = UINT64_C(508) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                printf(">");
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-            else
-            {
-                uint64_t totalSeconds = C_CAST(uint64_t, securityStatus->securityEraseUnitTimeMinutes) * UINT64_C(60);
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0;
-                convert_Seconds_To_Displayable_Time(totalSeconds, NULL, &days, &hours, &minutes, NULL);
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, NULL);
-                printf("\n");
-            }
-        }
+        print_ATA_Security_Erase_Time(securityStatus->securityEraseUnitTimeMinutes, securityStatus->extendedTimeFormat);
         printf("All user data is encrypted: ");
         if (securityStatus->encryptAll)
         {
@@ -484,9 +438,9 @@ static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
         {
             //now we need to check if it's a printable string or not and print it between quotes if it is, otherwise as a sequence of hex bytes
             bool isASCIIString = true;//assume it is a string since it will most likely be one.
-            for(uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
+            for (uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
             {
-                if (iscntrl(ataPassword->password[iter]) || ataPassword->password[iter] & BIT7)//this function is the opposite of isPrint and should work for what we want. We also want to check if bit 7 is set
+                if (safe_iscntrl(ataPassword->password[iter]) || ataPassword->password[iter] & BIT7)//this function is the opposite of isPrint and should work for what we want. We also want to check if bit 7 is set
                 {
                     isASCIIString = false;
                     break;
@@ -500,7 +454,7 @@ static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
             else
             {
                 //need to show as hex bytes
-                for(uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
+                for (uint8_t iter = 0; iter < ataPassword->passwordLength && iter < ATA_SECURITY_MAX_PW_LENGTH; ++iter)
                 {
                     printf(" %02" PRIX8 "h", ataPassword->password[iter]);
                     if (iter + 1 < ataPassword->passwordLength)
@@ -543,12 +497,22 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
         {
             if (ataPassword->zacSecurityOption == ATA_ZAC_ERASE_FULL_ZONES)
             {
-                ptrData[0] |= BIT2;//word zero bit 2
+                if (useSAT)
+                {
+                    //not currently described in SAT5-r10
+                }
+                else
+                {
+                    ptrData[0] |= BIT2;//word zero bit 2
+                }
             }
         }
+
         if (ataPassword->passwordType == ATA_PASSWORD_MASTER)
         {
-            ptrData[0] |= BIT0;//Word 0, bit 0 for the identifier bit to say it's the master password
+
+            //Word 0, bit 0 for the identifier bit to say it's the master password
+            ptrData[0] |= BIT0;
             if (setPassword)//if setting the password in the set password command, we need to set a few other things up
             {
                 //set the master password identifier.
@@ -597,10 +561,10 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t *ptrData, eATASecurityEraseTy
 }
 
 
-int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
-    int ret = SUCCESS;
-    uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret = SUCCESS;
+    uint8_t *securityPassword = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -615,14 +579,14 @@ int set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, 
         ret = ata_Security_Set_Password(device, securityPassword);
     }
     explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(securityPassword)
+    safe_free_aligned(&securityPassword);
     return ret;
 }
 
-int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
-    int ret = SUCCESS;
-    uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret = SUCCESS;
+    uint8_t *securityPassword = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -637,14 +601,14 @@ int disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
         ret = ata_Security_Disable_Password(device, securityPassword);
     }
     explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(securityPassword)
+    safe_free_aligned(&securityPassword);
     return ret;
 }
 
-int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool useSAT)
 {
-    int ret = SUCCESS;
-    uint8_t *securityPassword = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret = SUCCESS;
+    uint8_t *securityPassword = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityPassword)
     {
         return MEMORY_FAILURE;
@@ -659,14 +623,14 @@ int unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool u
         ret = ata_Security_Unlock(device, securityPassword);
     }
     explicit_zeroes(securityPassword, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(securityPassword)
+    safe_free_aligned(&securityPassword);
     return ret;
 }
 
-int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT)
+eReturnValues start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, eATASecurityEraseType eraseType, uint32_t timeout, bool useSAT)
 {
-    int ret = SUCCESS;
-    uint8_t *securityErase = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret = SUCCESS;
+    uint8_t *securityErase = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!securityErase)
     {
         return MEMORY_FAILURE;
@@ -676,7 +640,7 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
     //first send the erase prepare command
     if (useSAT)//if SAT ATA security supported, use it so the SATL manages the erase.
     {
-        ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, NULL, 15);
+        ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_ERASE_PREPARE, false, 0, M_NULLPTR, 15);
     }
     else
     {
@@ -695,15 +659,15 @@ int start_ATA_Security_Erase(tDevice *device, ataSecurityPassword ataPassword, e
         }
     }
     explicit_zeroes(securityErase, LEGACY_DRIVE_SEC_SIZE);
-    safe_Free_aligned(securityErase)
+    safe_free_aligned(&securityErase);
     return ret;
 }
 
 //Attempts an unlock if needed
 //TODO: Check if security count expired!
-int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -797,9 +761,9 @@ int run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPa
     return ret;
 }
 
-int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -814,7 +778,7 @@ int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
         {
             if (satATASecuritySupported)//if SAT ATA security supported, use it so the SATL manages the commands.
             {
-                ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_FREEZE_LOCK, false, 0, NULL, 15);
+                ret = scsi_SecurityProtocol_Out(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD, SAT_SECURITY_PROTOCOL_SPECIFIC_FREEZE_LOCK, false, 0, M_NULLPTR, 15);
             }
             else
             {
@@ -839,9 +803,9 @@ int run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
 
 //Will only unlock the drive
 //TODO: Check if security count expired!
-int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -929,9 +893,9 @@ int run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bo
     return ret;
 }
 
-int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     bool satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
     if (forceSATvalid)
     {
@@ -967,7 +931,6 @@ int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
             else
             {
                 //set the password!
-                //TODO: verbose message here about what password is being set?
                 ret = set_ATA_Security_Password(device, ataPassword, satATASecuritySupported);
             }
         }
@@ -987,9 +950,9 @@ int run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPasswo
     return ret;
 }
 
-int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
 {
-    int result = UNKNOWN;
+    eReturnValues result = UNKNOWN;
     bool satATASecuritySupported = false;
     if (device->drive_info.drive_type != ATA_DRIVE)
     {
@@ -1122,53 +1085,42 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             printf("User password: ");
         }
         print_ATA_Security_Password(&ataPassword);
-        if (eraseTimeMinutes == UINT16_MAX || eraseTimeMinutes == 0)
+        if (eraseTimeMinutes == 0)
         {
-            if (eraseTimeMinutes == 0)
-            {
-                printf("\n\tThe drive did not report an erase time estimate.\n");
-                printf("\tA completion estimate is not available for this drive.\n");
-            }
-            else
-            {
-                uint64_t erasemaxSeconds = 0;
-                //TODO: make this print out a friendly looking value like we do in the function that prints out ATA security information
-                printf("\n\tThe drive reported an estimated erase time longer than\n");
-                if (securityStatus.extendedTimeFormat)
-                {
-                    printf("\t65532 minutes (max per ATA specification).\n");
-                    erasemaxSeconds = 65532 * 60;
-                }
-                else
-                {
-                    printf("\t508 minutes (max per ATA specification).\n");
-                    erasemaxSeconds = 508 * 2;
-                }
-                //provide a completion time estimate based on the max values.
-                //Need to report it as a time greater than what we print to the screen to make it clear.
-                time_t currentTime = time(NULL);
-                time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
-                uint16_t days = 0;
-                uint8_t hours = 0, minutes = 0, seconds = 0;
-                char timeFormat[TIME_STRING_LENGTH] = { 0 };
-                convert_Seconds_To_Displayable_Time(erasemaxSeconds, NULL, &days, &hours, &minutes, &seconds);
-                printf("\n\tCurrent Time: %s\tDrive reported completion time: >", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
-                print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
-                printf("from now.\n");
-                memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
-                printf("\tEstimated completion Time : sometime after %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
-            }
+            printf("\n\tThe drive did not report an erase time estimate.\n");
+            printf("\tA completion estimate is not available for this drive.\n");
         }
         else
         {
-            time_t currentTime = time(NULL);
+            bool maxPossibleTime = eraseTimeMinutes == UINT16_MAX ? true : false;
+            if (maxPossibleTime)
+            {
+                printf("\n\tThe drive reported an estimated erase time longer than\n");
+                if (securityStatus.extendedTimeFormat)
+                {
+                    eraseTimeMinutes = ATA_SECURITY_MAX_EXTENDED_TIME_MINUTES;
+                    printf("\t65532 minutes (max per ATA specification).\n");
+                }
+                else
+                {
+                    eraseTimeMinutes = ATA_SECURITY_MAX_TIME_MINUTES;
+                    printf("\t508 minutes (max per ATA specification).\n");
+                }
+            }
+            time_t currentTime = time(M_NULLPTR);
             time_t futureTime = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
             uint16_t days = 0;
-            uint8_t hours = 0, minutes = 0, seconds = 0;
-            char timeFormat[TIME_STRING_LENGTH] = { 0 };
-            convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), NULL, &days, &hours, &minutes, &seconds);
+            uint8_t hours = 0;
+            uint8_t minutes = 0;
+            uint8_t seconds = 0;
+            DECLARE_ZERO_INIT_ARRAY(char, timeFormat, TIME_STRING_LENGTH);
+            convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("\n\tCurrent Time: %s\tDrive reported completion time: ", get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
-            print_Time_To_Screen(NULL, &days, &hours, &minutes, &seconds);
+            if (maxPossibleTime)
+            {
+                printf(">");
+            }
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("from now.\n");
             memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
             printf("\tEstimated completion Time : %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
@@ -1192,7 +1144,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     start_Timer(&ataSecureEraseTimer);
-    int ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
+    eReturnValues ataEraseResult = start_ATA_Security_Erase(device, ataPassword, eraseType, timeout, satATASecuritySupported);
     stop_Timer(&ataSecureEraseTimer);
     os_Unlock_Device(device);
     //before we read the bitfield again...try requesting sense data to see if that says there was a reset on the bus. (6h/29h/00h)
@@ -1213,13 +1165,16 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
     if (device->drive_info.interface_type != IDE_INTERFACE)
 #endif
     {
-        uint8_t senseKey = 0, asc = 0, ascq = 0, fru = 0;
+        uint8_t senseKey = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
+        uint8_t fru = 0;
         get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (senseKey == SENSE_KEY_UNIT_ATTENTION && asc == 0x29 && ascq == 0)
         {
             hostResetDuringErase = true;
         }
-        uint8_t validateCompletion[SPC3_SENSE_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, validateCompletion, SPC3_SENSE_LEN);
         scsi_Request_Sense_Cmd(device, false, validateCompletion, SPC3_SENSE_LEN);
         get_Sense_Key_ASC_ASCQ_FRU(validateCompletion, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
@@ -1227,7 +1182,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
             printf("ATA Security Validate Erase Completion, validate completion buffer:\n");
             print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
         }
-        int senseResult = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, asc, ascq, fru);
+        eReturnValues senseResult = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, asc, ascq, fru);
         if (senseResult != SUCCESS && ataEraseResult == SUCCESS)
         {
             ataEraseResult = FAILURE;
@@ -1251,7 +1206,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
     if (satATASecuritySupported)
     {
         //force an identify information update to make sure the security protocol information is not being cached by the controller. VPD 89h will force the controller to issue a new identify command and it SHOULD also update anything the controller is caching.
-        uint8_t ataVPDPage[VPD_ATA_INFORMATION_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, ataVPDPage, VPD_ATA_INFORMATION_LEN);
         if (SUCCESS == scsi_Inquiry(device, ataVPDPage, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
         {
             //commenting this out because a controller could change this data from what the drive reported and we don't want to store that.
@@ -1267,7 +1222,7 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         {
             printf("\tATA security erase has completed successfully.\n");
             printf("\tTime to erase was ");
-                    
+
         }
         result = SUCCESS;
     }
@@ -1279,11 +1234,14 @@ int run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eraseType,  at
         }
         result = FAILURE;
     }
-        
+
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
         uint16_t days = 0;
-        uint8_t years = 0, hours = 0, minutes = 0, seconds = 0;
+        uint8_t years = 0;
+        uint8_t hours = 0;
+        uint8_t minutes = 0;
+        uint8_t seconds = 0;
         double ataSecureEraseTimerSeconds = get_Seconds(ataSecureEraseTimer);
         convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, ataSecureEraseTimerSeconds), &years, &days, &hours, &minutes, &seconds);
         if (seconds > 0 || minutes > 0 || hours > 0 || days > 0 || years > 0)

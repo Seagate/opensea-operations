@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,16 +12,26 @@
 // 
 // \file sector_repair.c
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
 
 #include "sector_repair.h"
 #include "cmds.h"
 
-int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled)
+eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint16_t logicalPerPhysical = C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
     uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
-    uint8_t *dataBuf = C_CAST(uint8_t*, calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t *dataBuf = C_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (!dataBuf)
     {
         return MEMORY_FAILURE;
@@ -29,7 +40,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
     LBA->repairStatus = NOT_REPAIRED;
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n\tAttempting repair on LBA %"PRIu64" (aligned)", LBA->errorAddress);
+        printf("\n\tAttempting repair on LBA %" PRIu64 " (aligned)", LBA->errorAddress);
     }
     if (forcePassthroughCommand && (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE))
     {
@@ -39,10 +50,10 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             uint8_t *temp = NULL;
             logicalPerPhysical = C_CAST(uint16_t, device->drive_info.bridge_info.childDevicePhyBlockSize / device->drive_info.bridge_info.childDeviceBlockSize);
             dataSize = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
-            temp = C_CAST(uint8_t*, realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment));
+            temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!temp)
             {
-                safe_Free_aligned(dataBuf)
+                safe_free_aligned(&dataBuf);
                 return MEMORY_FAILURE;
             }
             dataBuf = temp;
@@ -60,7 +71,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
     }
     else
     {
-        int readReallocation = FAILURE;//assume failure
+        eReturnValues readReallocation = FAILURE;//assume failure
         if (automaticReadReallocationEnabled)
         {
             //Attempt a read reallocation to preserve the user's data
@@ -101,21 +112,21 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             {
                 //need to use the reallocate command (SCSI...ATA interfaces should attempt translating it through SAT)
                 bool longLBA = false;
-                uint8_t increment = 4;
-                if (LBA->errorAddress + (logicalPerPhysical - 1) > UINT32_MAX)
+                uint8_t increment = UINT8_C(4);
+                if (LBA->errorAddress + (logicalPerPhysical - UINT16_C(1)) > UINT32_MAX)
                 {
                     longLBA = true;
-                    increment = 8;
+                    increment = UINT8_C(8);
                 }
-                uint32_t reassignListLength = logicalPerPhysical * increment + 4;//+4 is parameter header
+                uint32_t reassignListLength = (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) + UINT32_C(4);//+ 4 is parameter header
                 //set up the header
                 dataBuf[2] = M_Byte1(logicalPerPhysical * increment);
                 dataBuf[3] = M_Byte0(logicalPerPhysical * increment);
                 uint64_t reassignLBA = LBA->errorAddress;
-                uint32_t offset = 4;
-                uint32_t iter = 0;
+                uint32_t offset = UINT32_C(4);
+                uint32_t iter = UINT32_C(0);
                 //create the list of LBAs. 1 for 1 logical per physical, 8 for 8 logical per physical
-                for (iter = 0, offset = 4; iter < logicalPerPhysical; ++iter, offset += increment, ++reassignLBA)
+                for (iter = UINT32_C(0), offset = UINT32_C(4); iter < logicalPerPhysical; ++iter, offset += increment, ++reassignLBA)
                 {
                     if (longLBA)
                     {
@@ -151,12 +162,12 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
                         bool updateList = false;
                         uint64_t commandSpecificLba = UINT64_MAX;
                         uint64_t informationLba = UINT64_MAX;
-                        if (senseFields.scsiStatusCodes.format != 0 && senseFields.scsiStatusCodes.senseKey != SENSE_KEY_ILLEGAL_REQUEST && 
+                        if (senseFields.scsiStatusCodes.format != 0 && senseFields.scsiStatusCodes.senseKey != SENSE_KEY_ILLEGAL_REQUEST &&
                             senseFields.scsiStatusCodes.senseKey != SENSE_KEY_HARDWARE_ERROR)
                         {
                             done = false;
                             // check the command-specific information for a valid LBA.
-                            
+
                             if (senseFields.fixedFormat)
                             {
                                 commandSpecificLba = senseFields.fixedCommandSpecificInformation;
@@ -212,7 +223,6 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
                             //we got at least one update to do to the list. 
                             //Check both the LBAs we saved above since it's not clear if both conditions can happen at the same time or not. 
                             //Most likely only one or the other though...
-                            //TODO: update the list based on what we got above.
                             if (commandSpecificLba != UINT64_MAX)
                             {
                                 //update the list to remove LBAs before this one
@@ -315,7 +325,7 @@ int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, b
             }
         }
     }
-    safe_Free_aligned(dataBuf)
+    safe_free_aligned(&dataBuf);
     switch (ret)
     {
     case SUCCESS:
@@ -369,7 +379,7 @@ void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors)
     bool showAccessDeniedNote = false;
     for (errorIter = 1; errorIter <= numberOfErrors; errorIter++)
     {
-        char* repairString = NULL;
+        const char* repairString = M_NULLPTR;
         switch (LBAs[errorIter - 1].repairStatus)
         {
         case REPAIRED:
@@ -401,9 +411,9 @@ void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors)
     }
 }
 
-int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled)
+eReturnValues get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (automaticReadReallocationEnabled)
     {
         *automaticReadReallocationEnabled = false;
@@ -443,7 +453,7 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
         //Assume it's SCSI and read the read-write error recovery mode page
         bool readPage = false;
         uint8_t headerLength = MODE_PARAMETER_HEADER_10_LEN;
-        uint8_t readWriteErrorRecoveryMP[MP_READ_WRITE_ERROR_RECOVERY_LEN + MODE_PARAMETER_HEADER_10_LEN] = { 0 };
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, readWriteErrorRecoveryMP, MP_READ_WRITE_ERROR_RECOVERY_LEN + MODE_PARAMETER_HEADER_10_LEN);
         if (SUCCESS == scsi_Mode_Sense_10(device, MP_READ_WRITE_ERROR_RECOVERY, MP_READ_WRITE_ERROR_RECOVERY_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_CURRENT_VALUES, readWriteErrorRecoveryMP))
         {
             readPage = true;
@@ -481,8 +491,8 @@ int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReal
 
 static int errorLBACompare(const void *a, const void *b)
 {
-    ptrErrorLBA lba1 = C_CAST(ptrErrorLBA, a);
-    ptrErrorLBA lba2 = C_CAST(ptrErrorLBA, b);
+    const errorLBA *lba1 = a;
+    const errorLBA *lba2 = b;
     if (lba1->errorAddress < lba2->errorAddress)
     {
         return -1;
@@ -504,8 +514,6 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t *numberOfLBAsInTheList)
     {
         return;
     }
-    //TODO: Implement a faster iterative merge sort that removes duplicates on the fly. Right now this should be ok. - TJE
-    //http://stackoverflow.com/questions/18924792/sort-and-remove-duplicates-from-int-array-in-c
     if (*numberOfLBAsInTheList > 1)
     {
         uint32_t duplicatesDetected = 0;

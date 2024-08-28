@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +13,19 @@
 // \file writesame.c
 // \brief This file defines the functions related to the writesame command on a drive
 
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+#include "time_utils.h"
+#include "sleep.h"
+
 #include "platform_helper.h"
 #include "writesame.h"
 
@@ -21,7 +35,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //for ata check identifying info
-        if (device->drive_info.IdentifyData.ata.Word206 & BIT2)
+        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) && device->drive_info.IdentifyData.ata.Word206 & BIT2)
         {
             supported = true;
             //as far as I know, ATA drives don't have a limit so just return the range from the requested start and the maxLBA of the device - TJE
@@ -53,7 +67,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
             {
                 //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
                 uint32_t supportLengthCheck = 20;//enough space to read all support data bytes for 16B version
-                uint8_t *writeSameSupported = C_CAST(uint8_t*, calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *writeSameSupported = C_CAST(uint8_t*, safe_calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!writeSameSupported)
                 {
                     perror("Error allocating memory to check write same support");
@@ -93,13 +107,13 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(writeSameSupported)
+                safe_free_aligned(&writeSameSupported);
             }
             else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3)
             {
                 //for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or 32byte commands right now
                 uint32_t supportLengthCheck = 22;//enough space to read all support data bytes for 16B version with CmdDT
-                uint8_t *writeSameSupported = C_CAST(uint8_t*, calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *writeSameSupported = C_CAST(uint8_t*, safe_calloc_aligned(supportLengthCheck, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!writeSameSupported)
                 {
                     perror("Error allocating memory to check write same support");
@@ -139,7 +153,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(writeSameSupported)
+                safe_free_aligned(&writeSameSupported);
             }
             else
             {
@@ -156,7 +170,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
             if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_2 && maxNumberOfLogicalBlocksPerCommand)
             {
                 //also check the block limits vpd page to see what the maximum number of logical blocks is so that we don't get in a trouble spot...(we may need chunk the write same command...ugh).
-                uint8_t *blockLimits = C_CAST(uint8_t*, calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t *blockLimits = C_CAST(uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!blockLimits)
                 {
                     perror("Error allocating memory to check block limits VPD page");
@@ -194,7 +208,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         }
                     }
                 }
-                safe_Free_aligned(blockLimits)
+                safe_free_aligned(&blockLimits);
             }
         }
     }
@@ -202,14 +216,14 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
 }
 
 //we need to know where we started at and the range in order to properly calculate progress
-int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range)
+eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     *writeSameInProgress = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //need to get status from SCT status command data
-        uint8_t *sctStatusBuf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *sctStatusBuf = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!sctStatusBuf)
         {
             return MEMORY_FAILURE;
@@ -241,13 +255,13 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
             {
                 *writeSameInProgress = false;
                 ret = ABORTED;
-            }            
+            }
             else
             {
                 *writeSameInProgress = false;
             }
         }
-        safe_Free_aligned(sctStatusBuf)
+        safe_free_aligned(&sctStatusBuf);
     }
     /*
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -257,12 +271,15 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
         //asc = 0x04, ascq = 0x07 - Logical Unit Not Ready, Operation In Progress
         //asc = 0x00, ascq = 0x16 - Operation In Progress
         //if the progress is reported, then we just have to return it... i think...
-        uint8_t *senseData = C_CAST(uint8_t*, calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *senseData = C_CAST(uint8_t*, safe_calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!senseData)
         {
             return MEMORY_FAILURE;
         }
-        uint8_t asc = 0, ascq = 0, senseKey = 0, fru = 0;
+        uint8_t asc = 0;
+        uint8_t ascq = 0;
+        uint8_t senseKey = 0;
+        uint8_t fru = 0;
         ret = scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
         get_Sense_Key_ASC_ASCQ_FRU(&senseData[0], SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
         if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
@@ -284,7 +301,7 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
             *progress *= 100.0;
             *progress /= 65536.0;
         }
-        safe_Free_aligned(senseData)
+        safe_free_aligned(&senseData);
     }
     */
     else
@@ -294,15 +311,15 @@ int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInP
     return ret;
 }
 
-int show_Write_Same_Current_LBA(tDevice *device)
+eReturnValues show_Write_Same_Current_LBA(tDevice *device)
 {
-    int ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
     uint64_t currentLBA = 0;
     uint16_t sctStatus = SCT_STATE_ACTIVE_WAITING_FOR_COMMAND;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         //need to get status from SCT status command data
-        uint8_t *sctStatusBuf = C_CAST(uint8_t*, calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t *sctStatusBuf = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!sctStatusBuf)
         {
             return MEMORY_FAILURE;
@@ -328,12 +345,12 @@ int show_Write_Same_Current_LBA(tDevice *device)
         }
         else
         {
-            if (!is_Write_Same_Supported(device, 0, 0, NULL))
+            if (!is_Write_Same_Supported(device, 0, 0, M_NULLPTR))
             {
                 ret = NOT_SUPPORTED;
             }
         }
-        safe_Free_aligned(sctStatusBuf)
+        safe_free_aligned(&sctStatusBuf);
     }
     else //SCSI Drive doesn't tell us
     {
@@ -348,9 +365,9 @@ int show_Write_Same_Current_LBA(tDevice *device)
         break;
     case IN_PROGRESS:
         //currently running. Current LBA = %llu, calculate progress with this formula:
-        printf("\tA Write same is currently processing LBA %"PRIu64"\n", currentLBA);
+        printf("\tA Write same is currently processing LBA %" PRIu64 "\n", currentLBA);
         printf("\tTo calculate write same progress, use the following formula:\n");
-        printf("\t\t( %"PRIu64" - startLBA ) / range\n", currentLBA);
+        printf("\t\t( %" PRIu64 " - startLBA ) / range\n", currentLBA);
         break;
     case ABORTED:
         //Write same was aborted by host or due to ata security being locked
@@ -380,22 +397,22 @@ int show_Write_Same_Current_LBA(tDevice *device)
     return ret;
 }
 
-int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength)
+eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength)
 {
-    int ret = UNKNOWN;
+    eReturnValues ret = UNKNOWN;
     uint64_t maxWriteSameRange = 0;
     //first check if the device supports the write same command
     if (is_Write_Same_Supported(device, startingLba, numberOfLogicalBlocks, &maxWriteSameRange) && (maxWriteSameRange >= numberOfLogicalBlocks || maxWriteSameRange == 0 || (startingLba + numberOfLogicalBlocks) == (device->drive_info.deviceMaxLba + UINT64_C(1))))
     {
         uint32_t zeroPatternBufLen = 0;
-        uint8_t *zeroPatternBuf = NULL;
+        uint8_t *zeroPatternBuf = M_NULLPTR;
         if (device->drive_info.drive_type != ATA_DRIVE)
         {
             if (!pattern && patternLength != device->drive_info.deviceBlockSize)
             {
                 //only allocate this memory for SCSI drives because they need a sector telling what to use as a pattern, whereas ATA has a feature that does not require this, and why bother sending an extra command/data transfer when it isn't neded for our application
                 zeroPatternBufLen = device->drive_info.deviceBlockSize;
-                zeroPatternBuf = C_CAST(uint8_t*, calloc_aligned(zeroPatternBufLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+                zeroPatternBuf = C_CAST(uint8_t*, safe_calloc_aligned(zeroPatternBufLen, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!zeroPatternBuf)
                 {
                     perror("Error allocating logical sector sized buffer for zero pattern\n");
@@ -441,10 +458,11 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                uint8_t minutes = 0, seconds = 0;
+                uint8_t minutes = 0;
+                uint8_t seconds = 0;
                 printf("Write same progress will be updated every");
-                convert_Seconds_To_Displayable_Time(delayTime, NULL, NULL, NULL, &minutes, &seconds);
-                print_Time_To_Screen(NULL, NULL, NULL, &minutes, &seconds);
+                convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
+                print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
                 printf("\n");
             }
             delay_Seconds(1);//delay one second before we start polling to let the drive get started
@@ -473,7 +491,7 @@ int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlo
                 delay_Seconds(delayTime);
             }
         }
-        safe_Free_aligned(zeroPatternBuf)
+        safe_free_aligned(&zeroPatternBuf);
     }
     else
     {

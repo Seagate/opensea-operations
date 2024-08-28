@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,7 +35,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field);
 
     //-----------------------------------------------------------------------------
     //
@@ -49,7 +50,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int print_Current_Power_Mode(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues print_Current_Power_Mode(tDevice *device);
 
     //-----------------------------------------------------------------------------
     //
@@ -70,11 +71,11 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid);
+    OPENSEA_OPERATIONS_API eReturnValues set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid);
 
-    OPENSEA_OPERATIONS_API int scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid);
 
-    OPENSEA_OPERATIONS_API int ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, bool enableDisable, ePowerConditionID powerCondition, uint32_t powerModeTimer, bool powerModeTimerValid);
 
     //-----------------------------------------------------------------------------
     //
@@ -91,9 +92,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int transition_Power_State(tDevice *device, ePowerConditionID newState);
+    OPENSEA_OPERATIONS_API eReturnValues transition_Power_State(tDevice *device, ePowerConditionID newState);
 
-    OPENSEA_OPERATIONS_API int transition_NVM_Power_State(tDevice *device, uint8_t newState);
+    OPENSEA_OPERATIONS_API eReturnValues transition_NVM_Power_State(tDevice *device, uint8_t newState);
 
 #define MAXIMUM_NVME_POWER_STATES UINT16_C(32)//the npss can technically report up to 256 since it is a 8bit field, but spec only defines 32 (0 to 31)
 
@@ -122,9 +123,9 @@ extern "C"
         uint16_t numberOfPowerStates;//how many were filled into the following array
         uint32_t activePowerState;// which state is active. 0 - 31
         nvmePowerState powerState[MAXIMUM_NVME_POWER_STATES];
-    }nvmeSupportedPowerStates, * ptrNVMeSupportedPowerStates;
+    }nvmeSupportedPowerStates, *ptrNVMeSupportedPowerStates;
 
-    OPENSEA_OPERATIONS_API int get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps);
 
     OPENSEA_OPERATIONS_API void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps);
 
@@ -143,7 +144,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue );
+    OPENSEA_OPERATIONS_API eReturnValues get_Power_State(tDevice *device, uint32_t * powerState, eFeatureModeSelect selectValue );
 
     typedef struct _powerConsumptionIdentifier
     {
@@ -176,7 +177,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdentifiers identifiers);
+    OPENSEA_OPERATIONS_API eReturnValues get_Power_Consumption_Identifiers(tDevice *device, ptrPowerConsumptionIdentifiers identifiers);
 
     //-----------------------------------------------------------------------------
     //
@@ -216,7 +217,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint8_t powerConsumptionIdentifier, bool resetToDefault);
+    OPENSEA_OPERATIONS_API eReturnValues set_Power_Consumption(tDevice *device, ePCActiveLevel activeLevelField, uint8_t powerConsumptionIdentifier, bool resetToDefault);
 
     //-----------------------------------------------------------------------------
     //
@@ -233,13 +234,13 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts, uint8_t *powerConsumptionIdentifier);
+    OPENSEA_OPERATIONS_API eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, double watts, uint8_t *powerConsumptionIdentifier);
     
-    OPENSEA_OPERATIONS_API int enable_Disable_APM_Feature(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_APM_Feature(tDevice *device, bool enable);
     
-    OPENSEA_OPERATIONS_API int set_APM_Level(tDevice *device, uint8_t apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues set_APM_Level(tDevice *device, uint8_t apmLevel);
     
-    OPENSEA_OPERATIONS_API int get_APM_Level(tDevice *device, uint8_t *apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues get_APM_Level(tDevice *device, uint8_t *apmLevel);
 
     typedef struct _powerConditionInfo //written according to ATA spec fields...will try to populate as much as possible that's similar for SCSI
     {
@@ -268,34 +269,34 @@ extern "C"
         bool               settingsAffectMultipleLogicalUnits;
     }epcSettings, *ptrEpcSettings;
 
-    OPENSEA_OPERATIONS_API int get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings);
+    OPENSEA_OPERATIONS_API eReturnValues get_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings);
 
     OPENSEA_OPERATIONS_API void print_EPC_Settings(tDevice *device, ptrEpcSettings epcSettings);
 
-    OPENSEA_OPERATIONS_API int sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool *supported, bool *enabled);
+    OPENSEA_OPERATIONS_API eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool *supported, bool *enabled);
 
-    OPENSEA_OPERATIONS_API int sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice *device, bool enable);
 
-    OPENSEA_OPERATIONS_API int sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool *supported, bool *enabled);
+    OPENSEA_OPERATIONS_API eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool *supported, bool *enabled);
 
-    OPENSEA_OPERATIONS_API int sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice *device, bool enable);
 
 
     //Following functions allow power mode transitions on Non-EPC drives (pre SBC3 for SCSI)
     //These will work with EPC, but may cause changes to the current timer values. See SCSI/ATA specs for details on interactions with these and EPC timers
-    OPENSEA_OPERATIONS_API int transition_To_Active(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues transition_To_Active(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int transition_To_Standby(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues transition_To_Standby(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int transition_To_Idle(tDevice *device, bool unload); //unload feature must be supported
+    OPENSEA_OPERATIONS_API eReturnValues transition_To_Idle(tDevice *device, bool unload); //unload feature must be supported
 
     //NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from, which may not be callable from an application.
-    OPENSEA_OPERATIONS_API int transition_To_Sleep (tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues transition_To_Sleep (tDevice *device);
 
     //Be careful changing partial and slumber settings. Not every controller will support it properly!
-    OPENSEA_OPERATIONS_API int scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Partial_Slumber(tDevice *device, bool enablePartial, bool enableSlumber, bool partialValid, bool slumberValid, bool allPhys, uint8_t phyNumber);
 
-    OPENSEA_OPERATIONS_API int get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCount);
+    OPENSEA_OPERATIONS_API eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice *device, uint8_t *phyCount);
 
     typedef struct _sasEnhPhyControl
     {
@@ -303,8 +304,14 @@ extern "C"
         bool enablePartial;
         bool enableSlumber;
     }sasEnhPhyControl, *ptrSasEnhPhyControl;
+
+    static M_INLINE void safe_free_sasEnhPhyControl(sasEnhPhyControl** mem)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, mem));
+    }
+
     //If doing all phys, use get_SAS_Enhanced_Phy_Control_Number_Of_Phys first to figure out how much memory must be allocated
-    OPENSEA_OPERATIONS_API int get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool allPhys, uint8_t phyNumber, ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool allPhys, uint8_t phyNumber, ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize);
 
     OPENSEA_OPERATIONS_API void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize, bool showPartial, bool showSlumber);
 
@@ -351,20 +358,47 @@ extern "C"
         }checkConditionFlags;
     }powerConditionTimers, *ptrPowerConditionTimers;
 
-    OPENSEA_OPERATIONS_API int scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
 
-    OPENSEA_OPERATIONS_API int set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
+    OPENSEA_OPERATIONS_API eReturnValues set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
 
-    OPENSEA_OPERATIONS_API int scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer);
 
-    OPENSEA_OPERATIONS_API int scsi_Set_Standby_Timer_State(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable);
 
     //When ATA drive, the restoreToDefaults is not allowed. Also, translation of timer value is done according to SAT spec
-    OPENSEA_OPERATIONS_API int set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
+    OPENSEA_OPERATIONS_API eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
 
     //SCSI/SAS Only
-    OPENSEA_OPERATIONS_API int scsi_Set_Idle_Timer_State(tDevice *device, bool enable);
-    OPENSEA_OPERATIONS_API int set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  enable_Disable_PUIS_Feature(tDevice *device, bool enable)
+    //
+    //! \brief   Enables or disables the SATA PUIS feature
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param enable - set to true to enable the PUIS feature. Set to False to disable the PUIS feature.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable);
+
+    OPENSEA_OPERATIONS_API eReturnValues puis_Spinup(tDevice* device);
+
+    typedef struct _puisInfo
+    {
+        bool puisSupported;
+        bool puisEnabled;
+        bool spinupCommandRequired; //requires the spinup command to be issued to spin up. If false, then a media access will spinup as needed.
+    }puisInfo, *ptrPuisInfo;
+
+    OPENSEA_OPERATIONS_API eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info);
 
 #if defined (__cplusplus)
 }

@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +15,9 @@
 
 #pragma once
 
+#include "common_types.h"
+#include "type_conversion.h"
+#include "memory_safety.h"
 #include "operations_Common.h"
 #include "common_public.h"
 
@@ -22,7 +26,7 @@ extern "C"
 {
 #endif
 
-    OPENSEA_OPERATIONS_API int get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones);
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Zones(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t *numberOfMatchingZones);
 
     typedef enum _eZoneType
     {
@@ -47,7 +51,7 @@ extern "C"
         ZONE_CONDITION_OFFLINE = 0xF
     }eZoneCondition;
 
-    typedef struct _zoneDescriptor 
+    typedef struct _zoneDescriptor
     {
         bool descriptorValid;
         eZoneType zoneType;
@@ -60,7 +64,12 @@ extern "C"
         uint64_t writePointerLBA;
     }zoneDescriptor, *ptrZoneDescriptor;
 
-    OPENSEA_OPERATIONS_API int get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors);
+    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor ** zd)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, zd));
+    }
+
+    OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(tDevice *device, eZoneReportingOptions reportingOptions, uint64_t startingLBA, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors);
 
     //eZoneReportingOptions reportingOptions is used to print the header saying which zones we are showing (all, some, etc)
     OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions reportingOptions, uint32_t numberOfZoneDescriptors, ptrZoneDescriptor zoneDescriptors);

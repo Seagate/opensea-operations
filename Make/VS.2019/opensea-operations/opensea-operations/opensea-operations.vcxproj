@@ -350,7 +350,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -372,7 +371,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -394,7 +392,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -416,7 +413,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -439,7 +435,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -462,7 +457,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -485,7 +479,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -507,7 +500,6 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -532,7 +524,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -558,7 +549,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -584,7 +574,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -610,7 +599,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -637,7 +625,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -664,7 +651,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -691,7 +677,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4214;4201;4668;4820;4710;4255;5045;4711;4324;4221;4204;4061;5105</DisableSpecificWarnings>
@@ -717,7 +702,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\..\opensea-transport\include;..\..\..\..\..\opensea-common\include;..\..\..\..\..\opensea-transport\include\vendor</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>STATIC_OPENSEA_OPERATIONS;STATIC_OPENSEA_TRANSPORT;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -761,6 +745,7 @@
     <ClInclude Include="..\..\..\..\include\reservations.h" />
     <ClInclude Include="..\..\..\..\include\sanitize.h" />
     <ClInclude Include="..\..\..\..\include\sas_phy.h" />
+    <ClInclude Include="..\..\..\..\include\sata_phy.h" />
     <ClInclude Include="..\..\..\..\include\seagate_operations.h" />
     <ClInclude Include="..\..\..\..\include\sector_repair.h" />
     <ClInclude Include="..\..\..\..\include\set_max_lba.h" />
@@ -791,6 +776,7 @@
     <ClCompile Include="..\..\..\..\src\reservations.c" />
     <ClCompile Include="..\..\..\..\src\sanitize.c" />
     <ClCompile Include="..\..\..\..\src\sas_phy.c" />
+    <ClCompile Include="..\..\..\..\src\sata_phy.c" />
     <ClCompile Include="..\..\..\..\src\seagate_operations.c" />
     <ClCompile Include="..\..\..\..\src\sector_repair.c" />
     <ClCompile Include="..\..\..\..\src\set_max_lba.c" />

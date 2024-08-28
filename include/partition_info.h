@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2023-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +19,7 @@ extern "C"
 {
 #endif
 
-#include "common.h"
+#include "common_types.h"
 #include "operations_Common.h"
 
     //There are a few other types out there that are not currently supported in here: 
@@ -76,8 +77,13 @@ extern "C"
         eMBRType mbrType;
         uint8_t numberOfPartitions;// set to how many of the following partitions contain something filled in.
         mbrPartitionEntry partition[MBR_MAX_PARTITIONS];
-        //TODO: MBR type unique fields?
+        //MBR type unique fields?
     }mbrData, * ptrMBRData;
+
+    static M_INLINE void safe_free_mbrdata(mbrData **mbr)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, mbr));
+    }
 
     //Please read through the lists on both of these websites. This list may be incomplete and be aware that some identifiers are reused between OSs
     //https://en.m.wikipedia.org/wiki/Partition_type
@@ -385,6 +391,11 @@ extern "C"
         apmPartitionEntry partition[APM_MAX_PARTITIONS];
     }apmData, * ptrAPMData;
 
+    static M_INLINE void safe_free_apmdata(apmData **apm)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, apm));
+    }
+
     //----------------------------------------GPT--------------------------------------
 
 #define GPT_HEADER_SIGNATURE_STR "EFI PART"
@@ -531,10 +542,15 @@ extern "C"
         gptGUID diskGUID;
         uint32_t numberOfPartitionEntries;//reported in GPT header. may be greater than number read depending on how many empty entries are in the list
         bool crc32PartitionEntriesValid;
-        bool validBackupGPT; //TODO: gpt was able to read from last LBA. If reading from the backup, this bool means the primary copy...which will likely be false since the primary was not the data source
+        bool validBackupGPT; //gpt was able to read from last LBA. If reading from the backup, this bool means the primary copy...which will likely be false since the primary was not the data source
         uint32_t partitionDataAvailable;//number of partitions that were successfully read into the following partition entires
         gptPartitionEntry partition[1];//NOTE: This must be allocated based on how many partitions are actually available! ex: malloc(sizeof(gptData) + (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
     }gptData, * ptrGPTData;
+
+    static M_INLINE void safe_free_gptdata(gptData **gpt)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, gpt));
+    }
 
     //Ideas when reading this info. Note whether the partitions are aligned per the drive's requirements (physical sector size for SAS/SATA, nvme alignment???)
 
@@ -549,7 +565,10 @@ extern "C"
         };
     }partitionInfo, * ptrPartitionInfo;
 
-    
+    static M_INLINE void safe_free_partition_info(partitionInfo **info)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, info));
+    }
 
     OPENSEA_OPERATIONS_API ptrPartitionInfo get_Partition_Info(tDevice* device);
 

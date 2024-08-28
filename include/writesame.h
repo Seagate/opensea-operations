@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,7 +57,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *writeSameInProgress, uint64_t startingLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -69,14 +70,14 @@ extern "C"
     //!   \param[in] startingLba = This is the LBA that the write same will be started at
     //!   \param[in] numberOfLogicalBlocks = this is the range that the write same is being run on
     //!   \param[in] pollForProgress = boolean flag specifying whether or not to poll for progress
-    //!   \param[in] pattern = pointer to buffer to use for pattern. Should be 1 logical sector in size. May be NULL to use default zero pattern
+    //!   \param[in] pattern = pointer to buffer to use for pattern. Should be 1 logical sector in size. May be M_NULLPTR to use default zero pattern
     //!   \param[in] patternLength = lenght of the pattern memory
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength);
+    OPENSEA_OPERATIONS_API eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOfLogicalBlocks, bool pollForProgress, uint8_t *pattern, uint32_t patternLength);
 
     //-----------------------------------------------------------------------------
     //
@@ -91,7 +92,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int show_Write_Same_Current_LBA(tDevice *device);
+    OPENSEA_OPERATIONS_API eReturnValues show_Write_Same_Current_LBA(tDevice *device);
 
 
 #if defined (__cplusplus)

@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,7 +37,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff);
+    OPENSEA_OPERATIONS_API eReturnValues get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff);
 
     //-----------------------------------------------------------------------------
     //
@@ -53,7 +54,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
+    OPENSEA_OPERATIONS_API eReturnValues change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff);
 
 
     //-----------------------------------------------------------------------------
@@ -91,7 +92,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -107,7 +108,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -123,7 +124,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -139,7 +140,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -155,7 +156,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -171,7 +172,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -187,9 +188,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
-    OPENSEA_OPERATIONS_API int nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -318,7 +319,7 @@ extern "C"
 
     #define MAX_SUPPORTED_ERASE_METHODS 13
     #define MAX_ERASE_NAME_LENGTH 30
-    #define MAX_ERASE_WARNING_LENGTH 70
+    #define MAX_ERASE_WARNING_LENGTH 80
 
     //This is based on IEEE 2883 and assumes the device firmware is compliant according to the specifications
     typedef enum _eraseSanitizationLevel
@@ -341,7 +342,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS])
+    //  get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS])
     //
     //! \brief   Gets a list of the supported erase functions on a drive. list must be at least MAX_SUPPORTED_ERASE_METHODS in size. The list will be in order from fastest to slowest.
     //!          There is also a TCG version of this function in tcg_base_operations.h that will fill in the list including support for revert and revertSP if the drive supports these methods
@@ -355,7 +356,7 @@ extern "C"
     //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -372,22 +373,6 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes);
-    
-    //-----------------------------------------------------------------------------
-    //
-    //  enable_Disable_PUIS_Feature(tDevice *device, bool enable)
-    //
-    //! \brief   Enables or disables the SATA PUIS feature
-    //
-    //  Entry:
-    //!   \param device - file descriptor
-    //!   \param enable - set to true to enable the PUIS feature. Set to False to disable the PUIS feature.
-    //!
-    //  Exit:
-    //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int enable_Disable_PUIS_Feature(tDevice *device, bool enable);
 
     //-----------------------------------------------------------------------------
     //
@@ -405,21 +390,21 @@ extern "C"
     //!   \return SUCCESS = successfully determined erase support, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters);
+    OPENSEA_OPERATIONS_API eReturnValues set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters);
 
-    OPENSEA_OPERATIONS_API int get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity);//if sensitivity is set to UINT16_MAX, then the feature is supported, but not enabled, so the value wouldn't otherwise make sense
+    OPENSEA_OPERATIONS_API eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity);//if sensitivity is set to UINT16_MAX, then the feature is supported, but not enabled, so the value wouldn't otherwise make sense
 
-    OPENSEA_OPERATIONS_API int set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity);//enables the feature. Value of zero sets a vendor's recommended setting
+    OPENSEA_OPERATIONS_API eReturnValues set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity);//enables the feature. Value of zero sets a vendor's recommended setting
 
-    OPENSEA_OPERATIONS_API int disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
+    OPENSEA_OPERATIONS_API eReturnValues disable_Free_Fall_Control_Feature(tDevice *device);//disables the free fall control feature
 
     OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice *device);
 
-    OPENSEA_OPERATIONS_API int enable_Disable_AAM_Feature(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_AAM_Feature(tDevice *device, bool enable);
 
-    OPENSEA_OPERATIONS_API int set_AAM_Level(tDevice *device, uint8_t apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues set_AAM_Level(tDevice *device, uint8_t apmLevel);
 
-    OPENSEA_OPERATIONS_API int get_AAM_Level(tDevice *device, uint8_t *apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues get_AAM_Level(tDevice *device, uint8_t *apmLevel);
 
     OPENSEA_OPERATIONS_API bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device);//This is the reset to defaults bit in mode select command. Not anything else. If this is false, the old read the defaults and write it back should still work - TJE
 
@@ -430,7 +415,7 @@ extern "C"
         UPDATE_SCSI_MP_SAVE_CURRENT
     }eSCSI_MP_UPDATE_MODE;
 
-    OPENSEA_OPERATIONS_API int scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode);
 
     OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput);
 
@@ -438,11 +423,11 @@ extern "C"
 
     //Should this go into a different file???
     //NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
-    OPENSEA_OPERATIONS_API int scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges);//takes a byte array and sends it to the drive.
 
     //NOTE: SPC4 and higher is required to reset only a specific page. Prior to that, all pages will be reset (logpage and logSubPage both set to zero)
     //This function will return BAD_PARAMETER if the device does not support resetting a specific page (logpage or subpage not equal to zero)
-    OPENSEA_OPERATIONS_API int reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
+    OPENSEA_OPERATIONS_API eReturnValues reset_SCSI_Log_Page(tDevice *device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges);
 
     //The following functions are for help with devices that contain multiple logical units (actuators, for example).
     //These commands are intended to help inform users when certain things may affect multiple LUs.
@@ -505,11 +490,11 @@ extern "C"
     //!   \return SUCCESS = successfully read concurrent positioning data, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    int get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges);
+    OPENSEA_OPERATIONS_API eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
+    //  print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     //
     //! \brief   Use this to print the concurrent positioing ranges (actuator info) from a SAS or SATA drive to the screen (stdout)
     //
@@ -519,8 +504,114 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);
+    OPENSEA_OPERATIONS_API void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);
 
-    #if defined (__cplusplus)
+    typedef struct _wrvInfo
+    {
+        bool supported;//if the write-read-verify feature even supported. This must be true for any further data in this structure to be valid
+        bool enabled;
+        uint8_t currentWRVMode;//only valid if the feature is enabled.
+        uint64_t bytesBeingVerified;//if set to UINT64_MAX, then all bytes are being verified. Otherwise it will match the mode * current logical sector size.-TJE
+        uint32_t wrv2sectorCount;//vendor specific. Technically only valid if enabled to mode 2
+        uint32_t wrv3sectorCount;//user defined. Technocally only valid if enabled to mode 3
+        //Output number of bytes that are verified in addition to sectors???
+    }wrvInfo, *ptrWRVInfo;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
+    //
+    //! \brief   This reads the current settings associated with an ATA drive's write-read-verify feature
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!   \param ranges - pointer to a structure filled in with the write-read-verify info
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully read write-read-verify data, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API eReturnValues get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  print_Write_Read_Verify_Info(ptrWRVInfo info);
+    //
+    //! \brief   Use this to print the write-read-verify info from a SATA drive in human readable format to the screen
+    //
+    //  Entry:
+    //!   \param ranges - pointer to a structure filled with the write-read-verify information from a device.
+    //!
+    //  Exit:
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void print_Write_Read_Verify_Info(ptrWRVInfo info);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  disable_Write_Read_Verify(tDevice* device)
+    //
+    //! \brief   Disable the write-read-verify feature on an ATA device
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully disabled write-read-verify, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API eReturnValues disable_Write_Read_Verify(tDevice* device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
+    //
+    //! \brief   Enable the write-read-verify feature on an ATA device to a specific mode
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!   \param all - set write-read-verify to verify writes to all LBAs (cannot be used with vendor or wrvSectorCount)
+    //!   \param vendor - set the vendor specific write-read-verify mode (cannot be used with all or wrvSectorCount)
+    //!   \param wrvSectorCount - if all and vendor are false, this specifies the number of sectors to wrv
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully enabled write-read-verify with provided parameters, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API eReturnValues set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount);
+
+    typedef enum _eWriteAfterErasereq
+    {
+        WAEREQ_NOT_SPECIFIED = 0,
+        WAEREQ_READ_COMPLETES_GOOD_STATUS = 1,
+        WAEREQ_MEDIUM_ERROR_OTHER_ASC = 2,
+        WAEREQ_MEDIUM_ERROR_WRITE_AFTER_SANITIZE_REQUIRED = 3,
+        //The values above are in the SBC standard. The values below this comment are added to handle other cases not fully described in the standard.-TJE
+        WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE = 4
+    }eWriteAfterEraseReq;
+
+    typedef struct _writeAfterErase
+    {
+        eWriteAfterEraseReq cryptoErase;
+        eWriteAfterEraseReq blockErase;
+    }writeAfterErase, *ptrWriteAfterErase;
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_Write_After_Crypto_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
+    //
+    //! \brief   This reads the SCSI block device characteristics VPD page to determine if a write is required after crypto or block erase before a read completes successfully.
+    //
+    //  Entry:
+    //!   \param device - pointer to the tdevice structure for the drive to retrieve information from
+    //!   \param writeReq - pointer to a structure filled in with the write after erase info
+    //!
+    //  Exit:
+    //!   \return SUCCESS = successfully read write after erase data, NOTE_SUPPORTED = feature not supported by the device, BAD_PARAMETER = invalid structure size or version or other input error, anything else = some error occured while determining support.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq);
+
+#if defined (__cplusplus)
 }
-    #endif
+#endif

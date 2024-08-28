@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2023-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +12,17 @@
 // 
 // \file ata_device_config_overlay.c   ATA Device configuration overlay support (DCO)
 
-#include "common.h"
+#include "common_types.h"
+#include "precision_timer.h"
+#include "memory_safety.h"
+#include "type_conversion.h"
+#include "string_utils.h"
+#include "bit_manip.h"
+#include "code_attributes.h"
+#include "math_utils.h"
+#include "error_translation.h"
+#include "io_utils.h"
+
 #include "ata_helper.h"
 #include "ata_helper_func.h"
 #include "ata_device_config_overlay.h"
@@ -32,7 +43,9 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
             supported = true;
             if (dmaSupport)
             {
-                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT12)
+                *dmaSupport = false;
+                if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) && device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
+                    && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) && device->drive_info.IdentifyData.ata.Word069 & BIT12))
                 {
                     *dmaSupport = true;
                 }
@@ -42,10 +55,10 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
     return supported;
 }
 
-int dco_Restore(tDevice* device)
+eReturnValues dco_Restore(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
-    if (is_DCO_Supported(device, NULL))
+    eReturnValues ret = NOT_SUPPORTED;
+    if (is_DCO_Supported(device, M_NULLPTR))
     {
         ret = ata_DCO_Restore(device);
         if (ret == ABORTED)
@@ -62,10 +75,10 @@ int dco_Restore(tDevice* device)
     return ret;
 }
 
-int dco_Freeze_Lock(tDevice* device)
+eReturnValues dco_Freeze_Lock(tDevice* device)
 {
-    int ret = NOT_SUPPORTED;
-    if (is_DCO_Supported(device, NULL))
+    eReturnValues ret = NOT_SUPPORTED;
+    if (is_DCO_Supported(device, M_NULLPTR))
     {
         ret = ata_DCO_Freeze_Lock(device);
         if (ret == ABORTED)
@@ -76,15 +89,15 @@ int dco_Freeze_Lock(tDevice* device)
     return ret;
 }
 
-int dco_Identify(tDevice* device, ptrDcoData data)
+eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     bool dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
         if (data)
         {
-            uint8_t dcoIdentData[512] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
             if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
             {
                 dcoDMASupport = false;
@@ -170,7 +183,6 @@ void show_DCO_Identify_Data(ptrDcoData data)
 {
     if (data)
     {
-        //TODO: Print out fields and show the bits meanings for what is changable
         printf("\n===============================\n");
         printf(" DCO Identify Changable Fields \n");
         printf("===============================\n");
@@ -337,15 +349,15 @@ void show_DCO_Identify_Data(ptrDcoData data)
     return;
 }
 
-int dco_Set(tDevice* device, ptrDcoData data)
+eReturnValues dco_Set(tDevice* device, ptrDcoData data)
 {
-    int ret = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     bool dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
         if (data)
         {
-            uint8_t dcoIdentData[512] = { 0 };
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
             if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
             {
                 dcoDMASupport = false;
@@ -362,167 +374,167 @@ int dco_Set(tDevice* device, ptrDcoData data)
                 //mwdma bits
                 if (!data->mwdma.mwdma2)
                 {
-                    M_CLEAR_BIT(dcoIdentData[2], 2);
+                    M_CLEAR_BIT8(dcoIdentData[2], 2);
                 }
                 if (!data->mwdma.mwdma1)
                 {
-                    M_CLEAR_BIT(dcoIdentData[2], 1);
+                    M_CLEAR_BIT8(dcoIdentData[2], 1);
                 }
                 if (!data->mwdma.mwdma0)
                 {
-                    M_CLEAR_BIT(dcoIdentData[2], 0);
+                    M_CLEAR_BIT8(dcoIdentData[2], 0);
                 }
                 //udma
                 if (!data->udma.udma6)
                 {
-                    M_CLEAR_BIT(dcoIdentData[4], 6);
+                    M_CLEAR_BIT8(dcoIdentData[4], 6);
                 }
                 if (!data->udma.udma5)
                 {
-                    M_CLEAR_BIT(dcoIdentData[4], 5);
+                    M_CLEAR_BIT8(dcoIdentData[4], 5);
                 }
                 if (!data->udma.udma4)
                 {
-                    M_CLEAR_BIT(dcoIdentData[4], 4);
+                    M_CLEAR_BIT8(dcoIdentData[4], 4);
                 }
                 if (!data->udma.udma3)
                 {
-                    M_CLEAR_BIT(dcoIdentData[4], 3);
+                    M_CLEAR_BIT8(dcoIdentData[4], 3);
                 }
                 if (!data->udma.udma2)
                 {
-                    M_CLEAR_BIT(dcoIdentData[4], 2);
+                    M_CLEAR_BIT8(dcoIdentData[4], 2);
                 }
                 if (!data->udma.udma1)
                 {
-                    M_CLEAR_BIT(dcoIdentData[4], 1);
+                    M_CLEAR_BIT8(dcoIdentData[4], 1);
                 }
                 if (!data->udma.udma0)
                 {
-                    M_CLEAR_BIT(dcoIdentData[4], 0);
+                    M_CLEAR_BIT8(dcoIdentData[4], 0);
                 }
                 //maxLBA
                 dcoIdentData[13] = M_Byte7(data->maxLBA);
                 dcoIdentData[12] = M_Byte6(data->maxLBA);
                 dcoIdentData[11] = M_Byte5(data->maxLBA);
                 dcoIdentData[10] = M_Byte4(data->maxLBA);
-                dcoIdentData[9]  = M_Byte3(data->maxLBA);
-                dcoIdentData[8]  = M_Byte2(data->maxLBA);
-                dcoIdentData[7]  = M_Byte1(data->maxLBA);
-                dcoIdentData[6]  = M_Byte0(data->maxLBA);
+                dcoIdentData[9] = M_Byte3(data->maxLBA);
+                dcoIdentData[8] = M_Byte2(data->maxLBA);
+                dcoIdentData[7] = M_Byte1(data->maxLBA);
+                dcoIdentData[6] = M_Byte0(data->maxLBA);
                 //features 1
                 if (!data->feat1.writeReadVerify)
                 {
-                    M_CLEAR_BIT(dcoIdentData[15], 6);
+                    M_CLEAR_BIT8(dcoIdentData[15], 6);
                 }
                 if (!data->feat1.smartConveyanceSelfTest)
                 {
-                    M_CLEAR_BIT(dcoIdentData[15], 5);
+                    M_CLEAR_BIT8(dcoIdentData[15], 5);
                 }
                 if (!data->feat1.smartSelectiveSelfTest)
                 {
-                    M_CLEAR_BIT(dcoIdentData[15], 4);
+                    M_CLEAR_BIT8(dcoIdentData[15], 4);
                 }
                 if (!data->feat1.forceUnitAccess)
                 {
-                    M_CLEAR_BIT(dcoIdentData[15], 3);
+                    M_CLEAR_BIT8(dcoIdentData[15], 3);
                 }
                 if (!data->feat1.timeLimitedCommands)
                 {
-                    M_CLEAR_BIT(dcoIdentData[15], 2);
+                    M_CLEAR_BIT8(dcoIdentData[15], 2);
                 }
                 if (!data->feat1.streaming)
                 {
-                    M_CLEAR_BIT(dcoIdentData[15], 1);
+                    M_CLEAR_BIT8(dcoIdentData[15], 1);
                 }
                 if (!data->feat1.fourtyEightBitAddress)
                 {
-                    M_CLEAR_BIT(dcoIdentData[15], 0);
+                    M_CLEAR_BIT8(dcoIdentData[15], 0);
                 }
                 if (!data->feat1.hostProtectedArea)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 7);
+                    M_CLEAR_BIT8(dcoIdentData[14], 7);
                 }
                 if (!data->feat1.automaticAccousticManagement)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 6);
+                    M_CLEAR_BIT8(dcoIdentData[14], 6);
                 }
                 if (!data->feat1.readWriteDMAQueued)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 5);
+                    M_CLEAR_BIT8(dcoIdentData[14], 5);
                 }
                 if (!data->feat1.powerUpInStandby)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 4);
+                    M_CLEAR_BIT8(dcoIdentData[14], 4);
                 }
                 if (!data->feat1.ATAsecurity)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 3);
+                    M_CLEAR_BIT8(dcoIdentData[14], 3);
                 }
                 if (!data->feat1.smartErrorLog)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 2);
+                    M_CLEAR_BIT8(dcoIdentData[14], 2);
                 }
                 if (!data->feat1.smartSelfTest)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 1);
+                    M_CLEAR_BIT8(dcoIdentData[14], 1);
                 }
                 if (!data->feat1.smartFeature)
                 {
-                    M_CLEAR_BIT(dcoIdentData[14], 0);
+                    M_CLEAR_BIT8(dcoIdentData[14], 0);
                 }
                 //dcoIdentData[16] = M_Byte0(data->sataFeatures1);
                 //dcoIdentData[17] = M_Byte1(data->sataFeatures1);
                 if (!data->sataFeat.softwareSettingsPreservation)
                 {
-                    M_CLEAR_BIT(dcoIdentData[16], 4);
+                    M_CLEAR_BIT8(dcoIdentData[16], 4);
                 }
                 if (!data->sataFeat.asynchronousNotification)
                 {
-                    M_CLEAR_BIT(dcoIdentData[16], 3);
+                    M_CLEAR_BIT8(dcoIdentData[16], 3);
                 }
                 if (!data->sataFeat.interfacePowerManagement)
                 {
-                    M_CLEAR_BIT(dcoIdentData[16], 2);
+                    M_CLEAR_BIT8(dcoIdentData[16], 2);
                 }
                 if (!data->sataFeat.nonZeroBufferOffsets)
                 {
-                    M_CLEAR_BIT(dcoIdentData[16], 1);
+                    M_CLEAR_BIT8(dcoIdentData[16], 1);
                 }
                 if (!data->sataFeat.ncqFeature)
                 {
-                    M_CLEAR_BIT(dcoIdentData[16], 0);
+                    M_CLEAR_BIT8(dcoIdentData[16], 0);
                 }
                 //sata reserved in word 9
                 //words 10-20 reserved
                 //feature set 2
                 if (!data->feat2.nvCache)
                 {
-                    M_CLEAR_BIT(dcoIdentData[43], 7);
+                    M_CLEAR_BIT8(dcoIdentData[43], 7);
                 }
                 if (!data->feat2.nvCachePowerManagement)
                 {
-                    M_CLEAR_BIT(dcoIdentData[43], 6);
+                    M_CLEAR_BIT8(dcoIdentData[43], 6);
                 }
                 if (!data->feat2.writeUncorrectable)
                 {
-                    M_CLEAR_BIT(dcoIdentData[43], 5);
+                    M_CLEAR_BIT8(dcoIdentData[43], 5);
                 }
                 if (!data->feat2.trustedComputing)
                 {
-                    M_CLEAR_BIT(dcoIdentData[43], 4);
+                    M_CLEAR_BIT8(dcoIdentData[43], 4);
                 }
                 if (!data->feat2.freeFall)
                 {
-                    M_CLEAR_BIT(dcoIdentData[43], 3);
+                    M_CLEAR_BIT8(dcoIdentData[43], 3);
                 }
                 if (!data->feat2.dataSetManagement)
                 {
-                    M_CLEAR_BIT(dcoIdentData[43], 2);
+                    M_CLEAR_BIT8(dcoIdentData[43], 2);
                 }
                 if (!data->feat2.extendedPowerConditions)
                 {
-                    M_CLEAR_BIT(dcoIdentData[43], 1);
+                    M_CLEAR_BIT8(dcoIdentData[43], 1);
                 }
                 //dcoIdentData[44] = M_Byte0(data->features3);
                 //dcoIdentData[45] = M_Byte1(data->features3);

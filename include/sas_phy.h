@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +19,8 @@
 extern "C"
 {
 #endif
+
+    #include "precision_timer.h"
 
     #include "operations_Common.h"
     #include "scsi_helper.h"
@@ -89,10 +92,10 @@ extern "C"
     #define PHY_TEST_PATTERN_DWORD_PAIR_ALIGN_0     UINT64_C(0xBC4A4A7B4A787E7E)
 
     //Takes all the inputs to start a test pattern
-    OPENSEA_OPERATIONS_API int start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords);
+    OPENSEA_OPERATIONS_API eReturnValues start_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyTestPattern pattern, bool sataTestFunction, eSASPhyTestFunctionSSC testFunctionSSC, eSASPhyPhysicalLinkRate linkRate, eSASPhyDwordControl dwordControl, uint64_t phyTestPatternDwords);
 
     //will stop a test pattern on a specified phy
-    OPENSEA_OPERATIONS_API int stop_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate);
+    OPENSEA_OPERATIONS_API eReturnValues stop_SAS_Test_Pattern(tDevice *device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate);
 
 #if defined (__cplusplus)
 }

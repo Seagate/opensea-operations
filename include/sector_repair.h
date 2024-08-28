@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,7 +36,12 @@ extern "C"
         uint64_t errorAddress;
         eRepairStatus repairStatus;
     }errorLBA, *ptrErrorLBA;
-   
+
+    static M_INLINE void safe_free_error_lba(errorLBA **errlba)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, errlba));
+    }
+
     //-----------------------------------------------------------------------------
     //
     //  repair_LBA()
@@ -53,7 +59,7 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled);
+    OPENSEA_OPERATIONS_API eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthroughCommand, bool automaticWriteReallocationEnabled, bool automaticReadReallocationEnabled);
 
     //-----------------------------------------------------------------------------
     //
@@ -70,7 +76,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors);
 
-    OPENSEA_OPERATIONS_API int get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled);
+    OPENSEA_OPERATIONS_API eReturnValues get_Automatic_Reallocation_Support(tDevice *device, bool *automaticWriteReallocationEnabled, bool *automaticReadReallocationEnabled);
 
     //Use this call to determine if you've already logged an error in the list so that you don't log it again
     OPENSEA_OPERATIONS_API bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba);

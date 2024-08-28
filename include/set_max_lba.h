@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,7 +36,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
@@ -51,11 +52,11 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
+    OPENSEA_OPERATIONS_API eReturnValues get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Set_Max_LBA( tDevice * device )
+    //  scsi_Set_Max_LBA_2( tDevice * device )
     //
     //! \brief   Sets the maxLBA of the selected device using SCSI methods
     //
@@ -63,16 +64,21 @@ extern "C"
     //!   \param[in]  device file descriptor
     //!   \param[in]  newMaxLBA the new maxLBA you wish to set
     //!   \param[in]  reset if set to 1 (or higher), this will reset to the native max, otherwise it will use the newMaxLBA param to set the maxLBA
+    //!   \param[in]  changeId if set to 1 (or higher), this will change model number if available in AMAC feature set
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int scsi_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+
+    // deprecated wrapper for scsi_Set_Max_LBA_2
+    // TODO: remove me when next major version bump
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Set_Max_LBA( tDevice * device )
+    //  ata_Set_Max_LBA_2( tDevice * device )
     //
     //! \brief   Sets the maxLBA of the selected device using HPA or AMA feature sets
     //
@@ -80,16 +86,21 @@ extern "C"
     //!   \param[in]  device file descriptor
     //!   \param[in]  newMaxLBA the new maxLBA you wish to set
     //!   \param[in]  reset if set to 1 (or higher), this will reset to the native max, otherwise it will use the newMaxLBA param to set the maxLBA
+    //!   \param[in]  changeId if set to 1 (or higher), this will change model number if available in AMAC feature set
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int ata_Set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+
+    // deprecated wrapper for ata_Set_Max_LBA_2
+    // TODO: remove me when next major version bump
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Max_LBA( tDevice * device )
+    //  set_Max_LBA_2( tDevice * device )
     //
     //! \brief   Sets the maxLBA of the selected device. This will work with new and old methods.
     //!          If ATA, we have only implemented the legacy method for 48bit drives
@@ -98,12 +109,17 @@ extern "C"
     //!   \param[in]  device file descriptor
     //!   \param[in]  newMaxLBA the new maxLBA you wish to set
     //!   \param[in]  reset if set to 1 (or higher), this will reset to the native max, otherwise it will use the newMaxLBA param to set the maxLBA
+    //!   \param[in]  changeId if set to 1 (or higher), this will change model number if available in AMAC feature set
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
+    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+
+    // deprecated wrapper for set_Max_LBA_2
+    // TODO: remove me when next major version bump
+    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA(tDevice *device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
@@ -121,7 +137,7 @@ extern "C"
     //!   \return SUCCESS = good, DEVICE_ACCESS_DENIED means HPA security is active and blocked the restoration of the maxLBA
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API int restore_Max_LBA_For_Erase(tDevice* device);
+    OPENSEA_OPERATIONS_API eReturnValues restore_Max_LBA_For_Erase(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -141,6 +157,69 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset);
+
+    typedef struct _capacityModelDescriptor
+    {
+        uint64_t capacityMaxAddress;
+        char modelNumber[MODEL_NUM_LEN + 1];//Null terminated
+    }capacityModelDescriptor, *ptrDriveCapacityModelDescriptor;
+
+    typedef struct _capacityModelNumberMapping
+    {
+        uint32_t numberOfDescriptors;
+        capacityModelDescriptor descriptor[1];//NOTE: This must be allocated based on how many descriptors are actually available! ex: malloc(sizeof(capacityModelNumberMapping) + (get_capacityModelDescriptor_Count() * sizeof(capacityModelDescriptor)));
+    }capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
+
+    static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping **mnmap)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, mnmap));
+    }
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_Change_Identify_String_Supported(tDevice *device)
+    //
+    //! \brief   Description:  Checks if the device supports Change ID Strings.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!
+    //  Exit:
+    //!   \return true = changing sector size supported, false = not supported
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API bool is_Change_Identify_String_Supported(tDevice* device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Capacity_Model_Number_Mapping(tDevice* device)
+    //
+    //! \brief   Description:  This function fills in Capacity/Product Mapping
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!
+    //  Exit:
+    //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = M_NULLPTR.
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
+    //
+    //! \brief   Description:  This function free allocated Capacity/Product Mapping
+    //
+    //  Entry:
+    //!   \param[in] capModelMapping = pointer to the struct to fill in with Capacity/Product Mapping
+    //!
+    //  Exit:
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
+
+    OPENSEA_OPERATIONS_API void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
 
 #if defined (__cplusplus)
 }
