@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -108,7 +108,7 @@ eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
         *percentComplete *= 100;
         *percentComplete /= 65536;
     }
-    safe_Free_aligned(C_CAST(void**, &temp_buf));
+    safe_free_aligned(&temp_buf);
     return result;
 }
 
@@ -1109,7 +1109,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
                 *minutes = C_CAST(uint8_t, longDSTTime % 60);
                 ret = SUCCESS;
             }
-            safe_Free_aligned(C_CAST(void**, &smartData));
+            safe_free_aligned(&smartData);
         }
         break;
     case NVME_DRIVE:
@@ -1169,7 +1169,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
                 getTimeFromExtendedInquiryData = true;//some crappy USB bridges may not support the mode page, but will support the VPD page, so attempt to read the VPD page anyways
             }
         }
-        safe_Free_aligned(C_CAST(void**, &controlMP));
+        safe_free_aligned(&controlMP);
         if (getTimeFromExtendedInquiryData)
         {
             uint8_t *extendedInqyData = C_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -1187,7 +1187,7 @@ eReturnValues get_Long_DST_Time(tDevice *device, uint8_t *hours, uint8_t *minute
                 *minutes = C_CAST(uint8_t, longDSTTime % 60);
                 ret = SUCCESS;
             }
-            safe_Free_aligned(C_CAST(void**, &extendedInqyData));
+            safe_free_aligned(&extendedInqyData);
         }
     }
     break;
@@ -1796,7 +1796,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries e
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &selfTestResults));
+    safe_free_aligned(&selfTestResults);
     return ret;
 }
 

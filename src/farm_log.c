@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -224,7 +224,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempFileTimeseries))
                     {
                         printf("error in writing farmtimeseries.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFileTimeseries);
@@ -243,7 +243,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempFileLongSave))
                     {
                         printf("error in writing farmlongsaved.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFileLongSave);
@@ -262,7 +262,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempFileSticky))
                     {
                         printf("error in writing farmsticky.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFileSticky);
@@ -276,7 +276,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                     printf("Error pulling Farm Time series log\n");
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+            safe_free_aligned(&farmTimeSeriesFramesLog);
 
             //FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -297,7 +297,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempFile))
                     {
                         printf("error in writing farmworkloadtrace.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmWorkloadTraceFramesLog));
+                        safe_free_aligned(&farmWorkloadTraceFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFile);
@@ -311,7 +311,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                     printf("Error pulling Farm workload trace log\n");
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &farmWorkloadTraceFramesLog));
+            safe_free_aligned(&farmWorkloadTraceFramesLog);
         }
     }
     else if (sataFarmCopyType == SATA_FARM_COPY_TYPE_FLASH)
@@ -337,7 +337,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempCurrentFile))
                     {
                         printf("error in writing farmcurrent.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempCurrentFile);
@@ -356,7 +356,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempSavedFile))
                     {
                         printf("error in writing farmsaved.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempSavedFile);
@@ -375,7 +375,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempTimeSeriesFile))
                     {
                         printf("error in writing farmtimeseries.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempTimeSeriesFile);
@@ -394,7 +394,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempLongSavedFile))
                     {
                         printf("error in writing farmlongsaved.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempLongSavedFile);
@@ -413,7 +413,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempStickyFile))
                     {
                         printf("error in writing farmsticky.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempStickyFile);
@@ -432,7 +432,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempFactoryFile))
                     {
                         printf("error in writing farmfactory.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+                        safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFactoryFile);
@@ -446,7 +446,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                     printf("Error pulling Farm Time series log\n");
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &farmTimeSeriesFramesLog));
+            safe_free_aligned(&farmTimeSeriesFramesLog);
 
             //FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t *farmWorkloadTraceFramesLog = C_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
@@ -467,7 +467,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                         || ferror(tempFile))
                     {
                         printf("error in writing farmworkloadtrace.bin file\n");
-                        safe_Free_aligned(C_CAST(void**, &farmWorkloadTraceFramesLog));
+                        safe_free_aligned(&farmWorkloadTraceFramesLog);
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFile);
@@ -481,7 +481,7 @@ static eReturnValues pullATAFarmLogs(tDevice *device, uint32_t transferSizeBytes
                     printf("Error pulling Farm workload trace log\n");
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &farmWorkloadTraceFramesLog));
+            safe_free_aligned(&farmWorkloadTraceFramesLog);
         }
     }
     else
@@ -912,7 +912,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
             free_Secure_File_Info(&farmFile);
             returnValue = MEMORY_FAILURE;
         }
-        safe_Free(C_CAST(void**, &zeroPadding));
+        safe_free(&zeroPadding);
     }
     return returnValue;
 }
@@ -1564,19 +1564,19 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
         free_Secure_File_Info(&farmCombinedLog);
     } while (0);
 
-    safe_Free_aligned(C_CAST(void**, &farmCurrentLog));
-    safe_Free_aligned(C_CAST(void**, &farmFactoryLog));
-    safe_Free_aligned(C_CAST(void**, &farmSavedLog));
-    safe_Free_aligned(C_CAST(void**, &farmTimeSeriesLog));
-    safe_Free_aligned(C_CAST(void**, &farmLongSavedLog));
-    safe_Free_aligned(C_CAST(void**, &farmStickyLog));
-    safe_Free_aligned(C_CAST(void**, &farmWorkLoadTraceLog));
-    safe_Free_aligned(C_CAST(void**, &farmCurrentZeroPaddingBuffer));
-    safe_Free_aligned(C_CAST(void**, &farmFactoryZeroPaddingBuffer));
-    safe_Free_aligned(C_CAST(void**, &farmSavedZeroPaddingBuffer));
-    safe_Free_aligned(C_CAST(void**, &farmTimeSeriesZeroPaddingBuffer));
-    safe_Free_aligned(C_CAST(void**, &farmLongSavedZeroPaddingBuffer));
-    safe_Free_aligned(C_CAST(void**, &farmStickyZeroPaddingBuffer));
+    safe_free_aligned(&farmCurrentLog);
+    safe_free_aligned(&farmFactoryLog);
+    safe_free_aligned(&farmSavedLog);
+    safe_free_aligned(&farmTimeSeriesLog);
+    safe_free_aligned(&farmLongSavedLog);
+    safe_free_aligned(&farmStickyLog);
+    safe_free_aligned(&farmWorkLoadTraceLog);
+    safe_free_aligned(&farmCurrentZeroPaddingBuffer);
+    safe_free_aligned(&farmFactoryZeroPaddingBuffer);
+    safe_free_aligned(&farmSavedZeroPaddingBuffer);
+    safe_free_aligned(&farmTimeSeriesZeroPaddingBuffer);
+    safe_free_aligned(&farmLongSavedZeroPaddingBuffer);
+    safe_free_aligned(&farmStickyZeroPaddingBuffer);
 
     return returnValue;
 }

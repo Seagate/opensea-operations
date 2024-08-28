@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -169,6 +169,11 @@ extern "C"
         uint32_t numberOfDescriptors;
         capacityModelDescriptor descriptor[1];//NOTE: This must be allocated based on how many descriptors are actually available! ex: malloc(sizeof(capacityModelNumberMapping) + (get_capacityModelDescriptor_Count() * sizeof(capacityModelDescriptor)));
     }capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
+
+    static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping **mnmap)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, mnmap));
+    }
 
     //-----------------------------------------------------------------------------
     //

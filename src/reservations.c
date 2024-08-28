@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2021-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2021-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -629,7 +629,7 @@ eReturnValues get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrR
                 keys->registrationKey[keyIter] = M_BytesTo8ByteValue(registrationKeys[offset + 0], registrationKeys[offset + 1], registrationKeys[offset + 2], registrationKeys[offset + 3], registrationKeys[offset + 4], registrationKeys[offset + 5], registrationKeys[offset + 6], registrationKeys[offset + 7]);
             }
         }
-        safe_Free_aligned(C_CAST(void**, &registrationKeys));
+        safe_free_aligned(&registrationKeys);
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -650,7 +650,7 @@ eReturnValues get_Registration_Keys(tDevice *device, uint16_t numberOfKeys, ptrR
                 keys->registrationKey[keyIter] = M_BytesTo8ByteValue(registrationKeys[offset + 23], registrationKeys[offset + 22], registrationKeys[offset + 21], registrationKeys[offset + 20], registrationKeys[offset + 19], registrationKeys[offset + 18], registrationKeys[offset + 17], registrationKeys[offset + 16]);
             }
         }
-        safe_Free_aligned(C_CAST(void**, &registrationKeys));
+        safe_free_aligned(&registrationKeys);
     }
     return ret;
 }
@@ -809,7 +809,7 @@ eReturnValues get_Reservations(tDevice *device, uint16_t numberReservations, ptr
                 }
             }
         }
-        safe_Free_aligned(C_CAST(void**, &reservationKeys));
+        safe_free_aligned(&reservationKeys);
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -873,7 +873,7 @@ eReturnValues get_Reservations(tDevice *device, uint16_t numberReservations, ptr
                     }
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &reservationKeys));
+            safe_free_aligned(&reservationKeys);
         }
     }
     return ret;
@@ -979,7 +979,7 @@ eReturnValues get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
             //since the transport ID can vary in size, we cannot calculate this on length alone, so we need to re-read with the full length of the data just reported and count them.
             fullStatusDataLength = 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
             //reallocate with enough memory
-            safe_Free_aligned(C_CAST(void**, &fullStatusData));
+            safe_free_aligned(&fullStatusData);
             fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!fullStatusData)
             {
@@ -1003,7 +1003,7 @@ eReturnValues get_Full_Status_Key_Count(tDevice *device, uint16_t *keyCount)
             //use the registration key count function instead
             ret = get_Registration_Key_Count(device, keyCount);
         }
-        safe_Free_aligned(C_CAST(void**, &fullStatusData));
+        safe_free_aligned(&fullStatusData);
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -1066,7 +1066,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
             //since the transport ID can vary in size, we cannot calculate this on length alone, so we need to re-read with the full length of the data just reported and count them.
             fullStatusDataLength = 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
             //reallocate with enough memory
-            safe_Free_aligned(C_CAST(void**, &fullStatusData));
+            safe_free_aligned(&fullStatusData);
             fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!fullStatusData)
             {
@@ -1171,8 +1171,8 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
                 if (!registrations || !reservations)
                 {
                     //not sure which of these failed, but these macros should be safe to use to make sure we don't leave any memory out there
-                    safe_Free(C_CAST(void**, &registrations));
-                    safe_Free(C_CAST(void**, &reservations));
+                    safe_free_registration_key_data(&registrations);
+                    safe_free_reservation_data(&reservations);
                     return MEMORY_FAILURE;
                 }
                 registrations->size = sizeof(registrationKeysData);
@@ -1220,7 +1220,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
                 ret = FAILURE;
             }
         }
-        safe_Free_aligned(C_CAST(void**, &fullStatusData));
+        safe_free_aligned(&fullStatusData);
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -1283,7 +1283,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
                 fullReservation->reservationKey[keyIter].key = M_BytesTo8ByteValue(nvmeFullData[offset + 23], nvmeFullData[offset + 22], nvmeFullData[offset + 21], nvmeFullData[offset + 20], nvmeFullData[offset + 19], nvmeFullData[offset + 18], nvmeFullData[offset + 17], nvmeFullData[offset + 16]);
             }
         }
-        safe_Free_aligned(C_CAST(void**, &nvmeFullData));
+        safe_free_aligned(&nvmeFullData);
     }
     return ret;
 }

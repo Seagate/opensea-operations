@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -81,7 +81,7 @@ char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, //requ
                 {
                     //allocated, but had some other failure.
                     //free this and return M_NULLPTR
-                    safe_Free(C_CAST(void**, &logExtension));
+                    safe_free(&logExtension);
                 }
                 return M_NULLPTR;
             }
@@ -106,9 +106,9 @@ char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, //requ
             {
                 //allocated, but had some other failure.
                 //free this and return M_NULLPTR
-                safe_Free(C_CAST(void**, &generatedName));
+                safe_free(&generatedName);
             }
-            safe_Free(C_CAST(void**, &logExtension));
+            safe_free(&logExtension);
             return M_NULLPTR;
         }
         break;
@@ -121,9 +121,9 @@ char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, //requ
                 {
                     //allocated, but had some other failure.
                     //free this and return M_NULLPTR
-                    safe_Free(C_CAST(void**, &generatedName));
+                    safe_free(&generatedName);
                 }
-                safe_Free(C_CAST(void**, &logExtension));
+                safe_free(&logExtension);
                 return M_NULLPTR;
             }
         }
@@ -135,9 +135,9 @@ char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, //requ
                 {
                     //allocated, but had some other failure.
                     //free this and return M_NULLPTR
-                    safe_Free(C_CAST(void**, &generatedName));
+                    safe_free(&generatedName);
                 }
-                safe_Free(C_CAST(void**, &logExtension));
+                safe_free(&logExtension);
                 return M_NULLPTR;
             }
         }
@@ -149,14 +149,14 @@ char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, //requ
             {
                 //allocated, but had some other failure.
                 //free this and return M_NULLPTR
-                safe_Free(C_CAST(void**, &generatedName));
+                safe_free(&generatedName);
             }
-            safe_Free(C_CAST(void**, &logExtension));
+            safe_free(&logExtension);
             return M_NULLPTR;
         }
         break;
     }
-    safe_Free(C_CAST(void**, &logExtension));
+    safe_free(&logExtension);
     return generatedName;
 }
 
@@ -231,7 +231,7 @@ eReturnValues create_And_Open_Secure_Log_File(const char *deviceIdentifier, //re
         result = FAILURE;
         //Should we give more error information here or just call it a failure???-TJE
     }
-    safe_Free(C_CAST(void**, &logGeneratedName));
+    safe_free(&logGeneratedName);
     return result;
 }
 
@@ -346,7 +346,7 @@ eReturnValues get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *lo
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &logBuffer));
+    safe_free_aligned(&logBuffer);
     return ret;
 }
 
@@ -434,7 +434,7 @@ eReturnValues get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSub
             *logFileSize = UINT16_MAX;//maximum transfer for a log page, so return this so that the page can at least be read....
         }
     }
-    safe_Free_aligned(C_CAST(void**, &logBuffer));
+    safe_free_aligned(&logBuffer);
     return ret;
 }
 
@@ -475,7 +475,7 @@ eReturnValues get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t 
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &vpdBuffer));
+    safe_free_aligned(&vpdBuffer);
     return ret;
 }
 
@@ -646,7 +646,7 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc,
     {
         device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
     }
-    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+    safe_free_aligned(&modeBuffer);
     return ret;
 }
 
@@ -750,7 +750,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
                         printf("Failed to open file!\n");
                     }
                     ret = FAILURE;
-                    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+                    safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
                 }
             }
@@ -768,7 +768,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
                         printf("Error closing file!\n");
                     }
                     fileOpened = false;
-                    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+                    safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
                     return ERROR_WRITING_FILE;
                 }
@@ -794,7 +794,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
                         printf("Error closing file!\n");
                     }
                     fileOpened = false;
-                    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+                    safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
                     return ERROR_WRITING_FILE;
                 }
@@ -903,7 +903,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
                         printf("Failed to open file!\n");
                     }
                     ret = FAILURE;
-                    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+                    safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
                 }
             }
@@ -921,7 +921,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
                         printf("Error closing file!\n");
                     }
                     fileOpened = false;
-                    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+                    safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
                     return ERROR_WRITING_FILE;
                 }
@@ -946,7 +946,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
                         printf("Error closing file!\n");
                     }
                     fileOpened = false;
-                    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+                    safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
                     return ERROR_WRITING_FILE;
                 }
@@ -968,7 +968,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
     {
         device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
     }
-    safe_Free_aligned(C_CAST(void**, &modeBuffer));
+    safe_free_aligned(&modeBuffer);
     return ret;
 }
 
@@ -1033,7 +1033,7 @@ eReturnValues get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uin
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &errorHistoryDirectory));
+    safe_free_aligned(&errorHistoryDirectory);
     return ret;
 }
 
@@ -1133,7 +1133,7 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const ch
                                 printf("Failed to open file!\n");
                             }
                             ret = FAILURE;
-                            safe_Free_aligned(C_CAST(void**, &historyBuffer));
+                            safe_free_aligned(&historyBuffer);
                             free_Secure_File_Info(&fp_History);
                         }
                     }
@@ -1151,7 +1151,7 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const ch
                                 printf("Error closing file!\n");
                             }
                             logFileOpened = false;
-                            safe_Free_aligned(C_CAST(void**, &historyBuffer));
+                            safe_free_aligned(&historyBuffer);
                             free_Secure_File_Info(&fp_History);
                             return ERROR_WRITING_FILE;
                         }
@@ -1182,7 +1182,7 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const ch
                     printf("Error closing file!\n");
                 }
                 logFileOpened = false;
-                safe_Free_aligned(C_CAST(void**, &historyBuffer));
+                safe_free_aligned(&historyBuffer);
                 free_Secure_File_Info(&fp_History);
                 return ERROR_WRITING_FILE;
             }
@@ -1191,7 +1191,7 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const ch
                 printf("Error closing file!\n");
             }
         }
-        safe_Free_aligned(C_CAST(void**, &historyBuffer));
+        safe_free_aligned(&historyBuffer);
     }
     free_Secure_File_Info(&fp_History);
     return ret;
@@ -1366,7 +1366,7 @@ eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath)
                             printf("Failed to open file!\n");
                         }
                         ret = FAILURE;
-                        safe_Free_aligned(C_CAST(void**, &defectData));
+                        safe_free_aligned(&defectData);
                         free_Secure_File_Info(&gListData);
                     }
                 }
@@ -1384,7 +1384,7 @@ eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath)
                             printf("Error closing file!\n");
                         }
                         fileOpened = false;
-                        safe_Free_aligned(C_CAST(void**, &defectData));
+                        safe_free_aligned(&defectData);
                         free_Secure_File_Info(&gListData);
                         return ERROR_WRITING_FILE;
                     }
@@ -1402,7 +1402,7 @@ eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath)
                             printf("Error closing file!\n");
                         }
                         fileOpened = false;
-                        safe_Free_aligned(C_CAST(void**, &defectData));
+                        safe_free_aligned(&defectData);
                         free_Secure_File_Info(&gListData);
                         return ERROR_WRITING_FILE;
                     }
@@ -1415,7 +1415,7 @@ eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath)
         }
         free_Secure_File_Info(&gListData);
     }
-    safe_Free_aligned(C_CAST(void**, &defectData));
+    safe_free_aligned(&defectData);
     return ret;
 }
 
@@ -1540,7 +1540,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
                                     printf("Error closing file!\n");
                                 }
                                 fileOpened = false;
-                                safe_Free_aligned(C_CAST(void**, &logBuffer));
+                                safe_free_aligned(&logBuffer);
                                 free_Secure_File_Info(&fp_log);
                                 return ERROR_WRITING_FILE;
                             }
@@ -1588,7 +1588,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
                                 printf("Failed to open file!\n");
                             }
                             ret = FAILURE;
-                            safe_Free_aligned(C_CAST(void**, &logBuffer));
+                            safe_free_aligned(&logBuffer);
                             free_Secure_File_Info(&fp_log);
                             return FILE_OPEN_ERROR;
                         }
@@ -1607,7 +1607,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
                                 printf("Error closing file!\n");
                             }
                             fileOpened = false;
-                            safe_Free_aligned(C_CAST(void**, &logBuffer));
+                            safe_free_aligned(&logBuffer);
                             free_Secure_File_Info(&fp_log);
                             return ERROR_WRITING_FILE;
                         }
@@ -1634,7 +1634,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
             }
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                if (!toBuffer)
+                if (!toBuffer && fp_log)
                 {
                     printf("\nBinary log saved to: %s\n", fp_log->fullpath);
                 }
@@ -1660,7 +1660,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
                             printf("Failed to open file!\n");
                         }
                         ret = FAILURE;
-                        safe_Free_aligned(C_CAST(void**, &logBuffer));
+                        safe_free_aligned(&logBuffer);
                         free_Secure_File_Info(&fp_log);
                         return FILE_OPEN_ERROR;
                     }
@@ -1679,7 +1679,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
                             printf("Error closing file!\n");
                         }
                         fileOpened = false;
-                        safe_Free_aligned(C_CAST(void**, &logBuffer));
+                        safe_free_aligned(&logBuffer);
                         free_Secure_File_Info(&fp_log);
                         return ERROR_WRITING_FILE;
                     }
@@ -1721,7 +1721,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
                     printf("Error closing file!\n");
                 }
                 fileOpened = false;
-                safe_Free_aligned(C_CAST(void**, &logBuffer));
+                safe_free_aligned(&logBuffer);
                 free_Secure_File_Info(&fp_log);
                 return ERROR_WRITING_FILE;
             }
@@ -1731,7 +1731,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
             }
             fileOpened = false;
         }
-        safe_Free_aligned(C_CAST(void**, &logBuffer));
+        safe_free_aligned(&logBuffer);
         free_Secure_File_Info(&fp_log);
     }
 
@@ -1826,7 +1826,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
                         }
                         if (!toBuffer)
                         {
-                            safe_Free_aligned(C_CAST(void**, &logBuffer));
+                            safe_free_aligned(&logBuffer);
                         }
                         free_Secure_File_Info(&fp_log);
                         return ERROR_WRITING_FILE;
@@ -1843,7 +1843,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
                         }
                         if (!toBuffer)
                         {
-                            safe_Free_aligned(C_CAST(void**, &logBuffer));
+                            safe_free_aligned(&logBuffer);
                         }
                         free_Secure_File_Info(&fp_log);
                         return ERROR_WRITING_FILE;
@@ -1865,7 +1865,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
                         printf("Failed to open file!\n");
                     }
                     ret = FAILURE;
-                    safe_Free_aligned(C_CAST(void**, &logBuffer));
+                    safe_free_aligned(&logBuffer);
                     free_Secure_File_Info(&fp_log);
                 }
             }
@@ -1890,7 +1890,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
         }
         if (!toBuffer)
         {
-            safe_Free_aligned(C_CAST(void**, &logBuffer));
+            safe_free_aligned(&logBuffer);
         }
         free_Secure_File_Info(&fp_log);
     }
@@ -1939,7 +1939,7 @@ eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logNam
                         printf("Failed to open file!\n");
                     }
                     ret = FAILURE;
-                    safe_Free_aligned(C_CAST(void**, &vpdBuffer));
+                    safe_free_aligned(&vpdBuffer);
                     free_Secure_File_Info(&fp_vpd);
                 }
             }
@@ -1957,7 +1957,7 @@ eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logNam
                         printf("Error closing file!\n");
                     }
                     fileOpened = false;
-                    safe_Free_aligned(C_CAST(void**, &vpdBuffer));
+                    safe_free_aligned(&vpdBuffer);
                     free_Secure_File_Info(&fp_vpd);
                     return ERROR_WRITING_FILE;
                 }
@@ -1988,7 +1988,7 @@ eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logNam
                     printf("Error closing file!\n");
                 }
                 fileOpened = false;
-                safe_Free_aligned(C_CAST(void**, &vpdBuffer));
+                safe_free_aligned(&vpdBuffer);
                 free_Secure_File_Info(&fp_vpd);
                 return ERROR_WRITING_FILE;
             }
@@ -1998,7 +1998,7 @@ eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logNam
             }
             fileOpened = false;
         }
-        safe_Free_aligned(C_CAST(void**, &vpdBuffer));
+        safe_free_aligned(&vpdBuffer);
         free_Secure_File_Info(&fp_vpd);
     }
     return ret;
@@ -2048,7 +2048,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                 else
                 {
                     ret = FILE_OPEN_ERROR;
-                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                    safe_free_aligned(&dataBuffer);
                     free_Secure_File_Info(&isl);
                     return ret;
                 }
@@ -2081,7 +2081,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                         {
                             printf("Error closing file!\n");
                         }
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
                         return ERROR_WRITING_FILE;
                     }
@@ -2095,7 +2095,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                         {
                             printf("Error closing file!\n");
                         }
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
                         return ERROR_WRITING_FILE;
                     }
@@ -2104,7 +2104,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                 {
                     if (0 != safe_memcpy(ptrData, dataSize, dataBuffer, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         return BAD_PARAMETER;
                     }
                 }
@@ -2140,7 +2140,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                 temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment));
                 if (temp == M_NULLPTR)
                 {
-                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                    safe_free_aligned(&dataBuffer);
                     perror("realloc failure");
                     return MEMORY_FAILURE;
                 }
@@ -2178,7 +2178,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                                 {
                                     printf("Error closing file!\n");
                                 }
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
                                 return ERROR_WRITING_FILE;
                             }
@@ -2192,7 +2192,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                                 {
                                     printf("Error closing file!\n");
                                 }
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
                                 return ERROR_WRITING_FILE;
                             }
@@ -2201,7 +2201,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                         {
                             if (0 != safe_memcpy(&ptrData[pageNumber * LEGACY_DRIVE_SEC_SIZE], dataSize - (pageNumber * LEGACY_DRIVE_SEC_SIZE), dataBuffer, pullChunkSize))
                             {
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 return BAD_PARAMETER;
                             }
                         }
@@ -2252,7 +2252,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
     {
         ret = FAILURE;
     }
-    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+    safe_free_aligned(&dataBuffer);
     free_Secure_File_Info(&isl);
     return ret;
 }
@@ -2361,7 +2361,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                             {
                                 printf("Error closing file!\n");
                             }
-                            safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                            safe_free_aligned(&dataBuffer);
                             free_Secure_File_Info(&isl);
                             return ERROR_WRITING_FILE;
                         }
@@ -2375,7 +2375,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                             {
                                 printf("Error closing file!\n");
                             }
-                            safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                            safe_free_aligned(&dataBuffer);
                             free_Secure_File_Info(&isl);
                             return ERROR_WRITING_FILE;
                         }
@@ -2383,7 +2383,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                     else
                     {
                         ret = FILE_OPEN_ERROR;
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
                         return ret;
                     }
@@ -2392,7 +2392,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                 {
                     if (0 != safe_memcpy(ptrData, dataSize, dataBuffer, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         return BAD_PARAMETER;
                     }
                 }
@@ -2444,7 +2444,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                 temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment));
                 if (temp == M_NULLPTR)
                 {
-                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                    safe_free_aligned(&dataBuffer);
                     perror("realloc failure");
                     return MEMORY_FAILURE;
                 }
@@ -2482,7 +2482,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                                 {
                                     printf("Error closing file!\n");
                                 }
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 return ERROR_WRITING_FILE;
                             }
                             if (SEC_FILE_SUCCESS != secure_Flush_File(isl))
@@ -2495,7 +2495,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                                 {
                                     printf("Error closing file!\n");
                                 }
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 return ERROR_WRITING_FILE;
                             }
                         }
@@ -2503,7 +2503,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                         {
                             if (0 != safe_memcpy(&ptrData[pageNumber * LEGACY_DRIVE_SEC_SIZE], dataSize - (pageNumber * LEGACY_DRIVE_SEC_SIZE), dataBuffer, pullChunkSize))
                             {
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 return BAD_PARAMETER;
                             }
                         }
@@ -2543,7 +2543,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
         //unable to read the error history directory from the device
         ret = FAILURE;
     }
-    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+    safe_free_aligned(&dataBuffer);
     free_Secure_File_Info(&isl);
     return ret;
 }
@@ -2591,7 +2591,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                 else
                 {
                     ret = FILE_OPEN_ERROR;
-                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                    safe_free_aligned(&dataBuffer);
                     free_Secure_File_Info(&isl);
                     return ret;
                 }
@@ -2632,7 +2632,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                         {
                             printf("Error closing file!\n");
                         }
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
                         return ERROR_WRITING_FILE;
                     }
@@ -2646,7 +2646,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                         {
                             printf("Error closing file!\n");
                         }
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
                         return ERROR_WRITING_FILE;
                     }
@@ -2655,7 +2655,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                 {
                     if (0 != safe_memcpy(ptrData, dataSize, dataBuffer, LEGACY_DRIVE_SEC_SIZE))
                     {
-                        safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                        safe_free_aligned(&dataBuffer);
                         return BAD_PARAMETER;
                     }
                 }
@@ -2691,7 +2691,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                 temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment));
                 if (temp == M_NULLPTR)
                 {
-                    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                    safe_free_aligned(&dataBuffer);
                     perror("realloc failure");
                     return MEMORY_FAILURE;
                 }
@@ -2733,7 +2733,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                                 {
                                     printf("Error closing file!\n");
                                 }
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
                                 return ERROR_WRITING_FILE;
                             }
@@ -2747,7 +2747,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                                 {
                                     printf("Error closing file!\n");
                                 }
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
                                 return ERROR_WRITING_FILE;
                             }
@@ -2756,7 +2756,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                         {
                             if (0 != safe_memcpy(&ptrData[pageNumber * LEGACY_DRIVE_SEC_SIZE], dataSize - (pageNumber * LEGACY_DRIVE_SEC_SIZE), dataBuffer, pullChunkSize))
                             {
-                                safe_Free_aligned(C_CAST(void**, &dataBuffer));
+                                safe_free_aligned(&dataBuffer);
                                 return BAD_PARAMETER;
                             }
                         }
@@ -2804,7 +2804,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
         ret = NOT_SUPPORTED;
     }
     free_Secure_File_Info(&isl);
-    safe_Free_aligned(C_CAST(void**, &dataBuffer));
+    safe_free_aligned(&dataBuffer);
     return ret;
 }
 
@@ -2929,7 +2929,7 @@ eReturnValues print_Supported_SCSI_Logs(tDevice *device, uint64_t flags)
     {
         printf("SCSI Logs not supported on this device.\n");
     }
-    safe_Free_aligned(C_CAST(void**, &logBuffer));
+    safe_free_aligned(&logBuffer);
     return retStatus;
 }
 
@@ -2974,12 +2974,12 @@ eReturnValues print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
             if (retStatus != SUCCESS && retStatus != WARN_INVALID_CHECKSUM)
             {
                 legacyDriveNoLogDir = true; //for old drives that do not support multi-sector logs we will rely on Identify/SMART data bits to generate the output
-                safe_Free_aligned(C_CAST(void**, &smartLogBuffer));
+                safe_free_aligned(&smartLogBuffer);
             }
         }
         else
         {
-            safe_Free_aligned(C_CAST(void**, &smartLogBuffer));
+            safe_free_aligned(&smartLogBuffer);
         }
     }
     if (gplLogBuffer)
@@ -2988,12 +2988,12 @@ eReturnValues print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
         {
             if (SUCCESS != send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, gplLogBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
             {
-                safe_Free_aligned(C_CAST(void**, &gplLogBuffer));
+                safe_free_aligned(&gplLogBuffer);
             }
         }
         else
         {
-            safe_Free_aligned(C_CAST(void**, &gplLogBuffer));
+            safe_free_aligned(&gplLogBuffer);
         }
     }
     if (gplLogBuffer || smartLogBuffer || legacyDriveNoLogDir)
@@ -3172,8 +3172,8 @@ eReturnValues print_Supported_ATA_Logs(tDevice *device, uint64_t flags)
                 format_print_ata_logs_info(log, M_Max(gplLogSize, smartLogSize), M_ToBool(smartLogSize), M_ToBool(gplLogSize), bug);
             }
         }
-        safe_Free_aligned(C_CAST(void**, &smartLogBuffer));
-        safe_Free_aligned(C_CAST(void**, &gplLogBuffer));
+        safe_free_aligned(&smartLogBuffer);
+        safe_free_aligned(&gplLogBuffer);
         retStatus = SUCCESS;//set success if we were able to get at least one of the log directories to use
         if (legacyDriveNoLogDir)
         {
@@ -3327,7 +3327,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
                 //something went wrong, so fall back to dummying it up from identify bits
                 dummyFromIdentify = true;
             }
-            safe_Free_aligned(C_CAST(void**, &supportedLogsPage));
+            safe_free_aligned(&supportedLogsPage);
         }
         else
         {
@@ -3493,7 +3493,7 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPull
             {
                 retStatus = NOT_SUPPORTED;
             }
-            safe_Free(C_CAST(void**, &logBuffer));
+            safe_free(&logBuffer);
         }
         else
         {
@@ -3589,7 +3589,7 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uin
                 else
                 {
                     ret = MEMORY_FAILURE;
-                    safe_Free_aligned(C_CAST(void**, &errorHistoryDirectory));
+                    safe_free_aligned(&errorHistoryDirectory);
                     return ret;
                 }
             }
@@ -3628,7 +3628,7 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uin
     {
         ret = MEMORY_FAILURE;
     }
-    safe_Free_aligned(C_CAST(void**, &errorHistoryDirectory));
+    safe_free_aligned(&errorHistoryDirectory);
     return ret;
 }
 
@@ -3680,7 +3680,7 @@ static eReturnValues pull_Generic_ATA_Log(tDevice *device, uint8_t logNum, eLogP
     default:
         break;
     }
-    safe_Free_aligned(C_CAST(void**, &genericLogBuf));
+    safe_free_aligned(&genericLogBuf);
     return retStatus;
 }
 
@@ -3715,7 +3715,7 @@ static eReturnValues pull_Generic_SCSI_Log(tDevice *device, uint8_t logNum, uint
     default:
         break;
     }
-    safe_Free_aligned(C_CAST(void**, &genericLogBuf));
+    safe_free_aligned(&genericLogBuf);
     return retStatus;
 }
 
@@ -3791,7 +3791,7 @@ eReturnValues pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLog
     default:
         break;
     }
-    safe_Free_aligned(C_CAST(void**, &genericLogBuf));
+    safe_free_aligned(&genericLogBuf);
     return retStatus;
 }
 
@@ -3814,7 +3814,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
         case PULL_LOG_RAW_MODE:
         case PULL_LOG_PIPE_MODE:
         case PULL_LOG_ANALYZE_MODE:
-            safe_Free_aligned(C_CAST(void**, &logBuffer));
+            safe_free_aligned(&logBuffer);
             return NOT_SUPPORTED;
         case PULL_LOG_BIN_FILE_MODE:
         default:
@@ -3833,7 +3833,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
             {
                 if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
                 {
-                    safe_Free_aligned(C_CAST(void**, &logBuffer));
+                    safe_free_aligned(&logBuffer);
                     return BAD_PARAMETER;
                 }
                 //caller is telling us how much to read at a time
@@ -3858,7 +3858,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
                                 printf("Failed to open file!\n");
                             }
                             ret = FAILURE;
-                            safe_Free_aligned(C_CAST(void**, &logBuffer));
+                            safe_free_aligned(&logBuffer);
                             free_Secure_File_Info(&fp_log);
                         }
                     }
@@ -3876,7 +3876,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
                                 printf("Error closing file!\n");
                             }
                             fileOpened = false;
-                            safe_Free_aligned(C_CAST(void**, &logBuffer));
+                            safe_free_aligned(&logBuffer);
                             free_Secure_File_Info(&fp_log);
                             return ERROR_WRITING_FILE;
                         }
@@ -3907,7 +3907,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
         fileOpened = false;
     }
     free_Secure_File_Info(&fp_log);
-    safe_Free_aligned(C_CAST(void**, &logBuffer));
+    safe_free_aligned(&logBuffer);
     return ret;
 }
 
@@ -4152,7 +4152,7 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
     {
         ret = NOT_SUPPORTED;
     }
-    safe_Free_aligned(C_CAST(void**, &genericLogBuf));
+    safe_free_aligned(&genericLogBuf);
     return ret;
 }
 

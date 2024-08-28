@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -107,7 +107,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(C_CAST(void**, &writeSameSupported));
+                safe_free_aligned(&writeSameSupported);
             }
             else if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC && device->drive_info.scsiVersion < SCSI_VERSION_SPC_3)
             {
@@ -153,7 +153,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         break;
                     }
                 }
-                safe_Free_aligned(C_CAST(void**, &writeSameSupported));
+                safe_free_aligned(&writeSameSupported);
             }
             else
             {
@@ -208,7 +208,7 @@ bool is_Write_Same_Supported(tDevice *device, M_ATTR_UNUSED uint64_t startingLBA
                         }
                     }
                 }
-                safe_Free_aligned(C_CAST(void**, &blockLimits));
+                safe_free_aligned(&blockLimits);
             }
         }
     }
@@ -261,7 +261,7 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
                 *writeSameInProgress = false;
             }
         }
-        safe_Free_aligned(C_CAST(void**, &sctStatusBuf));
+        safe_free_aligned(&sctStatusBuf);
     }
     /*
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -301,7 +301,7 @@ eReturnValues get_Writesame_Progress(tDevice *device, double *progress, bool *wr
             *progress *= 100.0;
             *progress /= 65536.0;
         }
-        safe_Free_aligned(C_CAST(void**, &senseData));
+        safe_free_aligned(&senseData);
     }
     */
     else
@@ -350,7 +350,7 @@ eReturnValues show_Write_Same_Current_LBA(tDevice *device)
                 ret = NOT_SUPPORTED;
             }
         }
-        safe_Free_aligned(C_CAST(void**, &sctStatusBuf));
+        safe_free_aligned(&sctStatusBuf);
     }
     else //SCSI Drive doesn't tell us
     {
@@ -491,7 +491,7 @@ eReturnValues writesame(tDevice *device, uint64_t startingLba, uint64_t numberOf
                 delay_Seconds(delayTime);
             }
         }
-        safe_Free_aligned(C_CAST(void**, &zeroPatternBuf));
+        safe_free_aligned(&zeroPatternBuf);
     }
     else
     {

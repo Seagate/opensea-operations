@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -330,7 +330,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
                 //all else fails, try mode sense 6
                 if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
                 {
-                    safe_Free_aligned(C_CAST(void**, &dataBuf));
+                    safe_free_aligned(&dataBuf);
                     return NOT_SUPPORTED;
                 }
             }
@@ -426,7 +426,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
         else
         {
             //invalid block descriptor length
-            safe_Free_aligned(C_CAST(void**, &dataBuf));
+            safe_free_aligned(&dataBuf);
             return NOT_SUPPORTED;
         }
         //now send a mode select command
@@ -528,7 +528,7 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
             //check if there was an invalid parameter field specifying the security initialize bit...if so, print a message and return not supported - TJE
         }
     }
-    safe_Free_aligned(C_CAST(void**, &dataBuf));
+    safe_free_aligned(&dataBuf);
     return ret;
 }
 
@@ -582,7 +582,7 @@ eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
                             {
                                 lastFormatUnitAllFs = true;
                             }
-                            safe_Free(C_CAST(void**, &allFs));
+                            safe_free(&allFs);
                         }
                         else
                         {
@@ -670,7 +670,7 @@ eReturnValues get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
             formatStatus->totalNewBlocksReassignedValid = false;
             ret = NOT_SUPPORTED;
         }
-        safe_Free_aligned(C_CAST(void**, &formatStatusPage));
+        safe_free_aligned(&formatStatusPage);
     }
     else
     {
@@ -991,7 +991,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFor
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &inquiryData));
+    safe_free_aligned(&inquiryData);
     bool dummyUpCommonSizes = true;
     uint32_t supportedSectorSizesDataLength = 0;
     get_SCSI_VPD_Page_Size(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, &supportedSectorSizesDataLength);
@@ -1074,7 +1074,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice *device, ptrSupportedFor
             }
             ret = SUCCESS;
         }
-        safe_Free_aligned(C_CAST(void**, &supportedBlockLengthsData));
+        safe_free_aligned(&supportedBlockLengthsData);
     }
     if (is_Format_Unit_Supported(device, &formats->scsiFastFormatSupported))
     {
@@ -1596,7 +1596,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice *device, uint32_t sect
             {
                 mbrEraseWarning = true;
             }
-            safe_Free_aligned(C_CAST(void**, &eraseMBR));
+            safe_free_aligned(&eraseMBR);
         }
         else
         {

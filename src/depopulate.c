@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -210,7 +210,7 @@ eReturnValues get_Physical_Element_Descriptors(tDevice *device, uint32_t numberO
                 }
             }
         }
-        safe_Free_aligned(C_CAST(void**, &getPhysicalElements));
+        safe_free_aligned(&getPhysicalElements);
     }
     else
     {
@@ -475,7 +475,7 @@ eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus
                     {
                         ret = NOT_SUPPORTED;
                     }
-                    safe_Free(C_CAST(void**, &elementList));
+                    safe_free_physical_element(&elementList);
                 }
             }
             else
@@ -777,7 +777,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elem
                                 invalidElement = true;
                             }
                         }
-                        safe_Free(C_CAST(void**, &elementList));
+                        safe_free_physical_element(&elementList);
                     }
                 }
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -1183,7 +1183,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForP
                                         }
                                     }
                                 }
-                                safe_Free(C_CAST(void**, &elementList));
+                                safe_free_physical_element(&elementList);
                             }
                         }
                         if (currentlyDepopulatedElements > 0)

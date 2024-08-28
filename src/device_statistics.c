@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -591,7 +591,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
                     }
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &devStatsNotificationsLog));
+            safe_free_aligned(&devStatsNotificationsLog);
         }
         if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, M_NULLPTR, M_NULLPTR, true, true, true, deviceStatsLog, deviceStatsSize, M_NULLPTR, 0, 0))
         {
@@ -1228,7 +1228,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice *device, ptrDeviceStatisti
                 }
             }
         }
-        safe_Free_aligned(C_CAST(void**, &deviceStatsLog));
+        safe_free_aligned(&deviceStatsLog);
     }
     return ret;
 }
@@ -6611,7 +6611,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                             }
                         }
                     }
-                    safe_Free_aligned(C_CAST(void**, &protSpData));
+                    safe_free_aligned(&protSpData);
                 }
             }
             break;

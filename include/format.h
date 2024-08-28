@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -301,6 +301,11 @@ extern "C"
         uint32_t numberOfSectorSizes;//used to know the length of the structure below, set before calling in. On output, this may change if unable to read the same number of sector sizes
         sectorSize sectorSizes[1];//ANYSIZE ARRAY. This means that you should over-allocate this function based on the number of supported sector sizes from the drive.
     }supportedFormats, *ptrSupportedFormats;
+
+    static M_INLINE void safe_free_supported_formats(supportedFormats **formats)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, formats));
+    }
 
     //-----------------------------------------------------------------------------
     //

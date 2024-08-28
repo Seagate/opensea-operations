@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -304,6 +304,12 @@ extern "C"
         bool enablePartial;
         bool enableSlumber;
     }sasEnhPhyControl, *ptrSasEnhPhyControl;
+
+    static M_INLINE void safe_free_sasEnhPhyControl(sasEnhPhyControl** mem)
+    {
+        safe_Free(M_REINTERPRET_CAST(void**, mem));
+    }
+
     //If doing all phys, use get_SAS_Enhanced_Phy_Control_Number_Of_Phys first to figure out how much memory must be allocated
     OPENSEA_OPERATIONS_API eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice *device, bool allPhys, uint8_t phyNumber, ptrSasEnhPhyControl enhPhyControlData, uint32_t enhPhyControlDataSize);
 

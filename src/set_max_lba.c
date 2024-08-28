@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -163,7 +163,7 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
         }
         ret = FAILURE;
     }
-    safe_Free_aligned(C_CAST(void**, &scsiDataBuffer));
+    safe_free_aligned(&scsiDataBuffer);
     return ret;
 }
 
@@ -441,7 +441,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
             uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
             if (!temp)
             {
-                safe_Free_aligned(C_CAST(void**, &readCapBuf));
+                safe_free_aligned(&readCapBuf);
                 return maxLBA;
             }
             readCapBuf = temp;
@@ -464,7 +464,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
         uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
         if (temp == M_NULLPTR)
         {
-            safe_Free_aligned(C_CAST(void**, &readCapBuf));
+            safe_free_aligned(&readCapBuf);
             return maxLBA;
         }
         readCapBuf = temp;
@@ -474,7 +474,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
             copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, true);
         }
     }
-    safe_Free_aligned(C_CAST(void**, &readCapBuf));
+    safe_free_aligned(&readCapBuf);
     return maxLBA;
 }
 
@@ -681,7 +681,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                     }
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &capProdIDMappingVPD));
+            safe_free_aligned(&capProdIDMappingVPD);
         }
     }
     return capModelMapping;
@@ -689,7 +689,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
 
 void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
 {
-    safe_Free(C_CAST(void**, &capModelMapping));
+    safe_free_cap_mn_map(&capModelMapping);
 }
 
 void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)

@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -50,7 +50,7 @@ eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
     //speedGen = 1 means generation 1 (1.5Gb/s), 2 =  2nd Generation (3.0Gb/s), 3 = 3rd Generation (6.0Gb/s)
     if (speedGen > 3)
     {
-        safe_Free_aligned(C_CAST(void**, &sctSATAPhySpeed));
+        safe_free_aligned(&sctSATAPhySpeed);
         return BAD_PARAMETER;
     }
 
@@ -77,7 +77,7 @@ eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice *device, uint8_t speedGen)
 
     ret = send_ATA_SCT_Command(device, sctSATAPhySpeed, LEGACY_DRIVE_SEC_SIZE, false);
 
-    safe_Free_aligned(C_CAST(void**, &sctSATAPhySpeed));
+    safe_free_aligned(&sctSATAPhySpeed);
     return ret;
 }
 
@@ -129,7 +129,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allP
                 sasPhyControl = temp;
                 if (SUCCESS != scsi_Mode_Sense_10(device, MP_PROTOCOL_SPECIFIC_PORT, phyControlLength, 0x01, true, false, MPC_CURRENT_VALUES, sasPhyControl))
                 {
-                    safe_Free_aligned(C_CAST(void**, &sasPhyControl));
+                    safe_free_aligned(&sasPhyControl);
                     return FAILURE;
                 }
             }
@@ -197,7 +197,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice *device, uint8_t phySpeedGen, bool allP
     {
         ret = FAILURE;
     }
-    safe_Free_aligned(C_CAST(void**, &sasPhyControl));
+    safe_free_aligned(&sasPhyControl);
     return ret;
 }
 
@@ -719,7 +719,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *
                     }
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &pcModePage));
+            safe_free_aligned(&pcModePage);
         }
     }
     return ret;
@@ -794,7 +794,7 @@ eReturnValues seagate_Set_Power_Balance(tDevice *device, ePowerBalanceMode power
             //now do mode select with the data for the mode to set
             ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage, 16 + MODE_PARAMETER_HEADER_10_LEN);
         }
-        safe_Free_aligned(C_CAST(void**, &pcModePage));
+        safe_free_aligned(&pcModePage);
     }
     return ret;
 }
@@ -829,7 +829,7 @@ eReturnValues get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSuppor
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(C_CAST(void**, &smartData));
+            safe_free_aligned(&smartData);
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -847,7 +847,7 @@ eReturnValues get_IDD_Support(tDevice *device, ptrIDDSupportedFeatures iddSuppor
                     iddSupport->iddLong = true;//long
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &iddDiagPage));
+            safe_free_aligned(&iddDiagPage);
         }
     }
     return ret;
@@ -967,7 +967,7 @@ eReturnValues get_IDD_Status(tDevice *device, uint8_t *status)
         {
             ret = MEMORY_FAILURE;
         }
-        safe_Free_aligned(C_CAST(void**, &iddDiagPage));
+        safe_free_aligned(&iddDiagPage);
     }
     return ret;
 }
@@ -1126,7 +1126,7 @@ static eReturnValues start_IDD_Operation(tDevice *device, eIDDTests iddOperation
                 iddDiagPage[1] |= BIT6;
                 break;
             default:
-                safe_Free(C_CAST(void**, &iddDiagPage));
+                safe_free(&iddDiagPage);
                 os_Unlock_Device(device);
                 return NOT_SUPPORTED;
             }
@@ -1150,7 +1150,7 @@ static eReturnValues start_IDD_Operation(tDevice *device, eIDDTests iddOperation
             iddDiagPage[3] = 0x08;//page length
             iddDiagPage[4] = 1 << 4;//revision number 1, status of zero
             ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 12, iddDiagPage, 12, commandTimeoutSeconds);
-            safe_Free_aligned(C_CAST(void**, &iddDiagPage));
+            safe_free_aligned(&iddDiagPage);
         }
         else
         {
@@ -1513,7 +1513,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &powerTelemetryLog));
+    safe_free_aligned(&powerTelemetryLog);
     return ret;
 }
 
@@ -2404,7 +2404,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(tDevice *device, ptrSeagat
             }
         }
 
-        safe_Free_aligned(C_CAST(void**, &deviceStatsLog));
+        safe_free_aligned(&deviceStatsLog);
     }
 
     return ret;
@@ -2497,7 +2497,7 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice *device, ptrSeaga
             }
         }
 
-        safe_Free_aligned(C_CAST(void**, &deviceStatsLog));
+        safe_free_aligned(&deviceStatsLog);
     }
 
     return ret;

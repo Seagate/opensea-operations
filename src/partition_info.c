@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2023-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,16 +40,16 @@ ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
         case PARTITION_TABLE_NOT_FOUND:
             break;
         case PARTITION_TABLE_MRB:
-            safe_Free(C_CAST(void**, &partInfo->mbrTable));
+            safe_free_mbrdata(&partInfo->mbrTable);
             break;
         case PARTITION_TABLE_APM:
-            safe_Free(C_CAST(void**, &partInfo->apmTable));
+            safe_free_apmdata(&partInfo->apmTable);
             break;
         case PARTITION_TABLE_GPT:
-            safe_Free(C_CAST(void**, &partInfo->gptTable));
+            safe_free_gptdata(&partInfo->gptTable);
             break;
         }
-        safe_Free(C_CAST(void**, &partInfo));
+        safe_free_partition_info(&partInfo);
     }
     return partInfo;
 }
@@ -428,6 +428,8 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
     return;
 }
 
+#define GPT_SIGNATURE_STR_LEN 9
+
 static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -441,8 +443,9 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
             gptHeaderOffset = gptDataSize - device->drive_info.deviceBlockSize;
         }
 
-        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, 9);
+        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN);
         memcpy(gptSignature, &gptDataBuf[gptHeaderOffset], 8);
+        gptSignature[GPT_SIGNATURE_STR_LEN - 1] = '\0';
         if (strcmp(gptSignature, "EFI PART") == 0)
         {
             ret = SUCCESS;
@@ -502,7 +505,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                     ret = read_LBA(device, partitionArrayLBA, false, gptPartitionArray, gptPartitionArrayDataLength);
                     if (ret != SUCCESS)
                     {
-                        safe_Free(C_CAST(void**, &gptPartitionArray));
+                        safe_free(&gptPartitionArray);
                         return FAILURE;
                     }
                 }
@@ -549,7 +552,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                 }
                 if (usedLocalPartitionBuf)
                 {
-                    safe_Free(C_CAST(void**, &gptPartitionArray));
+                    safe_free(&gptPartitionArray);
                 }
             }
         }

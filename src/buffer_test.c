@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2023 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -318,8 +318,8 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
         stop_Timer(&patternTimer);
         testResults->totalTimeNS = get_Nano_Seconds(patternTimer);
     }
-    safe_Free_aligned(C_CAST(void**, &patternBuffer));
-    safe_Free_aligned(C_CAST(void**, &returnBuffer));
+    safe_free_aligned(&patternBuffer);
+    safe_free_aligned(&returnBuffer);
 }
 
 //Function for Walking 1's/0's test
@@ -423,8 +423,8 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &patternBuffer));
-    safe_Free_aligned(C_CAST(void**, &returnBuffer));
+    safe_free_aligned(&patternBuffer);
+    safe_free_aligned(&returnBuffer);
 }
 //Function for random data pattern test
 static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
@@ -502,8 +502,8 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &patternBuffer));
-    safe_Free_aligned(C_CAST(void**, &returnBuffer));
+    safe_free_aligned(&patternBuffer);
+    safe_free_aligned(&returnBuffer);
 }
 
 //SATA Phy event counters: CRC = definitely bad
