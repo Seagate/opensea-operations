@@ -26,13 +26,6 @@
 extern "C" {
 #endif
 
-    typedef enum _eLogFileNamingConvention
-    {
-        NAMING_SERIAL_NUMBER_DATE_TIME,//this should be used most of the time to avoid collisions with existing files
-        NAMING_SERIAL_NUMBER_ONLY,
-        NAMING_BYUSER,   // a way for the command line user to name the file
-    }eLogFileNamingConvention;
-
     typedef enum _eLogPullMode
     {
         PULL_LOG_RAW_MODE,          // Dump it to stdout. 
@@ -45,49 +38,6 @@ extern "C" {
     #define TOTAL_CONSTITUENT_PAGES         32
 
     OPENSEA_OPERATIONS_API const char* get_Drive_ID_For_Logfile_Name(tDevice *device);
-
-    OPENSEA_OPERATIONS_API char* generate_Log_Name(eLogFileNamingConvention logFileNamingConvention, /*required*/
-                         const char *deviceIdentifier, /*required*/
-                         size_t deviceIDLen, /*required*/
-                         const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
-                         size_t logPathLen, //may be 0
-                         const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
-                         size_t logNameLen, //may be 0
-                         const char *logExt,   //optional /*extension for the log file. If NULL, set to .bin*/
-                         size_t logExtLen //may be 0
-                                              );
-
-    //-----------------------------------------------------------------------------
-    //
-    //  create_And_Open_Log_File(tDevice *device, FILE *filePtr, char *logName, char *logExtension)
-    //
-    //! \brief   Description: This function will take the inputs given, generate a file name based off the serial number, time, and other inputs, and open the file for writing.
-    //
-    //  Entry:
-    //!   \param[in] device = pointer to a valid device structure with a device handle (used to get the serial number)
-    //!   \param[in,out] filePtr = File pointer that will hold an open file handle upon successful completion
-    //!   \param[in] logPath = this is a directory/folder for where the fle should be created. M_NULLPTR if current directory. 
-    //!   \param[in] logName = this is a name to put into the name of the log. Examples: SMART, CEL
-    //!   \param[in] logExtension = this is an ASCII representation of the extension to save the file with. If unsure, use bin. No DOT required in this parameter
-    //!   \param[in] logFileNamingConvention = enum value to specify which log file naming convention to use
-    //!   \param[out] logFileNameUsed = sets this pointer to the string of the name and extension used for the log file name. This must be set to M_NULLPTR when calling. Memory should be OPENSEA_PATH_MAX in size
-    //!
-    //  Exit:
-    //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
-    //
-    //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File(const char *deviceIdentifier, /*required*/
-                                              size_t deviceIDLen, /*required*/
-                                              secureFileInfo **file, /*required*/
-                                              eLogFileNamingConvention logFileNamingConvention, /*required*/
-                                              const char *logPath, //optional /*requested path to output to. Will be checked for security. If NULL, current directory will be used*/
-                                              size_t logPathLen, //may be 0
-                                              const char *logName, //optional /*name of the log file from the drive, FARM, DST, etc*/
-                                              size_t logNameLen, //may be 0
-                                              const char *logExt, //optional /*extension for the log file. If NULL, set to .bin*/
-                                              size_t logExtLen //may be 0
-                                              //NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
-                                              );
 
     //Meant to be a little simpler to call when you don't want to calculate a bunch of lengths for the function above using device info.
     //NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
