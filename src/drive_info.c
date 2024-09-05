@@ -3511,9 +3511,18 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
                     if (SUCCESS == scsi_Inquiry(device, blockLimits, VPD_BLOCK_LIMITS_LEN, BLOCK_LIMITS, true, false))
                     {
                         uint64_t writeSameLength = M_BytesTo8ByteValue(blockLimits[36], blockLimits[37], blockLimits[38], blockLimits[39], blockLimits[40], blockLimits[41], blockLimits[42], blockLimits[43]);
+                        uint32_t maxAtomicLen = M_BytesTo4ByteValue(blockLimits[44], blockLimits[45], blockLimits[46], blockLimits[47]);
+                        uint32_t atomicAlign = M_BytesTo4ByteValue(blockLimits[48], blockLimits[49], blockLimits[50], blockLimits[51]);
+                        uint32_t atomicXferLenGran = M_BytesTo4ByteValue(blockLimits[52], blockLimits[53], blockLimits[54], blockLimits[55]);
+                        uint32_t maxAtomicLenWAtomicBoundary = M_BytesTo4ByteValue(blockLimits[56], blockLimits[57], blockLimits[58], blockLimits[59]);
+                        uint32_t maxAtomicBoundarySize = M_BytesTo4ByteValue(blockLimits[60], blockLimits[61], blockLimits[62], blockLimits[63]);
                         if (writeSameLength > 0)
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Write Same");
+                        }
+                        if (maxAtomicLen > 0 || atomicAlign > 0 || atomicXferLenGran > 0 || maxAtomicLenWAtomicBoundary > 0 || maxAtomicBoundarySize > 0)
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Atomic Writes");
                         }
                     }
                     safe_free_aligned(&blockLimits);
