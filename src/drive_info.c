@@ -663,6 +663,10 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             {
                 extendedLBAFieldValid = true;
             }
+            if (wordPtr[69] & BIT2)
+            {
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "All Write Cache Non-Volatile");
+            }
             //zoned capabilities (ACS4)
             driveInfo->zonedDevice = C_CAST(uint8_t, wordPtr[69] & (BIT0 | BIT1));
         }
