@@ -1907,6 +1907,8 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
         uint32_t offset = 0;
         bool dlcSupported = false;
         bool dlcEnabled = false;
+        bool cdlSupported = false;
+        bool cdlEnabled = false;
         for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET; iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < UINT16_C(ATA_LOG_PAGE_LEN_BYTES); ++iter)
         {
             switch (idDataLog[iter])
@@ -2023,6 +2025,16 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
                         }
                     }
                 }
+
+                //Command Duration Limits
+                uint64_t cdlSupportQword = M_BytesTo8ByteValue(idDataLog[offset + 175], idDataLog[offset + 174], idDataLog[offset + 173], idDataLog[offset + 172], idDataLog[offset + 171], idDataLog[offset + 170], idDataLog[offset + 169], idDataLog[offset + 168]);
+                if (cdlSupportQword & ATA_ID_DATA_QWORD_VALID_BIT)//making sure this is set for "validity"
+                {
+                    if (cdlSupportQword & BIT0)
+                    {
+                        cdlSupported = true;
+                    }
+                }
             }
         }
         offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_CURRENT_SETTINGS;
@@ -2034,6 +2046,10 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
                 uint64_t currentSettingsQWord = M_BytesTo8ByteValue(idDataLog[offset + 15], idDataLog[offset + 14], idDataLog[offset + 13], idDataLog[offset + 12], idDataLog[offset + 11], idDataLog[offset + 10], idDataLog[offset + 9], idDataLog[offset + 8]);
                 if (currentSettingsQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
+                    if (currentSettingsQWord & BIT21)
+                    {
+                        cdlEnabled = true;
+                    }
                     if (currentSettingsQWord & BIT17)
                     {
                         dlcEnabled = true;
@@ -2050,6 +2066,17 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
             else
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Device Life Control");
+            }
+        }
+        if (cdlSupported)
+        {
+            if (cdlEnabled)
+            {
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Command Duration Limits [Enabled]");
+            }
+            else
+            {
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Command Duration Limits");
             }
         }
         /*offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ATA_STRINGS;
@@ -3111,7 +3138,6 @@ static eReturnValues get_SCSI_VPD_Data(tDevice* device, ptrDriveInformationSAS_S
         {
             return MEMORY_FAILURE;
         }
-        bool protectionType1Supported = false, protectionType2Supported = false, protectionType3Supported = false;
         //some devices (external) don't support VPD pages or may have issue when trying to read them, so check if this hack is set before attempting to read them
         if ((!device->drive_info.passThroughHacks.scsiHacks.noVPDPages || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable) && (scsiInfo->version >= 2 || device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)) //VPD pages indroduced in SCSI 2...also a USB hack
         {
@@ -4388,18 +4414,33 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
             }
             listOfModePagesAndSubpages[offset] = MP_CACHING;//WCE, DRA, NV_DIS?
             offset += 2;
-            if (scsiInfo->version >= 4)//control mode page didn't get long DST info until SPC2
+            if (scsiInfo->version >= SCSI_VERSION_SPC_2)//control mode page didn't get long DST info until SPC2
             {
                 listOfModePagesAndSubpages[offset] = MP_CONTROL;//Long DST Time
                 offset += 2;
             }
-            if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= 5)//SPC3 added subpage codes
+            if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= SCSI_VERSION_SPC_3)//SPC3 added subpage codes
             {
                 listOfModePagesAndSubpages[offset] = MP_CONTROL;//DLC
                 listOfModePagesAndSubpages[offset + 1] = 0x01;
                 offset += 2;
                 if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
                 {
+                    //Command Duration Limits
+                    if (scsiInfo->version >= SCSI_VERSION_SPC_5)
+                    {
+                        listOfModePagesAndSubpages[offset] = MP_CONTROL;
+                        listOfModePagesAndSubpages[offset + 1] = 0x03;
+                        offset += 2;
+                    }
+                    //Command Duration Limits T2
+                    if (scsiInfo->version >= SCSI_VERSION_SPC_6)
+                    {
+                        listOfModePagesAndSubpages[offset] = MP_CONTROL;
+                        listOfModePagesAndSubpages[offset + 1] = 0x07;
+                        offset += 2;
+                    }
+
                     //IO Advice hints is in SBC4
                     listOfModePagesAndSubpages[offset] = MP_CONTROL;//IO Advice Hints (can we read this page or not basically)
                     listOfModePagesAndSubpages[offset + 1] = 0x05;
@@ -4409,10 +4450,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                 listOfModePagesAndSubpages[offset] = MP_CONTROL;//PATA control (can PATA transfer speeds be changed)
                 listOfModePagesAndSubpages[offset + 1] = 0xF1;
                 offset += 2;
+                //TODO: SAT version check for SAT-5
+                listOfModePagesAndSubpages[offset] = MP_CONTROL;//feature control (SAT CDL)
+                listOfModePagesAndSubpages[offset + 1] = 0xF2;
+                offset += 2;
             }
             if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
             {
-                if (scsiInfo->version >= 4)//SPC2 added this page
+                if (scsiInfo->version >= SCSI_VERSION_SPC_2)//SPC2 added this page
                 {
                     listOfModePagesAndSubpages[offset] = MP_PROTOCOL_SPECIFIC_PORT;//get interface type
                     listOfModePagesAndSubpages[offset + 1] = 0;
@@ -4425,20 +4470,20 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                     offset += 2;
                 }
             }
-            if (scsiInfo->version >= 3)//SPC added this page
+            if (scsiInfo->version >= SCSI_VERSION_SPC)//SPC added this page
             {
                 listOfModePagesAndSubpages[offset] = MP_POWER_CONDTION;//EPC and older standby/idle timers
                 listOfModePagesAndSubpages[offset + 1] = 0;
                 offset += 2;
             }
-            if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= 5)//SPC3 added subpage codes
+            if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= SCSI_VERSION_SPC_3)//SPC3 added subpage codes
             {
                 //ATA Advanced Power Management page from SAT2
                 listOfModePagesAndSubpages[offset] = MP_POWER_CONDTION;//ATA APM
                 listOfModePagesAndSubpages[offset + 1] = 0xF1;//reading this for the ATA APM settings (check if supported really)
                 offset += 2;
             }
-            if (scsiInfo->version >= 3)//Added in SPC
+            if (scsiInfo->version >= SCSI_VERSION_SPC)//Added in SPC
             {
                 listOfModePagesAndSubpages[offset] = MP_INFORMATION_EXCEPTIONS_CONTROL;//SMART/informational exceptions & MRIE value. Dexcept? Warnings?
                 listOfModePagesAndSubpages[offset + 1] = 0;
@@ -4446,7 +4491,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
             }
             if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE && device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
             {
-                if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= 5)//SPC3 added subpage codes
+                if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages && scsiInfo->version >= SCSI_VERSION_SPC_3)//SPC3 added subpage codes
                 {
                     listOfModePagesAndSubpages[offset] = MP_BACKGROUND_CONTROL;//EN_BMS, EN_PS
                     listOfModePagesAndSubpages[offset + 1] = 0x01;
@@ -4930,6 +4975,18 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         safe_free(&dlcString);
                     }
                     break;
+                    case 0x03://CDL A
+                    //case 0x04://CDL B
+                    {
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, cdl, 36 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
+                        bool sixByte = false;
+                        //uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, cdl, 36 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Command Duration Limits");
+                        }
+                    }
+                    break;
                     case 0x05://IO Advice Hints
                     {
                         DECLARE_ZERO_INIT_ARRAY(uint8_t, ioAdviceHints, 1040 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
@@ -4985,6 +5042,18 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                         }
                     }
                     break;
+                    case 0x07://CDL T2 A
+                    //case 0x08://CDL T2 B
+                    {
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, cdl, 232 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
+                        bool sixByte = false;
+                        //uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, cdl, 232 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
+                        {
+                            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Command Duration Limits T2");
+                        }
+                    }
+                    break;
                     case 0xF1://PATA control
                         //if we can read this page, then the device supports PATA Control
                     {
@@ -5016,6 +5085,42 @@ static eReturnValues get_SCSI_Mode_Data(tDevice* device, ptrDriveInformationSAS_
                             // }
                             // headerLength += blockDescLen;
                             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "PATA Control");
+                        }
+                    }
+                    break;
+                    case 0xF2://ATA feature control (CDL)
+                    {
+                        DECLARE_ZERO_INIT_ARRAY(uint8_t, ataFeatureControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);//need to include header length in this
+                        //bool pageRead = false;
+                        bool sixByte = false;
+                        uint16_t headerLength = 0;
+                        if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, pageCode, subPageCode, M_NULLPTR, M_NULLPTR, true, ataFeatureControl, 16 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, M_NULLPTR, &sixByte))
+                        {
+                            uint16_t blockDescLen = 0;
+                            //pageRead = true;
+                            if (sixByte)
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_6_LEN;
+                                blockDescLen = ataFeatureControl[2];
+                                if (ataFeatureControl[2] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            else
+                            {
+                                headerLength = MODE_PARAMETER_HEADER_10_LEN;
+                                blockDescLen = M_BytesTo2ByteValue(ataFeatureControl[6], ataFeatureControl[7]);
+                                if (ataFeatureControl[3] & BIT7)
+                                {
+                                    driveInfo->isWriteProtected = true;
+                                }
+                            }
+                            headerLength += blockDescLen;
+                            if (M_GETBITRANGE(ataFeatureControl[headerLength + 4], 2, 0))
+                            {
+                                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "SATA Command Duration Limit [Enabled]");
+                            }
                         }
                     }
                     break;
