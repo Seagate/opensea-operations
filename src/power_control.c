@@ -193,7 +193,23 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
             ret = FAILURE;
         }
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint32_t powerMode = 0;
+        ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
+        if (ret == SUCCESS)
+        {
+            printf("Device is in Power State %" PRIu32 "\n", powerMode);
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("Unable to retrive current power state!\n");
+            }
+        }
+    }
+    else
     {
         /*
         NOTE: Removed the code which was checking to see if the power mode is supported
@@ -207,6 +223,7 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
         }
         if (SUCCESS == scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN))
         {
+            bool issuetur = false;
             //requested fixed format sensedata, so parse it. If we don't find what we are looking for post the "unable to retrieve current power mode" message
             if ((senseData[0] & 0x7F) == SCSI_SENSE_CUR_INFO_FIXED || (senseData[0] & 0x7F) == SCSI_SENSE_DEFER_ERR_FIXED)
             {
@@ -253,49 +270,52 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
                         printf("Standby_Y state activated by host command\n");
                         break;
                     default:
-                        printf("Active State or in an Unknown state.\n");
+                        issuetur = true;
                         break;
                     }
                     break;
                 default:
-                    printf("Active State or in an Unknown state.\n");
+                    issuetur = true;
                     break;
                 }
+                
             }
             else
             {
-                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                issuetur = true;
+            }
+            if (issuetur == true)
+            {
+                scsiStatus returnedStatus;
+                memset(&returnedStatus, 0, sizeof(scsiStatus));
+                ret = scsi_Test_Unit_Ready(device, &returnedStatus);
+                if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
                 {
-                    printf("Unable to retrive current power mode!\n");
+                    //assume active state
+                    printf("Device is in active state or an unknown power state.\n");
                 }
-                ret = FAILURE;
+                else if (returnedStatus.senseKey == SENSE_KEY_NOT_READY)
+                {
+                    //check asc and ascq if spinup command is required
+                    if (returnedStatus.asc == 0x04 && returnedStatus.ascq == 0x02)
+                    {
+                        printf("Standby state\n");//activated by host command???
+                    }
+                    else 
+                    {
+                        printf("Unknown power state. Unit reports: ");
+                        show_Test_Unit_Ready_Status(device);
+                    }
+                }
+                else
+                {
+                    printf("Unknown power state. Unit reports: ");
+                    show_Test_Unit_Ready_Status(device);
+                    ret = FAILURE;
+                }
             }
         }
         safe_free_aligned(&senseData);
-    }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
-    {
-        uint32_t powerMode = 0;
-        ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
-        if (ret == SUCCESS)
-        {
-            printf("Device is in Power State %" PRIu32 "\n", powerMode);
-        }
-        else
-        {
-            if (VERBOSITY_QUIET < device->deviceVerbosity)
-            {
-                printf("Unable to retrive current power state!\n");
-            }
-        }
-    }
-    else
-    {
-        if (VERBOSITY_QUIET < device->deviceVerbosity)
-        {
-            printf("Showing the current power mode is not supported on this drive type at this time\n");
-        }
-        ret = NOT_SUPPORTED;
     }
     return ret;
 }
