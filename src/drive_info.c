@@ -8468,7 +8468,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
 #endif //DEBUG_DRIVE_INFO_TIME
     //Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
     scsiDriveInfo = C_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-    if (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe)
+    if (device->drive_info.drive_type == ATA_DRIVE || (device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe && device->drive_info.drive_type != NVME_DRIVE))
     {
 #if defined (DEBUG_DRIVE_INFO_TIME)
         start_Timer(&ataTime);
