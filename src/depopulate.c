@@ -9,7 +9,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // ******************************************************************************************
-// 
+//
 // \file depopulate.h
 // \brief This file defines the functions for depopulating physical/storage elements on a drive (Remanufacture)
 
@@ -252,7 +252,11 @@ void show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalEle
         char elementType = 'P';//physical element
 #define PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH 4
         DECLARE_ZERO_INIT_ARRAY(char, rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH);
-        if (/* elementList[elementIter].elementHealth >= 0 && */ elementList[elementIter].elementHealth <= 0x63)
+        if (elementList[elementIter].elementHealth == 0x0)
+        {
+            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Not reported");
+        }
+        else if (elementList[elementIter].elementHealth >= 0x1 && elementList[elementIter].elementHealth <= 0x63)
         {
             snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "In Limit");
         }
