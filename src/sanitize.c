@@ -475,6 +475,10 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
                     sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_ERROR;
                 }
             }
+            else 
+            {
+                sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_INV;
+            }
         }
     }
     return ret;

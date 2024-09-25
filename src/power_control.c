@@ -193,7 +193,23 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
             ret = FAILURE;
         }
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        uint32_t powerMode = 0;
+        ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
+        if (ret == SUCCESS)
+        {
+            printf("Device is in Power State %" PRIu32 "\n", powerMode);
+        }
+        else
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                printf("Unable to retrive current power state!\n");
+            }
+        }
+    }
+    else
     {
         /*
         NOTE: Removed the code which was checking to see if the power mode is supported
@@ -207,6 +223,7 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
         }
         if (SUCCESS == scsi_Request_Sense_Cmd(device, false, senseData, SPC3_SENSE_LEN))
         {
+            bool issuetur = false;
             //requested fixed format sensedata, so parse it. If we don't find what we are looking for post the "unable to retrieve current power mode" message
             if ((senseData[0] & 0x7F) == SCSI_SENSE_CUR_INFO_FIXED || (senseData[0] & 0x7F) == SCSI_SENSE_DEFER_ERR_FIXED)
             {
@@ -253,49 +270,52 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
                         printf("Standby_Y state activated by host command\n");
                         break;
                     default:
-                        printf("Active State or in an Unknown state.\n");
+                        issuetur = true;
                         break;
                     }
                     break;
                 default:
-                    printf("Active State or in an Unknown state.\n");
+                    issuetur = true;
                     break;
                 }
+                
             }
             else
             {
-                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                issuetur = true;
+            }
+            if (issuetur == true)
+            {
+                scsiStatus returnedStatus;
+                memset(&returnedStatus, 0, sizeof(scsiStatus));
+                ret = scsi_Test_Unit_Ready(device, &returnedStatus);
+                if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
                 {
-                    printf("Unable to retrive current power mode!\n");
+                    //assume active state
+                    printf("Device is in active state or an unknown power state.\n");
                 }
-                ret = FAILURE;
+                else if (returnedStatus.senseKey == SENSE_KEY_NOT_READY)
+                {
+                    //check asc and ascq if spinup command is required
+                    if (returnedStatus.asc == 0x04 && returnedStatus.ascq == 0x02)
+                    {
+                        printf("Standby state\n");//activated by host command???
+                    }
+                    else 
+                    {
+                        printf("Unknown power state. Unit reports: ");
+                        show_Test_Unit_Ready_Status(device);
+                    }
+                }
+                else
+                {
+                    printf("Unknown power state. Unit reports: ");
+                    show_Test_Unit_Ready_Status(device);
+                    ret = FAILURE;
+                }
             }
         }
         safe_free_aligned(&senseData);
-    }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
-    {
-        uint32_t powerMode = 0;
-        ret = get_Power_State(device, &powerMode, CURRENT_VALUE);
-        if (ret == SUCCESS)
-        {
-            printf("Device is in Power State %" PRIu32 "\n", powerMode);
-        }
-        else
-        {
-            if (VERBOSITY_QUIET < device->deviceVerbosity)
-            {
-                printf("Unable to retrive current power state!\n");
-            }
-        }
-    }
-    else
-    {
-        if (VERBOSITY_QUIET < device->deviceVerbosity)
-        {
-            printf("Showing the current power mode is not supported on this drive type at this time\n");
-        }
-        ret = NOT_SUPPORTED;
     }
     return ret;
 }
@@ -1110,15 +1130,15 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
                 //CCF fields
                 if (powerConditions->checkConditionFlags.ccfIdleValid && !powerConditions->checkConditionFlags.ccfIdleResetDefault)
                 {
-                    powerConditionsPage[mpStartOffset + 39] |= powerConditions->checkConditionFlags.ccfIdleMode << 6;
+                    powerConditionsPage[mpStartOffset + 39] |= get_bit_range_uint8(powerConditions->checkConditionFlags.ccfIdleMode, 1, 0) << 6;
                 }
                 if (powerConditions->checkConditionFlags.ccfStandbyValid && !powerConditions->checkConditionFlags.ccfStandbyResetDefault)
                 {
-                    powerConditionsPage[mpStartOffset + 39] |= powerConditions->checkConditionFlags.ccfStandbyMode << 4;
+                    powerConditionsPage[mpStartOffset + 39] |= get_bit_range_uint8(powerConditions->checkConditionFlags.ccfStandbyMode, 1, 0) << 4;
                 }
                 if (powerConditions->checkConditionFlags.ccfStopValid && !powerConditions->checkConditionFlags.ccfStopResetDefault)
                 {
-                    powerConditionsPage[mpStartOffset + 39] |= powerConditions->checkConditionFlags.ccfStopMode << 2;
+                    powerConditionsPage[mpStartOffset + 39] |= get_bit_range_uint8(powerConditions->checkConditionFlags.ccfStopMode, 1, 0) << 2;
                 }
             }
             //send the modified data to the drive
@@ -2113,6 +2133,7 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSe
     {
         return BAD_PARAMETER;
     }
+    bool powerConditionVPDsupported = true;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, epcVPDPage, VPD_POWER_CONDITION_LEN);
     if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, M_NULLPTR, M_NULLPTR, true, epcVPDPage, VPD_POWER_CONDITION_LEN, M_NULLPTR))
     {
@@ -2147,18 +2168,8 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSe
                 epcSettings->idle_c.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->idle_c.nominalRecoveryTimeToActiveState / 100);
             }
         }
-        //standby y
-        if (epcVPDPage[4] & BIT0)
-        {
-            epcSettings->standby_y.powerConditionSupported = true;
-            epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[10], epcVPDPage[11]);
-            if (epcSettings->standby_y.nominalRecoveryTimeToActiveState > 0)
-            {
-                epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->standby_y.nominalRecoveryTimeToActiveState / 100);
-            }
-        }
         //standby z
-        if (epcVPDPage[4] & BIT1)
+        if (epcVPDPage[4] & BIT0)
         {
             epcSettings->standby_z.powerConditionSupported = true;
             epcSettings->standby_z.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[8], epcVPDPage[9]);
@@ -2167,103 +2178,141 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSe
                 epcSettings->standby_z.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->standby_z.nominalRecoveryTimeToActiveState / 100);
             }
         }
-        epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
-        //now time to read the mode pages for the other information (start with current, then saved, then default)
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, epcModePage, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
-        for (eScsiModePageControl modePageControl = MPC_CURRENT_VALUES; modePageControl <= MPC_SAVED_VALUES; ++modePageControl)
+        //standby y
+        if (epcVPDPage[4] & BIT1)
         {
-            memset(epcModePage, 0, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
-            bool gotData = false;
-            uint8_t headerLength = MODE_PARAMETER_HEADER_10_LEN;
-            if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONDTION, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, modePageControl, epcModePage))
+            epcSettings->standby_y.powerConditionSupported = true;
+            epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_BytesTo2ByteValue(epcVPDPage[10], epcVPDPage[11]);
+            if (epcSettings->standby_y.nominalRecoveryTimeToActiveState > 0)
             {
-                gotData = true;
+                epcSettings->standby_y.nominalRecoveryTimeToActiveState = M_Max(1, epcSettings->standby_y.nominalRecoveryTimeToActiveState / 100);
             }
-            else if (SUCCESS == scsi_Mode_Sense_6(device, MP_POWER_CONDTION, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_6_LEN, 0, true, modePageControl, epcModePage))
+        }
+    }
+    else 
+    {
+        powerConditionVPDsupported = false;
+    }
+    epcSettings->settingsAffectMultipleLogicalUnits = scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(device, MP_POWER_CONDTION, 0);
+    //now time to read the mode pages for the other information (start with current, then saved, then default)
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, epcModePage, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    for (eScsiModePageControl modePageControl = MPC_CURRENT_VALUES; modePageControl <= MPC_SAVED_VALUES; ++modePageControl)
+    {
+        safe_memset(epcModePage, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
+        bool gotData = false;
+        uint8_t headerLength = MODE_PARAMETER_HEADER_10_LEN;
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONDTION, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, modePageControl, epcModePage))
+        {
+            gotData = true;
+        }
+        else if (SUCCESS == scsi_Mode_Sense_6(device, MP_POWER_CONDTION, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_6_LEN, 0, true, modePageControl, epcModePage))
+        {
+            gotData = true;
+            headerLength = MODE_PARAMETER_HEADER_6_LEN;
+        }
+        if (gotData)
+        {
+            bool *idleAenabledBit = M_NULLPTR;
+            uint32_t *idleAtimerSetting = M_NULLPTR;
+            bool *idleBenabledBit = M_NULLPTR;
+            uint32_t *idleBtimerSetting = M_NULLPTR;
+            bool *idleCenabledBit = M_NULLPTR;
+            uint32_t *idleCtimerSetting = M_NULLPTR;
+            bool *standbyYenabledBit = M_NULLPTR;
+            uint32_t *standbyYtimerSetting = M_NULLPTR;
+            bool *standbyZenabledBit = M_NULLPTR;
+            uint32_t *standbyZtimerSetting = M_NULLPTR;
+            switch (modePageControl)
             {
-                gotData = true;
-                headerLength = MODE_PARAMETER_HEADER_6_LEN;
-            }
-            if (gotData)
-            {
-                bool *idleAenabledBit = M_NULLPTR;
-                uint32_t *idleAtimerSetting = M_NULLPTR;
-                bool *idleBenabledBit = M_NULLPTR;
-                uint32_t *idleBtimerSetting = M_NULLPTR;
-                bool *idleCenabledBit = M_NULLPTR;
-                uint32_t *idleCtimerSetting = M_NULLPTR;
-                bool *standbyYenabledBit = M_NULLPTR;
-                uint32_t *standbyYtimerSetting = M_NULLPTR;
-                bool *standbyZenabledBit = M_NULLPTR;
-                uint32_t *standbyZtimerSetting = M_NULLPTR;
-                switch (modePageControl)
+            case MPC_CURRENT_VALUES:
+                idleAenabledBit = &epcSettings->idle_a.currentTimerEnabled;
+                idleAtimerSetting = &epcSettings->idle_a.currentTimerSetting;
+                idleBenabledBit = &epcSettings->idle_b.currentTimerEnabled;
+                idleBtimerSetting = &epcSettings->idle_b.currentTimerSetting;
+                idleCenabledBit = &epcSettings->idle_c.currentTimerEnabled;
+                idleCtimerSetting = &epcSettings->idle_c.currentTimerSetting;
+                standbyYenabledBit = &epcSettings->standby_y.currentTimerEnabled;
+                standbyYtimerSetting = &epcSettings->standby_y.currentTimerSetting;
+                standbyZenabledBit = &epcSettings->standby_z.currentTimerEnabled;
+                standbyZtimerSetting = &epcSettings->standby_z.currentTimerSetting;
+                //special case. If reading the current values, check the page for the PS bit (parameters savable) to note this for all power conditions.
+                if (epcModePage[headerLength + 0] & BIT7)
                 {
-                case MPC_CURRENT_VALUES:
-                    idleAenabledBit = &epcSettings->idle_a.currentTimerEnabled;
-                    idleAtimerSetting = &epcSettings->idle_a.currentTimerSetting;
-                    idleBenabledBit = &epcSettings->idle_b.currentTimerEnabled;
-                    idleBtimerSetting = &epcSettings->idle_b.currentTimerSetting;
-                    idleCenabledBit = &epcSettings->idle_c.currentTimerEnabled;
-                    idleCtimerSetting = &epcSettings->idle_c.currentTimerSetting;
-                    standbyYenabledBit = &epcSettings->standby_y.currentTimerEnabled;
-                    standbyYtimerSetting = &epcSettings->standby_y.currentTimerSetting;
-                    standbyZenabledBit = &epcSettings->standby_z.currentTimerEnabled;
-                    standbyZtimerSetting = &epcSettings->standby_z.currentTimerSetting;
-                    //special case. If reading the current values, check the page for the PS bit (parameters savable) to note this for all power conditions.
-                    if (epcModePage[headerLength + 0] & BIT7)
+                    epcSettings->idle_a.powerConditionSaveable = true;
+                    epcSettings->idle_b.powerConditionSaveable = true;
+                    epcSettings->idle_c.powerConditionSaveable = true;
+                    epcSettings->standby_y.powerConditionSaveable = true;
+                    epcSettings->standby_z.powerConditionSaveable = true;
+                }
+                break;
+            case MPC_CHANGABLE_VALUES:
+                idleAenabledBit = &epcSettings->idle_a.powerConditionChangeable;
+                idleAtimerSetting = &epcSettings->idle_a.maximumTimerSetting;
+                idleBenabledBit = &epcSettings->idle_b.powerConditionChangeable;
+                idleBtimerSetting = &epcSettings->idle_b.maximumTimerSetting;
+                idleCenabledBit = &epcSettings->idle_c.powerConditionChangeable;
+                idleCtimerSetting = &epcSettings->idle_c.maximumTimerSetting;
+                standbyYenabledBit = &epcSettings->standby_y.powerConditionChangeable;
+                standbyYtimerSetting = &epcSettings->standby_y.maximumTimerSetting;
+                standbyZenabledBit = &epcSettings->standby_z.powerConditionChangeable;
+                standbyZtimerSetting = &epcSettings->standby_z.maximumTimerSetting;
+                break;
+            case MPC_DEFAULT_VALUES:
+                idleAenabledBit = &epcSettings->idle_a.defaultTimerEnabled;
+                idleAtimerSetting = &epcSettings->idle_a.defaultTimerSetting;
+                idleBenabledBit = &epcSettings->idle_b.defaultTimerEnabled;
+                idleBtimerSetting = &epcSettings->idle_b.defaultTimerSetting;
+                idleCenabledBit = &epcSettings->idle_c.defaultTimerEnabled;
+                idleCtimerSetting = &epcSettings->idle_c.defaultTimerSetting;
+                standbyYenabledBit = &epcSettings->standby_y.defaultTimerEnabled;
+                standbyYtimerSetting = &epcSettings->standby_y.defaultTimerSetting;
+                standbyZenabledBit = &epcSettings->standby_z.defaultTimerEnabled;
+                standbyZtimerSetting = &epcSettings->standby_z.defaultTimerSetting;
+                break;
+            case MPC_SAVED_VALUES:
+                idleAenabledBit = &epcSettings->idle_a.savedTimerEnabled;
+                idleAtimerSetting = &epcSettings->idle_a.savedTimerSetting;
+                idleBenabledBit = &epcSettings->idle_b.savedTimerEnabled;
+                idleBtimerSetting = &epcSettings->idle_b.savedTimerSetting;
+                idleCenabledBit = &epcSettings->idle_c.savedTimerEnabled;
+                idleCtimerSetting = &epcSettings->idle_c.savedTimerSetting;
+                standbyYenabledBit = &epcSettings->standby_y.savedTimerEnabled;
+                standbyYtimerSetting = &epcSettings->standby_y.savedTimerSetting;
+                standbyZenabledBit = &epcSettings->standby_z.savedTimerEnabled;
+                standbyZtimerSetting = &epcSettings->standby_z.savedTimerSetting;
+                break;
+            default:
+                continue;
+            }
+            //idle a
+            if (epcModePage[headerLength + 3] & BIT1)
+            {
+                *idleAenabledBit = true;
+                if (powerConditionVPDsupported == false)
+                {
+                    if (modePageControl == MPC_CHANGABLE_VALUES || modePageControl == MPC_CURRENT_VALUES)
                     {
-                        epcSettings->idle_a.powerConditionSaveable = true;
-                        epcSettings->idle_b.powerConditionSaveable = true;
-                        epcSettings->idle_c.powerConditionSaveable = true;
-                        epcSettings->standby_y.powerConditionSaveable = true;
-                        epcSettings->standby_z.powerConditionSaveable = true;
+                        //special case, mostly for older drives before EPC.
+                        //SCSI has supported this mode page for a while, so if it's the "changeable" page set "supported" bits for different power conditions.
+                        epcSettings->idle_a.powerConditionSupported = true;
                     }
-                    break;
-                case MPC_CHANGABLE_VALUES:
-                    idleAenabledBit = &epcSettings->idle_a.powerConditionChangeable;
-                    idleAtimerSetting = &epcSettings->idle_a.maximumTimerSetting;
-                    idleBenabledBit = &epcSettings->idle_b.powerConditionChangeable;
-                    idleBtimerSetting = &epcSettings->idle_b.maximumTimerSetting;
-                    idleCenabledBit = &epcSettings->idle_c.powerConditionChangeable;
-                    idleCtimerSetting = &epcSettings->idle_c.maximumTimerSetting;
-                    standbyYenabledBit = &epcSettings->standby_y.powerConditionChangeable;
-                    standbyYtimerSetting = &epcSettings->standby_y.maximumTimerSetting;
-                    standbyZenabledBit = &epcSettings->standby_z.powerConditionChangeable;
-                    standbyZtimerSetting = &epcSettings->standby_z.maximumTimerSetting;
-                    break;
-                case MPC_DEFAULT_VALUES:
-                    idleAenabledBit = &epcSettings->idle_a.defaultTimerEnabled;
-                    idleAtimerSetting = &epcSettings->idle_a.defaultTimerSetting;
-                    idleBenabledBit = &epcSettings->idle_b.defaultTimerEnabled;
-                    idleBtimerSetting = &epcSettings->idle_b.defaultTimerSetting;
-                    idleCenabledBit = &epcSettings->idle_c.defaultTimerEnabled;
-                    idleCtimerSetting = &epcSettings->idle_c.defaultTimerSetting;
-                    standbyYenabledBit = &epcSettings->standby_y.defaultTimerEnabled;
-                    standbyYtimerSetting = &epcSettings->standby_y.defaultTimerSetting;
-                    standbyZenabledBit = &epcSettings->standby_z.defaultTimerEnabled;
-                    standbyZtimerSetting = &epcSettings->standby_z.defaultTimerSetting;
-                    break;
-                case MPC_SAVED_VALUES:
-                    idleAenabledBit = &epcSettings->idle_a.savedTimerEnabled;
-                    idleAtimerSetting = &epcSettings->idle_a.savedTimerSetting;
-                    idleBenabledBit = &epcSettings->idle_b.savedTimerEnabled;
-                    idleBtimerSetting = &epcSettings->idle_b.savedTimerSetting;
-                    idleCenabledBit = &epcSettings->idle_c.savedTimerEnabled;
-                    idleCtimerSetting = &epcSettings->idle_c.savedTimerSetting;
-                    standbyYenabledBit = &epcSettings->standby_y.savedTimerEnabled;
-                    standbyYtimerSetting = &epcSettings->standby_y.savedTimerSetting;
-                    standbyZenabledBit = &epcSettings->standby_z.savedTimerEnabled;
-                    standbyZtimerSetting = &epcSettings->standby_z.savedTimerSetting;
-                    break;
-                default:
-                    continue;
                 }
-                //idle a
-                if (epcModePage[headerLength + 3] & BIT1)
-                {
-                    *idleAenabledBit = true;
-                }
-                *idleAtimerSetting = M_BytesTo4ByteValue(epcModePage[headerLength + 4], epcModePage[headerLength + 5], epcModePage[headerLength + 6], epcModePage[headerLength + 7]);
+            }
+            *idleAtimerSetting = M_BytesTo4ByteValue(epcModePage[headerLength + 4], epcModePage[headerLength + 5], epcModePage[headerLength + 6], epcModePage[headerLength + 7]);
+            //standby z
+            if (epcModePage[headerLength + 3] & BIT0)
+            {
+                *standbyZenabledBit = true;
+                if (modePageControl == MPC_CHANGABLE_VALUES || modePageControl == MPC_CURRENT_VALUES)
+                    {
+                        //special case, mostly for older drives before EPC.
+                        //SCSI has supported this mode page for a while, so if it's the "changeable" page set "supported" bits for different power conditions.
+                        epcSettings->standby_z.powerConditionSupported = true;
+                    }
+            }
+            *standbyZtimerSetting = M_BytesTo4ByteValue(epcModePage[headerLength + 8], epcModePage[headerLength + 9], epcModePage[headerLength + 10], epcModePage[headerLength + 11]);
+            if (epcModePage[headerLength + 1] > 0x0A)//before EPC this page was shorter, so do not try to access the rest of it as the data is invalid
+            {
                 //idle b
                 if (epcModePage[headerLength + 3] & BIT2)
                 {
@@ -2277,19 +2326,13 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice *device, ptrEpcSettings epcSe
                 }
                 *idleCtimerSetting = M_BytesTo4ByteValue(epcModePage[headerLength + 16], epcModePage[headerLength + 17], epcModePage[headerLength + 18], epcModePage[headerLength + 19]);
                 //standby y
-                if (epcModePage[2] & BIT0)
+                if (epcModePage[headerLength + 2] & BIT0)
                 {
                     *standbyYenabledBit = true;
                 }
                 *standbyYtimerSetting = M_BytesTo4ByteValue(epcModePage[headerLength + 20], epcModePage[headerLength + 21], epcModePage[headerLength + 22], epcModePage[headerLength + 23]);
-                //standby z
-                if (epcModePage[3] & BIT0)
-                {
-                    *standbyZenabledBit = true;
-                }
-                *standbyZtimerSetting = M_BytesTo4ByteValue(epcModePage[headerLength + 8], epcModePage[headerLength + 9], epcModePage[headerLength + 10], epcModePage[headerLength + 11]);
-                ret = SUCCESS;
             }
+            ret = SUCCESS;
         }
     }
     return ret;
@@ -2322,7 +2365,7 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char *c
     {
         printf(" ");
     }
-    printf("%-12"PRIu32" ", condition->currentTimerSetting);
+    printf("%-12" PRIu32 " ", condition->currentTimerSetting);
     if (condition->defaultTimerEnabled)
     {
         printf("*");
@@ -2331,7 +2374,7 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char *c
     {
         printf(" ");
     }
-    printf("%-12"PRIu32" ", condition->defaultTimerSetting);
+    printf("%-12" PRIu32 " ", condition->defaultTimerSetting);
     if (condition->savedTimerEnabled)
     {
         printf("*");
@@ -2340,8 +2383,8 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char *c
     {
         printf(" ");
     }
-    printf("%-12"PRIu32" ", condition->savedTimerSetting);
-    printf("%-12"PRIu32" ", condition->nominalRecoveryTimeToActiveState);
+    printf("%-12" PRIu32 " ", condition->savedTimerSetting);
+    printf("%-12" PRIu32 " ", condition->nominalRecoveryTimeToActiveState);
     if (condition->powerConditionChangeable)
     {
         printf(" Y");
