@@ -28,8 +28,8 @@ extern "C"
     typedef enum _eCDLFeatureSet
     {
         CDL_FEATURE_UNKNOWN = -1,
-        CDL_FEATURE_ENABLE = 0,
-        CDL_FEATURE_DISABLE = 1,
+        CDL_FEATURE_DISABLE = 0,
+        CDL_FEATURE_ENABLE = 1,
     } eCDLFeatureSet;
 
     typedef enum _eCDLSettingsOutMode

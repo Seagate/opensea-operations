@@ -313,7 +313,7 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings *cdlSettings)
         printf("\tCommand Duration Limit Minimum Limit (us) : %" PRIu32 "\n", cdlSettings->minimumTimeLimit);
         printf("\tCommand Duration Limit Maximum Limit (us) : %" PRIu32 "\n", cdlSettings->maximumTimeLimit);
 
-        //if (cdlSettings->isCommandDurationGuidelineSupported)
+        if (cdlSettings->isCommandDurationGuidelineSupported)
         {
             DECLARE_ZERO_INIT_ARRAY(char, statusTranslation, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH);
             translate_CDL_Performance_Vs_Command_Duration_Guideline_Field_To_String(cdlSettings->performanceVsCommandDurationGuideline, statusTranslation);
@@ -330,7 +330,7 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings *cdlSettings)
             printf("\t\tActive Time (us) : %" PRIu32 "\n", cdlSettings->cdlReadDescriptor[descriptorIndex].activeTime);
             translate_Policy_To_String(CDL_POLICY_TYPE_ACTIVE_TIME, cdlSettings->cdlReadDescriptor[descriptorIndex].activeTimePolicy, policyTranslation);
             printf("\t\tActive Time Policy : %s\n", policyTranslation);
-            //if (cdlSettings->isCommandDurationGuidelineSupported)
+            if (cdlSettings->isCommandDurationGuidelineSupported)
             {
                 printf("\t\tCommand Duration Guideline (us) : %" PRIu32 "\n", cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuideline);
                 translate_Policy_To_String(CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE, cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy, policyTranslation);
@@ -348,7 +348,7 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings *cdlSettings)
             printf("\t\tActive Time (us) : %" PRIu32 "\n", cdlSettings->cdlWriteDescriptor[descriptorIndex].activeTime);
             translate_Policy_To_String(CDL_POLICY_TYPE_ACTIVE_TIME, cdlSettings->cdlWriteDescriptor[descriptorIndex].activeTimePolicy, policyTranslation);
             printf("\t\tActive Time Policy : %s\n", policyTranslation);
-            //if (cdlSettings->isCommandDurationGuidelineSupported)
+            if (cdlSettings->isCommandDurationGuidelineSupported)
             {
                 printf("\t\tCommand Duration Guideline (us): %" PRIu32 "\n", cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuideline);
                 translate_Policy_To_String(CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE, cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy, policyTranslation);
@@ -430,6 +430,12 @@ static eReturnValues config_ATA_CDL_Settings(tDevice *device, tCDLSettings *cdlS
             }
 
             //sent write log command
+            ret = ata_Write_Log_Ext(device, ATA_LOG_COMMAND_DURATION_LIMITS_LOG, 0, logBuffer, logSize, device->drive_info.ata_Options.readLogWriteLogDMASupported, false);
+            if (SUCCESS == ret)
+            {
+                safe_free_aligned(&logBuffer);
+                return ret;
+            }
         }
         else
         {
@@ -468,7 +474,7 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings *cdlSettings)
     }
 
     //check if valid performanceVsCommandDurationGuideline
-    if (/*cdlSettings->isCommandDurationGuidelineSupported &&*/ cdlSettings->performanceVsCommandDurationGuideline > 0x0C)
+    if (cdlSettings->isCommandDurationGuidelineSupported && cdlSettings->performanceVsCommandDurationGuideline > 0x0C)
     {
         printf("Invalid Entry for \"Performance Versus Command Duration Guideline\".\n");
         printf("Accepted values are in range of 0x00 - 0x0C. Provided value : 0x%02" PRIX8 "\n", cdlSettings->performanceVsCommandDurationGuideline);
@@ -492,7 +498,7 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings *cdlSettings)
             return VALIDATION_FAILURE;
         }
 
-        if (/*cdlSettings->isCommandDurationGuidelineSupported &&*/ !(cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy <= 0x02 || cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0D || cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0F))
+        if (cdlSettings->isCommandDurationGuidelineSupported && !(cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy <= 0x02 || cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0D || cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0F))
         {
             printf("Invalid Entry for \"Command Duration Guideline Policy\" for Descriptor R%" PRIu8 ".\n", (descriptorIndex + 1));
             printf("Accepted values are 0x00|0x01|0x02|0x0D|0x0F. Provided value : 0x%02" PRIX8 "\n", cdlSettings->cdlReadDescriptor[descriptorIndex].commandDurationGuidelinePolicy);
@@ -517,7 +523,7 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings *cdlSettings)
             return VALIDATION_FAILURE;
         }
 
-        if (/*cdlSettings->isCommandDurationGuidelineSupported &&*/ !(cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy <= 0x02 || cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0D || cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0F))
+        if (cdlSettings->isCommandDurationGuidelineSupported && !(cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy <= 0x02 || cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0D || cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy == 0x0F))
         {
             printf("Invalid Entry for \"Command Duration Guideline Policy\" for Descriptor W%" PRIu8 ".\n", (descriptorIndex + 1));
             printf("Accepted values are 0x00|0x01|0x02|0x0D|0x0F. Provided value : 0x%02" PRIX8 "\n", cdlSettings->cdlWriteDescriptor[descriptorIndex].commandDurationGuidelinePolicy);
