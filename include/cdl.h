@@ -22,8 +22,21 @@ extern "C"
 {
 #endif   
 
-#define MAX_CDL_READ_DESCRIPTOR                                     7
-#define MAX_CDL_WRITE_DESCRIPTOR                                    7
+#define MAX_CDL_READ_DESCRIPTOR         7
+#define MAX_CDL_WRITE_DESCRIPTOR        7
+
+    typedef enum _eCDLFeatureSet
+    {
+        CDL_FEATURE_UNKNOWN = -1,
+        CDL_FEATURE_ENABLE = 0,
+        CDL_FEATURE_DISABLE = 1,
+    } eCDLFeatureSet;
+
+    typedef enum _eCDLSettingsOutMode
+    {
+        CDL_SETTINGS_OUTPUT_RAW,
+        CDL_SETTINGS_OUTPUT_JSON,
+    } eCDLSettingsOutMode;
 
     typedef enum _eCDLPolicyType
     {
@@ -49,14 +62,16 @@ extern "C"
         bool isCommandDurationGuidelineSupported;
         uint32_t minimumTimeLimit;
         uint32_t maximumTimeLimit;
-        uint8_t performanceVsCommandCompletion;
+        uint8_t performanceVsCommandDurationGuideline;
         tCDLDescriptor cdlReadDescriptor[MAX_CDL_READ_DESCRIPTOR];
         tCDLDescriptor cdlWriteDescriptor[MAX_CDL_WRITE_DESCRIPTOR];
     } tCDLSettings;
 
-    OPENSEA_OPERATIONS_API eReturnValues show_CDL_Settings(tDevice *device);
-    OPENSEA_OPERATIONS_API void translate_CDL_Performance_Vs_Command_Completion_Status_To_String(uint8_t cmdCompletionField, char *translatedString);
-    OPENSEA_OPERATIONS_API void translate_Policy_To_String(eCDLPolicyType policyType, uint8_t policyField, char *translatedString);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(tDevice *device, eCDLFeatureSet countField);
+    OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(tDevice *device, tCDLSettings *cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(tDevice *device, tCDLSettings *cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(tDevice *device, tCDLSettings *cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(tDevice *device, tCDLSettings *cdlSettings);
 
 #if defined (__cplusplus)
 }
