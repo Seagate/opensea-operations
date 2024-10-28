@@ -334,7 +334,7 @@ eReturnValues get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersi
                 else
                 {
                     prCapabilities->reservationTypesSupportedValid = false;
-                    memset(&prCapabilities->reservationsCapabilities, 0, sizeof(reservationTypesSupported));
+                    safe_memset(&prCapabilities->reservationsCapabilities, sizeof(reservationTypesSupported), 0, sizeof(reservationTypesSupported));
                 }
             }
             else
@@ -346,7 +346,7 @@ eReturnValues get_Persistent_Reservations_Capabilities(tDevice *device, ptrPersi
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt getReservatinPersistence;
-        memset(&getReservatinPersistence, 0, sizeof(nvmeFeaturesCmdOpt));
+        safe_memset(&getReservatinPersistence, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
         getReservatinPersistence.fid = NVME_FEAT_RESERVATION_PERSISTANCE_;
         getReservatinPersistence.nsid = device->drive_info.namespaceID;
         prCapabilities->replaceLostReservationCapable = true;//not in NVMe translation, but seems to be part of NVMe spec
@@ -1148,11 +1148,11 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
                     if (offsetAdditionalLength > 0)
                     {
                         //copy the transport ID, if any, up to 24 bytes
-                        memcpy(fullReservation->reservationKey[keyIter].transportID, &fullStatusData[offset + 24], M_Min(24, offsetAdditionalLength));
+                        safe_memcpy(fullReservation->reservationKey[keyIter].transportID, 24, &fullStatusData[offset + 24], M_Min(24, offsetAdditionalLength));
                     }
                     else
                     {
-                        memset(fullReservation->reservationKey[keyIter].transportID, 0, 24);
+                        safe_memset(fullReservation->reservationKey[keyIter].transportID, 24, 0, 24);
                     }
                 }
             }
@@ -1191,7 +1191,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
                         //initialize the following to zeros since they don't map
                         fullReservation->reservationKey[keyIter].allTargetPorts = false;
                         fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier = 0;
-                        memset(fullReservation->reservationKey[keyIter].transportID, 0, 24);
+                        safe_memset(fullReservation->reservationKey[keyIter].transportID, 24, 0, 24);
                         fullReservation->reservationKey[keyIter].transportIDLength = 0;
                         //initialize the following fields before we check the reservations data
                         fullReservation->reservationKey[keyIter].reservationHolder = false;
@@ -1277,7 +1277,7 @@ eReturnValues get_Full_Status(tDevice *device, uint16_t numberOfKeys, ptrFullRes
                     fullReservation->reservationKey[keyIter].type = RES_TYPE_NO_RESERVATION;
                 }
                 //host id/transport id
-                memcpy(fullReservation->reservationKey[keyIter].transportID, &nvmeFullData[offset + 8], 8);
+                safe_memcpy(fullReservation->reservationKey[keyIter].transportID, 24, &nvmeFullData[offset + 8], 8);
                 fullReservation->reservationKey[keyIter].transportIDLength = 8;
                 //finally, the key
                 fullReservation->reservationKey[keyIter].key = M_BytesTo8ByteValue(nvmeFullData[offset + 23], nvmeFullData[offset + 22], nvmeFullData[offset + 21], nvmeFullData[offset + 20], nvmeFullData[offset + 19], nvmeFullData[offset + 18], nvmeFullData[offset + 17], nvmeFullData[offset + 16]);
@@ -1463,7 +1463,7 @@ static void format_Basic_Info(uint8_t *ptrData, uint32_t dataLength, ptrPersiste
             ptrData[26] = M_Byte1(basicInfo->transportIDLength);
             ptrData[27] = M_Byte0(basicInfo->transportIDLength);
             //now copy remaining data to the buffer...already checked the size above
-            memcpy(&ptrData[28], basicInfo->transportID, M_Min(dataLength - 28, basicInfo->transportIDLength));
+            safe_memcpy(&ptrData[28], dataLength, basicInfo->transportID, M_Min(dataLength - 28, basicInfo->transportIDLength));
         }
     }
 }
@@ -1475,7 +1475,7 @@ eReturnValues register_Key(tDevice * device, uint64_t registrationKey, bool allT
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
-        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = 0;//when registering, set this to zero to begin.
         prData.serviceActionReservationKey = registrationKey;
         prData.allTargetPorts = allTargetPorts;
@@ -1509,7 +1509,7 @@ eReturnValues unregister_Key(tDevice *device, uint64_t currentRegistrationKey)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
-        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = currentRegistrationKey;
         prData.serviceActionReservationKey = 0;
         format_Basic_Info(registerData, PR_OUT_BASIC_MIN_LENGTH, &prData);
@@ -1540,7 +1540,7 @@ eReturnValues acquire_Reservation(tDevice *device, uint64_t key, eReservationTyp
         DECLARE_ZERO_INIT_ARRAY(uint8_t, acquireRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t scsiReservationType = 0;
         persistentReserveOutBasic prData;
-        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
         format_Basic_Info(acquireRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
         switch (resType)
@@ -1627,7 +1627,7 @@ eReturnValues release_Reservation(tDevice *device, uint64_t key, eReservationTyp
         DECLARE_ZERO_INIT_ARRAY(uint8_t, releaseRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t scsiReservationType = 0;
         persistentReserveOutBasic prData;
-        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
         format_Basic_Info(releaseRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
         switch (resType)
@@ -1713,7 +1713,7 @@ eReturnValues clear_Reservations(tDevice *device, uint64_t key)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, clearRes, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
-        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
         format_Basic_Info(clearRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_CLEAR, 0, 0, PR_OUT_BASIC_MIN_LENGTH, clearRes);
@@ -1742,7 +1742,7 @@ eReturnValues preempt_Reservation(tDevice *device, uint64_t key, uint64_t preemp
         DECLARE_ZERO_INIT_ARRAY(uint8_t, preemptRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t scsiReservationType = 0;
         persistentReserveOutBasic prData;
-        memset(&prData, 0, sizeof(persistentReserveOutBasic));
+        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
         prData.serviceActionReservationKey = preemptKey;
         format_Basic_Info(preemptRes, PR_OUT_BASIC_MIN_LENGTH, &prData);

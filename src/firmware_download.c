@@ -141,14 +141,6 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice *
                 {
                     ret = POWER_CYCLE_REQUIRED;
                 }
-                //set the firmware revision in each slot
-                //for (uint32_t slotIter = 0, offset = 8; slotIter <= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1) && slotIter <= 7 /*max of 7 slots in spec and structure*/ && offset < 512; ++slotIter, offset += 8)
-                //{
-                //    DECLARE_ZERO_INIT_ARRAY(char, rev, 9);
-                //    memcpy(rev, &firmwareLog[offset], 8);
-                //    rev[8] = '\0';
-                //    printf("slot %u: %s\n", slotIter, rev);
-                //}
             }
         }
     }
@@ -215,7 +207,7 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
 
         bool automaticModeDetection = false;
         supportedDLModes fwdlSupport;
-        memset(&fwdlSupport, 0, sizeof(supportedDLModes));
+        safe_memset(&fwdlSupport, sizeof(supportedDLModes), 0, sizeof(supportedDLModes));
         fwdlSupport.version = SUPPORTED_FWDL_MODES_VERSION;
         fwdlSupport.size = sizeof(supportedDLModes);
         get_Supported_FWDL_Modes(device, &fwdlSupport);
@@ -234,7 +226,7 @@ eReturnValues firmware_Download(tDevice *device, firmwareUpdateData * options)
 
         //send test unit ready to determine if spinup command is required. If it is, send the SCSI start-stop unit command to do the spinup.
         scsiStatus turStatus;
-        memset(&turStatus, 0, sizeof(scsiStatus));
+        safe_memset(&turStatus, sizeof(scsiStatus), 0, sizeof(scsiStatus));
         scsi_Test_Unit_Ready(device, &turStatus);//Note: Not checking for success because we want to evaluate the received sense data ourselves in this case-TJE
         if (turStatus.senseKey == SENSE_KEY_NOT_READY)
         {
@@ -895,7 +887,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                     //set the firmware revision in each slot
                     for (uint32_t slotIter = 0, offset = 8; slotIter <= supportedModes->firmwareSlotInfo.numberOfSlots && slotIter <= 7 /*max of 7 slots in spec and structure*/ && offset < 512; ++slotIter, offset += 8)
                     {
-                        memcpy(supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision, &firmwareLog[offset], 8);
+                        safe_memcpy(supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision, 9, &firmwareLog[offset], 8);
                         supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision[8] = '\0';
                     }
                 }
@@ -1092,7 +1084,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supp
                             return MEMORY_FAILURE;
                         }
                         writeBufferSupportData = temp;
-                        memset(writeBufferSupportData, 0, 16);
+                        safe_memset(writeBufferSupportData, 16, 0, 16);
                         //if that still doesn't work, we can try the obsolete method using the inquiry command
                         if (SUCCESS == scsi_Inquiry(device, writeBufferSupportData, 16, WRITE_BUFFER_CMD, false, true))
                         {

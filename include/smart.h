@@ -577,6 +577,8 @@ extern "C"
         uint32_t timestampMilliseconds;//since power on. can wrap
     }ExtSMARTCommandDataStructure;
 
+#define VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN (19)
+
     typedef struct _SMARTCommandErrorDataStructure
     {
         uint8_t reserved;
@@ -587,7 +589,7 @@ extern "C"
         uint8_t lbaHi;
         uint8_t device;
         uint8_t status;
-        uint8_t extendedErrorInformation[19];//vendor specific
+        uint8_t extendedErrorInformation[VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN];//vendor specific
         uint8_t state;
         uint16_t lifeTimestamp; //POH when error occured
     }SMARTCommandErrorDataStructure;
@@ -606,7 +608,7 @@ extern "C"
         uint8_t lbaHiExt;
         uint8_t device;
         uint8_t status;
-        uint8_t extendedErrorInformation[19];//vendor specific
+        uint8_t extendedErrorInformation[VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN];//vendor specific
         uint8_t state;
         uint16_t lifeTimestamp; //POH when error occured
     }ExtSMARTCommandErrorDataStructure;

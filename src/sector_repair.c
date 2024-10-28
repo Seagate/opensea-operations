@@ -57,7 +57,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
                 return MEMORY_FAILURE;
             }
             dataBuf = temp;
-            memset(dataBuf, 0, dataSize);
+            safe_memset(dataBuf, dataSize, 0, dataSize);
         }
         ret = ata_Write(device, LBA->errorAddress, false, dataBuf, dataSize);
         if (ret == SUCCESS)
@@ -155,7 +155,7 @@ eReturnValues repair_LBA(tDevice *device, ptrErrorLBA LBA, bool forcePassthrough
                     ret = scsi_Reassign_Blocks(device, longLBA, false, reassignListLength, dataBuf);
                     //Need to check and make sure that we didn't get a check condition
                     senseDataFields senseFields;
-                    memset(&senseFields, 0, sizeof(senseDataFields));
+                    safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
                     get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
                     if (senseFields.validStructure)
                     {

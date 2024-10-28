@@ -87,7 +87,7 @@ eReturnValues sequential_RWV(tDevice *device, eRWVCommandType rwvCommand, uint64
                     return MEMORY_FAILURE;
                 }
                 dataBuf = temp;
-                memset(dataBuf, 0, C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize * sizeof(uint8_t)));
+                safe_memset(dataBuf, C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize * sizeof(uint8_t)), 0, C_CAST(size_t, sectorCount * device->drive_info.deviceBlockSize * sizeof(uint8_t)));
             }
         }
         //print out the current LBA we are rwving
@@ -447,13 +447,12 @@ eReturnValues two_Minute_Generic_Test(tDevice *device, eRWVCommandType rwvComman
     uint64_t ODEndingLBA = 0;
     uint64_t randomLBA = 0;
     performanceNumbers idTest, odTest, randomTest;
-    memset(&idTest, 0, sizeof(performanceNumbers));
-    memset(&odTest, 0, sizeof(performanceNumbers));
-    memset(&randomTest, 0, sizeof(performanceNumbers));
-    seatimer_t idTestTimer, odTestTimer, randomTestTimer;
-    memset(&odTestTimer, 0, sizeof(seatimer_t));
-    memset(&idTestTimer, 0, sizeof(seatimer_t));
-    memset(&randomTestTimer, 0, sizeof(seatimer_t));
+    safe_memset(&idTest, sizeof(performanceNumbers), 0, sizeof(performanceNumbers));
+    safe_memset(&odTest, sizeof(performanceNumbers), 0, sizeof(performanceNumbers));
+    safe_memset(&randomTest, sizeof(performanceNumbers), 0, sizeof(performanceNumbers));
+    DECLARE_SEATIMER(idTestTimer);
+    DECLARE_SEATIMER(odTestTimer);
+    DECLARE_SEATIMER(randomTestTimer);
     //allocate memory now that we know the sector count
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
@@ -1499,7 +1498,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice *device, eRWVCommandType t
         }
         if (testMode == RWV_COMMAND_WRITE)
         {
-            memset(dataBuf, 0, dataBufSize);
+            safe_memset(dataBuf, dataBufSize, 0, dataBufSize);
         }
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)

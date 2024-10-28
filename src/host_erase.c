@@ -84,7 +84,7 @@ eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t er
             }
             else
             {
-                memset(&writeBuffer[adjustmentBytes], 0, dataLength - adjustmentBytes);
+                safe_memset(&writeBuffer[adjustmentBytes], dataLength - adjustmentBytes, 0, dataLength - adjustmentBytes);
             }
             if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {
@@ -127,7 +127,7 @@ eReturnValues erase_Range(tDevice *device, uint64_t eraseRangeStart, uint64_t er
                         }
                         else
                         {
-                            memset(writeBuffer, 0, C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
+                            safe_memset(writeBuffer, dataLength, 0, C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
                         }
                     }
                 }
@@ -225,7 +225,7 @@ eReturnValues erase_Time(tDevice *device, uint64_t eraseStartLBA, uint64_t erase
             }
             else
             {
-                memset(&writeBuffer[adjustmentBytes], 0, dataLength - adjustmentBytes);
+                safe_memset(&writeBuffer[adjustmentBytes], dataLength - adjustmentBytes, 0, dataLength - adjustmentBytes);
             }
             if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {

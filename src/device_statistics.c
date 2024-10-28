@@ -1269,7 +1269,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
     if (dummyUpLogPages)
     {
         subpagesSupported = true;
-        memset(supportedLogPages, 0, LEGACY_DRIVE_SEC_SIZE);
+        safe_memset(supportedLogPages, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
         supportedLogPages[0] = 0;
         supportedLogPages[1] = 0;
         //page length
@@ -1336,7 +1336,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_WRITE_ERROR_COUNTERS:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.writeErrorCountersSupported = true;
@@ -1666,7 +1666,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -1876,7 +1876,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             ret = SUCCESS;
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.readErrorCountersSupported = true;
@@ -2206,7 +2206,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -2415,7 +2415,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_READ_REVERSE_ERROR_COUNTERS:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.readReverseErrorCountersSupported = true;
@@ -2745,7 +2745,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -2954,7 +2954,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_VERIFY_ERROR_COUNTERS:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.verifyErrorCountersSupported = true;
@@ -3284,7 +3284,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -3493,7 +3493,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_NON_MEDIUM_ERROR:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.nonMediumErrorSupported = true;
@@ -3558,7 +3558,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -3611,7 +3611,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_FORMAT_STATUS_LOG_PAGE:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.formatStatusSupported = true;
@@ -3871,7 +3871,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -4004,7 +4004,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_LOGICAL_BLOCK_PROVISIONING:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.logicalBlockProvisioningSupported = true;
@@ -4182,7 +4182,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -4264,7 +4264,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             switch (subpageCode)
             {
             case 0://temperature
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.temperatureSupported = true;
@@ -4338,7 +4338,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -4380,7 +4380,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                 }
                 break;
             case 1://environmental reporting
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.environmentReportingSupported = true;
@@ -4561,7 +4561,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                 }
                 break;
             case 2://environmental limits
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.environmentReportingSupported = true;
@@ -4732,7 +4732,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             switch (subpageCode)
             {
             case 0://start stop cycle counter
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.startStopCycleCounterSupported = true;
@@ -4914,7 +4914,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -4994,7 +4994,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                 }
                 break;
             case 1://utilization
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.utilizationSupported = true;
@@ -5068,7 +5068,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -5116,7 +5116,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_SOLID_STATE_MEDIA:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.solidStateMediaSupported = true;
@@ -5164,7 +5164,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -5201,7 +5201,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             switch (subpageCode)
             {
             case 0://background scan results
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.backgroundScanResultsSupported = true;
@@ -5242,7 +5242,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -5288,7 +5288,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                 }
                 break;
             case 1://pending defects
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.pendingDefectsSupported = true;
@@ -5336,7 +5336,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -5371,7 +5371,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             case 2://background operaton
                 break;
             case 3://lps misalignment
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.lpsMisalignmentSupported = true;
@@ -5419,7 +5419,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -5458,7 +5458,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         case LP_NON_VOLITILE_CACHE:
             if (subpageCode == 0)
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.nvCacheSupported = true;
@@ -5532,7 +5532,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -5578,7 +5578,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             switch (subpageCode)
             {
             case 0://general statistics and performance
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.generalStatisticsAndPerformanceSupported = true;
@@ -5847,7 +5847,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -5981,7 +5981,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                 break;
                 //group statistics (1 - 1f)
             case 0x20://cache memory statistics
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.cacheMemoryStatisticsSupported = true;
@@ -6159,7 +6159,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
                         }
                     }
                     //thresholds
-                    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
                         pageLength = M_BytesTo2ByteValue(tempLogBuf[2], tempLogBuf[3]);
@@ -6245,7 +6245,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             {
             case 0x01://ZBD statistics
             {
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.cacheMemoryStatisticsSupported = true;
@@ -6350,7 +6350,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
             switch (subpageCode)
             {
             case 0:
-                memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
                     deviceStats->sasStatistics.powerConditionTransitionsSupported = true;
@@ -6624,7 +6624,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         }
     }
     //get the SAS timestamp
-    memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
     if (SUCCESS == scsi_Report_Timestamp(device, LEGACY_DRIVE_SEC_SIZE, tempLogBuf))
     {
         deviceStats->sasStatistics.timeStampSupported = true;
@@ -6652,7 +6652,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         //If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
         //NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = 0;
-        memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+        safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, false, true, C_CAST(uint8_t, defectFormat), 0, 8, tempLogBuf)) == SUCCESS)
         {
             gotGrownDefectCount = true;
@@ -6709,7 +6709,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice *device, ptrDeviceStatist
         //If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
         //NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = 0;
-        memset(tempLogBuf, 0, LEGACY_DRIVE_SEC_SIZE);
+        safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && (defectRet = scsi_Read_Defect_Data_12(device, true, false, C_CAST(uint8_t, defectFormat), 0, 8, tempLogBuf)) == SUCCESS)
         {
             gotPrimaryDefectCount = true;

@@ -102,8 +102,8 @@ eReturnValues scsi_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
         *status = temp_buf[8];
         *status &= 0x0F;
         //check the progress since the test is still running
-        memset(temp_buf, 0, LEGACY_DRIVE_SEC_SIZE);
-        scsi_Request_Sense_Cmd(device, false, temp_buf, LEGACY_DRIVE_SEC_SIZE);
+        safe_memset(temp_buf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+        scsi_Request_Sense_Cmd(device, false, temp_buf, SPC3_SENSE_LEN);
         *percentComplete = M_BytesTo2ByteValue(temp_buf[16], temp_buf[17]);
         *percentComplete *= 100;
         *percentComplete /= 65536;
@@ -117,7 +117,7 @@ eReturnValues nvme_Get_DST_Progress(tDevice *device, uint32_t *percentComplete, 
     eReturnValues result = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeSelfTestLogBuf, 564);//strange size for the log, but it's what I see in the spec - TJE
     nvmeGetLogPageCmdOpts getDSTLog;
-    memset(&getDSTLog, 0, sizeof(nvmeGetLogPageCmdOpts));
+    safe_memset(&getDSTLog, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
     getDSTLog.addr = nvmeSelfTestLogBuf;
     getDSTLog.dataLen = 564;
     getDSTLog.lid = 0x06;
@@ -1023,7 +1023,7 @@ eReturnValues run_DST(tDevice *device, eDSTType DSTType, bool pollForProgress, b
                     {
                         //otherwise, read the DST log to figure out the results
                         dstLogEntries logEntries;
-                        memset(&logEntries, 0, sizeof(dstLogEntries));
+                        safe_memset(&logEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
                         //read the DST log for the result to avoid any SATL issues...
                         if (SUCCESS == get_DST_Log_Entries(device, &logEntries))
                         {
@@ -1203,7 +1203,7 @@ bool get_Error_LBA_From_DST_Log(tDevice *device, uint64_t *lba)
     bool isValidLBA = false;
     *lba = UINT64_MAX;//set to something crazy in case caller ignores return type
     dstLogEntries dstEntries;
-    memset(&dstEntries, 0, sizeof(dstLogEntries));
+    safe_memset(&dstEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
     if (get_DST_Log_Entries(device, &dstEntries) == SUCCESS)
     {
         if (dstEntries.numberOfEntries > 0
@@ -1572,7 +1572,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries e
                             entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
                         }
 
-                        memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], &selfTestResults[offset + 11], 15);
+                        safe_memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], 15, &selfTestResults[offset + 11], 15);
                         //dummy up sense data...
                         switch (M_Nibble1(entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus))
                         {
@@ -1706,7 +1706,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice *device, ptrDstLogEntries e
                         entries->dstEntry[entries->numberOfEntries].lifetimeTimestamp = M_BytesTo2ByteValue(selfTestResults[offset + 3], selfTestResults[offset + 2]);
                         entries->dstEntry[entries->numberOfEntries].checkPointByte = selfTestResults[offset + 4];
                         entries->dstEntry[entries->numberOfEntries].lbaOfFailure = M_BytesTo4ByteValue(selfTestResults[offset + 8], selfTestResults[offset + 7], selfTestResults[offset + 6], selfTestResults[offset + 5]);
-                        memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], &selfTestResults[offset + 9], 15);
+                        safe_memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], 15, &selfTestResults[offset + 9], 15);
                         //if LBA field is all F's, this is meant to signify an invalid value like T10 specs say to do - TJE
                         //filtering 28bit all F's and 32bit all F's since it is not clear exactly how many drives will report this invalid value -TJE
                         if (entries->dstEntry[entries->numberOfEntries].lbaOfFailure == MAX_28_BIT_LBA || entries->dstEntry[entries->numberOfEntries].lbaOfFailure == UINT32_MAX)
@@ -1846,7 +1846,7 @@ static eReturnValues get_NVMe_DST_Log_Entries(tDevice *device, ptrDstLogEntries 
     if (is_Self_Test_Supported(device))
     {
         nvmeGetLogPageCmdOpts dstLogParms;
-        memset(&dstLogParms, 0, sizeof(nvmeGetLogPageCmdOpts));
+        safe_memset(&dstLogParms, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
         DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeDSTLog, 564);
         dstLogParms.addr = nvmeDSTLog;
         dstLogParms.dataLen = 564;

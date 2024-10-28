@@ -287,7 +287,7 @@ eReturnValues print_Current_Power_Mode(tDevice *device)
             if (issuetur == true)
             {
                 scsiStatus returnedStatus;
-                memset(&returnedStatus, 0, sizeof(scsiStatus));
+                safe_memset(&returnedStatus, sizeof(scsiStatus), 0, sizeof(scsiStatus));
                 ret = scsi_Test_Unit_Ready(device, &returnedStatus);
                 if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
                 {
@@ -469,7 +469,7 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
         ret = SUCCESS;
         //use cached NVMe identify ctrl data since this won't change.
         uint16_t driveMaxPowerStates = device->drive_info.IdentifyData.nvme.ctrl.npss + 1;//plus 1 since this is zeroes based
-        memset(nvmps, 0, sizeof(nvmeSupportedPowerStates));
+        safe_memset(nvmps, sizeof(nvmeSupportedPowerStates), 0, sizeof(nvmeSupportedPowerStates));
         for (uint16_t powerIter = 0; powerIter < driveMaxPowerStates && powerIter < MAXIMUM_NVME_POWER_STATES; ++powerIter)
         {
             nvmps->powerState[powerIter].powerStateNumber = powerIter;
@@ -744,7 +744,7 @@ eReturnValues transition_NVM_Power_State(tDevice *device, uint8_t newState)
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
-        memset(&cmdOpts, 0, sizeof(cmdOpts));
+        safe_memset(&cmdOpts, sizeof(cmdOpts), 0, sizeof(cmdOpts));
         cmdOpts.featSetGetValue = newState;
         cmdOpts.fid = NVME_FEAT_POWER_MGMT_;
         cmdOpts.sel = NVME_CURRENT_FEAT_SEL;
@@ -852,7 +852,7 @@ eReturnValues ata_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, b
     safe_free_aligned(&ataDataBuffer);
     //if we go this far, then we know that we support the required EPC feature
     powerConditionSettings powerSettings;
-    memset(&powerSettings, 0, sizeof(powerConditionSettings));
+    safe_memset(&powerSettings, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
     powerSettings.powerConditionValid = true;
     if (restoreDefaults)
     {
@@ -1173,7 +1173,7 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreA
             if (restoreAllToDefaults)
             {
                 powerConditionSettings allSettings;
-                memset(&allSettings, 0, sizeof(powerConditionSettings));
+                safe_memset(&allSettings, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
                 allSettings.powerConditionValid = true;
                 allSettings.restoreToDefault = true;
                 ret = ata_Set_EPC_Power_Mode(device, PWR_CND_ALL, &allSettings);
@@ -1294,7 +1294,7 @@ eReturnValues scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, 
         else
         {
             powerConditionTimers powerConditions;
-            memset(&powerConditions, 0, sizeof(powerConditionTimers));
+            safe_memset(&powerConditions, sizeof(powerConditionTimers), 0, sizeof(powerConditionTimers));
             switch (powerCondition)
             {
             case PWR_CND_IDLE_A:
@@ -1328,7 +1328,7 @@ eReturnValues scsi_Set_Device_Power_Mode(tDevice *device, bool restoreDefaults, 
     {
         //not restoring, so figure out what timer is being changed.
         powerConditionTimers powerConditions;
-        memset(&powerConditions, 0, sizeof(powerConditionTimers));
+        safe_memset(&powerConditions, sizeof(powerConditionTimers), 0, sizeof(powerConditionTimers));
         //All checks for NOT_SUPPORTED are based off of VPD page support bits. Current assumption is if that timer is supported by the device, then so is changing that timer or changing it from enabled to disabled.
         //It would probably be a good idea to also check the changable mode page, but that is not done right now - TJE
         switch (powerCondition)
@@ -1497,7 +1497,7 @@ eReturnValues get_Power_State(tDevice *device, uint32_t * powerState, eFeatureMo
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
-        memset(&cmdOpts, 0, sizeof(nvmeFeaturesCmdOpt));
+        safe_memset(&cmdOpts, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
         switch (selectValue)
         {
         case CURRENT_VALUE:
@@ -1697,23 +1697,23 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                 switch (identifiers->identifiers[pcIter].units)
                 {
                 case 0://gigawatts
-                    watts *= 1000000000;
+                    watts *= 1000000000.0;
                     break;
                 case 1://megawatts
-                    watts *= 1000000;
+                    watts *= 1000000.0;
                     break;
                 case 2://kilowatts
-                    watts *= 1000;
+                    watts *= 1000.0;
                     break;
                 case 3://watts
                     break;
                 case 4://milliwatts
 //ctc properly round milliwatts values
-                    watts /= 1000;
+                    watts /= 1000.0;
                     break;
                 case 5://microwatts
 //ctc properly round milliwatts values
-                    watts /= 1000000;
+                    watts /= 1000000.0;
                     break;
                 default:
                     continue;//continue the for loop
@@ -1816,7 +1816,7 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, do
 {
     eReturnValues ret = NOT_SUPPORTED;
     powerConsumptionIdentifiers identifiers;
-    memset(&identifiers, 0, sizeof(powerConsumptionIdentifiers));
+    safe_memset(&identifiers, sizeof(powerConsumptionIdentifiers), 0, sizeof(powerConsumptionIdentifiers));
     *pcIdentifier = 0xFF;//invalid
 //ctc one line code change follows
     uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
@@ -1868,23 +1868,23 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, do
                 switch (identifiers.identifiers[iter1].units)
                 {
                 case 0://gigawatts
-                    pcWatts1 *= 1000000000;
+                    pcWatts1 *= UINT64_C(1000000000);
                     break;
                 case 1://megawatts
-                    pcWatts1 *= 1000000;
+                    pcWatts1 *= UINT64_C(1000000);
                     break;
                 case 2://kilowatts
-                    pcWatts1 *= 1000;
+                    pcWatts1 *= UINT64_C(1000);
                     break;
                 case 3://watts
                     break;
                 case 4://milliwatts
 //ctc properly round milliwatts values
-                    pcWatts1 = (pcWatts1 + 500) / 1000;
+                    pcWatts1 = (pcWatts1 + UINT64_C(500)) / UINT64_C(1000);
                     break;
                 case 5://microwatts
 //ctc properly round microwatts values
-                    pcWatts1 = (pcWatts1 + 500000) / 1000000;
+                    pcWatts1 = (pcWatts1 + UINT64_C(500000)) / UINT64_C(1000000);
                     break;
                 default:
                     ret = NOT_SUPPORTED;
@@ -1894,23 +1894,23 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice *device, do
                 switch (identifiers.identifiers[iter2].units)
                 {
                 case 0://gigawatts
-                    pcWatts2 *= 1000000000;
+                    pcWatts2 *= UINT64_C(1000000000);
                     break;
                 case 1://megawatts
-                    pcWatts2 *= 1000000;
+                    pcWatts2 *= UINT64_C(1000000);
                     break;
                 case 2://kilowatts
-                    pcWatts2 *= 1000;
+                    pcWatts2 *= UINT64_C(1000);
                     break;
                 case 3://watts
                     break;
                 case 4://milliwatts
 //ctc properly round milliwatts values
-                    pcWatts2 = (pcWatts2 + 500) / 1000;
+                    pcWatts2 = (pcWatts2 + UINT64_C(500)) / UINT64_C(1000);
                     break;
                 case 5://microwatts
 //ctc properly round microwatts values
-                    pcWatts2 = (pcWatts2 + 500000) / 1000000;
+                    pcWatts2 = (pcWatts2 + UINT64_C(500000)) / UINT64_C(1000000);
                     break;
                 default:
                     ret = NOT_SUPPORTED;
@@ -2455,14 +2455,14 @@ eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllT
         return BAD_PARAMETER;
     }
     powerConditionTimers pwrConditions;
-    memset(&pwrConditions, 0, sizeof(powerConditionTimers));
+    safe_memset(&pwrConditions, sizeof(powerConditionTimers), 0, sizeof(powerConditionTimers));
     if (standbyTimer)
     {
-        memcpy(&pwrConditions.standby, standbyTimer, sizeof(powerConditionSettings));
+        safe_memcpy(&pwrConditions.standby, sizeof(powerConditionSettings), standbyTimer, sizeof(powerConditionSettings));
     }
     if (idleTimer)
     {
-        memcpy(&pwrConditions.idle, idleTimer, sizeof(powerConditionSettings));
+        safe_memcpy(&pwrConditions.idle, sizeof(powerConditionSettings), idleTimer, sizeof(powerConditionSettings));
     }
     return scsi_Set_Power_Conditions(device, restoreAllToDefaults, &pwrConditions);
 }
@@ -2525,7 +2525,7 @@ static eReturnValues ata_Set_Standby_Timer(tDevice *device, uint32_t hundredMill
 eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable)
 {
     powerConditionSettings standbyTimer;
-    memset(&standbyTimer, 0, sizeof(powerConditionSettings));
+    safe_memset(&standbyTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
     standbyTimer.powerConditionValid = true;
     standbyTimer.enableValid = true;
     standbyTimer.enable = enable;
@@ -2548,7 +2548,7 @@ eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncr
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         powerConditionSettings standbyTimer;
-        memset(&standbyTimer, 0, sizeof(powerConditionSettings));
+        safe_memset(&standbyTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
         standbyTimer.powerConditionValid = true;
         if (restoreToDefault)
         {
@@ -2569,7 +2569,7 @@ eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncr
 eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable)
 {
     powerConditionSettings idleTimer;
-    memset(&idleTimer, 0, sizeof(powerConditionSettings));
+    safe_memset(&idleTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
     idleTimer.powerConditionValid = true;
     idleTimer.enableValid = true;
     idleTimer.enable = enable;
@@ -2583,7 +2583,7 @@ eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncreme
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         powerConditionSettings idleTimer;
-        memset(&idleTimer, 0, sizeof(powerConditionSettings));
+        safe_memset(&idleTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
         idleTimer.powerConditionValid = true;
         if (restoreToDefault)
         {

@@ -144,21 +144,21 @@ static eReturnValues fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, pt
         }
         else if (mbrDataBuf[380] == 0x5A && mbrDataBuf[381] == 0xA5)
         {
+            uint32_t partitionTableOffset = UINT32_C(430);
+            uint16_t partitionOffset = mbr->numberOfPartitions;
+            mbrPartitionEntry temp;
             //ast/nec MS-DOS and SpeedStor
             //note: these are in reverse order of the "normal" 4 partition order
             mbr->mbrType = MBR_TYPE_AST_NEC_SPEEDSTOR;
             //swap first 4 before filling in any others to fix the order of the partitions
-            mbrPartitionEntry temp;
-            memcpy(&temp, &mbr->partition[0], sizeof(mbrPartitionEntry));
-            memcpy(&mbr->partition[0], &mbr->partition[3], sizeof(mbrPartitionEntry));
-            memcpy(&mbr->partition[3], &temp, sizeof(mbrPartitionEntry));
+            safe_memcpy(&temp, sizeof(mbrPartitionEntry), &mbr->partition[0], sizeof(mbrPartitionEntry));
+            safe_memcpy(&mbr->partition[0], sizeof(mbrPartitionEntry), &mbr->partition[3], sizeof(mbrPartitionEntry));
+            safe_memcpy(&mbr->partition[3], sizeof(mbrPartitionEntry), &temp, sizeof(mbrPartitionEntry));
             //1 and 4 swapped, now 2 and 3
-            memcpy(&temp, &mbr->partition[1], sizeof(mbrPartitionEntry));
-            memcpy(&mbr->partition[1], &mbr->partition[2], sizeof(mbrPartitionEntry));
-            memcpy(&mbr->partition[2], &temp, sizeof(mbrPartitionEntry));
+            safe_memcpy(&temp, sizeof(mbrPartitionEntry), &mbr->partition[1], sizeof(mbrPartitionEntry));
+            safe_memcpy(&mbr->partition[1], sizeof(mbrPartitionEntry), &mbr->partition[2], sizeof(mbrPartitionEntry));
+            safe_memcpy(&mbr->partition[2], sizeof(mbrPartitionEntry), &temp, sizeof(mbrPartitionEntry));
             //now fill in the remaining entries
-            uint32_t partitionTableOffset = UINT32_C(430);
-            uint16_t partitionOffset = mbr->numberOfPartitions;
             for (; partitionTableOffset < UINT32_C(512) && partitionOffset < MBR_MAX_PARTITIONS && partitionTableOffset >= 380; partitionTableOffset -= UINT32_C(16))
             {
                 mbr->partition[partitionOffset].status = mbrDataBuf[partitionTableOffset + 0];
@@ -178,15 +178,14 @@ static eReturnValues fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, pt
                     mbr->numberOfPartitions += 1;
                 }
             }
-
         }
         else if (mbrDataBuf[252] == 0xAA && mbrDataBuf[253] == 0x55)
         {
-            //ontrack disk manager MBR
-            mbr->mbrType = MBR_TYPE_ONTRACK_DISK_MANAGER;
             //assume remaining start at 254 and increment up to 430
             uint32_t partitionTableOffset = UINT32_C(254);
             uint8_t partitionOffset = mbr->numberOfPartitions;
+            //ontrack disk manager MBR
+            mbr->mbrType = MBR_TYPE_ONTRACK_DISK_MANAGER;
             for (; partitionTableOffset < UINT32_C(430) && partitionOffset < MBR_MAX_PARTITIONS; partitionTableOffset += UINT32_C(16))
             {
                 mbr->partition[partitionOffset].status = mbrDataBuf[partitionTableOffset + 0];
@@ -428,7 +427,7 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID *guid)
     return;
 }
 
-#define GPT_SIGNATURE_STR_LEN 9
+#define GPT_SIGNATURE_STR_LEN 8
 
 static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_t gptDataSize, ptrGPTData gpt, uint32_t sizeOfGPTDataStruct, uint64_t lba)
 {
@@ -443,9 +442,9 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
             gptHeaderOffset = gptDataSize - device->drive_info.deviceBlockSize;
         }
 
-        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN);
-        memcpy(gptSignature, &gptDataBuf[gptHeaderOffset], 8);
-        gptSignature[GPT_SIGNATURE_STR_LEN - 1] = '\0';
+        DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN + 1);
+        safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1, &gptDataBuf[gptHeaderOffset], GPT_SIGNATURE_STR_LEN);
+        gptSignature[GPT_SIGNATURE_STR_LEN] = '\0';
         if (strcmp(gptSignature, "EFI PART") == 0)
         {
             ret = SUCCESS;
@@ -467,7 +466,7 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
             gpt->numberOfPartitionEntries = M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 83], gptDataBuf[gptHeaderOffset + 82], gptDataBuf[gptHeaderOffset + 81], gptDataBuf[gptHeaderOffset + 80]);
             //before going any further, validate the CRC
             //first zero out the CRC as specified in UEFI spec
-            memset(&gptDataBuf[gptHeaderOffset + 16], 0, 4);
+            safe_memset(&gptDataBuf[gptHeaderOffset + 16], gptDataSize - (gptHeaderOffset + 16), 0, 4);
             //now calculate the CRC for the length (gpt header size)
             if (crc32HeaderValue == gpt_CRC_32(&gptDataBuf[gptHeaderOffset], gptHeaderSize))
             {
@@ -533,14 +532,14 @@ static eReturnValues fill_GPT_Data(tDevice *device, uint8_t* gptDataBuf, uint32_
                         if (gptName)
                         {
                             //found a match, so set the partition info in the structure to the matched data
-                            memcpy(&gpt->partition[partIter].partitionTypeGUID, gptName, sizeof(gptPartitionTypeName));
+                            safe_memcpy(&gpt->partition[partIter].partitionTypeGUID, sizeof(gptPartitionTypeName), gptName, sizeof(gptPartitionTypeName));
                         }
 
                         copy_GPT_GUID(&gptPartitionArray[dataOffset + GPT_GUID_LEN_BYTES], &gpt->partition[partIter].uniquePartitionGUID);
                         gpt->partition[partIter].startingLBA = M_BytesTo8ByteValue(gptPartitionArray[dataOffset + 39], gptPartitionArray[dataOffset + 38], gptPartitionArray[dataOffset + 37], gptPartitionArray[dataOffset + 36], gptPartitionArray[dataOffset + 35], gptPartitionArray[dataOffset + 34], gptPartitionArray[dataOffset + 33], gptPartitionArray[dataOffset + 32]);
                         gpt->partition[partIter].endingLBA = M_BytesTo8ByteValue(gptPartitionArray[dataOffset + 47], gptPartitionArray[dataOffset + 46], gptPartitionArray[dataOffset + 45], gptPartitionArray[dataOffset + 44], gptPartitionArray[dataOffset + 43], gptPartitionArray[dataOffset + 42], gptPartitionArray[dataOffset + 41], gptPartitionArray[dataOffset + 40]);
                         gpt->partition[partIter].attributeFlags = M_BytesTo8ByteValue(gptPartitionArray[dataOffset + 55], gptPartitionArray[dataOffset + 54], gptPartitionArray[dataOffset + 53], gptPartitionArray[dataOffset + 52], gptPartitionArray[dataOffset + 51], gptPartitionArray[dataOffset + 50], gptPartitionArray[dataOffset + 49], gptPartitionArray[dataOffset + 48]);
-                        memcpy(&gpt->partition[partIter].partitionName[0], &gptPartitionArray[dataOffset + 56], GPT_PARTITION_NAME_LENGTH_BYTES);
+                        safe_memcpy(&gpt->partition[partIter].partitionName[0], GPT_PARTITION_NAME_LENGTH_BYTES, &gptPartitionArray[dataOffset + 56], GPT_PARTITION_NAME_LENGTH_BYTES);
                         if (!is_Empty(&gpt->partition[partIter].partitionTypeGUID, GPT_GUID_LEN_BYTES))//this should be ok, but may want a different way of doing this
                         {
                             //only increment this count when the GUID is non-zero. A zero for the GUID is an unused GUID
@@ -576,15 +575,15 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
         {
             if (SUCCESS == read_LBA(device, lba, false, dataBuffer, dataSize))//using fua to make sure we are reading from the media, not cache
             {
-                DECLARE_ZERO_INIT_ARRAY(char, gptSignature, 9);
+                DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN + 1);
                 if (lba == 0)
                 {
-                    memcpy(gptSignature, &dataBuffer[device->drive_info.deviceBlockSize], 8);
+                    safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1, &dataBuffer[device->drive_info.deviceBlockSize], GPT_SIGNATURE_STR_LEN);
                 }
                 else
                 {
                     //check for backup GPT
-                    memcpy(gptSignature, &dataBuffer[dataSize - device->drive_info.deviceBlockSize], 8);
+                    safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1, &dataBuffer[dataSize - device->drive_info.deviceBlockSize], GPT_SIGNATURE_STR_LEN);
                 }
                 //First check for an MBR. This is most common to find, then check if APM is in sector 1. If neither are found, check if a GPT table exists even without a protective MBR
                 //First check the signature bytes
@@ -622,7 +621,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
                 }
                 if (lba == 0 && partitionData->partitionDataType == PARTITION_TABLE_NOT_FOUND)
                 {
-                    memset(dataBuffer, 0, dataSize);//clear out any old data in case something weird happens
+                    safe_memset(dataBuffer, dataSize, 0, dataSize);//clear out any old data in case something weird happens
                     //change the LBA to read from to maxLBA - 32KiB
                     lba = device->drive_info.deviceMaxLba - (dataSize / device->drive_info.deviceBlockSize) + 1;//1 corrects the LBA offset to be able to find the backup GPT partition -TJE
                 }

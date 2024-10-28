@@ -67,7 +67,7 @@ extern "C"
 #define MBR_CLASSIC_MAX_PARTITIONS (4)
 #define MBR_MAX_PARTITIONS (16) //ontrack disk manager allowed up to 16
 
-    //singature is little endian! hi=byte 511, lo=byte510
+    //signature is little endian! hi=byte 511, lo=byte510
 #define MBR_SIGNATURE_HI (0xAA)
 #define MBR_SIGNATURE_LO (0x55)
 
@@ -337,7 +337,7 @@ extern "C"
         MBR_PART_TYPE_PROLOGUE_MULTI_VOLUME                                 = 0xF5,
         MBR_PART_TYPE_STORAGE_DIMENSIONS_SPEEDSTOR_F6                       = 0xF6,
         MBR_PART_TYPE_DDRDRIVE_SOLID_STATE_FS                               = 0xF7,
-        MBR_PART_TYPE_PCACHE                                                = 0xF9,//persisten cache...ext2/ext3?
+        MBR_PART_TYPE_PCACHE                                                = 0xF9,//persistent cache...ext2/ext3?
         MBR_PART_TYPE_BOCHS                                                 = 0xFA,
         MBR_PART_TYPE_VMWARE_FS                                             = 0xFB,
         MBR_PART_TYPE_VMWARE_SWAP                                           = 0xFC,

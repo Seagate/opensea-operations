@@ -66,7 +66,7 @@ static bool is_ATA_Data_Set_Management_XL_Supported(tDevice * device)
             }
             if (supportedCapabilitiesPage)
             {
-                memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
+                safe_memset(logBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     uint64_t qword0 = M_BytesTo8ByteValue(logBuffer[7], logBuffer[6], logBuffer[5], logBuffer[4], logBuffer[3], logBuffer[2], logBuffer[1], logBuffer[0]);
@@ -468,7 +468,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
                     return MEMORY_FAILURE;
                 }
                 unmapCommandBuffer = temp;
-                memset(unmapCommandBuffer, 0, unmapCommandDataLen);
+                safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen);
             }
             //fill in the data buffer for a UNMAP command with the header
             //unmap data length
@@ -483,7 +483,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
             unmapCommandBuffer[6] = RESERVED;
             unmapCommandBuffer[7] = RESERVED;
             //now copy the number of descriptors for this command into the allocated buffer
-            memcpy(&unmapCommandBuffer[8], &unmapBuffer[unmapOffset], (unmapCommandDataLen - 8));
+            safe_memcpy(&unmapCommandBuffer[8], unmapCommandDataLen - 8, &unmapBuffer[unmapOffset], (unmapCommandDataLen - 8));
             //send the command
             if (SUCCESS != scsi_Unmap(device, false, 0, C_CAST(uint16_t, unmapCommandDataLen), unmapCommandBuffer))
             {
@@ -495,7 +495,7 @@ eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t rang
                 ret = SUCCESS;
             }
             unmapOffset += (unmapCommandDataLen - 8);
-            memset(unmapCommandBuffer, 0, unmapCommandDataLen);
+            safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen);
         }
         os_Unlock_Device(device);
         os_Update_File_System_Cache(device);

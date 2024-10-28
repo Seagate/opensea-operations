@@ -676,7 +676,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *
                         *supported = true;
                     }
                     //read current values to get enabled/disabled
-                    memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+                    safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
                     {
                         //check the active level to make sure it is zero
@@ -697,7 +697,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice *device, bool *supported, bool *
                         *supported = true;
                     }
                     //read current values to get enabled/disabled
-                    memset(pcModePage, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+                    safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
                     {
                         //check the active level to make sure it is zero
@@ -867,7 +867,7 @@ eReturnValues get_Approximate_IDD_Time(tDevice *device, eIDDTests iddTest, uint6
         {
             uint32_t numberOfLbasInLists = 0;
             smartLogData smartData;
-            memset(&smartData, 0, sizeof(smartLogData));
+            safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
             switch (iddTest)
             {
             case SEAGATE_IDD_SHORT:
@@ -1201,7 +1201,7 @@ eReturnValues run_IDD(tDevice *device, eIDDTests IDDtest, bool pollForProgress, 
     if (is_Seagate_Family(device) != NON_SEAGATE)
     {
         iddSupportedFeatures iddSupport;
-        memset(&iddSupport, 0, sizeof(iddSupportedFeatures));
+        safe_memset(&iddSupport, sizeof(iddSupportedFeatures), 0, sizeof(iddSupportedFeatures));
         switch (IDDtest)
         {
         case SEAGATE_IDD_SHORT:
@@ -1482,15 +1482,15 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
         //got the data, now parse it into the correct fields.
         //Everything, but the strings, are reported in little endian by the drive.
         //This makes it easy, so just need to convert to the host's endianness if necessary
-        memset(pwrTelData, 0, sizeof(seagatePwrTelemetry));
-        memcpy(pwrTelData->serialNumber, &powerTelemetryLog[0], 8);
+        safe_memset(pwrTelData, sizeof(seagatePwrTelemetry), 0, sizeof(seagatePwrTelemetry));
+        safe_memcpy(pwrTelData->serialNumber, 9, &powerTelemetryLog[0], 8);
         pwrTelData->powerCycleCount = M_BytesTo2ByteValue(powerTelemetryLog[9], powerTelemetryLog[8]);
         //drive timestamps will be reported as uint64 in this structure so that they can be converted to whatever is easy by other users
         pwrTelData->driveTimeStampForHostRequestedMeasurement = M_BytesTo8ByteValue(0, 0, powerTelemetryLog[15], powerTelemetryLog[14], powerTelemetryLog[13], powerTelemetryLog[12], powerTelemetryLog[11], powerTelemetryLog[10]);
         pwrTelData->driveTimeStampWhenTheLogWasRetrieved = M_BytesTo8ByteValue(0, 0, powerTelemetryLog[21], powerTelemetryLog[20], powerTelemetryLog[19], powerTelemetryLog[18], powerTelemetryLog[17], powerTelemetryLog[16]);
         pwrTelData->majorRevision = powerTelemetryLog[22];
         pwrTelData->minorRevision = powerTelemetryLog[23];
-        memcpy(pwrTelData->signature, &powerTelemetryLog[24], 8);
+        safe_memcpy(pwrTelData->signature, 9, &powerTelemetryLog[24], 8);
         pwrTelData->totalMeasurementTimeRequested = M_BytesTo2ByteValue(powerTelemetryLog[33], powerTelemetryLog[32]);
         uint16_t dataLength = M_BytesTo2ByteValue(powerTelemetryLog[35], powerTelemetryLog[34]);
         pwrTelData->numberOfMeasurements = M_BytesTo2ByteValue(powerTelemetryLog[37], powerTelemetryLog[36]);
@@ -2068,7 +2068,7 @@ eReturnValues get_Ext_Smrt_Log(tDevice *device)//, nvmeGetLogPageCmdOpts * getLo
         eReturnValues ret = 0;
         int index = 0;
         EXTENDED_SMART_INFO_T ExtdSMARTInfo;
-        memset(&ExtdSMARTInfo, 0x00, sizeof(ExtdSMARTInfo));
+        safe_memset(&ExtdSMARTInfo, sizeof(EXTENDED_SMART_INFO_T), 0x00, sizeof(EXTENDED_SMART_INFO_T));
         ret = nvme_Read_Ext_Smt_Log(device, &ExtdSMARTInfo);
         if (!ret) {
             printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
@@ -2096,7 +2096,7 @@ eReturnValues clr_Pcie_Correctable_Errs(tDevice *device)
         eReturnValues err = SUCCESS;
 
         nvmeFeaturesCmdOpt clearPCIeCorrectableErrors;
-        memset(&clearPCIeCorrectableErrors, 0, sizeof(nvmeFeaturesCmdOpt));
+        safe_memset(&clearPCIeCorrectableErrors, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
         clearPCIeCorrectableErrors.fid = 0xE1;
         clearPCIeCorrectableErrors.featSetGetValue = 0xCB;
         clearPCIeCorrectableErrors.sv = false;
@@ -2878,16 +2878,16 @@ eReturnValues get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIF
         if (SUCCESS == scsi_Inquiry(device, firmwareNumbersPage, 60, 0xC0, true, false))
         {
             ret = SUCCESS;
-            memcpy(fwNumbers->scsiFirmwareReleaseNumber, &firmwareNumbersPage[4], FIRMWARE_RELEASE_NUM_LEN);
-            memcpy(fwNumbers->servoFirmwareReleaseNumber, &firmwareNumbersPage[12], SERVO_FIRMWARE_RELEASE_NUM_LEN);
-            memcpy(fwNumbers->sapBlockPointNumbers, &firmwareNumbersPage[20], SAP_BP_NUM_LEN);
-            memcpy(fwNumbers->servoFirmmwareReleaseDate, &firmwareNumbersPage[28], SERVO_FW_RELEASE_DATE_LEN);
-            memcpy(fwNumbers->servoRomReleaseDate, &firmwareNumbersPage[32], SERVO_ROM_RELEASE_DATE_LEN);
-            memcpy(fwNumbers->sapFirmwareReleaseNumber, &firmwareNumbersPage[36], SAP_FW_RELEASE_NUM_LEN);
-            memcpy(fwNumbers->sapFirmwareReleaseDate, &firmwareNumbersPage[44], SAP_FW_RELEASE_DATE_LEN);
-            memcpy(fwNumbers->sapFirmwareReleaseYear, &firmwareNumbersPage[48], SAP_FW_RELEASE_YEAR_LEN);
-            memcpy(fwNumbers->sapManufacturingKey, &firmwareNumbersPage[52], SAP_MANUFACTURING_KEY_LEN);
-            memcpy(fwNumbers->servoFirmwareProductFamilyAndProductFamilyMemberIDs, &firmwareNumbersPage[56], SERVO_PRODUCT_FAMILY_LEN);
+            safe_memcpy(fwNumbers->scsiFirmwareReleaseNumber, FIRMWARE_RELEASE_NUM_LEN + 1, &firmwareNumbersPage[4], FIRMWARE_RELEASE_NUM_LEN);
+            safe_memcpy(fwNumbers->servoFirmwareReleaseNumber, SERVO_FIRMWARE_RELEASE_NUM_LEN + 1, &firmwareNumbersPage[12], SERVO_FIRMWARE_RELEASE_NUM_LEN);
+            safe_memcpy(fwNumbers->sapBlockPointNumbers, SAP_BP_NUM_LEN + 1, &firmwareNumbersPage[20], SAP_BP_NUM_LEN);
+            safe_memcpy(fwNumbers->servoFirmmwareReleaseDate, SERVO_FW_RELEASE_DATE_LEN + 1, &firmwareNumbersPage[28], SERVO_FW_RELEASE_DATE_LEN);
+            safe_memcpy(fwNumbers->servoRomReleaseDate, SERVO_ROM_RELEASE_DATE_LEN + 1, &firmwareNumbersPage[32], SERVO_ROM_RELEASE_DATE_LEN);
+            safe_memcpy(fwNumbers->sapFirmwareReleaseNumber, SAP_FW_RELEASE_NUM_LEN + 1, &firmwareNumbersPage[36], SAP_FW_RELEASE_NUM_LEN);
+            safe_memcpy(fwNumbers->sapFirmwareReleaseDate, SAP_FW_RELEASE_DATE_LEN + 1, &firmwareNumbersPage[44], SAP_FW_RELEASE_DATE_LEN);
+            safe_memcpy(fwNumbers->sapFirmwareReleaseYear, SAP_FW_RELEASE_YEAR_LEN + 1, &firmwareNumbersPage[48], SAP_FW_RELEASE_YEAR_LEN);
+            safe_memcpy(fwNumbers->sapManufacturingKey, SAP_MANUFACTURING_KEY_LEN + 1, &firmwareNumbersPage[52], SAP_MANUFACTURING_KEY_LEN);
+            safe_memcpy(fwNumbers->servoFirmwareProductFamilyAndProductFamilyMemberIDs, SERVO_PRODUCT_FAMILY_LEN + 1, &firmwareNumbersPage[56], SERVO_PRODUCT_FAMILY_LEN);
         }
     }
     return ret;

@@ -305,13 +305,13 @@ eReturnValues run_Format_Unit(tDevice *device, runFormatUnitParameters formatPar
         if (formatParameters.pattern && formatParameters.patternLength > 0)
         {
             //copy pattern into buffer
-            memcpy(&dataBuf[offset], formatParameters.pattern, formatParameters.patternLength);
+            safe_memcpy(&dataBuf[offset], dataSize - offset, formatParameters.pattern, formatParameters.patternLength);
             offset += formatParameters.patternLength;
         }
     }
     if (formatParameters.gList)
     {
-        memcpy(&dataBuf[offset], formatParameters.gList, formatParameters.glistSize);
+        safe_memcpy(&dataBuf[offset], dataSize - offset, formatParameters.gList, formatParameters.glistSize);
         offset += formatParameters.glistSize;
     }
     dataSize = offset;
@@ -1402,7 +1402,7 @@ void show_Supported_Formats(ptrSupportedFormats formats)
             switch (formats->sectorSizes[iter].additionalInformationType)
             {
             case SECTOR_SIZE_ADDITIONAL_INFO_NVME:
-                memset(perf, 0, 10);
+                safe_memset(perf, PERF_STRING_SIZE, 0, PERF_STRING_SIZE);
                 switch (formats->sectorSizes[iter].nvmeSectorBits.relativePerformance)
                 {
                 case 0:
@@ -1421,7 +1421,7 @@ void show_Supported_Formats(ptrSupportedFormats formats)
                     snprintf(perf, PERF_STRING_SIZE, "N/A");
                     break;
                 }
-                memset(metaSize, 0, META_STRING_SIZE);
+                safe_memset(metaSize, META_STRING_SIZE, 0, META_STRING_SIZE);
                 snprintf(metaSize, META_STRING_SIZE, "%" PRIu16, formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
                 break;
             default:
@@ -1499,7 +1499,7 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t 
         {
             return MEMORY_FAILURE;
         }
-        memset(formats, 0, formatsDataSize);
+        safe_memset(formats, formatsDataSize, 0, formatsDataSize);
         formats->numberOfSectorSizes = numberOfSupportedFormats;
         ret = get_Supported_Formats(device, formats);
         if (SUCCESS == ret)
@@ -1668,7 +1668,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice *device, uint32_t sect
         else //Assume SCSI
         {
             runFormatUnitParameters formatUnitParameters;
-            memset(&formatUnitParameters, 0, sizeof(runFormatUnitParameters));
+            safe_memset(&formatUnitParameters, sizeof(runFormatUnitParameters), 0, sizeof(runFormatUnitParameters));
             formatUnitParameters.formatType = FORMAT_FAST_WRITE_NOT_REQUIRED;
             formatUnitParameters.currentBlockSize = false;
             formatUnitParameters.newBlockSize = C_CAST(uint16_t, sectorSize);
@@ -1809,7 +1809,7 @@ eReturnValues run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams
 {
     eReturnValues ret = SUCCESS;
     nvmeFormatCmdOpts formatCmdOptions;
-    memset(&formatCmdOptions, 0, sizeof(nvmeFormatCmdOpts));
+    safe_memset(&formatCmdOptions, sizeof(nvmeFormatCmdOpts), 0, sizeof(nvmeFormatCmdOpts));
     //Set metadata, PI, PIL settings to current device settings to start
     formatCmdOptions.ms = (device->drive_info.IdentifyData.nvme.ns.mc & BIT0) ? 1 : 0;
     formatCmdOptions.pil = (device->drive_info.IdentifyData.nvme.ns.dps & BIT3) ? 1 : 0;

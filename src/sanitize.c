@@ -108,7 +108,7 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percent
     //read the sanitize status log
     DECLARE_ZERO_INIT_ARRAY(uint8_t, sanitizeStatusLog, 512);
     nvmeGetLogPageCmdOpts getLogOpts;
-    memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+    safe_memset(&getLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
     getLogOpts.dataLen = 512;
     getLogOpts.lid = 0x81;
     getLogOpts.addr = sanitizeStatusLog;
@@ -403,7 +403,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
             }
         }
         writeAfterErase writeAfterEraseRequirements;
-        memset(&writeAfterEraseRequirements, 0, sizeof(writeAfterErase));
+        safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
         if (SUCCESS == is_Write_After_Erase_Required(device, &writeAfterEraseRequirements))
         {
             sanitizeOpts->writeAfterBlockErase = writeAfterEraseRequirements.blockErase;
@@ -457,7 +457,7 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
         {
             //get the sanitize config feature status to know which mode it is operating in.
             nvmeFeaturesCmdOpt feat;
-            memset(&feat, 0, sizeof(nvmeFeaturesCmdOpt));
+            safe_memset(&feat, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
             feat.fid = NVME_FEAT_SANITIZE_CONFIG_;
             feat.nsid = NVME_ALL_NAMESPACES;
             feat.sel = NVME_CURRENT_FEAT_SEL;
@@ -575,7 +575,7 @@ eReturnValues run_Sanitize_Operation(tDevice* device, eSanitizeOperations saniti
 {
     //convert to calling new functions since this one is obsolete.
     sanitizeOperationOptions sanitizeOptions;
-    memset(&sanitizeOptions, 0, sizeof(sanitizeOperationOptions));
+    safe_memset(&sanitizeOptions, sizeof(sanitizeOperationOptions), 0, sizeof(sanitizeOperationOptions));
     sanitizeOptions.version = SANITIZE_OPERATION_OPTIONS_VERSION;
     sanitizeOptions.size = sizeof(sanitizeOperationOptions);
     sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit = false;
@@ -596,7 +596,7 @@ eReturnValues run_Sanitize_Operation(tDevice* device, eSanitizeOperations saniti
         sanitizeOptions.overwriteOptions.numberOfPasses = UINT8_C(1);
         if (pattern)
         {
-            memcpy(&sanitizeOptions.overwriteOptions.pattern, pattern, M_Min(patternLength, sizeof(uint32_t)));
+            safe_memcpy(&sanitizeOptions.overwriteOptions.pattern, sizeof(uint32_t), pattern, M_Min(patternLength, sizeof(uint32_t)));
         }
         else
         {

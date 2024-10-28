@@ -66,7 +66,7 @@ eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                 if (currentAttribute.attributeNumber > 0 && currentAttribute.attributeNumber < 255)
                 {
                     smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].valid = true;
-                    memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].data, &currentAttribute, sizeof(ataSMARTAttribute));
+                    safe_memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].data, sizeof(ataSMARTAttribute), &currentAttribute, sizeof(ataSMARTAttribute));
                     //check if it's warrantied (This should work on Seagate drives at least)
                     if (currentAttribute.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
                     {
@@ -74,7 +74,7 @@ eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                     }
                 }
             }
-            memset(ATAdataBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
+            safe_memset(ATAdataBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
             if (SUCCESS == ata_SMART_Read_Thresholds(device, ATAdataBuffer, LEGACY_DRIVE_SEC_SIZE))
             {
                 ataSMARTThreshold currentThreshold;
@@ -95,7 +95,7 @@ eReturnValues get_SMART_Attributes(tDevice *device, smartLogData * smartAttrs)
                     if (currentThreshold.attributeNumber > 0 && currentThreshold.attributeNumber < 255)
                     {
                         smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber].thresholdDataValid = true;
-                        memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber].thresholdData, &currentThreshold, sizeof(ataSMARTThreshold));
+                        safe_memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber].thresholdData, sizeof(ataSMARTThreshold), &currentThreshold, sizeof(ataSMARTThreshold));
                     }
                 }
             }
@@ -124,7 +124,8 @@ void get_Attribute_Name(tDevice *device, uint8_t attributeNumber, char **attribu
     I broke the attribute name finder apart because sometimes there's overlap and sometimes there isn't.
     Also, this will let me name the attributes according to the respective specs for each drive.
     */
-    memset(*attributeName, 0, MAX_ATTRIBUTE_NAME_LENGTH);
+    // NOTE: I don't like that this function isn't taking a length in, but all uses are matching this define. It SHOULD be safe enough, but that is something we may need to reconsider in the future-TJE
+    safe_memset(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH);
     switch (isSeagateDrive)
     {
     case SEAGATE:
@@ -1141,7 +1142,7 @@ static void print_Raw_ATA_Attributes(tDevice *device, smartLogData *smartData)
         {
             get_Attribute_Name(device, iter, &attributeName);
             print_ATA_SMART_Attribute_Raw(&smartData->attributes.ataSMARTAttr.attributes[iter], attributeName);
-            memset(attributeName, 0, MAX_ATTRIBUTE_NAME_LENGTH);
+            safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH);
         }
     }
     printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
@@ -1745,7 +1746,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 }
                 break;
             }
-            memset(attributeName, 0, MAX_ATTRIBUTE_NAME_LENGTH);
+            safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH);
         }
     }
     if (!dataFormatVerified)
@@ -2219,7 +2220,7 @@ eReturnValues print_SMART_Attributes(tDevice *device, eSMARTAttrOutMode outputMo
 {
     eReturnValues ret = UNKNOWN;
     smartLogData smartData;
-    memset(&smartData, 0, sizeof(smartLogData));
+    safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
     ret = get_SMART_Attributes(device, &smartData);
     if (ret != SUCCESS)
     {
@@ -2268,7 +2269,7 @@ eReturnValues show_NVMe_Health(tDevice* device)
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         smartLogData smartData;
-        memset(&smartData, 0, sizeof(smartLogData));
+        safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
         ret = get_SMART_Attributes(device, &smartData);
         if (ret != SUCCESS)
         {
@@ -2456,8 +2457,7 @@ eReturnValues ata_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     if (is_SMART_Enabled(device))
     {
         smartLogData attributes;
-        memset(&attributes, 0, sizeof(smartLogData));
-        //NOTE: ATA-3 and up all report the return status as mandatory when smart is supported and enabled
+        safe_memset(&attributes, sizeof(smartLogData), 0, sizeof(smartLogData));
         //      HOWEVER: SFF-8035i lists this as an optional command.
         //      Always attempt a SMART return status command, then perform workarounds to get the status if it fails.
         ret = ata_SMART_Return_Status(device);
@@ -2856,8 +2856,8 @@ eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
 
     informationalExceptionsLog infoExceptionsLog;
     informationalExceptionsControl infoExceptionsControl;
-    memset(&infoExceptionsLog, 0, sizeof(informationalExceptionsLog));
-    memset(&infoExceptionsControl, 0, sizeof(informationalExceptionsControl));
+    safe_memset(&infoExceptionsLog, sizeof(informationalExceptionsLog), 0, sizeof(informationalExceptionsLog));
+    safe_memset(&infoExceptionsControl, sizeof(informationalExceptionsControl), 0, sizeof(informationalExceptionsControl));
     bool sendRequestSense = false;
     bool readModePage = false;
     bool temporarilyEnableMRIEMode6 = false;//This will hold if we are changing the mode from a value of 1-5 to 6. DO NOT CHANGE IT IF IT IS ZERO! We should return NOT_SUPPORTED in this case. - TJE
@@ -2954,7 +2954,7 @@ eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
         //change MRIE mode to 6, PS = 0 and SP = false to change this temporarily so we can issue a request sense.
         informationalExceptionsControl tempControl;
         //copy current settings over
-        memcpy(&tempControl, &infoExceptionsControl, sizeof(informationalExceptionsControl));
+        safe_memcpy(&tempControl, sizeof(informationalExceptionsControl), &infoExceptionsControl, sizeof(informationalExceptionsControl));
         tempControl.mrie = 6;//generate error upon request
         tempControl.reportCount = 0;//always generate errors
         tempControl.intervalTimer = 1;//100 milliseconds
@@ -3016,7 +3016,7 @@ eReturnValues scsi_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     {
         //Change back to the user's saved settings
         informationalExceptionsControl savedControlSettings;
-        memset(&savedControlSettings, 0, sizeof(informationalExceptionsControl));
+        safe_memset(&savedControlSettings, sizeof(informationalExceptionsControl), 0, sizeof(informationalExceptionsControl));
         if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_SAVED_VALUES, &savedControlSettings, M_NULLPTR))
         {
             if (SUCCESS != set_SCSI_Informational_Exceptions_Info(device, true, &savedControlSettings))
@@ -3035,7 +3035,7 @@ eReturnValues nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
     eReturnValues ret = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, smartLogPage, LEGACY_DRIVE_SEC_SIZE);
     nvmeGetLogPageCmdOpts smartPageOpts;
-    memset(&smartPageOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+    safe_memset(&smartPageOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
     smartPageOpts.addr = smartLogPage;
     smartPageOpts.dataLen = LEGACY_DRIVE_SEC_SIZE;
     smartPageOpts.lid = NVME_LOG_SMART_ID;
@@ -3239,7 +3239,7 @@ eReturnValues get_Pending_List_Count(tDevice *device, uint32_t *pendingCount)
             //printf("In Attributes\n");
             //try SMART data
             smartLogData smartData;
-            memset(&smartData, 0, sizeof(smartLogData));
+            safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
             if (SUCCESS == get_SMART_Attributes(device, &smartData))
             {
                 //now get the count from the SMART attribute raw data
@@ -3302,7 +3302,7 @@ eReturnValues get_Grown_List_Count(tDevice *device, uint32_t *grownCount)
         if (!grownCountFound && is_SMART_Enabled(device))
         {
             smartLogData smartData;
-            memset(&smartData, 0, sizeof(smartLogData));
+            safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
             if (SUCCESS == get_SMART_Attributes(device, &smartData))
             {
                 //now get the count from the SMART attribute raw data
@@ -3689,7 +3689,7 @@ eReturnValues enable_Disable_SMART_Feature(tDevice *device, bool enable)
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         informationalExceptionsControl control;
-        memset(&control, 0, sizeof(informationalExceptionsControl));
+        safe_memset(&control, sizeof(informationalExceptionsControl), 0, sizeof(informationalExceptionsControl));
         if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
         {
             if (enable)
@@ -3716,7 +3716,7 @@ eReturnValues set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         informationalExceptionsControl control;
-        memset(&control, 0, sizeof(informationalExceptionsControl));
+        safe_memset(&control, sizeof(informationalExceptionsControl), 0, sizeof(informationalExceptionsControl));
         uint8_t defaultMode = 6;
         if (driveDefault)
         {
@@ -4193,7 +4193,7 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice *device)
         {
             //STEP-1 : Get Current Temperature from SMART
 
-            memset(&smartLog, 0, sizeof(nvmeSmartLog));
+            safe_memset(&smartLog, sizeof(nvmeSmartLog), 0, sizeof(nvmeSmartLog));
 
             cmdOpts.nsid = NVME_ALL_NAMESPACES;
             cmdOpts.addr = C_CAST(uint8_t*, &smartLog);
@@ -4224,7 +4224,7 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice *device)
             }
 
             // STEP-2 : Get Max temperature form Ext SMART-id 194
-            memset(&smartLog, 0, sizeof(nvmeSmartLog));
+            safe_memset(&smartLog, sizeof(nvmeSmartLog), 0, sizeof(nvmeSmartLog));
 
             cmdOpts.nsid = NVME_ALL_NAMESPACES;
             cmdOpts.addr = C_CAST(uint8_t*, &extSmartLog);
@@ -4256,7 +4256,7 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice *device)
             }
 
             // STEP-3 : Get Max temperature form SuperCap DRAM temperature
-            memset(&scDramSmart, 0, sizeof(nvmeSuperCapDramSmart));
+            safe_memset(&scDramSmart, sizeof(nvmeSuperCapDramSmart), 0, sizeof(nvmeSuperCapDramSmart));
 
             cmdOpts.nsid = NVME_ALL_NAMESPACES;
             cmdOpts.addr = C_CAST(uint8_t*, &scDramSmart);
@@ -4302,7 +4302,7 @@ eReturnValues nvme_Print_PCI_Statistics(tDevice *device)
         if (is_Seagate(device, false))
         {
 
-            memset(&pcieErrorLog, 0, sizeof(nvmePcieErrorLogPage));
+            safe_memset(&pcieErrorLog, sizeof(nvmePcieErrorLogPage), 0, sizeof(nvmePcieErrorLogPage));
 
             cmdOpts.nsid = NVME_ALL_NAMESPACES;
             cmdOpts.addr = C_CAST(uint8_t*, &pcieErrorLog);
@@ -4448,7 +4448,7 @@ eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTE
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaHi = errorLog[offset + 65];
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.device = errorLog[offset + 66];
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status = errorLog[offset + 67];
-                            memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, &errorLog[offset + 68], 19);
+                            safe_memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 68], VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN);
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state = errorLog[offset + 87];
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
                             ++(smartErrorLog->numberOfEntries);
@@ -4539,7 +4539,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                 while (pageIter <= maxPage)
                                 {
                                     //first read this page
-                                    memset(errorLog, 0, 512);
+                                    safe_memset(errorLog, 512, 0, 512);
                                     getLog = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, pageNumber, errorLog, 512, 0);
                                     if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                                     {
@@ -4598,7 +4598,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lbaHiExt = errorLog[offset + 99];
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.device = errorLog[offset + 100];
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.status = errorLog[offset + 101];
-                                            memcpy(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.extendedErrorInformation, &errorLog[offset + 102], 19);
+                                            safe_memcpy(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.extendedErrorInformation, VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 102], VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN);
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.state = errorLog[offset + 121];
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries].extError.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 123], errorLog[offset + 122]);
                                             ++(smartErrorLog->numberOfEntries);
@@ -4672,7 +4672,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                 return MEMORY_FAILURE;
                             }
                             errorLog = temp;
-                            memset(errorLog, 0, compErrLogSize);
+                            safe_memset(errorLog, compErrLogSize, 0, compErrLogSize);
                             getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog, compErrLogSize);
                             if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
                             {
@@ -4739,7 +4739,7 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrCompreh
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lbaHi = errorLog[offset + 65];
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.device = errorLog[offset + 66];
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status = errorLog[offset + 67];
-                                            memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, &errorLog[offset + 68], 19);
+                                            safe_memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.extendedErrorInformation, VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 68], VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN);
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state = errorLog[offset + 87];
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp = M_BytesTo2ByteValue(errorLog[offset + 89], errorLog[offset + 88]);
                                             ++(smartErrorLog->numberOfEntries);

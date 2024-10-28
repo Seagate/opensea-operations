@@ -212,7 +212,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
         {
             if (M_BytesTo2ByteValue(securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2) + 1], securityPage[(ATA_LOG_IDENTIFY_DEVICE_DATA * 2)]) * 512 > 0)
             {
-                memset(&securityPage, 0, 512);
+                safe_memset(&securityPage, 512, 0, 512);
                 //IDData log suppored. Read first page to see if security subpage (06h) is supported
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SUPPORTED_PAGES, securityPage, 512, 0))
                 {
@@ -228,7 +228,7 @@ void get_ATA_Security_Info(tDevice *device, ptrATASecurityStatus securityStatus,
                             {
                             case ATA_ID_DATA_LOG_SECURITY:
                                 foundSecurityPage = true;
-                                memset(securityPage, 0, 512);
+                                safe_memset(securityPage, 512, 0, 512);
                                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_SECURITY, securityPage, 512, 0))
                                 {
                                     //make sure we got the right page first!
@@ -484,7 +484,7 @@ void set_ATA_Security_Password_In_Buffer(uint8_t *ptrData, ptrATASecurityPasswor
     if (ptrData && ataPassword)
     {
         //copy the password in, but the max length is 32 bytes according to the spec!
-        memcpy(&ptrData[2], ataPassword->password, M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH));
+        safe_memcpy(&ptrData[2], 512, ataPassword->password, M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH));
         if (setPassword)//if setting the password in the set password command, we need to set a few other things up
         {
             //set master password capability
@@ -676,7 +676,7 @@ eReturnValues run_Disable_ATA_Security_Password(tDevice *device, ataSecurityPass
     if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        memset(&securityStatus, 0, sizeof(ataSecurityStatus));
+        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -772,7 +772,7 @@ eReturnValues run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool 
     if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        memset(&securityStatus, 0, sizeof(ataSecurityStatus));
+        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -814,7 +814,7 @@ eReturnValues run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPa
     if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        memset(&securityStatus, 0, sizeof(ataSecurityStatus));
+        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -904,7 +904,7 @@ eReturnValues run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword
     if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        memset(&securityStatus, 0, sizeof(ataSecurityStatus));
+        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -975,8 +975,8 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
     uint16_t eraseTimeMinutes = 0;
     ataSecurityStatus securityStatus;
     ataSecurityStatus finalSecurityStatus;
-    memset(&securityStatus, 0, sizeof(ataSecurityStatus));
-    memset(&finalSecurityStatus, 0, sizeof(ataSecurityStatus));
+    safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+    safe_memset(&finalSecurityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
     get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
     if (securityStatus.securitySupported)
     {
@@ -1122,7 +1122,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
             }
             print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
             printf("from now.\n");
-            memset(timeFormat, 0, TIME_STRING_LENGTH);//clear this again before reusing it
+            safe_memset(timeFormat, TIME_STRING_LENGTH, 0, TIME_STRING_LENGTH);//clear this again before reusing it
             printf("\tEstimated completion Time : %s", get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
         }
         printf("\n\tPlease DO NOT remove power to the drive during the erase\n");
@@ -1130,8 +1130,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
         printf("\tIf the power is removed, rerun this test with your utility.\n");
         printf("\tUpon erase completion, the password is automatically cleared.\n\n");
     }
-    seatimer_t ataSecureEraseTimer;
-    memset(&ataSecureEraseTimer, 0, sizeof(seatimer_t));
+    DECLARE_SEATIMER(ataSecureEraseTimer);
     uint32_t timeout = 0;
     if (os_Is_Infinite_Timeout_Supported())
     {
@@ -1210,7 +1209,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
         if (SUCCESS == scsi_Inquiry(device, ataVPDPage, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
         {
             //commenting this out because a controller could change this data from what the drive reported and we don't want to store that.
-            //memcpy((uint8_t*)&device->drive_info.IdentifyData.ata.Word000, &ataVPDPage[60], LEGACY_DRIVE_SEC_SIZE);
+            //safe_memcpy((uint8_t*)&device->drive_info.IdentifyData.ata.Word000, sizeof(tAtaIdentifyData), &ataVPDPage[60], LEGACY_DRIVE_SEC_SIZE);
         }
     }
     //issue an identify device command before we read the ATA security bits to make sure the data isn't stale in our structure.
@@ -1265,7 +1264,7 @@ eReturnValues run_ATA_Security_Erase(tDevice *device, eATASecurityEraseType eras
             if (finalSecurityStatus.securityLocked)
             {
                 unlock_ATA_Security(device, ataPassword, satATASecuritySupported);
-                memset(&finalSecurityStatus, 0, sizeof(ataSecurityStatus));
+                safe_memset(&finalSecurityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
                 ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
                 get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
             }

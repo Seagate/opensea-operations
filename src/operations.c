@@ -98,7 +98,7 @@ eReturnValues change_Ready_LED(tDevice *device, bool readyLEDDefault, bool ready
                     readyLEDOnOff = true;//set to true so that we turn the bit on
                 }
             }
-            memset(modeSelect, 0, 24);
+            safe_memset(modeSelect, 24, 0, 24);
         }
         if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_CURRENT_VALUES, modeSelect))
         {
@@ -348,7 +348,7 @@ eReturnValues nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
     {
         nvmeFeaturesCmdOpt featuresOptions;
-        memset(&featuresOptions, 0, sizeof(nvmeFeaturesCmdOpt));
+        safe_memset(&featuresOptions, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
         if (writeCacheEnableDisable)
         {
             featuresOptions.featSetGetValue = BIT0;
@@ -413,7 +413,7 @@ bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
             supported = true;
         }
     }
-    memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    safe_memset(cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
     //check default to see if it is enabled and just cannot be disabled (unlikely)
     if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
     {
@@ -595,7 +595,7 @@ bool scsi_Is_Write_Cache_Supported(tDevice *device)
             supported = true;
         }
     }
-    memset(cachingModePage, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    safe_memset(cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
     //check default to see if it is enabled and just cannot be disabled (unlikely)
     if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
     {
@@ -626,7 +626,7 @@ bool nvme_Is_Write_Cache_Enabled(tDevice *device)
     {
         //get the feature identifier
         nvmeFeaturesCmdOpt featuresOptions;
-        memset(&featuresOptions, 0, sizeof(nvmeFeaturesCmdOpt));
+        safe_memset(&featuresOptions, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
         featuresOptions.fid = NVME_FEAT_VOLATILE_WC_;
         featuresOptions.sel = 0;//getting current settings
         if (SUCCESS == nvme_Get_Features(device, &featuresOptions))
@@ -776,12 +776,12 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
     {
         *overwriteEraseTimeEstimateMinutes = 0;//start off with zero
     }
-    memset(&sanitizeInfo, 0, sizeof(sanitizeFeaturesSupported));
-    memset(&ataSecurityInfo, 0, sizeof(ataSecurityStatus));
-    memset(&nvmeFormatInfo, 0, sizeof(nvmeFormatSupport));
-    memset(&writeAfterEraseRequirements, 0, sizeof(writeAfterErase));
+    safe_memset(&sanitizeInfo, sizeof(sanitizeFeaturesSupported), 0, sizeof(sanitizeFeaturesSupported));
+    safe_memset(&ataSecurityInfo, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+    safe_memset(&nvmeFormatInfo, sizeof(nvmeFormatSupport), 0, sizeof(nvmeFormatSupport));
+    safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
     //first make sure the list is initialized to all 1's (to help sorting later)
-    memset(currentErase, 0xFF, sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS);
+    safe_memset(currentErase, sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS, 0xFF, sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS);
 
     get_Sanitize_Device_Features(device, &sanitizeInfo);
 
@@ -1300,7 +1300,7 @@ eReturnValues disable_Free_Fall_Control_Feature(tDevice *device)
 void show_Test_Unit_Ready_Status(tDevice *device)
 {
     scsiStatus returnedStatus;
-    memset(&returnedStatus, 0, sizeof(scsiStatus));
+    safe_memset(&returnedStatus, sizeof(scsiStatus), 0, sizeof(scsiStatus));
     eReturnValues ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {
@@ -1506,7 +1506,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                         {
                             //copy header and block descriptors (if any)
                             currentPageOffset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
-                            memcpy(currentPageToSet, &modeData[0], MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength);
+                            safe_memcpy(currentPageToSet, currentPageToSetLength, &modeData[0], MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength);
                             //now zero out the reserved bytes for the mode select command
                             currentPageToSet[0] = 0;//mode data length is reserved for mode select commands
                             //leave medium type alone
@@ -1517,7 +1517,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                         {
                             //copy header and block descriptors (if any)
                             currentPageOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
-                            memcpy(currentPageToSet, &modeData[0], MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength);
+                            safe_memcpy(currentPageToSet, currentPageToSetLength, &modeData[0], MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength);
                             //now zero out the reserved bytes for the mode select command
                             currentPageToSet[0] = 0;//mode data length is reserved for mode select commands
                             currentPageToSet[1] = 0;
@@ -1526,7 +1526,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
                             //leave block descriptor length alone in case we got some.
                         }
                         //now we need to copy the default data over now, then send it to the drive.
-                        memcpy(&currentPageToSet[currentPageOffset], &modeData[offset], currentPageLength);
+                        safe_memcpy(&currentPageToSet[currentPageOffset], currentPageToSetLength - currentPageOffset, &modeData[offset], currentPageLength);
                         bool pageFormat = currentPage == 0 ? false : true;//set to false when reading vendor unique page zero
                         bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.
                         if (used6ByteCmd)
@@ -1713,7 +1713,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_
                 //leave block descriptor length alone in case we got some.
             }
             //copy the incoming buffer (which is ONLY mode page data)
-            memcpy(&modeData[offset], modePageData, M_Min(modeDataLength, modePageLength));
+            safe_memcpy(&modeData[offset], modePageLength - offset, modePageData, modeDataLength);
             //now send the mode select command
             bool pageFormat = modePage == 0 ? false : true;//set to false when reading vendor unique page zero
             //bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the page/settings can be saved or not.

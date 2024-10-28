@@ -65,7 +65,7 @@ eReturnValues dco_Restore(tDevice* device)
         {
             //check if frozen or not using a DCO identify
             dcoData dcoDataForTestingFrozen;
-            memset(&dcoDataForTestingFrozen, 0, sizeof(dcoData));
+            safe_memset(&dcoDataForTestingFrozen, sizeof(dcoData), 0, sizeof(dcoData));
             if (SUCCESS != dco_Identify(device, &dcoDataForTestingFrozen))
             {
                 ret = FROZEN;

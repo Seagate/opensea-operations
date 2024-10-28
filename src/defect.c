@@ -113,7 +113,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                         if (temp)
                         {
                             defectData = temp;
-                            memset(defectData, 0, dataLength);
+                            safe_memset(defectData, dataLength, 0, dataLength);
                             if (SUCCESS == (ret = scsi_Read_Defect_Data_10(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), C_CAST(uint16_t, dataLength), defectData)))
                             {
                                 uint32_t offset = 4;
@@ -126,7 +126,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                                 if (*defects)
                                 {
                                     ptrSCSIDefectList ptrDefects = *defects;
-                                    memset(ptrDefects, 0, sizeof(scsiDefectList) + defectAlloc);
+                                    safe_memset(ptrDefects, sizeof(scsiDefectList) + defectAlloc, 0, sizeof(scsiDefectList) + defectAlloc);
                                     ptrDefects->numberOfElements = numberOfElements;
                                     ptrDefects->containsGrownList = listHasGrownDescriptors;
                                     ptrDefects->containsPrimaryList = listHasPrimaryDescriptors;
@@ -228,7 +228,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                             if (temp)
                             {
                                 defectData = temp;
-                                memset(defectData, 0, dataLength);
+                                safe_memset(defectData, dataLength, 0, dataLength);
                                 *defects = C_CAST(ptrSCSIDefectList, safe_malloc(sizeof(scsiDefectList) + defectAlloc));
                                 if (*defects)
                                 {
@@ -237,13 +237,13 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                                     uint32_t increment = 0;
                                     ptrSCSIDefectList ptrDefects = *defects;
                                     bool filledInListInfo = false;
-                                    memset(ptrDefects, 0, sizeof(scsiDefectList) + defectAlloc);
+                                    safe_memset(ptrDefects, sizeof(scsiDefectList) + defectAlloc, 0, sizeof(scsiDefectList) + defectAlloc);
                                     ptrDefects->numberOfElements = numberOfElements;
                                     ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
                                     while (elementNumber < numberOfElements)
                                     {
                                         offset = 8;//reset the offset to 8 each time through the while loop since we will start reading the list over and over after each command
-                                        memset(defectData, 0, dataLength);
+                                        safe_memset(defectData, dataLength, 0, dataLength);
                                         if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), elementNumber * increment, dataLength, defectData)))
                                         {
                                             defectListLength = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
@@ -349,7 +349,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                             if (temp)
                             {
                                 defectData = temp;
-                                memset(defectData, 0, dataLength);
+                                safe_memset(defectData, dataLength, 0, dataLength);
                                 if (SUCCESS == (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), 0, dataLength, defectData)))
                                 {
                                     uint32_t offset = 8;
@@ -363,7 +363,7 @@ eReturnValues get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defe
                                     if (*defects)
                                     {
                                         ptrSCSIDefectList ptrDefects = *defects;
-                                        memset(ptrDefects, 0, sizeof(scsiDefectList) + defectAlloc);
+                                        safe_memset(ptrDefects, sizeof(scsiDefectList) + defectAlloc, 0, sizeof(scsiDefectList) + defectAlloc);
                                         ptrDefects->numberOfElements = numberOfElements;
                                         ptrDefects->containsGrownList = listHasGrownDescriptors;
                                         ptrDefects->containsPrimaryList = listHasPrimaryDescriptors;
@@ -981,7 +981,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         senseDataFields senseFields;
-        memset(&senseFields, 0, sizeof(senseDataFields));
+        safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
         uint16_t dataLength = C_CAST(uint16_t, device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks);//start with this size for now...
         uint8_t *dataBuffer = C_CAST(uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
@@ -993,7 +993,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
             ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
         }
         //ret should not be success and we should have an illegal length indicator set so we can reallocate and read the ecc bytes
-        memset(&senseFields, 0, sizeof(senseDataFields));
+        safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
         get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
         if (senseFields.illegalLengthIndication && senseFields.valid)//spec says these bit should both be zero since we didn't do this request with enough bytes to read the ECC bytes
         {
@@ -1009,7 +1009,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, 
             if (temp)
             {
                 dataBuffer = temp;
-                memset(dataBuffer, 0, dataLength);
+                safe_memset(dataBuffer, dataLength, 0, dataLength);
                 if (device->drive_info.deviceMaxLba > UINT32_MAX)
                 {
                     ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
@@ -1364,7 +1364,7 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPending
     {
         return MEMORY_FAILURE;
     }
-    memset(bmsResults, 0, sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS);
+    safe_memset(bmsResults, sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS, 0, sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS);
     uint16_t numberOfBMSResults = 0;
     ret = get_SCSI_Background_Scan_Results(device, bmsResults, &numberOfBMSResults);
     if (ret == SUCCESS)
@@ -1390,7 +1390,7 @@ eReturnValues get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList
     }
     *numberOfDefects = 0;
     dstLogEntries dstEntries;
-    memset(&dstEntries, 0, sizeof(dstLogEntries));
+    safe_memset(&dstEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
     ret = get_DST_Log_Entries(device, &dstEntries);
     if (ret == SUCCESS)
     {

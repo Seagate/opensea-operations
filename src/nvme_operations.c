@@ -92,7 +92,7 @@ eReturnValues nvme_Print_All_Feature_Identifiers(tDevice *device, eNvmeFeaturesS
     for (featureID = 1; featureID <= 0xFF; featureID++)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, featData, 4096);
-        memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+        safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
         featureCmd.fid = C_CAST(uint8_t, featureID);
         featureCmd.sel = C_CAST(uint8_t, selectType);
         featureCmd.dataLength = 4096;
@@ -127,7 +127,7 @@ static eReturnValues nvme_Print_Arbitration_Feature_Details(tDevice *device, eNv
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ARBITRATION_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -155,7 +155,7 @@ static eReturnValues nvme_Print_Temperature_Feature_Details(tDevice *device, eNv
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_TEMP_THRESH_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     printf("\n\tTemperature Threshold Feature\n");
@@ -208,7 +208,7 @@ static eReturnValues nvme_Print_PM_Feature_Details(tDevice *device, eNvmeFeature
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_POWER_MGMT_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -233,7 +233,7 @@ static eReturnValues nvme_Print_Error_Recovery_Feature_Details(tDevice *device, 
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ERR_RECOVERY_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -258,7 +258,7 @@ static eReturnValues nvme_Print_WCE_Feature_Details(tDevice *device, eNvmeFeatur
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_VOLATILE_WC_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -283,7 +283,7 @@ static eReturnValues nvme_Print_NumberOfQueues_Feature_Details(tDevice *device, 
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_NUM_QUEUES_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -310,7 +310,7 @@ static eReturnValues nvme_Print_Intr_Coalescing_Feature_Details(tDevice *device,
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_IRQ_COALESCE_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -335,7 +335,7 @@ static eReturnValues nvme_Print_Intr_Config_Feature_Details(tDevice *device, eNv
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_IRQ_CONFIG_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -360,7 +360,7 @@ static eReturnValues nvme_Print_Write_Atomicity_Feature_Details(tDevice *device,
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_WRITE_ATOMIC_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -393,7 +393,7 @@ static eReturnValues nvme_Print_Async_Config_Feature_Details(tDevice *device, eN
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ASYNC_EVENT_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret = nvme_Get_Features(device, &featureCmd);
@@ -419,7 +419,7 @@ static eReturnValues nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesS
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&featureCmd, 0, sizeof(nvmeFeaturesCmdOpt));
+    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_HOST_MEMORY_BUFFER_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     featureCmd.dataPtr = hmbData;
@@ -530,7 +530,7 @@ eReturnValues nvme_Get_Log_Size(tDevice *device, uint8_t logPageId, uint64_t * l
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, logPageHeader, UINT32_C(16));
         nvmeGetLogPageCmdOpts getLogHeader;
-        memset(&getLogHeader, 0, sizeof(nvmeGetLogPageCmdOpts));
+        safe_memset(&getLogHeader, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
         getLogHeader.addr = logPageHeader;
         getLogHeader.dataLen = UINT32_C(16);
         getLogHeader.nsid = NVME_ALL_NAMESPACES;//change this as needed when calculating sizes below
@@ -683,7 +683,7 @@ eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice *device)
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    memset(&fwSlotsLogInfo, 0, sizeof(nvmeFirmwareSlotInfo));
+    safe_memset(&fwSlotsLogInfo, sizeof(nvmeFirmwareSlotInfo), 0, sizeof(nvmeFirmwareSlotInfo));
     ret = nvme_Get_FWSLOTS_Log_Page(device, (uint8_t*)&fwSlotsLogInfo, sizeof(nvmeFirmwareSlotInfo));
     if (ret == SUCCESS)
     {
@@ -705,7 +705,7 @@ eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice *device)
         {
             if (fwSlotsLogInfo.FSR[slot - 1])
             {
-                memcpy(fwRev, (char *)&fwSlotsLogInfo.FSR[slot - 1], 8);
+                safe_memcpy(fwRev, 9, M_REINTERPRET_CAST(char *, &fwSlotsLogInfo.FSR[slot - 1]), 8);
                 fwRev[8] = '\0';
                 printf(" Slot %d : %s\n", slot, fwRev);
             }
@@ -750,7 +750,7 @@ eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice *device)
     printf("-->%s\n", __FUNCTION__);
 #endif
 
-    memset(&effectsLogInfo, 0, sizeof(nvmeEffectsLog));
+    safe_memset(&effectsLogInfo, sizeof(nvmeEffectsLog), 0, sizeof(nvmeEffectsLog));
     ret = nvme_Get_CmdSptEfft_Log_Page(device, (uint8_t*)&effectsLogInfo, sizeof(nvmeEffectsLog));
     if (ret == SUCCESS)
     {
@@ -809,7 +809,7 @@ eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice *device)
     printf("-->%s\n", __FUNCTION__);
 #endif
 
-    memset(&selfTestLogInfo, 0, sizeof(nvmeSelfTestLog));
+    safe_memset(&selfTestLogInfo, sizeof(nvmeSelfTestLog), 0, sizeof(nvmeSelfTestLog));
     ret = nvme_Get_DevSelfTest_Log_Page(device, (uint8_t*)&selfTestLogInfo, sizeof(nvmeSelfTestLog));
     if (ret == SUCCESS)
     {
@@ -922,7 +922,7 @@ eReturnValues print_Nvme_Ctrl_Regs(tDevice * device)
 
     nvmeBarCtrlRegisters ctrlRegs;
 
-    memset(&ctrlRegs, 0, sizeof(nvmeBarCtrlRegisters));
+    safe_memset(&ctrlRegs, sizeof(nvmeBarCtrlRegisters), 0, sizeof(nvmeBarCtrlRegisters));
 
     printf("\n=====CONTROLLER REGISTERS=====\n");
 

@@ -117,7 +117,7 @@ eReturnValues get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *lo
         if (gpl)
         {
             //if we already tried the GPL buffer, make sure we clean it back up before we check again just to be safe.
-            memset(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE);
+            safe_memset(logBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
         }
         if (ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
         {
@@ -229,7 +229,7 @@ eReturnValues get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSub
     //we know the page is supported, but to get the size, we need to try reading it.
     if (ret == SUCCESS)
     {
-        memset(logBuffer, 0, 255);
+        safe_memset(logBuffer, 255, 0, 255);
         //only requesting the header since this should get us the total length.
         //If this fails, we return success, but a size of zero. This shouldn't happen, but there are firmware bugs...
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logPage, logSubPage, 0, logBuffer, SCSI_LOG_PARAMETER_HEADER_LENGTH) == SUCCESS)
@@ -291,7 +291,7 @@ eReturnValues get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t 
         }
         if (ret == SUCCESS)
         {
-            memset(vpdBuffer, 0, vpdBufferLength);
+            safe_memset(vpdBuffer, vpdBufferLength, 0, vpdBufferLength);
             //read the page so we can see how large it is.
             if (SUCCESS == scsi_Inquiry(device, vpdBuffer, vpdBufferLength, vpdPage, true, false))
             {
@@ -386,7 +386,7 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice *device, eScsiModePageControl mpc,
         {
             //if invalid operation code, then we should retry
             senseDataFields senseFields;
-            memset(&senseFields, 0, sizeof(senseDataFields));
+            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
             get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
             if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x20 && senseFields.scsiStatusCodes.ascq == 0x00)//checking for invalid operation code
             {
@@ -635,7 +635,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint
         {
             //if invalid operation code, then we should retry
             senseDataFields senseFields;
-            memset(&senseFields, 0, sizeof(senseDataFields));
+            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
             get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
             if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x20 && senseFields.scsiStatusCodes.ascq == 0x00)//checking for invalid operation code
             {
@@ -1169,7 +1169,7 @@ eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath)
             return MEMORY_FAILURE;
         }
         defectData = temp;
-        memset(defectData, 0, defectDataSize);
+        safe_memset(defectData, defectDataSize, 0, defectDataSize);
         //now loop to get all the data
         for (addressDescriptorIndex = 0; ((addressDescriptorIndex + 511) * 8) < defectListLength; addressDescriptorIndex += 511)
         {
@@ -1374,7 +1374,7 @@ eReturnValues get_ATA_Log(tDevice *device, uint8_t logAddress, const char *logNa
                         {
                             if (bufSize >= logSize)
                             {
-                                memset(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], 0, C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE);
+                                safe_memset(&myBuf[currentPage * LEGACY_DRIVE_SEC_SIZE], bufSize - (currentPage * LEGACY_DRIVE_SEC_SIZE), 0, C_CAST(size_t, pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE);
                             }
                             else
                             {
@@ -1697,7 +1697,7 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
         else
         {
             senseDataFields senseFields;
-            memset(&senseFields, 0, sizeof(senseDataFields));
+            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
             get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
             if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST && senseFields.scsiStatusCodes.asc == 0x20 && senseFields.scsiStatusCodes.ascq == 0x00)
             {
@@ -1969,7 +1969,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                     return MEMORY_FAILURE;
                 }
                 dataBuffer = temp;
-                memset(dataBuffer, 0, pullChunkSize);
+                safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
                 //read the remaining data
                 for (pageNumber = UINT16_C(1); pageNumber < islPullingSize; pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
                 {
@@ -2035,7 +2035,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice *device, bool currentOrSaved
                         ret = FAILURE;
                         break;
                     }
-                    memset(dataBuffer, 0, pullChunkSize);
+                    safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
@@ -2273,7 +2273,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                     return MEMORY_FAILURE;
                 }
                 dataBuffer = temp;
-                memset(dataBuffer, 0, pullChunkSize);
+                safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
                 //read the remaining data
                 for (pageNumber = 1; pageNumber < islPullingSize; pageNumber += (pullChunkSize / LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -2337,7 +2337,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                         ret = FAILURE;
                         break;
                     }
-                    memset(dataBuffer, 0, pullChunkSize);
+                    safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
@@ -2422,7 +2422,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
             }
             //read the first sector of the log with the trigger bit set
             nvmeGetLogPageCmdOpts telemOpts;
-            memset(&telemOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+            safe_memset(&telemOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
             telemOpts.dataLen = 512;
             telemOpts.addr = dataBuffer;
             telemOpts.nsid = NVME_ALL_NAMESPACES;
@@ -2521,7 +2521,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                 }
                 dataBuffer = temp;
                 telemOpts.addr = dataBuffer;//update the data buffer after the reallocation - TJE
-                memset(dataBuffer, 0, pullChunkSize);
+                safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
                 //read the remaining data
                 for (pageNumber = UINT16_C(1); pageNumber < islPullingSize; pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
                 {
@@ -2590,7 +2590,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice *device, bool currentOrSave
                         ret = FAILURE;
                         break;
                     }
-                    memset(dataBuffer, 0, pullChunkSize);
+                    safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
@@ -3039,8 +3039,8 @@ eReturnValues print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
         logPageMap suptLogPage;
         nvmeGetLogPageCmdOpts suptLogOpts;
 
-        memset(&suptLogPage, 0, sizeof(logPageMap));
-        memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+        safe_memset(&suptLogPage, sizeof(logPageMap), 0, sizeof(logPageMap));
+        safe_memset(&suptLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
         suptLogOpts.addr = C_CAST(uint8_t*, &suptLogPage);
         suptLogOpts.dataLen = sizeof(logPageMap);
         suptLogOpts.lid = 0xC5;
@@ -3102,7 +3102,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice *device, uint64_t flags)
         if (supportedLogsPage)
         {
             nvmeGetLogPageCmdOpts suptLogOpts;
-            memset(&suptLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+            safe_memset(&suptLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
             suptLogOpts.addr = supportedLogsPage;
             suptLogOpts.dataLen = 1024;
             suptLogOpts.lid = 0;
@@ -3263,7 +3263,7 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPull
     nvmeGetLogPageCmdOpts cmdOpts;
     if (nvmeLogSizeBytes > 0 || ((nvme_Get_Log_Size(device, logNum, &size) == SUCCESS) && size))
     {
-        memset(&cmdOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+        safe_memset(&cmdOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
         logBuffer = C_CAST(uint8_t *, safe_calloc(C_CAST(size_t, size), sizeof(uint8_t)));
         if (logBuffer != M_NULLPTR)
         {
@@ -3397,16 +3397,16 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice *device, uin
             DECLARE_ZERO_INIT_ARRAY(char, vendorIdentification, 9);
             uint8_t version = errorHistoryDirectory[1];
             uint16_t directoryLength = M_BytesTo2ByteValue(errorHistoryDirectory[30], errorHistoryDirectory[31]);
-            memcpy(vendorIdentification, errorHistoryDirectory, 8);
+            safe_memcpy(vendorIdentification, 9, errorHistoryDirectory, 8);
             if ((C_CAST(uint32_t, directoryLength) + (UINT32_C(32)) > errorHistorySize))
             {
                 errorHistorySize = directoryLength + 32;
                 //realloc and re-read
-                uint8_t *temp = C_CAST(uint8_t*, safe_realloc_aligned(errorHistoryDirectory, 2048, errorHistorySize, device->os_info.minimumAlignment));
+                uint8_t *temp = C_CAST(uint8_t*, safe_realloc_aligned(errorHistoryDirectory, 0, errorHistorySize, device->os_info.minimumAlignment));
                 if (temp)
                 {
                     errorHistoryDirectory = temp;
-                    memset(errorHistoryDirectory, 0, errorHistorySize);
+                    safe_memset(errorHistoryDirectory, errorHistorySize, 0, errorHistorySize);
                     scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory);
                     directoryLength = M_BytesTo2ByteValue(errorHistoryDirectory[30], errorHistoryDirectory[31]);
                 }

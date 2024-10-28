@@ -286,7 +286,7 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
         uint64_t currentMaxLBA = device->drive_info.deviceMaxLba;
         uint64_t hpaamacMax = 0;
         dcoData dcoIDData;
-        memset(&dcoIDData, 0, sizeof(dcoData));
+        safe_memset(&dcoIDData, sizeof(dcoData), 0, sizeof(dcoData));
         if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) && device->drive_info.IdentifyData.ata.Word083 & BIT8)
         {
             //HPA security is supported...check if enabled to be able to return proper error code if cannot do restoration
@@ -438,14 +438,14 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
         if (device->drive_info.scsiVersion > 3)//SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
         {
             //try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a physical sector size whereas readcap10 data will not
-            uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
+            uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, 0, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
             if (!temp)
             {
                 safe_free_aligned(&readCapBuf);
                 return maxLBA;
             }
             readCapBuf = temp;
-            memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
+            safe_memset(readCapBuf, READ_CAPACITY_16_LEN, 0, READ_CAPACITY_16_LEN);
             if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
             {
                 uint64_t tempmaxLBA = 0;
@@ -461,14 +461,14 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
     else
     {
         //try read capacity 16, if that fails we are done trying
-        uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
+        uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, 0, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
         if (temp == M_NULLPTR)
         {
             safe_free_aligned(&readCapBuf);
             return maxLBA;
         }
         readCapBuf = temp;
-        memset(readCapBuf, 0, READ_CAPACITY_16_LEN);
+        safe_memset(readCapBuf, READ_CAPACITY_16_LEN, 0, READ_CAPACITY_16_LEN);
         if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
         {
             copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, true);
@@ -624,8 +624,8 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                     {
                         capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(0, 0, capMNMappingLog[offset + 5], capMNMappingLog[offset + 4], capMNMappingLog[offset + 3], capMNMappingLog[offset + 2], capMNMappingLog[offset + 1], capMNMappingLog[offset + 0]);
                         uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
-                        memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
-                        memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capMNMappingLog[offset + 8], mnLimit);
+                        safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1, 0, mnLimit + 1);
+                        safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1, &capMNMappingLog[offset + 8], mnLimit);
                         for (uint8_t iter = 0; iter < mnLimit; ++iter)
                         {
                             if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
@@ -668,8 +668,8 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                         capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(capProdIDMappingVPD[offset + 0], capProdIDMappingVPD[offset + 1], capProdIDMappingVPD[offset + 2], capProdIDMappingVPD[offset + 3], capProdIDMappingVPD[offset + 4], capProdIDMappingVPD[offset + 5], capProdIDMappingVPD[offset + 6], capProdIDMappingVPD[offset + 7]);
                         capModelMapping->descriptor[descriptorCounter].capacityMaxAddress -= 1; //Need to -1 for SCSI so that this will match the -i report. If this is not done, then  we end up with 1 less than the value provided.
                         uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
-                        memset(capModelMapping->descriptor[descriptorCounter].modelNumber, 0, mnLimit + 1);
-                        memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, &capProdIDMappingVPD[offset + 8], mnLimit);
+                        safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1, 0, mnLimit + 1);
+                        safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1, &capProdIDMappingVPD[offset + 8], mnLimit);
                         for (uint8_t iter = 0; iter < mnLimit; ++iter)
                         {
                             if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) || !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))

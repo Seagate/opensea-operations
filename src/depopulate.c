@@ -427,7 +427,7 @@ eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus
                 ptrPhysicalElement elementList = C_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
                 if (elementList)
                 {
-                    memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
+                    safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0, numberOfDescriptors * sizeof(physicalElement));
                     if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                     {
                         //loop through and check associatedCapacity and elementIdentifiers
@@ -494,7 +494,7 @@ eReturnValues get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus
         if (SUCCESS == scsi_Request_Sense_Cmd(device, true, senseData, SPC3_SENSE_LEN))
         {
             senseDataFields senseFields;
-            memset(&senseFields, 0, sizeof(senseDataFields));
+            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
             ret = SUCCESS;
             get_Sense_Data_Fields(senseData, SPC3_SENSE_LEN, &senseFields);
             //now that we've read all the fields, check for known sense data and fill in progress if any.
@@ -757,7 +757,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice *device, uint32_t elem
                     ptrPhysicalElement elementList = C_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
                     if (elementList)
                     {
-                        memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
+                        safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0, numberOfDescriptors * sizeof(physicalElement));
                         if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                         {
                             //loop through and check associatedCapacity and elementIdentifiers
@@ -893,7 +893,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
                     }
                 }
             }
-            memset(supportedCapabilities, 0, LEGACY_DRIVE_SEC_SIZE);
+            safe_memset(supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
         }
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0))
         {
@@ -1170,7 +1170,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice *device, bool pollForP
                             ptrPhysicalElement elementList = C_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
                             if (elementList)
                             {
-                                memset(elementList, 0, numberOfDescriptors * sizeof(physicalElement));
+                                safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0, numberOfDescriptors * sizeof(physicalElement));
                                 if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                                 {
                                     //figure out if any depopulated elements support being repopulated

@@ -83,7 +83,7 @@ static bool are_Buffer_Commands_Available(tDevice *device)
         else
         {
             //this means the command to ask about support didn't work, so we're just going to try asking the size of the buffer and if that works, it is supported
-            memset(supportedCommandData, 0, 16);
+            safe_memset(supportedCommandData, 16, 0, 16);
             if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, supportedCommandData))
             {
                 supported = true;
@@ -246,8 +246,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
     if (patternBuffer && returnBuffer)
     {
         fill_Pattern_Buffer_Into_Another_Buffer(C_CAST(uint8_t*, &pattern), sizeof(uint32_t), patternBuffer, deviceBufferSize);//sets the pattern to write into memory
-        seatimer_t patternTimer;
-        memset(&patternTimer, 0, sizeof(seatimer_t));
+        DECLARE_SEATIMER(patternTimer);
         start_Timer(&patternTimer);
         for (uint32_t counter = 0; counter < numberOfTimesToTest; ++counter)
         {
@@ -280,7 +279,7 @@ static void perform_Byte_Pattern_Test(tDevice *device, uint32_t pattern, uint32_
                 break;
             }
             //now read back the pattern
-            memset(returnBuffer, 0, deviceBufferSize);
+            safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize);
             eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
@@ -335,11 +334,11 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
             //set the pattern
             if (walkingZeros)
             {
-                memset(patternBuffer, 0xFF, deviceBufferSize);
+                safe_memset(patternBuffer, deviceBufferSize, 0xFF, deviceBufferSize);
             }
             else
             {
-                memset(patternBuffer, 0, deviceBufferSize);
+                safe_memset(patternBuffer, deviceBufferSize, 0, deviceBufferSize);
             }
             if (bitNumber > 7)
             {
@@ -387,7 +386,7 @@ static void perform_Walking_Test(tDevice *device, bool walkingZeros, uint32_t de
                 break;
             }
             //now read back the pattern
-            memset(returnBuffer, 0, deviceBufferSize);
+            safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize);
             eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
@@ -466,7 +465,7 @@ static void perform_Random_Pattern_Test(tDevice *device, uint32_t deviceBufferSi
                 break;
             }
             //now read back the pattern
-            memset(returnBuffer, 0, deviceBufferSize);
+            safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize);
             eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
@@ -528,11 +527,10 @@ eReturnValues perform_Cable_Test(tDevice *device, ptrCableTestResults testResult
         uint32_t bufferSize = 0;
         if (SUCCESS == get_Buffer_Size(device, &bufferSize, &offsetPO2) && bufferSize > 0)
         {
-            seatimer_t totalTestingTime;
-            memset(&totalTestingTime, 0, sizeof(seatimer_t));
+            DECLARE_SEATIMER(totalTestingTime);
             //drive supports the read/write buffer commands we need and we know what size the buffer is we can test with.
             //now we need to begin testing.
-            memset(testResults, 0, sizeof(cableTestResults));
+            safe_memset(testResults, sizeof(cableTestResults), 0, sizeof(cableTestResults));
             //first, lets do some simple data patterns (0's, F's, 5's, A's)
             start_Timer(&totalTestingTime);
             for (uint8_t count = 0; count < ALL_0_TEST_COUNT; ++count)
