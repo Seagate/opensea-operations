@@ -162,8 +162,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFile = fopen("farmcurrent.bin", "w+b");
-                if (tempFile != M_NULLPTR)
+                FILE* tempFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFile, "farmcurrent.bin", "w+b");
+                if (fileopenerr == 0 && tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmCurrentLog.ptr, sizeof(uint8_t), farmCurrentLog.alloclen, tempFile) !=
                             farmCurrentLog.alloclen ||
@@ -196,8 +197,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFile = fopen("farmfactory.bin", "w+b");
-                if (tempFile != M_NULLPTR)
+                FILE* tempFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFile, "farmfactory.bin", "w+b");
+                if (fileopenerr == 0 && tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmFactoryLog.ptr, sizeof(uint8_t), farmFactoryLog.alloclen, tempFile) !=
                             farmFactoryLog.alloclen ||
@@ -230,8 +232,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFile = fopen("farmsaved.bin", "w+b");
-                if (tempFile != M_NULLPTR)
+                FILE* tempFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFile, "farmsaved.bin", "w+b");
+                if (fileopenerr == 0 && tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmSavedLog.ptr, sizeof(uint8_t), ATA_FARM_LOG_PAGE_SIZE, tempFile) !=
                             farmSavedLog.alloclen ||
@@ -274,8 +277,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFileTimeseries = fopen("farmtimeseries.bin", "w+b");
-                if (tempFileTimeseries != M_NULLPTR)
+                FILE* tempFileTimeseries = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFileTimeseries, "farmtimeseries.bin", "w+b");
+                if (fileopenerr == 0 && tempFileTimeseries != M_NULLPTR)
                 {
                     if (fwrite(farmTimeSeriesLog.ptr, sizeof(uint8_t), farmTimeSeriesLog.alloclen,
                                tempFileTimeseries) != farmTimeSeriesLog.alloclen ||
@@ -298,8 +302,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFileLongSave = fopen("farmlongsaved.bin", "w+b");
-                if (tempFileLongSave != M_NULLPTR)
+                FILE* tempFileLongSave = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFileLongSave, "farmlongsaved.bin", "w+b");
+                if (fileopenerr == 0 && tempFileLongSave != M_NULLPTR)
                 {
                     if (fwrite(farmLongSavedLog.ptr, sizeof(uint8_t), farmLongSavedLog.alloclen, tempFileLongSave) !=
                             farmLongSavedLog.alloclen ||
@@ -323,8 +328,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFileSticky = fopen("farmsticky.bin", "w+b");
-                if (tempFileSticky != M_NULLPTR)
+                FILE* tempFileSticky = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFileSticky, "farmsticky.bin", "w+b");
+                if (fileopenerr == 0 && tempFileSticky != M_NULLPTR)
                 {
                     if (fwrite(farmStickyLog.ptr, sizeof(uint8_t), farmStickyLog.alloclen, tempFileSticky) !=
                             farmStickyLog.alloclen ||
@@ -366,8 +372,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFile = fopen("farmworkloadtrace.bin", "w+b");
-                if (tempFile != M_NULLPTR)
+                FILE* tempFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFile, "farmworkloadtrace.bin", "w+b");
+                if (fileopenerr == 0 && tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmWorkLoadTraceLog.ptr, sizeof(uint8_t), farmStickyLog.alloclen, tempFile) !=
                             farmStickyLog.alloclen ||
@@ -414,8 +421,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempCurrentFile = fopen("farmcurrent.bin", "w+b");
-                if (tempCurrentFile != M_NULLPTR)
+                FILE* tempCurrentFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempCurrentFile, "farmcurrent.bin", "w+b");
+                if (fileopenerr == 0 && tempCurrentFile != M_NULLPTR)
                 {
                     if (fwrite(farmCurrentLog.ptr, sizeof(uint8_t), farmCurrentLog.alloclen, tempCurrentFile) !=
                             farmCurrentLog.alloclen ||
@@ -437,8 +445,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempSavedFile = fopen("farmsaved.bin", "w+b");
-                if (tempSavedFile != M_NULLPTR)
+                FILE* tempSavedFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempSavedFile, "farmsaved.bin", "w+b");
+                if (fileopenerr == 0 && tempSavedFile != M_NULLPTR)
                 {
                     if (fwrite(farmSavedLog.ptr, sizeof(uint8_t), farmSavedLog.alloclen, tempSavedFile) !=
                             farmSavedLog.alloclen ||
@@ -461,8 +470,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempTimeSeriesFile = fopen("farmtimeseries.bin", "w+b");
-                if (tempTimeSeriesFile != M_NULLPTR)
+                FILE* tempTimeSeriesFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempTimeSeriesFile, "farmtimeseries.bin", "w+b");
+                if (fileopenerr == 0 && tempTimeSeriesFile != M_NULLPTR)
                 {
                     if (fwrite(farmTimeSeriesLog.ptr, sizeof(uint8_t), farmSavedLog.alloclen, tempTimeSeriesFile) !=
                             farmSavedLog.alloclen ||
@@ -486,8 +496,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempLongSavedFile = fopen("farmlongsaved.bin", "w+b");
-                if (tempLongSavedFile != M_NULLPTR)
+                FILE* tempLongSavedFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempLongSavedFile, "farmlongsaved.bin", "w+b");
+                if (fileopenerr == 0 && tempLongSavedFile != M_NULLPTR)
                 {
                     if (fwrite(farmLongSavedLog.ptr, sizeof(uint8_t), farmLongSavedLog.alloclen, tempLongSavedFile) !=
                             farmLongSavedLog.alloclen ||
@@ -510,8 +521,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempStickyFile = fopen("farmsticky.bin", "w+b");
-                if (tempStickyFile != M_NULLPTR)
+                FILE* tempStickyFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempStickyFile, "farmsticky.bin", "w+b");
+                if (fileopenerr == 0 && tempStickyFile != M_NULLPTR)
                 {
                     if (fwrite(farmStickyLog.ptr, sizeof(uint8_t), farmStickyLog.alloclen, tempStickyFile) !=
                             farmStickyLog.alloclen ||
@@ -533,8 +545,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFactoryFile = fopen("farmfactory.bin", "w+b");
-                if (tempFactoryFile != M_NULLPTR)
+                FILE* tempFactoryFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFactoryFile, "farmfactory.bin", "w+b");
+                if (fileopenerr == 0 && tempFactoryFile != M_NULLPTR)
                 {
                     if (fwrite(farmFactoryLog.ptr, sizeof(uint8_t), farmFactoryLog.alloclen, tempFactoryFile) !=
                             farmFactoryLog.alloclen ||
@@ -577,8 +590,9 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                                 endTimeInMilliSecs);
 
 #ifdef _DEBUG
-                FILE* tempFile = fopen("farmworkloadtrace.bin", "w+b");
-                if (tempFile != M_NULLPTR)
+                FILE* tempFile = M_NULLPTR;
+                errno_t fileopenerr = safe_fopen(&tempFile, "farmworkloadtrace.bin", "w+b");
+                if (fileopenerr == 0 && tempFile != M_NULLPTR)
                 {
                     if (fwrite(farmWorkLoadTraceLog.ptr, sizeof(uint8_t), farmWorkLoadTraceLog.alloclen, tempFile) !=
                             farmWorkLoadTraceLog.alloclen ||
@@ -750,8 +764,9 @@ static eReturnValues pullSCSIFarmLogs(tDevice*                device,
                             &farmContentField, logpageSize.currentLog, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-            FILE* tempFile = fopen("farmcurrent.bin", "w+b");
-            if (tempFile != M_NULLPTR)
+            FILE* tempFile = M_NULLPTR;
+            errno_t fileopenerr = safe_fopen(&tempFile, "farmcurrent.bin", "w+b");
+            if (fileopenerr == 0 && tempFile != M_NULLPTR)
             {
                 if (fwrite(farmCurrentLog.ptr, sizeof(uint8_t), farmCurrentLog.alloclen, tempFile) !=
                         farmCurrentLog.alloclen ||
@@ -787,8 +802,9 @@ static eReturnValues pullSCSIFarmLogs(tDevice*                device,
                             &farmContentField, logpageSize.factoryLog, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-            FILE* tempFile = fopen("farmfactory.bin", "w+b");
-            if (tempFile != M_NULLPTR)
+            FILE* tempFile = M_NULLPTR;
+            errno_t fileopenerr = safe_fopen(&tempFile, "farmfactory.bin", "w+b");
+            if (fileopenerr == 0 && tempFile != M_NULLPTR)
             {
                 if (fwrite(farmFactoryLog.ptr, sizeof(uint8_t), farmCurrentLog.alloclen, tempFile) !=
                         farmCurrentLog.alloclen ||
@@ -838,8 +854,9 @@ static eReturnValues pullSCSIFarmLogs(tDevice*                device,
                             &farmContentField, timeSeriesLogLength, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-            FILE* tempFile = fopen("farmtimeseries.bin", "w+b");
-            if (tempFile != M_NULLPTR)
+            FILE* tempFile = M_NULLPTR;
+            errno_t fileopenerr = safe_fopen(&tempFile, "farmtimeseries.bin", "w+b");
+            if (fileopenerr == 0 && tempFile != M_NULLPTR)
             {
                 printf("writing into farmtimeseries.bin file\n");
                 if (fwrite(farmTimeSeriesLog.ptr, sizeof(uint8_t), farmCurrentLog.alloclen, tempFile) !=
@@ -905,8 +922,9 @@ static eReturnValues pullSCSIFarmLogs(tDevice*                device,
                             &farmContentField, longSavedLogLength, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-            FILE* tempFile = fopen("farmlongsaved.bin", "w+b");
-            if (tempFile != M_NULLPTR)
+            FILE* tempFile = M_NULLPTR;
+            errno_t fileopenerr = safe_fopen(&tempFile, "farmlongsaved.bin", "w+b");
+            if (fileopenerr == 0 && tempFile != M_NULLPTR)
             {
                 if (fwrite(farmLongSavedLog.ptr, sizeof(uint8_t), farmLongSavedLog.alloclen, tempFile) !=
                         farmLongSavedLog.alloclen ||
@@ -956,8 +974,9 @@ static eReturnValues pullSCSIFarmLogs(tDevice*                device,
                             &farmContentField, stickyLogLength, startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
-            FILE* tempFile = fopen("farmsticky.bin", "w+b");
-            if (tempFile != M_NULLPTR)
+            FILE* tempFile = M_NULLPTR;
+            errno_t fileopenerr = safe_fopen(&tempFile, "farmsticky.bin", "w+b");
+            if (fileopenerr == 0 && tempFile != M_NULLPTR)
             {
                 if (fwrite(farmStickyLog.ptr, sizeof(uint8_t), farmStickyLog.alloclen, tempFile) !=
                         farmStickyLog.alloclen ||

@@ -40,20 +40,28 @@ extern "C"
         bool           isNormalized;
         bool           supportsNotification;
         bool           monitoredConditionMet;
-        uint64_t       statisticValue; // may need additional parsing depending on the statistic this represents
         bool           isThresholdValid;
         bool           thresholdNotificationEnabled;
-        eThresholdType threshType;
         bool           nonValidityTrigger;
         bool           validityTrigger;
+        eThresholdType threshType;
+        uint64_t       statisticValue; // may need additional parsing depending on the statistic this represents
         uint64_t       threshold; // may not be populated depending on drive support/code support
     } statistic;
 
     typedef struct s_sataDeviceStatistics
     {
+        bool      generalStatisticsSupported;
+        bool      freeFallStatisticsSupported;
+        bool      rotatingMediaStatisticsSupported;
+        bool      generalErrorsStatisticsSupported;
+        bool      temperatureStatisticsSupported;
+        bool      transportStatisticsSupported;
+        bool      ssdStatisticsSupported;
+        bool      zonedDeviceStatisticsSupported;
+        bool      vendorSpecificStatisticsSupported;
         uint16_t statisticsPopulated; // just a count of how many were populated...not any specific order
         // general statistics
-        bool      generalStatisticsSupported;
         statistic lifetimePoweronResets;
         statistic powerOnHours;
         statistic logicalSectorsWritten;
@@ -67,11 +75,9 @@ extern "C"
         statistic resourceAvailability;
         statistic randomWriteResourcesUsed;
         // free fall statistics
-        bool      freeFallStatisticsSupported;
         statistic numberOfFreeFallEventsDetected;
         statistic overlimitShockEvents;
         // rotating media statistics
-        bool      rotatingMediaStatisticsSupported;
         statistic spindleMotorPoweronHours;
         statistic headFlyingHours;
         statistic headLoadEvents;
@@ -81,12 +87,10 @@ extern "C"
         statistic numberOfReallocationCandidateLogicalSectors;
         statistic numberOfHighPriorityUnloadEvents;
         // general errors statistics
-        bool      generalErrorsStatisticsSupported;
         statistic numberOfReportedUncorrectableErrors;
         statistic numberOfResetsBetweenCommandAcceptanceAndCommandCompletion;
         statistic physicalElementStatusChanged;
         // temperature statistics
-        bool      temperatureStatisticsSupported;
         statistic currentTemperature;
         statistic averageShortTermTemperature;
         statistic averageLongTermTemperature;
@@ -101,15 +105,12 @@ extern "C"
         statistic timeInUnderTemperature;
         statistic specifiedMinimumOperatingTemperature;
         // transport statistics
-        bool      transportStatisticsSupported;
         statistic numberOfHardwareResets;
         statistic numberOfASREvents;
         statistic numberOfInterfaceCRCErrors;
         // solid state device statistics
-        bool      ssdStatisticsSupported;
         statistic percentageUsedIndicator;
         // Zoned device statistics (ZAC2)
-        bool      zonedDeviceStatisticsSupported;
         statistic maximumOpenZones;
         statistic maximumExplicitlyOpenZones;
         statistic maximumImplicitlyOpenZones;
@@ -122,7 +123,6 @@ extern "C"
         statistic readRuleViolations;
         statistic writeRuleViolations;
         // vendor specific
-        bool      vendorSpecificStatisticsSupported;
         uint8_t   vendorSpecificStatisticsPopulated;
         statistic vendorSpecificStatistics[64];
     } sataDeviceStatistics;
@@ -153,8 +153,8 @@ extern "C"
     typedef struct s_sasProtocolPortStatistics
     {
         bool                     sasProtStatsValid;
-        uint16_t                 portID;
         uint8_t                  phyCount;
+        uint16_t                 portID;
         sasProtocolStatisticsPhy perPhy[SAS_STATISTICS_MAX_PHYS];
     } sasProtocolPortStatistics;
 
@@ -166,9 +166,32 @@ extern "C"
 
     typedef struct s_sasDeviceStatitics
     {
+        bool      writeErrorCountersSupported;
+        bool      readErrorCountersSupported;
+        bool      readReverseErrorCountersSupported;
+        bool      verifyErrorCountersSupported;
+        bool      nonMediumErrorSupported;
+        bool      formatStatusSupported;
+        bool      logicalBlockProvisioningSupported;
+        bool      temperatureSupported;
+        bool      environmentReportingSupported;
+        bool      environmentLimitsSupported;
+        bool      startStopCycleCounterSupported;
+        bool      utilizationSupported;
+        bool      solidStateMediaSupported;
+        bool      backgroundScanResultsSupported;
+        bool      pendingDefectsSupported;
+        bool      lpsMisalignmentSupported;
+        bool      nvCacheSupported;
+        bool      generalStatisticsAndPerformanceSupported;
+        bool      cacheMemoryStatisticsSupported;
+        bool      timeStampSupported;
+        bool      zonedDeviceStatisticsSupported;
+        bool      defectStatisticsSupported;
+        bool                            protocolSpecificStatisticsSupported;
+        bool      powerConditionTransitionsSupported;
         uint16_t statisticsPopulated; // just a count of how many were populated...not any specific order
         // Write Error Counters
-        bool      writeErrorCountersSupported;
         statistic writeErrorsCorrectedWithoutSubstantialDelay;
         statistic writeErrorsCorrectedWithPossibleDelays;
         statistic writeTotalReWrites;
@@ -177,7 +200,6 @@ extern "C"
         statistic writeTotalBytesProcessed;
         statistic writeTotalUncorrectedErrors;
         // Read Error Counters
-        bool      readErrorCountersSupported;
         statistic readErrorsCorrectedWithoutSubstantialDelay;
         statistic readErrorsCorrectedWithPossibleDelays;
         statistic readTotalRereads;
@@ -186,7 +208,6 @@ extern "C"
         statistic readTotalBytesProcessed;
         statistic readTotalUncorrectedErrors;
         // Read Reverse Error Counters - These might be for tape drives, not HDDs...may remove this-TJE
-        bool      readReverseErrorCountersSupported;
         statistic readReverseErrorsCorrectedWithoutSubstantialDelay;
         statistic readReverseErrorsCorrectedWithPossibleDelays;
         statistic readReverseTotalReReads;
@@ -195,7 +216,6 @@ extern "C"
         statistic readReverseTotalBytesProcessed;
         statistic readReverseTotalUncorrectedErrors;
         // Verify Error Counters
-        bool      verifyErrorCountersSupported;
         statistic verifyErrorsCorrectedWithoutSubstantialDelay;
         statistic verifyErrorsCorrectedWithPossibleDelays;
         statistic verifyTotalReVerifies;
@@ -204,16 +224,13 @@ extern "C"
         statistic verifyTotalBytesProcessed;
         statistic verifyTotalUncorrectedErrors;
         // non-medium Error
-        bool      nonMediumErrorSupported;
         statistic nonMediumErrorCount;
         // Format Status
-        bool      formatStatusSupported;
         statistic grownDefectsDuringCertification;
         statistic totalBlocksReassignedDuringFormat;
         statistic totalNewBlocksReassigned;
         statistic powerOnMinutesSinceFormat;
         // logical block provisioning
-        bool      logicalBlockProvisioningSupported;
         statistic availableLBAMappingresourceCount;
         statistic usedLBAMappingResourceCount;
         statistic availableProvisioningResourcePercentage;
@@ -221,11 +238,9 @@ extern "C"
         statistic compressedLBAResourceCount;
         statistic totalEfficiencyLBAResourceCount;
         // Temperature
-        bool      temperatureSupported;
         statistic temperature;
         statistic referenceTemperature;
         // Environment (Temperature and humidity) (reporting)
-        bool      environmentReportingSupported;
         statistic currentTemperature;
         statistic lifetimeMaximumTemperature;
         statistic lifetimeMinimumTemperature;
@@ -241,7 +256,6 @@ extern "C"
         statistic maximumOtherRelativeHumidity;
         statistic minimumOtherRelativeHumidity;
         // Environment (Temperature and humidity) (limits)
-        bool      environmentLimitsSupported;
         statistic highCriticalTemperatureLimitTrigger;
         statistic highCriticalTemperatureLimitReset;
         statistic lowCriticalTemperatureLimitReset;
@@ -259,7 +273,6 @@ extern "C"
         statistic lowOperatingHumidityLimitReset;
         statistic lowOperatingHumidityLimitTrigger;
         // start-stop cycle counter
-        bool      startStopCycleCounterSupported;
         statistic dateOfManufacture;
         statistic accountingDate;
         statistic specifiedCycleCountOverDeviceLifetime;
@@ -267,30 +280,23 @@ extern "C"
         statistic specifiedLoadUnloadCountOverDeviceLifetime;
         statistic accumulatedLoadUnloadCycles;
         // utilization
-        bool      utilizationSupported;
         statistic workloadUtilization;
         statistic utilizationUsageRateBasedOnDateAndTime;
         // SSD
-        bool      solidStateMediaSupported;
         statistic percentUsedEndurance;
         // Background scan results
-        bool      backgroundScanResultsSupported;
         statistic accumulatedPowerOnMinutes;
         statistic numberOfBackgroundScansPerformed;
         // statistic backgroundScanProgress;//not sure if we need this - TJE
         statistic numberOfBackgroundMediaScansPerformed;
         // pending defects
-        bool      pendingDefectsSupported;
         statistic pendingDefectCount;
         // LPS misalignment
-        bool      lpsMisalignmentSupported;
         statistic lpsMisalignmentCount;
         // NVCache
-        bool      nvCacheSupported;
         statistic remainingNonvolatileTime;
         statistic maximumNonvolatileTime;
         // General Statistics and performance
-        bool      generalStatisticsAndPerformanceSupported;
         statistic numberOfReadCommands;
         statistic numberOfWriteCommands;
         statistic numberOfLogicalBlocksReceived;
@@ -310,7 +316,6 @@ extern "C"
         statistic readFUANVCommandProcessingIntervals;
         statistic writeFUANVCommandProcessingIntervals;
         // Cache Memory Statistics
-        bool      cacheMemoryStatisticsSupported;
         statistic readCacheMemoryHits;
         statistic readsToCacheMemory;
         statistic writeCacheMemoryHits;
@@ -318,10 +323,8 @@ extern "C"
         statistic timeFromLastHardReset;
         statistic cacheTimeInterval;
         // timestamp
-        bool      timeStampSupported;
         statistic dateAndTimeTimestamp;
         // ZBC Statistics (ZBC2)
-        bool      zonedDeviceStatisticsSupported;
         statistic maximumOpenZones;
         statistic maximumExplicitlyOpenZones;
         statistic maximumImplicitlyOpenZones;
@@ -335,11 +338,9 @@ extern "C"
         statistic writeRuleViolations;
         statistic maxImplicitlyOpenSeqOrBeforeReqZones;
         // Defect list counts (Grown and Primary)
-        bool      defectStatisticsSupported;
         statistic grownDefects;
         statistic primaryDefects;
         // Protocol specific statistics
-        bool                            protocolSpecificStatisticsSupported;
         eProtocolSpecificStatisticsType protocolStatisticsType;
         // TODO: How do we want to handle multiple port SAS? Currently limiting this output to 2 ports since that is the
         // most supported today-TJE
@@ -349,7 +350,6 @@ extern "C"
             // Other data structures for other protocols that implement the protocol specific port log page
         };
         // Power condition transitions
-        bool      powerConditionTransitionsSupported;
         statistic transitionsToActive;
         statistic transitionsToIdleA;
         statistic transitionsToIdleB;

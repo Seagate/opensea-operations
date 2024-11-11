@@ -428,6 +428,11 @@ eReturnValues scsi_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t rang
             C_CAST(uint32_t, M_Min(((startLBA + range) - startLBA),
                                    maxLBACount)); // this may truncate but that is expected since the maximum range you
                                                   // can specify for a UNMAP command is 0xFFFFFFFF
+        if (unmapRange == UINT32_C(0))
+        {
+            //catch this unlikely condition before possibly dividing by zero calculating how many descriptors are needed.
+            return SUCCESS;
+        }
         uint32_t unmapDescriptors = C_CAST(
             uint32_t,
             ((((startLBA + range) - startLBA) + unmapRange) - 1) /

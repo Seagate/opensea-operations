@@ -79,7 +79,7 @@ bool is_Write_Same_Supported(tDevice*               device,
         if (writeSameSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
             supported = true;
-            if (*maxNumberOfLogicalBlocksPerCommand)
+            if (maxNumberOfLogicalBlocksPerCommand)
             {
                 *maxNumberOfLogicalBlocksPerCommand = UINT32_MAX;
             }
@@ -92,14 +92,14 @@ bool is_Write_Same_Supported(tDevice*               device,
             if (writeSameSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
             {
                 supported = true;
-                if (*maxNumberOfLogicalBlocksPerCommand)
+                if (maxNumberOfLogicalBlocksPerCommand)
                 {
                     *maxNumberOfLogicalBlocksPerCommand = UINT32_MAX;
                 }
             }
             else
             {
-                if (*maxNumberOfLogicalBlocksPerCommand)
+                if (maxNumberOfLogicalBlocksPerCommand)
                 {
                     *maxNumberOfLogicalBlocksPerCommand = 0;
                 }
@@ -108,7 +108,7 @@ bool is_Write_Same_Supported(tDevice*               device,
             {
                 // Assume supported for SCSI 2
                 supported = true;
-                if (*maxNumberOfLogicalBlocksPerCommand)
+                if (maxNumberOfLogicalBlocksPerCommand)
                 {
                     *maxNumberOfLogicalBlocksPerCommand = UINT16_MAX;
                 }
