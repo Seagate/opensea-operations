@@ -231,27 +231,27 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
         DECLARE_ZERO_INIT_ARRAY(char, otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH);
         if (zoneDescriptor.resetBit)
         {
-            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "R");
+            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "R");
         }
         else
         {
-            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
         }
         if (zoneDescriptor.nonseqBit)
         {
-            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "N");
+            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "N");
         }
         else
         {
-            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
         }
         if (zoneDescriptor.predictedUnRecErrBit)
         {
-            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "P");
+            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "P");
         }
         else
         {
-            common_String_Concat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
         }
         // zone start and WP LBA could be at max FFFFFFFFFFFFh which is 15 digits in decimal
         // typical zone length is 524288 (256MiB) which is 6 digits, and +1 in case extend in future

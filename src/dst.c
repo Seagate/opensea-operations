@@ -2348,7 +2348,7 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, percentRemainingString, 8);
                 snprintf(percentRemainingString, 8, " (%" PRIu8 "%%)", percentRemaining);
-                common_String_Concat(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, percentRemainingString);
+                safe_strcat(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, percentRemainingString);
             }
             printf("%-26s  ", status);
             // Error LBA

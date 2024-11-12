@@ -20,6 +20,7 @@
 #include "math_utils.h"
 #include "memory_safety.h"
 #include "precision_timer.h"
+#include "sort_and_search.h"
 #include "string_utils.h"
 #include "type_conversion.h"
 
@@ -551,7 +552,7 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
     {
         uint32_t duplicatesDetected = UINT32_C(0);
         // Sort the list.
-        qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare);
+        safe_qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare);
         // Remove duplicates and update the number of items in the list (local var only). This should be easy since
         // we've already sorted the list
         uint64_t tempLBA = LBAList[0].errorAddress;
@@ -570,7 +571,7 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
         if (duplicatesDetected > 0)
         {
             // Sort the list one more time.
-            qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare);
+            safe_qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare);
             // set number of LBAs in the list
             (*numberOfLBAsInTheList) -= duplicatesDetected;
         }

@@ -23,6 +23,7 @@
 #include "math_utils.h"
 #include "memory_safety.h"
 #include "precision_timer.h"
+#include "sort_and_search.h"
 #include "string_utils.h"
 #include "type_conversion.h"
 
@@ -759,13 +760,13 @@ static eReturnValues fill_GPT_Data(tDevice*   device,
                                       &gpt->partition[partIter].partitionTypeGUID.guid);
                         if (!gptGUIDsSorted)
                         {
-                            qsort(gptGUIDNameLookup, sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
+                            safe_qsort(gptGUIDNameLookup, sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
                                   sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID);
                             gptGUIDsSorted = true;
                         }
 
                         gptName = C_CAST(gptPartitionTypeName*,
-                                         bsearch(&gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
+                                         safe_bsearch(&gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
                                                  sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
                                                  sizeof(gptGUIDNameLookup[0]),
                                                  (int (*)(const void*, const void*))cmp_GPT_Part_GUID));

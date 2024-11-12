@@ -3032,13 +3032,13 @@ static void format_print_ata_logs_info(uint8_t  log,
     {
         if (smartAccess)
         {
-            common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, ", ");
+            safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, ", ");
         }
-        common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, "GPL");
+        safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, "GPL");
     }
     if (driveReportBug)
     {
-        common_String_Concat(access, ATA_LOG_ACCESS_STRING_LENGTH, " !");
+        safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, " !");
     }
     printf("   %3" PRIu8 " (%02" PRIX8 "h)   :     %-5" PRIu32 "      :    %-10" PRIu32 " :   %-10s\n", log, log,
            (logSize / ATA_LOG_PAGE_LEN_BYTES), logSize, access);

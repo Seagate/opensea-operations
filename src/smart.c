@@ -1094,7 +1094,7 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue* currentAttribute, char*
         DECLARE_ZERO_INIT_ARRAY(char, flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN);
         if (currentAttribute->isWarrantied)
         {
-            common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*");
+            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*");
         }
         if (currentAttribute->thresholdDataValid)
         {
@@ -1102,22 +1102,22 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue* currentAttribute, char*
             {
                 if (currentAttribute->isWarrantied)
                 {
-                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
+                    safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
                 }
                 else
                 {
-                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
+                    safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
                 }
             }
             if (currentAttribute->data.worstEver <= currentAttribute->thresholdData.thresholdValue)
             {
                 if (currentAttribute->isWarrantied)
                 {
-                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
+                    safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
                 }
                 else
                 {
-                    common_String_Concat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
+                    safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
                 }
             }
             printf("%-5s%3" PRIu8 " %-35s  %04" PRIX16 "h    %02" PRIX8 "h     %02" PRIX8 "h     %02" PRIX8 "h   ",
@@ -1257,11 +1257,11 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue*                     
             {
                 if (currentAttribute->isWarrantied)
                 {
-                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+                    safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
                 }
                 else
                 {
-                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
+                    safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
                 }
             }
             if (currentAttribute->thresholdData.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING &&
@@ -1269,11 +1269,11 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue*                     
             {
                 if (currentAttribute->isWarrantied)
                 {
-                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+                    safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
                 }
                 else
                 {
-                    common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
+                    safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
                 }
             }
         }
@@ -1316,57 +1316,57 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue*                     
         // setup warranty and "see analyzed" flags
         if (seeAnalyzed)
         {
-            common_String_Concat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "?");
+            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "?");
         }
 
         // setup status flags
         if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "P");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "P");
         }
         else
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_ONLINE_DATA_COLLECTION)
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "O");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "O");
         }
         else
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_PERFORMANCE)
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "S");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "S");
         }
         else
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_ERROR_RATE)
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "R");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "R");
         }
         else
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_EVENT_COUNT)
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "C");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "C");
         }
         else
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         if (currentAttribute->data.status & ATA_SMART_STATUS_FLAG_SELF_PRESERVING)
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "K");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "K");
         }
         else
         {
-            common_String_Concat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+            safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
         }
         // setup raw data for display
         DECLARE_ZERO_INIT_ARRAY(char, dataUnitBuffer, UNIT_STRING_LENGTH);
@@ -8790,72 +8790,72 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
         // device reports an alignment error
         if (safe_strlen(statusMessage) > 0)
         {
-            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
+            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
-        common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Alignment Error");
+        safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Alignment Error");
     }
     if (isStream && (status & ATA_STATUS_BIT_DEFERRED_WRITE_ERROR))
     {
         if (safe_strlen(statusMessage) > 0)
         {
-            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
+            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
         // streaming deferred write error
-        common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Deferred Write Error");
+        safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Deferred Write Error");
     }
 
     if (status & ATA_STATUS_BIT_ERROR)
     {
         if (safe_strlen(statusMessage) > 0)
         {
-            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
+            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
         }
-        common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Error Reg Valid");
+        safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Error Reg Valid");
 
         // Parse error field bits
         if (error & ATA_ERROR_BIT_ABORT)
         {
-            common_String_Concat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Abort");
+            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Abort");
         }
         if (error & ATA_ERROR_BIT_INTERFACE_CRC) // abort bit will also be set to 1 if this is set to 1
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Interface CRC Error");
+            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Interface CRC Error");
         }
         if (error & ATA_ERROR_BIT_UNCORRECTABLE_DATA)
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Uncorrectable Data");
+            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Uncorrectable Data");
         }
         if (error & ATA_ERROR_BIT_ID_NOT_FOUND) // - media access and possibly commands to set max lba
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "ID Not Found");
+            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "ID Not Found");
         }
         if (isRecal && (error & ATA_ERROR_BIT_TRACK_ZERO_NOT_FOUND)) // - recalibrate commands only
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Track Zero Not Found");
+            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Track Zero Not Found");
         }
         if (isStream && (error & ATA_ERROR_BIT_COMMAND_COMPLETION_TIME_OUT)) // - streaming
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
             }
-            common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Command Completion Time Out");
+            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Command Completion Time Out");
         }
         if (safe_strlen(errorMessage) == 0)
         {
@@ -8863,15 +8863,15 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
             {
                 if (safe_strlen(errorMessage) > 0)
                 {
-                    common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                    safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
                 }
-                common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "(Likely) Track Zero Not Found");
+                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "(Likely) Track Zero Not Found");
             }
             else
             {
                 if (safe_strlen(errorMessage) > 0)
                 {
-                    common_String_Concat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                    safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
                 }
                 // unknown error, possibly recalibrate command + track zero not found....
                 char* dup = strdup(errorMessage);
