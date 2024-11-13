@@ -525,10 +525,10 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const char *logName, bool createNewSnapshot, bool useReadBuffer16, \
                                                     const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, \
-                                                    const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
+                                                    const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed, eLogFileNamingConvention FILE_NAME_TYPE);
     
     OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
-                                                uint16_t logPage, uint8_t logAddress, eLogPullMode mode);
+                                                uint16_t logPage, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -551,7 +551,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode);
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
