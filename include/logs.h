@@ -135,7 +135,7 @@ extern "C" {
                                         bool GPL, bool SMART, bool toBuffer, \
                                         uint8_t *myBuf, uint32_t bufSize, \
                                         const char * const filePath, \
-                                        uint32_t transferSizeBytes, uint16_t featureRegister);
+                                        uint32_t transferSizeBytes, uint16_t featureRegister, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -161,7 +161,7 @@ extern "C" {
     OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage, \
                                         const char *logName, const char *fileExtension, bool toBuffer, \
                                         uint8_t *myBuf, uint32_t bufSize, \
-                                        const char * const filePath);
+                                        const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -185,7 +185,7 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logName, \
                                         const char *fileExtension, bool toBuffer, uint8_t *myBuf, \
-                                        uint32_t bufSize, const char * const filePath);
+                                        uint32_t bufSize, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -201,7 +201,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(tDevice * device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(tDevice * device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -217,7 +217,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -246,7 +246,7 @@ extern "C" {
                                                 uint8_t* ptrData, \
                                                 uint32_t dataSize, \
                                                 const char * const filePath, \
-                                                uint32_t transferSizeBytes);
+                                                uint32_t transferSizeBytes, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -262,7 +262,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -278,7 +278,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -295,7 +295,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(tDevice *device, bool extLog, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -311,7 +311,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -327,7 +327,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -343,7 +343,7 @@ extern "C" {
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -360,7 +360,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -376,7 +376,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice *device, const char * const filePath, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -457,9 +457,9 @@ extern "C" {
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(tDevice *device, uint8_t logNum, uint8_t subpage, \
                                             eLogPullMode mode, const char * const filePath, \
-                                            uint32_t transferSizeBytes, uint32_t logLengthOverride);
+                                            uint32_t transferSizeBytes, uint32_t logLengthOverride, eLogFileNamingConvention FILE_NAME_TYPE);
 
-    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLogPullMode mode, const char * const filePath, uint32_t transferSizeBytes, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //-----------------------------------------------------------------------------
     //
@@ -629,11 +629,11 @@ extern "C" {
     //This is only needed if not calling the get_SCSI_Mode_Page_Size as that will already take this into account
     #define SCSI_MODE_PAGE_MIN_HEADER_LENGTH (M_Max(MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN, MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN))
 
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, const char *logName, const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice *device, eScsiModePageControl mpc, uint8_t modePage, uint8_t subpage, const char *logName, const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize, const char * const filePath, bool *used6ByteCmd, eLogFileNamingConvention FILE_NAME_TYPE);
 
     //This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes should be passed as 0 unless you know the length you want to pull.
     // nvmeLogSizeBytes is used since there is not a way to look up the length of most NVMe logs like you can with ATA and SCSI
-    OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(tDevice *device, uint8_t logNum, eLogPullMode mode, uint32_t nvmeLogSizeBytes, eLogFileNamingConvention FILE_NAME_TYPE);
 
 #if defined(__cplusplus)
 }
