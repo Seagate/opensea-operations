@@ -1128,7 +1128,7 @@ eReturnValues corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, 
     return ret;
 }
 
-eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!defectList || !numberOfDefects)
@@ -1154,7 +1154,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
             {
                 return MEMORY_FAILURE;
             }
-            if (SUCCESS == get_SCSI_Log(device, LP_PENDING_DEFECTS, 0x01, M_NULLPTR, M_NULLPTR, true, pendingDefectsLog, pendingLogSize, M_NULLPTR))
+            if (SUCCESS == get_SCSI_Log(device, LP_PENDING_DEFECTS, 0x01, M_NULLPTR, M_NULLPTR, true, pendingDefectsLog, pendingLogSize, M_NULLPTR, FILE_NAME_TYPE))
             {
                 //First, validate that we got the right SCSI log page...I've seen some USB devices ignore the subpage code and return the wrong data. - TJE
                 if (M_GETBITRANGE(pendingDefectsLog[0], 5, 0) == 0x15 && pendingDefectsLog[0] & BIT6 && pendingDefectsLog[1] == 0x01)
@@ -1206,7 +1206,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
     return ret;
 }
 
-eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!defectList || !numberOfDefects)
@@ -1234,7 +1234,7 @@ eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect d
             {
                 return MEMORY_FAILURE;
             }
-            if (SUCCESS == get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, M_NULLPTR, M_NULLPTR, true, false, true, pendingList, pendingLogSize, M_NULLPTR, 0, 0))
+            if (SUCCESS == get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, M_NULLPTR, M_NULLPTR, true, false, true, pendingList, pendingLogSize, M_NULLPTR, 0, 0, FILE_NAME_TYPE))
             {
                 uint32_t numberOfDescriptors = M_BytesTo4ByteValue(pendingList[3], pendingList[2], pendingList[1], pendingList[0]);
                 for (uint32_t descriptorIter = 0, offset = 16; descriptorIter < numberOfDescriptors && offset < pendingLogSize; ++descriptorIter, offset += 16, ++(*numberOfDefects))
@@ -1286,7 +1286,7 @@ void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPen
     }
 }
 
-eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults)
+eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults, eLogFileNamingConvention FILE_NAME_TYPE)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!results || !numberOfResults)
@@ -1305,7 +1305,7 @@ eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundRes
             {
                 return MEMORY_FAILURE;
             }
-            if (SUCCESS == get_SCSI_Log(device, LP_BACKGROUND_SCAN_RESULTS, 0, M_NULLPTR, M_NULLPTR, true, backgroundScanResults, backgroundScanResultsLength, M_NULLPTR))
+            if (SUCCESS == get_SCSI_Log(device, LP_BACKGROUND_SCAN_RESULTS, 0, M_NULLPTR, M_NULLPTR, true, backgroundScanResults, backgroundScanResultsLength, M_NULLPTR, FILE_NAME_TYPE))
             {
                 uint16_t parameterCode = 0;
                 uint8_t parameterLength = 0;
