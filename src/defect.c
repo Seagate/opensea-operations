@@ -1255,11 +1255,11 @@ eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect d
 }
 
 
-eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        return get_LBAs_From_ATA_Pending_List(device, defectList, numberOfDefects);
+        return get_LBAs_From_ATA_Pending_List(device, defectList, numberOfDefects, FILE_NAME_TYPE);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -1347,7 +1347,7 @@ eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundRes
     return ret;
 }
 
-eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!defectList || !numberOfDefects)
@@ -1366,7 +1366,7 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPending
     }
     memset(bmsResults, 0, sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS);
     uint16_t numberOfBMSResults = 0;
-    ret = get_SCSI_Background_Scan_Results(device, bmsResults, &numberOfBMSResults);
+    ret = get_SCSI_Background_Scan_Results(device, bmsResults, &numberOfBMSResults, FILE_NAME_TYPE);
     if (ret == SUCCESS)
     {
         for (uint16_t bmsIter = 0; bmsIter < numberOfBMSResults; ++bmsIter)

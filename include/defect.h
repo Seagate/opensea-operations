@@ -256,11 +256,11 @@ extern "C" {
 
     #define MAX_PLIST_ENTRIES UINT16_C(65534) //This is from ACS spec and is more than enough for SCSI
 
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE);
 
     OPENSEA_OPERATIONS_API void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList);
 
@@ -282,9 +282,9 @@ extern "C" {
         safe_Free(M_REINTERPRET_CAST(void**, bg));
     }
 
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults, eLogFileNamingConvention FILE_NAME_TYPE);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects, eLogFileNamingConvention FILE_NAME_TYPE);
 
 #if defined(__cplusplus)
 }
