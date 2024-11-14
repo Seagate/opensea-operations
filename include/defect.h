@@ -16,6 +16,7 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "secure_file.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -25,6 +25,7 @@
 #include "io_utils.h"
 #include "prng.h"
 
+#include "secure_file.h"
 #include "defect.h"
 #include "smart.h"
 #include "logs.h"
@@ -1263,7 +1264,7 @@ eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defec
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        return get_LBAs_From_SCSI_Pending_List(device, defectList, numberOfDefects);
+        return get_LBAs_From_SCSI_Pending_List(device, defectList, numberOfDefects, FILE_NAME_TYPE);
     }
     return NOT_SUPPORTED;
 }
