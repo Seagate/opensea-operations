@@ -1369,7 +1369,7 @@ bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice *device)
 #define SCSI_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(6240)
 
 //This can be used to save this log to a binary file to be read later.
-eReturnValues pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, eLogFileNamingConvention FILE_NAME_TYPE)
+eReturnValues pull_Power_Telemetry_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1378,7 +1378,7 @@ eReturnValues pull_Power_Telemetry_Log(tDevice *device, const char * const fileP
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, "PWRTEL", false, is_SCSI_Read_Buffer_16_Supported(device), "pwr", false, M_NULLPTR, 0, filePath, transferSizeBytes, M_NULLPTR, FILE_NAME_TYPE);
+        ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, "PWRTEL", false, is_SCSI_Read_Buffer_16_Supported(device), "pwr", false, M_NULLPTR, 0, filePath, transferSizeBytes, M_NULLPTR);
     }
     return ret;
 }
@@ -1425,7 +1425,7 @@ eReturnValues request_Power_Measurement(tDevice *device, uint16_t timeMeasuremen
     return ret;
 }
 
-eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData, eLogFileNamingConvention FILE_NAME_TYPE)
+eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry pwrTelData)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!pwrTelData)
@@ -1464,7 +1464,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice *device, ptrSeagatePwrTelemetry p
             powerTelemetryLog = C_CAST(uint8_t *, safe_calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (powerTelemetryLog)
             {
-                ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, M_NULLPTR, false, rb16, M_NULLPTR, true, powerTelemetryLog, powerTelemetryLogSize, M_NULLPTR, 0, M_NULLPTR, FILE_NAME_TYPE);
+                ret = get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, M_NULLPTR, false, rb16, M_NULLPTR, true, powerTelemetryLog, powerTelemetryLogSize, M_NULLPTR, 0, M_NULLPTR);
             }
             else
             {
