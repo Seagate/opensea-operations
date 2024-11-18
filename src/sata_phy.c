@@ -125,11 +125,7 @@ eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounte
 
 void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
 {
-    if (!counters)
-    {
-        return;
-    }
-    if (counters->valid)
+    if (counters && counters->valid)
     {
         printf("\n====SATA Phy Event Counters====\n");
         printf("V = Vendor Unique event tracker\n");
@@ -234,5 +230,4 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
             printf("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
         }
     }
-    return;
 }

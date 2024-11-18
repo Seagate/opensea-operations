@@ -46,20 +46,20 @@ extern "C"
         bool           validityTrigger;
         eThresholdType threshType;
         uint64_t       statisticValue; // may need additional parsing depending on the statistic this represents
-        uint64_t       threshold; // may not be populated depending on drive support/code support
+        uint64_t       threshold;      // may not be populated depending on drive support/code support
     } statistic;
 
     typedef struct s_sataDeviceStatistics
     {
-        bool      generalStatisticsSupported;
-        bool      freeFallStatisticsSupported;
-        bool      rotatingMediaStatisticsSupported;
-        bool      generalErrorsStatisticsSupported;
-        bool      temperatureStatisticsSupported;
-        bool      transportStatisticsSupported;
-        bool      ssdStatisticsSupported;
-        bool      zonedDeviceStatisticsSupported;
-        bool      vendorSpecificStatisticsSupported;
+        bool     generalStatisticsSupported;
+        bool     freeFallStatisticsSupported;
+        bool     rotatingMediaStatisticsSupported;
+        bool     generalErrorsStatisticsSupported;
+        bool     temperatureStatisticsSupported;
+        bool     transportStatisticsSupported;
+        bool     ssdStatisticsSupported;
+        bool     zonedDeviceStatisticsSupported;
+        bool     vendorSpecificStatisticsSupported;
         uint16_t statisticsPopulated; // just a count of how many were populated...not any specific order
         // general statistics
         statistic lifetimePoweronResets;
@@ -166,30 +166,30 @@ extern "C"
 
     typedef struct s_sasDeviceStatitics
     {
-        bool      writeErrorCountersSupported;
-        bool      readErrorCountersSupported;
-        bool      readReverseErrorCountersSupported;
-        bool      verifyErrorCountersSupported;
-        bool      nonMediumErrorSupported;
-        bool      formatStatusSupported;
-        bool      logicalBlockProvisioningSupported;
-        bool      temperatureSupported;
-        bool      environmentReportingSupported;
-        bool      environmentLimitsSupported;
-        bool      startStopCycleCounterSupported;
-        bool      utilizationSupported;
-        bool      solidStateMediaSupported;
-        bool      backgroundScanResultsSupported;
-        bool      pendingDefectsSupported;
-        bool      lpsMisalignmentSupported;
-        bool      nvCacheSupported;
-        bool      generalStatisticsAndPerformanceSupported;
-        bool      cacheMemoryStatisticsSupported;
-        bool      timeStampSupported;
-        bool      zonedDeviceStatisticsSupported;
-        bool      defectStatisticsSupported;
-        bool                            protocolSpecificStatisticsSupported;
-        bool      powerConditionTransitionsSupported;
+        bool     writeErrorCountersSupported;
+        bool     readErrorCountersSupported;
+        bool     readReverseErrorCountersSupported;
+        bool     verifyErrorCountersSupported;
+        bool     nonMediumErrorSupported;
+        bool     formatStatusSupported;
+        bool     logicalBlockProvisioningSupported;
+        bool     temperatureSupported;
+        bool     environmentReportingSupported;
+        bool     environmentLimitsSupported;
+        bool     startStopCycleCounterSupported;
+        bool     utilizationSupported;
+        bool     solidStateMediaSupported;
+        bool     backgroundScanResultsSupported;
+        bool     pendingDefectsSupported;
+        bool     lpsMisalignmentSupported;
+        bool     nvCacheSupported;
+        bool     generalStatisticsAndPerformanceSupported;
+        bool     cacheMemoryStatisticsSupported;
+        bool     timeStampSupported;
+        bool     zonedDeviceStatisticsSupported;
+        bool     defectStatisticsSupported;
+        bool     protocolSpecificStatisticsSupported;
+        bool     powerConditionTransitionsSupported;
         uint16_t statisticsPopulated; // just a count of how many were populated...not any specific order
         // Write Error Counters
         statistic writeErrorsCorrectedWithoutSubstantialDelay;

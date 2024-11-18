@@ -148,18 +148,18 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(tDevice*          device,
-                                                     uint8_t           logAddress,
-                                                     const char*       logName,
-                                                     const char*       fileExtension,
-                                                     bool              GPL,
-                                                     bool              SMART,
-                                                     bool              toBuffer,
-                                                     uint8_t*          myBuf,
-                                                     uint32_t          bufSize,
-                                                     const char* const filePath,
-                                                     uint32_t          transferSizeBytes,
-                                                     uint16_t          featureRegister);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(tDevice*    device,
+                                                     uint8_t     logAddress,
+                                                     const char* logName,
+                                                     const char* fileExtension,
+                                                     bool        GPL,
+                                                     bool        SMART,
+                                                     bool        toBuffer,
+                                                     uint8_t*    myBuf,
+                                                     uint32_t    bufSize,
+                                                     const char* filePath,
+                                                     uint32_t    transferSizeBytes,
+                                                     uint16_t    featureRegister);
 
     //-----------------------------------------------------------------------------
     //
@@ -182,15 +182,15 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(tDevice*          device,
-                                                      uint8_t           logAddress,
-                                                      uint8_t           subpage,
-                                                      const char*       logName,
-                                                      const char*       fileExtension,
-                                                      bool              toBuffer,
-                                                      uint8_t*          myBuf,
-                                                      uint32_t          bufSize,
-                                                      const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(tDevice*    device,
+                                                      uint8_t     logAddress,
+                                                      uint8_t     subpage,
+                                                      const char* logName,
+                                                      const char* fileExtension,
+                                                      bool        toBuffer,
+                                                      uint8_t*    myBuf,
+                                                      uint32_t    bufSize,
+                                                      const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -213,14 +213,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(tDevice*          device,
-                                                      uint8_t           pageCode,
-                                                      const char*       logName,
-                                                      const char*       fileExtension,
-                                                      bool              toBuffer,
-                                                      uint8_t*          myBuf,
-                                                      uint32_t          bufSize,
-                                                      const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(tDevice*    device,
+                                                      uint8_t     pageCode,
+                                                      const char* logName,
+                                                      const char* fileExtension,
+                                                      bool        toBuffer,
+                                                      uint8_t*    myBuf,
+                                                      uint32_t    bufSize,
+                                                      const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -236,7 +236,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(tDevice* device, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -252,7 +252,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(tDevice* device, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -278,14 +278,14 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(tDevice*          device,
-                                                            bool              currentOrSaved,
-                                                            uint8_t           islDataSet,
-                                                            bool              saveToFile,
-                                                            uint8_t*          ptrData,
-                                                            uint32_t          dataSize,
-                                                            const char* const filePath,
-                                                            uint32_t          transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(tDevice*    device,
+                                                            bool        currentOrSaved,
+                                                            uint8_t     islDataSet,
+                                                            bool        saveToFile,
+                                                            uint8_t*    ptrData,
+                                                            uint32_t    dataSize,
+                                                            const char* filePath,
+                                                            uint32_t    transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -301,7 +301,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(tDevice* device, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -317,8 +317,8 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(tDevice*          device,
-                                                                                    const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(tDevice*    device,
+                                                                                    const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -336,7 +336,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(tDevice* device, bool extLog, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(tDevice* device, bool extLog, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -352,7 +352,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(tDevice* device, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -368,7 +368,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(tDevice* device, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -384,7 +384,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(tDevice* device, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -401,7 +401,7 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(tDevice* device, const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -417,8 +417,7 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice*          device,
-                                                                                const char* const filePath);
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -498,19 +497,19 @@ extern "C"
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(tDevice*          device,
-                                                          uint8_t           logNum,
-                                                          uint8_t           subpage,
-                                                          eLogPullMode      mode,
-                                                          const char* const filePath,
-                                                          uint32_t          transferSizeBytes,
-                                                          uint32_t          logLengthOverride);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(tDevice*     device,
+                                                          uint8_t      logNum,
+                                                          uint8_t      subpage,
+                                                          eLogPullMode mode,
+                                                          const char*  filePath,
+                                                          uint32_t     transferSizeBytes,
+                                                          uint32_t     logLengthOverride);
 
-    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(tDevice*          device,
-                                                                    uint8_t           bufferID,
-                                                                    eLogPullMode      mode,
-                                                                    const char* const filePath,
-                                                                    uint32_t          transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(tDevice*     device,
+                                                                    uint8_t      bufferID,
+                                                                    eLogPullMode mode,
+                                                                    const char*  filePath,
+                                                                    uint32_t     transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -582,26 +581,26 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice*          device,
-                                                                uint8_t           bufferID,
-                                                                const char*       logName,
-                                                                bool              createNewSnapshot,
-                                                                bool              useReadBuffer16,
-                                                                const char*       fileExtension,
-                                                                bool              toBuffer,
-                                                                uint8_t*          myBuf,
-                                                                uint32_t          bufSize,
-                                                                const char* const filePath,
-                                                                uint32_t          transferSizeBytes,
-                                                                char*             fileNameUsed);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice*    device,
+                                                                uint8_t     bufferID,
+                                                                const char* logName,
+                                                                bool        createNewSnapshot,
+                                                                bool        useReadBuffer16,
+                                                                const char* fileExtension,
+                                                                bool        toBuffer,
+                                                                uint8_t*    myBuf,
+                                                                uint32_t    bufSize,
+                                                                const char* filePath,
+                                                                uint32_t    transferSizeBytes,
+                                                                char*       fileNameUsed);
 
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice*          device,
-                                                           const char* const filePath,
-                                                           uint32_t          transferSizeBytes,
-                                                           uint32_t          issueFactory,
-                                                           uint16_t          logPage,
-                                                           uint8_t           logAddress,
-                                                           eLogPullMode      mode);
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice*     device,
+                                                           const char*  filePath,
+                                                           uint32_t     transferSizeBytes,
+                                                           uint32_t     issueFactory,
+                                                           uint16_t     logPage,
+                                                           uint8_t      logAddress,
+                                                           eLogPullMode mode);
 
     //-----------------------------------------------------------------------------
     //
@@ -623,12 +622,12 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice*          device,
-                                                       const char* const filePath,
-                                                       uint32_t          transferSizeBytes,
-                                                       uint32_t          issueFactory,
-                                                       uint8_t           logAddress,
-                                                       eLogPullMode      mode);
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice*     device,
+                                                       const char*  filePath,
+                                                       uint32_t     transferSizeBytes,
+                                                       uint32_t     issueFactory,
+                                                       uint8_t      logAddress,
+                                                       eLogPullMode mode);
 
     //-----------------------------------------------------------------------------
     //
@@ -722,7 +721,7 @@ extern "C"
                                                             bool                 toBuffer,
                                                             uint8_t*             myBuf,
                                                             uint32_t             bufSize,
-                                                            const char* const    filePath,
+                                                            const char*          filePath,
                                                             bool*                used6ByteCmd);
 
     // This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes

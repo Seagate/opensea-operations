@@ -514,8 +514,8 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_Parent_And_Child_Information(ptrDriveInformation scsiDriveInfo,
-                                                                   ptrDriveInformation ataDriveInfo);
+    OPENSEA_OPERATIONS_API void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
+                                                                   ptrDriveInformation driveInfo);
 
     //-----------------------------------------------------------------------------
     //

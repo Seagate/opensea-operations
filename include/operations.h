@@ -391,7 +391,7 @@ extern "C"
     OPENSEA_OPERATIONS_API void print_Supported_Erase_Methods(
         tDevice*          device,
         eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-        uint32_t*         overwriteEraseTimeEstimateMinutes);
+        const uint32_t*   overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -432,9 +432,9 @@ extern "C"
 
     OPENSEA_OPERATIONS_API eReturnValues enable_Disable_AAM_Feature(tDevice* device, bool enable);
 
-    OPENSEA_OPERATIONS_API eReturnValues set_AAM_Level(tDevice* device, uint8_t apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues set_AAM_Level(tDevice* device, uint8_t aamLevel);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_AAM_Level(tDevice* device, uint8_t* apmLevel);
+    OPENSEA_OPERATIONS_API eReturnValues get_AAM_Level(tDevice* device, uint8_t* aamLevel);
 
     OPENSEA_OPERATIONS_API bool scsi_MP_Reset_To_Defaults_Supported(
         tDevice* device); // This is the reset to defaults bit in mode select command. Not anything else. If this is

@@ -1144,7 +1144,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
 
 void print_Supported_Erase_Methods(tDevice*          device,
                                    eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-                                   uint32_t*         overwriteEraseTimeEstimateMinutes)
+                                   const uint32_t*   overwriteEraseTimeEstimateMinutes)
 {
     uint8_t counter                     = UINT8_C(0);
     bool    cryptoSupported             = false;
@@ -1250,7 +1250,6 @@ void print_Supported_Erase_Methods(tDevice*          device,
         }
         printf("\n");
     }
-    return;
 }
 
 eReturnValues set_Sense_Data_Format(tDevice* device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
@@ -1472,7 +1471,7 @@ eReturnValues enable_Disable_AAM_Feature(tDevice* device, bool enable)
 //  80h = minimum acoustic emanation
 //  81h - FDh = intermediate acoustic management levels
 //  FEh = maximum performance.
-eReturnValues set_AAM_Level(tDevice* device, uint8_t apmLevel)
+eReturnValues set_AAM_Level(tDevice* device, uint8_t aamLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1482,7 +1481,7 @@ eReturnValues set_AAM_Level(tDevice* device, uint8_t apmLevel)
             device->drive_info.IdentifyData.ata.Word083 & BIT9)
         {
             // subcommand 42 with the aamLevel in the count field
-            ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, apmLevel, 0, 0, 0);
+            ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, aamLevel, 0, 0, 0);
         }
     }
     return ret;

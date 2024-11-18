@@ -96,8 +96,8 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues get_ATA_Sanitize_Device_Features(tDevice*                   device,
                                                                           sanitizeFeaturesSupported* sanitizeOptions);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice*                   device,
-                                                                              sanitizeFeaturesSupported* sanitizeOpts);
+    OPENSEA_OPERATIONS_API eReturnValues
+    get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
 
     //-----------------------------------------------------------------------------
     //

@@ -81,12 +81,11 @@ static void fill_OG_MBR_Partitions(uint8_t* mbrDataBuf, uint32_t mbrDataSize, pt
                                     mbrDataBuf[partitionTableOffset + 13], mbrDataBuf[partitionTableOffset + 12]);
             if (mbr->partition[partitionOffset].partitionType != 0)
             {
-                partitionOffset += 1;
-                mbr->numberOfPartitions += 1;
+                partitionOffset += UINT8_C(1);
+                mbr->numberOfPartitions += UINT8_C(1);
             }
         }
     }
-    return;
 }
 
 static eReturnValues fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData mbr)
@@ -303,7 +302,7 @@ static uint32_t reverse_bits_32(uint32_t value)
 
 #define UEFI_CRC32_POLYNOMIAL UINT32_C(0x04C11DB7)
 
-static uint32_t gpt_CRC_32(uint8_t* dataBuf, uint32_t dataLength)
+static uint32_t gpt_CRC_32(const uint8_t* dataBuf, uint32_t dataLength)
 {
     uint32_t crc32 = UINT32_MAX;
     if (dataBuf && dataLength > 0)
@@ -613,7 +612,6 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID* guid)
         guid->part5[4] = dataBuf[14];
         guid->part5[5] = dataBuf[15];
     }
-    return;
 }
 
 #define GPT_SIGNATURE_STR_LEN RSIZE_T_C(8)
@@ -761,15 +759,15 @@ static eReturnValues fill_GPT_Data(tDevice*   device,
                         if (!gptGUIDsSorted)
                         {
                             safe_qsort(gptGUIDNameLookup, sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
-                                  sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID);
+                                       sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID);
                             gptGUIDsSorted = true;
                         }
 
                         gptName = C_CAST(gptPartitionTypeName*,
                                          safe_bsearch(&gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
-                                                 sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
-                                                 sizeof(gptGUIDNameLookup[0]),
-                                                 (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
+                                                      sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
+                                                      sizeof(gptGUIDNameLookup[0]),
+                                                      (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
 
                         if (gptName)
                         {
@@ -1030,7 +1028,6 @@ static void print_MBR_Info(ptrMBRData mbrTable)
             }
         }
     }
-    return;
 }
 
 static void print_GPT_GUID(gptGUID guid)
@@ -1039,7 +1036,6 @@ static void print_GPT_GUID(gptGUID guid)
            "%02" PRIX8 "%02" PRIX8,
            guid.part1, guid.part2, guid.part3, guid.part4, guid.part5[0], guid.part5[1], guid.part5[2], guid.part5[3],
            guid.part5[4], guid.part5[5]);
-    return;
 }
 
 static void print_GPT_Info(ptrGPTData gptTable)
@@ -1164,7 +1160,6 @@ static void print_GPT_Info(ptrGPTData gptTable)
             // possible cross-platform challenges here -TJE
         }
     }
-    return;
 }
 
 static void print_APM_Info(ptrAPMData apmTable)
@@ -1173,7 +1168,6 @@ static void print_APM_Info(ptrAPMData apmTable)
     {
         printf("---APM info---\n");
     }
-    return;
 }
 
 void print_Partition_Info(ptrPartitionInfo partitionTable)
@@ -1204,5 +1198,4 @@ void print_Partition_Info(ptrPartitionInfo partitionTable)
             break;
         }
     }
-    return;
 }

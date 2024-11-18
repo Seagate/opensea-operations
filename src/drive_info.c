@@ -9346,7 +9346,6 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
         printf("This device has multiple actuators. Some commands/features may affect more than one actuator.\n");
     }
-    return;
 }
 
 // This exists so we can print out SCSI reported and ATA reported information for comparison purposes. (SAT test/check)
@@ -9442,7 +9441,6 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
             ++(externalDriveInfo->numberOfSpecificationsSupported);
         }
     }
-    return;
 }
 
 void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
@@ -9543,7 +9541,6 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
             }
         }
     }
-    return;
 }
 
 eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)

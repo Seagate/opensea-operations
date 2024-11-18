@@ -353,7 +353,6 @@ void show_DCO_Identify_Data(ptrDcoData data)
             printf("WARNING: Drive returned invalid checksum on DCO Identify data!\n");
         }
     }
-    return;
 }
 
 eReturnValues dco_Set(tDevice* device, ptrDcoData data)

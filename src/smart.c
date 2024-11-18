@@ -1139,7 +1139,6 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue* currentAttribute, char*
     }
     // clear out the attribute name before looping again so we don't show dulicates
     snprintf(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                             ");
-    return;
 }
 
 static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
@@ -1464,7 +1463,6 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue*                     
     }
     // clear out the attribute name before looping again so we don't show dulicates
     snprintf(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                                          ");
-    return;
 }
 
 static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData)
@@ -2587,7 +2585,6 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
         }
     }
     safe_free(&attributeName);
-    return;
 }
 
 eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMode)
@@ -8874,8 +8871,9 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
                     safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
                 }
                 // unknown error, possibly recalibrate command + track zero not found....
-                char* dup = strdup(errorMessage);
-                if (dup)
+                char*   dup    = M_NULLPTR;
+                errno_t duperr = safe_strdup(&dup, errorMessage);
+                if (duperr == 0 && dup != M_NULLPTR)
                 {
                     snprintf(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "%sUnknown Error Condition (%02" PRIX8 "h)",
                              dup, error);

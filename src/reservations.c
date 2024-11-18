@@ -439,7 +439,6 @@ static void show_Allowed_Commands_Value(eAllowedCommandDetail value)
         printf("Unknown\n");
         break;
     }
-    return;
 }
 
 void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities)
@@ -583,7 +582,6 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
             printf("Error: Incorrect reservations capabilities structure version or bad structure size.\n");
         }
     }
-    return;
 }
 
 eReturnValues get_Registration_Key_Count(tDevice* device, uint16_t* keyCount)

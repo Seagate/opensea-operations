@@ -1664,5 +1664,4 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
         }
         printf("\n");
     }
-    return;
 }

@@ -827,7 +827,6 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
             printf("Format unit currently in progress or the last format command failed!\n");
         }
     }
-    return;
 }
 
 bool is_Set_Sector_Configuration_Supported(tDevice* device)
@@ -1584,7 +1583,6 @@ void show_Supported_Formats(ptrSupportedFormats formats)
         printf("          PI scheme.\n");
     }
     // TODO: NVMe Metadata and PI location information.
-    return;
 }
 
 // this function takes a sector size and maps it to the descriptor check code to use in the set sector configuration

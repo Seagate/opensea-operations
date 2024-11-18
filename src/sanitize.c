@@ -327,7 +327,7 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeatures
     return ret;
 }
 
-eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOpts)
+eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.scsiVersion >=
@@ -346,94 +346,94 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         eSCSICmdSupport sanitizeSupport   = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
         if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            sanitizeOpts->definitiveEndingPattern = true;
-            sanitizeOpts->sanitizeCmdEnabled      = true;
-            sanitizeOpts->overwrite               = true;
+            sanitizeOptions->definitiveEndingPattern = true;
+            sanitizeOptions->sanitizeCmdEnabled      = true;
+            sanitizeOptions->overwrite               = true;
             if (strstr("ATA", device->drive_info.T10_vendor_ident) ||
                 strstr("NVMe", device->drive_info.T10_vendor_ident))
             {
                 // Assuming that only a compliant translator will support this, so screening for ATA and NVMe which
                 // are limited to 16 passes
-                sanitizeOpts->maximumOverwritePasses = 16;
+                sanitizeOptions->maximumOverwritePasses = 16;
             }
             else
             {
-                sanitizeOpts->maximumOverwritePasses = 31;
+                sanitizeOptions->maximumOverwritePasses = 31;
             }
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_BLOCK_ERASE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
         if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            sanitizeOpts->sanitizeCmdEnabled = true;
-            sanitizeOpts->blockErase         = true;
+            sanitizeOptions->sanitizeCmdEnabled = true;
+            sanitizeOptions->blockErase         = true;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
         if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            sanitizeOpts->sanitizeCmdEnabled = true;
-            sanitizeOpts->crypto             = true;
+            sanitizeOptions->sanitizeCmdEnabled = true;
+            sanitizeOptions->crypto             = true;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_EXIT_FAILURE_MODE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
         if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            sanitizeOpts->sanitizeCmdEnabled = true;
-            sanitizeOpts->exitFailMode       = true;
+            sanitizeOptions->sanitizeCmdEnabled = true;
+            sanitizeOptions->exitFailMode       = true;
         }
         writeAfterErase writeAfterEraseRequirements;
         safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
         if (SUCCESS == is_Write_After_Erase_Required(device, &writeAfterEraseRequirements))
         {
-            sanitizeOpts->writeAfterBlockErase  = writeAfterEraseRequirements.blockErase;
-            sanitizeOpts->writeAfterCryptoErase = writeAfterEraseRequirements.cryptoErase;
+            sanitizeOptions->writeAfterBlockErase  = writeAfterEraseRequirements.blockErase;
+            sanitizeOptions->writeAfterCryptoErase = writeAfterEraseRequirements.cryptoErase;
         }
-        if (sanitizeOpts->sanitizeCmdEnabled)
+        if (sanitizeOptions->sanitizeCmdEnabled)
         {
-            sanitizeOpts->antiFreezeLock = false;
-            sanitizeOpts->freezelock     = false;
+            sanitizeOptions->antiFreezeLock = false;
+            sanitizeOptions->freezelock     = false;
         }
     }
     return ret;
 }
 
-eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOpts)
+eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
     {
-        ret                              = SUCCESS;
-        sanitizeOpts->sanitizeCmdEnabled = true;
-        sanitizeOpts->exitFailMode       = true;
-        sanitizeOpts->antiFreezeLock     = false;
-        sanitizeOpts->freezelock         = false;
+        ret                                 = SUCCESS;
+        sanitizeOptions->sanitizeCmdEnabled = true;
+        sanitizeOptions->exitFailMode       = true;
+        sanitizeOptions->antiFreezeLock     = false;
+        sanitizeOptions->freezelock         = false;
         // Cntl identify bytes 331:328
         // BIT0 = crypto
         // bit1 = block erase
         // bit 2 = overwrite
         if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT0)
         {
-            sanitizeOpts->crypto = true;
+            sanitizeOptions->crypto = true;
         }
         if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT1)
         {
-            sanitizeOpts->blockErase = true;
+            sanitizeOptions->blockErase = true;
         }
         if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT2)
         {
-            sanitizeOpts->overwrite               = true;
-            sanitizeOpts->definitiveEndingPattern = true;
+            sanitizeOptions->overwrite               = true;
+            sanitizeOptions->definitiveEndingPattern = true;
         }
         if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT29)
         {
-            sanitizeOpts->noDeallocateInhibited = true;
+            sanitizeOptions->noDeallocateInhibited = true;
         }
-        sanitizeOpts->nodmmas               = C_CAST(noDeallocateModifiesAfterSanitize,
-                                                     M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30));
-        sanitizeOpts->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
-        sanitizeOpts->writeAfterBlockErase  = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
-        if (sanitizeOpts->noDeallocateInhibited)
+        sanitizeOptions->nodmmas               = C_CAST(noDeallocateModifiesAfterSanitize,
+                                                        M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30));
+        sanitizeOptions->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
+        sanitizeOptions->writeAfterBlockErase  = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
+        if (sanitizeOptions->noDeallocateInhibited)
         {
             // get the sanitize config feature status to know which mode it is operating in.
             nvmeFeaturesCmdOpt feat;
@@ -448,16 +448,16 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
             {
                 if (device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0)
                 {
-                    sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_WARNING;
+                    sanitizeOptions->responseMode = NO_DEALLOC_RESPONSE_WARNING;
                 }
                 else
                 {
-                    sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_ERROR;
+                    sanitizeOptions->responseMode = NO_DEALLOC_RESPONSE_ERROR;
                 }
             }
             else
             {
-                sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_INV;
+                sanitizeOptions->responseMode = NO_DEALLOC_RESPONSE_INV;
             }
         }
     }

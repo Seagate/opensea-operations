@@ -331,5 +331,4 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
     {
         print_Zone_Descriptor(zoneDescriptors[zoneIter]);
     }
-    return;
 }

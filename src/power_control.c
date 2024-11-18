@@ -772,7 +772,6 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
                    entryTime, exitTime);
         }
     }
-    return;
 }
 
 eReturnValues transition_NVM_Power_State(tDevice* device, uint8_t newState)
@@ -1760,14 +1759,14 @@ eReturnValues get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsump
                 if (identifiers->activeLevel == 0)
                 {
                     identifiers->currentIdentifierValid = true;
-                    // ctc 10 lines of code after the comments are necessary because the pcIdentifier and the
-                    // identfiers->identifiers[] are NOT necessarily in order ctc need to step through the indentifiers
-                    // to find the correct one
-                    uint8_t pcIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
-                    uint8_t counter      = UINT8_C(0);
+                    // ctc 10 lines of code after the comments are necessary because the powerConsumptionIdentifier and
+                    // the identfiers->identifiers[] are NOT necessarily in order ctc need to step through the
+                    // indentifiers to find the correct one
+                    uint8_t powerConsumptionIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
+                    uint8_t counter                    = UINT8_C(0);
                     for (; counter < identifiers->numberOfPCIdentifiers; counter++)
                     {
-                        if (identifiers->identifiers[counter].identifierValue == pcIdentifier)
+                        if (identifiers->identifiers[counter].identifierValue == powerConsumptionIdentifier)
                         {
                             identifiers->currentIdentifier = counter;
                         }
@@ -1984,12 +1983,14 @@ eReturnValues set_Power_Consumption(tDevice*       device,
     return ret;
 }
 
-eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device, double watts, uint8_t* pcIdentifier)
+eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device,
+                                                             double   watts,
+                                                             uint8_t* powerConsumptionIdentifier)
 {
     eReturnValues               ret = NOT_SUPPORTED;
     powerConsumptionIdentifiers identifiers;
     safe_memset(&identifiers, sizeof(powerConsumptionIdentifiers), 0, sizeof(powerConsumptionIdentifiers));
-    *pcIdentifier = 0xFF; // invalid
+    *powerConsumptionIdentifier = 0xFF; // invalid
     // ctc one line code change follows
     uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
     //*/
@@ -1997,7 +1998,7 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device, do
     /*/
     //This is a dummied up test to make sure this code REALLY REALLY works by putting these in a random order (since
     order is not specified in the SPC specification) ret = SUCCESS; identifiers.currentIdentifier = 0;
-    identifiers.numberOfPCIdentifiers = 4;
+    identifiers.numberOfpowerConsumptionIdentifiers = 4;
     identifiers.identifiers[0].identifierValue = 3;
     identifiers.identifiers[0].units = 3;//watts
     identifiers.identifiers[0].value = 4;
@@ -2025,7 +2026,7 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device, do
 
         ret = NOT_SUPPORTED;
         // ctc changed to nested for loops here... not sure it's needed, but it's clearer
-        //         for (; iter1 < identifiers.numberOfPCIdentifiers /* && iter2 >= 0*/; iter1++, iter2--)
+        //         for (; iter1 < identifiers.numberOfpowerConsumptionIdentifiers /* && iter2 >= 0*/; iter1++, iter2--)
         for (; iter1 < identifiers.numberOfPCIdentifiers; iter1++)
         {
             // ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code doesn't
@@ -2096,9 +2097,9 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device, do
                         watts1 = pcWatts1;
                         if (pcWatts1 == roundedWatts)
                         {
-                            ret             = SUCCESS;
-                            exactMatchFound = true;
-                            *pcIdentifier   = identifiers.identifiers[iter1].identifierValue;
+                            ret                         = SUCCESS;
+                            exactMatchFound             = true;
+                            *powerConsumptionIdentifier = identifiers.identifiers[iter1].identifierValue;
                             break;
                         }
                     }
@@ -2111,9 +2112,9 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device, do
                         watts2 = pcWatts2;
                         if (pcWatts2 == roundedWatts)
                         {
-                            ret             = SUCCESS;
-                            exactMatchFound = true;
-                            *pcIdentifier   = identifiers.identifiers[iter2].identifierValue;
+                            ret                         = SUCCESS;
+                            exactMatchFound             = true;
+                            *powerConsumptionIdentifier = identifiers.identifiers[iter2].identifierValue;
                             break;
                         }
                     }
@@ -2127,13 +2128,13 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device, do
 
             if (watts - C_CAST(double, watts1) >= watts - C_CAST(double, watts2))
             {
-                ret           = SUCCESS;
-                *pcIdentifier = pcId2;
+                ret                         = SUCCESS;
+                *powerConsumptionIdentifier = pcId2;
             }
             else if (watts - C_CAST(double, watts1) <= watts - C_CAST(double, watts2))
             {
-                ret           = SUCCESS;
-                *pcIdentifier = pcId1;
+                ret                         = SUCCESS;
+                *powerConsumptionIdentifier = pcId1;
             }
         }
     }
@@ -3374,7 +3375,7 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
     {
         return; // nothing that matters was requested to be shown
     }
-    if (!enhPhyControlData || enhPhyControlDataSize == 0 || enhPhyControlDataSize % sizeof(sasEnhPhyControl))
+    if (!enhPhyControlData || enhPhyControlDataSize == UINT32_C(0) || enhPhyControlDataSize % sizeof(sasEnhPhyControl))
     {
         return; // bad parameter that could cause breakage
     }
@@ -3418,7 +3419,6 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
         printf("\n");
     }
     printf("\n");
-    return;
 }
 
 eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info)

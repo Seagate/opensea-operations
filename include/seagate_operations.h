@@ -435,9 +435,9 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_Power_Telemetry_Log(tDevice*          device,
-                                                                  const char* const filePath,
-                                                                  uint32_t          transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Power_Telemetry_Log(tDevice*    device,
+                                                                  const char* filePath,
+                                                                  uint32_t    transferSizeBytes);
 
 //-----------------------------------------------------------------------------
 //

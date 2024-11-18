@@ -88,7 +88,7 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors);
+    OPENSEA_OPERATIONS_API void print_LBA_Error_List(const ptrErrorLBA LBAs, uint16_t numberOfErrors);
 
     OPENSEA_OPERATIONS_API eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
                                                                             bool*    automaticWriteReallocationEnabled,

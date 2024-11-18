@@ -187,166 +187,169 @@ eReturnValues get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8
 
 void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool justRanDST, bool isNVMeDrive)
 {
-    if (!translatedString)
+    if (translatedString != M_NULLPTR)
     {
-        return;
-    }
-    if (isNVMeDrive)
-    {
-        switch (status)
+        if (isNVMeDrive)
         {
-        case 0x00:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation completed without error.");
-            break;
-        case 0x01:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "Operation was aborted by a Device Self-test command.");
-            break;
-        case 0x02:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "Operation was aborted by a Controller Level Reset.");
-            break;
-        case 0x03:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "Operation was aborted due to a removal of a namespace from the namespace inventory.");
-            break;
-        case 0x04:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "Operation was aborted due to the processing of a Format NVM command.");
-            break;
-        case 0x05:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "A fatal error or unknown test error occurred while the controller was executing the device "
-                     "self-test operation and the operation did not complete.");
-            break;
-        case 0x06:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "Operation completed with a segment that failed and the segment that failed is not known.");
-            break;
-        case 0x07:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "Operation completed with one or more failed segments and the first segment that failed is "
-                     "indicated in the Segment Number field.");
-            break;
-        case 0x08:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation was aborted for unknown reason.");
-            break;
-        case 0x0F: // NOTE: The spec says that this is NOT used. We are dummying this up to work with existing SAS/SATA
-                   // code which is why this is here - TJE
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation in progress.");
-            break;
-        default:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
-            break;
+            switch (status)
+            {
+            case 0x00:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation completed without error.");
+                break;
+            case 0x01:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                         "Operation was aborted by a Device Self-test command.");
+                break;
+            case 0x02:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                         "Operation was aborted by a Controller Level Reset.");
+                break;
+            case 0x03:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                         "Operation was aborted due to a removal of a namespace from the namespace inventory.");
+                break;
+            case 0x04:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                         "Operation was aborted due to the processing of a Format NVM command.");
+                break;
+            case 0x05:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                         "A fatal error or unknown test error occurred while the controller was executing the device "
+                         "self-test operation and the operation did not complete.");
+                break;
+            case 0x06:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                         "Operation completed with a segment that failed and the segment that failed is not known.");
+                break;
+            case 0x07:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                         "Operation completed with one or more failed segments and the first segment that failed is "
+                         "indicated in the Segment Number field.");
+                break;
+            case 0x08:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation was aborted for unknown reason.");
+                break;
+            case 0x0F: // NOTE: The spec says that this is NOT used. We are dummying this up to work with existing
+                       // SAS/SATA code which is why this is here - TJE
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation in progress.");
+                break;
+            default:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
+                break;
+            }
         }
-    }
-    else
-    {
-        switch (status)
+        else
         {
-        case 0x00:
-            if (justRanDST)
+            switch (status)
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The self-test routine completed without error.");
-            }
-            else
-            {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous self-test routine completed without error or no self-test has ever been run.");
-            }
-            break;
-        case 0x01:
+            case 0x00:
+                if (justRanDST)
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The self-test routine completed without error.");
+                }
+                else
+                {
+                    snprintf(
+                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                        "The previous self-test routine completed without error or no self-test has ever been run.");
+                }
+                break;
+            case 0x01:
 
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The self-test routine was aborted by the host.");
-            break;
-        case 0x02:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "The self-test routine was interrupted by the host with a hardware or software reset.");
-            break;
-        case 0x03:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "A fatal error or unknown test error occurred while the device was executing its self-test "
-                     "routine and the device was unable to complete the self-test routine.");
-            break;
-        case 0x04:
-            if (justRanDST)
-            {
                 snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The self-test completed having a test element that failed and the test element that failed "
-                         "is not known.");
-            }
-            else
-            {
+                         "The self-test routine was aborted by the host.");
+                break;
+            case 0x02:
                 snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous self-test completed having a test element that failed and the test element that "
-                         "failed is not known.");
-            }
-            break;
-        case 0x05:
-            if (justRanDST)
-            {
+                         "The self-test routine was interrupted by the host with a hardware or software reset.");
+                break;
+            case 0x03:
                 snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The self-test completed having the electrical element of the test failed.");
+                         "A fatal error or unknown test error occurred while the device was executing its self-test "
+                         "routine and the device was unable to complete the self-test routine.");
+                break;
+            case 0x04:
+                if (justRanDST)
+                {
+                    snprintf(
+                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                        "The self-test completed having a test element that failed and the test element that failed "
+                        "is not known.");
+                }
+                else
+                {
+                    snprintf(
+                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                        "The previous self-test completed having a test element that failed and the test element that "
+                        "failed is not known.");
+                }
+                break;
+            case 0x05:
+                if (justRanDST)
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The self-test completed having the electrical element of the test failed.");
+                }
+                else
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The previous self-test completed having the electrical element of the test failed.");
+                }
+                break;
+            case 0x06:
+                if (justRanDST)
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The self-test completed having the servo (and/or seek) test element of the test failed.");
+                }
+                else
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The previous self-test completed having the servo (and/or seek) test element of the test "
+                             "failed.");
+                }
+                break;
+            case 0x07:
+                if (justRanDST)
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The self-test completed having the read element of the test failed.");
+                }
+                else
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The previous self-test completed having the read element of the test failed.");
+                }
+                break;
+            case 0x08:
+                if (justRanDST)
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The self-test completed having a test element that failed and the device is suspected of "
+                             "having handling damage.");
+                }
+                else
+                {
+                    snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                             "The previous self-test completed having a test element that failed and the device is "
+                             "suspected of having handling damage.");
+                }
+                break;
+            case 0x09:
+            case 0x0A:
+            case 0x0B:
+            case 0x0C:
+            case 0x0D:
+            case 0x0E:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
+                break;
+            case 0x0F:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Self-test in progress.");
+                break;
+            default:
+                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
             }
-            else
-            {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous self-test completed having the electrical element of the test failed.");
-            }
-            break;
-        case 0x06:
-            if (justRanDST)
-            {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The self-test completed having the servo (and/or seek) test element of the test failed.");
-            }
-            else
-            {
-                snprintf(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The previous self-test completed having the servo (and/or seek) test element of the test failed.");
-            }
-            break;
-        case 0x07:
-            if (justRanDST)
-            {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The self-test completed having the read element of the test failed.");
-            }
-            else
-            {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous self-test completed having the read element of the test failed.");
-            }
-            break;
-        case 0x08:
-            if (justRanDST)
-            {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The self-test completed having a test element that failed and the device is suspected of "
-                         "having handling damage.");
-            }
-            else
-            {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous self-test completed having a test element that failed and the device is "
-                         "suspected of having handling damage.");
-            }
-            break;
-        case 0x09:
-        case 0x0A:
-        case 0x0B:
-        case 0x0C:
-        case 0x0D:
-        case 0x0E:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
-            break;
-        case 0x0F:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Self-test in progress.");
-            break;
-        default:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
         }
     }
 }

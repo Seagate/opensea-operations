@@ -395,7 +395,7 @@ eReturnValues repair_LBA(tDevice*    device,
     return ret;
 }
 
-void print_LBA_Error_List(ptrErrorLBA const LBAs, uint16_t numberOfErrors)
+void print_LBA_Error_List(const ptrErrorLBA LBAs, uint16_t numberOfErrors)
 {
     // need to print out a list of the LBAs and their status
     printf("                            Bad LBAs                            \n");
@@ -548,7 +548,7 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
     {
         return;
     }
-    if (*numberOfLBAsInTheList > 1)
+    if (*numberOfLBAsInTheList > UINT32_C(1))
     {
         uint32_t duplicatesDetected = UINT32_C(0);
         // Sort the list.
@@ -556,7 +556,7 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
         // Remove duplicates and update the number of items in the list (local var only). This should be easy since
         // we've already sorted the list
         uint64_t tempLBA = LBAList[0].errorAddress;
-        for (uint32_t iter = UINT32_C(1); iter < *numberOfLBAsInTheList - 1; ++iter)
+        for (uint32_t iter = UINT32_C(1); iter < *numberOfLBAsInTheList - UINT32_C(1); ++iter)
         {
             if (LBAList[iter].errorAddress == tempLBA)
             {
@@ -568,7 +568,7 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
                 tempLBA = LBAList[iter].errorAddress;
             }
         }
-        if (duplicatesDetected > 0)
+        if (duplicatesDetected > UINT32_C(0))
         {
             // Sort the list one more time.
             safe_qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare);

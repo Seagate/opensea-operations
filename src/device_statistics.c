@@ -8965,7 +8965,6 @@ void scsi_Threshold_Comparison(statistic* ptrStatistic)
             }
         }
     }
-    return;
 }
 
 #define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30

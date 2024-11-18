@@ -340,7 +340,6 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
                elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);
     }
     printf("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
-    return;
 }
 
 // NOTE: This definition belongs in opensea-transport cmds.h/.c
