@@ -337,6 +337,8 @@ static void perform_Walking_Test(tDevice*              device,
                                       device->os_info.minimumAlignment)); // only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
+        DECLARE_SEATIMER(patternTimer);
+        start_Timer(&patternTimer);
         for (uint32_t bitNumber = UINT32_C(0), byteNumber = UINT32_C(0); byteNumber < deviceBufferSize; ++bitNumber)
         {
             bool breakFromLoop = false;
@@ -431,6 +433,8 @@ static void perform_Walking_Test(tDevice*              device,
                 ++(testResults->totalBufferMiscompares);
             }
         }
+        stop_Timer(&patternTimer);
+        testResults->totalTimeNS = get_Nano_Seconds(patternTimer);
     }
     safe_free_aligned(&patternBuffer);
     safe_free_aligned(&returnBuffer);
@@ -447,6 +451,8 @@ static void perform_Random_Pattern_Test(tDevice* device, uint32_t deviceBufferSi
                                       device->os_info.minimumAlignment)); // only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
+        DECLARE_SEATIMER(patternTimer);
+        start_Timer(&patternTimer);
         for (uint32_t counter = UINT32_C(0); counter < numberOfTimesToTest; ++counter)
         {
             bool breakFromLoop = false;
@@ -514,6 +520,8 @@ static void perform_Random_Pattern_Test(tDevice* device, uint32_t deviceBufferSi
                 ++(testResults->totalBufferMiscompares);
             }
         }
+        stop_Timer(&patternTimer);
+        testResults->totalTimeNS = get_Nano_Seconds(patternTimer);
     }
     safe_free_aligned(&patternBuffer);
     safe_free_aligned(&returnBuffer);
@@ -588,14 +596,14 @@ eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResult
             for (uint8_t count = UINT8_C(0); count < WALKING_1_TEST_COUNT; ++count)
             {
                 perform_Walking_Test(device, false, bufferSize,
-                                     &testResults->walking1sTest[count]); // arbitraty number 5 was chose since it
+                                     &testResults->walking1sTest[count]); // arbitrary number 5 was chose since it
                                                                           // sounded good for trying this test
             }
             // walking 0's
             for (uint8_t count = UINT8_C(0); count < WALKING_0_TEST_COUNT; ++count)
             {
                 perform_Walking_Test(device, true, bufferSize,
-                                     &testResults->walking0sTest[count]); // arbitraty number 5 was chose since it
+                                     &testResults->walking0sTest[count]); // arbitrary number 5 was chose since it
                                                                           // sounded good for trying this test
             }
             // random data patterns

@@ -22,14 +22,14 @@ extern "C"
 {
 #endif
 
-#define ALL_0_TEST_COUNT      2
-#define ALL_F_TEST_COUNT      2
-#define ALL_5_TEST_COUNT      2
-#define ALL_A_TEST_COUNT      2
-#define ZERO_F_5_A_TEST_COUNT 2
-#define WALKING_1_TEST_COUNT  1
-#define WALKING_0_TEST_COUNT  1
-#define RANDOM_TEST_COUNT     5
+#define ALL_0_TEST_COUNT      10
+#define ALL_F_TEST_COUNT      10
+#define ALL_5_TEST_COUNT      10
+#define ALL_A_TEST_COUNT      10
+#define ZERO_F_5_A_TEST_COUNT 10
+#define WALKING_1_TEST_COUNT  5
+#define WALKING_0_TEST_COUNT  5
+#define RANDOM_TEST_COUNT     10
 
     typedef struct s_patternTestResults
     {
