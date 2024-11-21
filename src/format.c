@@ -496,7 +496,7 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
         // poll for progress
         if (pollForProgress && ret == SUCCESS && !formatParameters.disableImmediate)
         {
-            double   progress         = 0;
+            double   progress         = 0.0;
             uint32_t delayTimeSeconds = UINT32_C(300);
             if (is_SSD(device))
             {
