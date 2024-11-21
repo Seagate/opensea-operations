@@ -917,7 +917,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
     return returnValue;
 }
 
-eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType)
+eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType,eLogFileNamingConvention FILE_NAME_TYPE)
 {
     eReturnValues returnValue = NOT_SUPPORTED;
 

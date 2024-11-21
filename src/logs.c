@@ -3543,7 +3543,7 @@ eReturnValues pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLog
     return retStatus;
 }
 
-eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint16_t logPage, uint8_t logAddress, eLogPullMode mode)
+eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint16_t logPage, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention FILE_NAME_TYPE)
 {
     bool fileOpened = false;
     secureFileInfo *fp_log = M_NULLPTR;
