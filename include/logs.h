@@ -528,7 +528,7 @@ extern "C" {
                                                     const char * const filePath, uint32_t transferSizeBytes, char *fileNameUsed);
     
     OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, \
-                                                uint16_t logPage, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention FILE_NAME_TYPE);
+                                                uint16_t logPage, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention fileNameType);
 
     //-----------------------------------------------------------------------------
     //
@@ -551,7 +551,7 @@ extern "C" {
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention FILE_NAME_TYPE);
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention fileNameType);
 
     //-----------------------------------------------------------------------------
     //

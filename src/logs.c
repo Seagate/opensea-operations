@@ -3604,7 +3604,7 @@ eReturnValues pull_Generic_Error_History(tDevice *device, uint8_t bufferID, eLog
     return retStatus;
 }
 
-eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint16_t logPage, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention FILE_NAME_TYPE)
+eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint16_t logPage, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention fileNameType)
 {
     bool fileOpened = false;
     secureFileInfo *fp_log = M_NULLPTR;
@@ -3721,7 +3721,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
     return ret;
 }
 
-eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention FILE_NAME_TYPE)
+eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, uint32_t issueFactory, uint8_t logAddress, eLogPullMode mode, eLogFileNamingConvention fileNameType)
 {
     eReturnValues ret = UNKNOWN;
     uint32_t logSize = 0;
@@ -3826,7 +3826,7 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
                 bool fileOpened = false;
                 secureFileInfo* fp_log = M_NULLPTR;
                 uint16_t pagesToReadNow = 1;
-                if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, FILE_NAME_TYPE, filePath, logName, "bin"))
+                if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
                 {
                     fileOpened = true;
                 }
@@ -3966,7 +3966,7 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
                     secureFileInfo* fp_log = M_NULLPTR;
                     uint16_t pagesToReadNow = 1;
 
-                    if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, FILE_NAME_TYPE, filePath, logName, "bin"))
+                    if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
                     {
                         fileOpened = true;
                     }
@@ -4077,7 +4077,7 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
             int16_t returnedPageLength = M_BytesTo2ByteValue(genericLogBuf[2], genericLogBuf[3]) + LOG_PAGE_HEADER_LENGTH;
           
 
-                if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, FILE_NAME_TYPE, filePath, logName, "bin"))
+                if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
                 {
                     //write the log to a file
                     if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, genericLogBuf, C_CAST(size_t, pagesToReadNow) * logSize, sizeof(uint8_t), M_Min(logSize, returnedPageLength), M_NULLPTR))

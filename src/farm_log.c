@@ -917,7 +917,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
     return returnValue;
 }
 
-eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType,eLogFileNamingConvention FILE_NAME_TYPE)
+eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType,eLogFileNamingConvention fileNameType)
 {
     eReturnValues returnValue = NOT_SUPPORTED;
 
@@ -1205,7 +1205,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePat
 
        
 
-        if (SUCCESS != create_And_Open_Secure_Log_File_Dev_EZ(device, &farmCombinedLog, NAMING_SERIAL_NUMBER_DATE_TIME, filePath, "FARMC", "frmc"))
+        if (SUCCESS != create_And_Open_Secure_Log_File_Dev_EZ(device, &farmCombinedLog, fileNameType, filePath, "FARMC", "frmc"))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
