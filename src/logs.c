@@ -3657,7 +3657,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
                     if (!fileOpened)
                     {
                      
-                        if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, NAMING_SERIAL_NUMBER_DATE_TIME, filePath, logType, "bin"))
+                        if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logType, "bin"))
                         {
                             fileOpened = true;
                         }
