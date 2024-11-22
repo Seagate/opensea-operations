@@ -3638,6 +3638,7 @@ eReturnValues pull_FARM_LogPage(tDevice *device, const char * const filePath, ui
                 pagesToReadAtATime = 1;
             }
 
+
             if (transferSizeBytes)
             {
                 if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
