@@ -943,6 +943,7 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const ch
                         break;
                     }
                 }
+                myBuf = historyBuffer;
                 if (logName && fileExtension) //Because you can also get a log file & get it in buffer. 
                 {
                     if (!logFileOpened)
@@ -981,6 +982,7 @@ eReturnValues get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const ch
                                 printf("Error closing file!\n");
                             }
                             logFileOpened = false;
+                            
                             safe_free_aligned(&historyBuffer);
                             free_Secure_File_Info(&fp_History);
                             return ERROR_WRITING_FILE;
@@ -1604,9 +1606,68 @@ eReturnValues get_SCSI_Log(tDevice *device, uint8_t logAddress, uint8_t subpage,
 
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logAddress, subpage, 0, logBuffer, C_CAST(uint16_t, pageLen)) == SUCCESS)
         {
-            
+            uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + LOG_PAGE_HEADER_LENGTH;
             ret = SUCCESS;
-            
+            if (!toBuffer && logName && fileExtension) //Because you can also get a log file & get it in buffer. 
+            {
+                if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, NAMING_SERIAL_NUMBER_DATE_TIME, filePath, logName, fileExtension))
+                {
+                    //write the log to a file
+                    if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, logBuffer, pageLen, sizeof(uint8_t), M_Min(pageLen, returnedPageLength), M_NULLPTR))
+                    {
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        {
+                            perror("Error writing to a file!\n");
+                        }
+                        if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                        {
+                            printf("Error closing file!\n");
+                        }
+                        if (!toBuffer)
+                        {
+                            safe_free_aligned(&logBuffer);
+                        }
+                        free_Secure_File_Info(&fp_log);
+                        return ERROR_WRITING_FILE;
+                    }
+                    if (SEC_FILE_SUCCESS != secure_Flush_File(fp_log))
+                    {
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        {
+                            perror("Error flushing data!\n");
+                        }
+                        if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                        {
+                            printf("Error closing file!\n");
+                        }
+                        if (!toBuffer)
+                        {
+                            safe_free_aligned(&logBuffer);
+                        }
+                        free_Secure_File_Info(&fp_log);
+                        return ERROR_WRITING_FILE;
+                    }
+                    if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                    {
+                        printf("Error closing file!\n");
+                    }
+                    if (device->deviceVerbosity > VERBOSITY_QUIET)
+                    {
+                        printf("\n");
+                        printf("Binary log saved to: %s\n", fp_log->fullpath);
+                    }
+                }
+                else
+                {
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        printf("Failed to open file!\n");
+                    }
+                    ret = FAILURE;
+                    safe_free_aligned(&logBuffer);
+                    free_Secure_File_Info(&fp_log);
+                }
+            }
         }
         else
         {
@@ -3712,17 +3773,7 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
             {
             case PULL_LOG_PIPE_MODE:
             case PULL_LOG_RAW_MODE:
-                ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
-                if (ret == SUCCESS && logSize > 0)
-                {
-                    genericLogBuf = C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-                }
-                else
-                {
-                    ret = MEMORY_FAILURE;
-                }
 
-               
 
                 if (SUCCESS == ret)
                 {
@@ -3744,31 +3795,34 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
                 //3 (feature register 2) - Return WLTR data (SATA only)
                 //4 (feature register 3) - Return Neural N/W data (SATA only)
 
-                
-                              
+
+
                 if (issueFactory == 2)
                 {
-                   
+
                     logName = "FARM_TIME_SERIES_FLASH";
-                    
+
                 }
                 else if (issueFactory == 3)
                 {
-                   
+
                     logName = "FARM_WLTR";
                 }
                 else if (issueFactory == 4)
                 {
-                    
+
                     logName = "FARM_NEURAL_NW";
                 }
                 else
                 {
-                   
+
                     logName = "FARM_TIME_SERIES_DISC";
 
                 }
 
+
+            if(ret==SUCCESS)
+            {
                 bool fileOpened = false;
                 secureFileInfo* fp_log = M_NULLPTR;
                 uint16_t pagesToReadNow = 1;
@@ -3803,8 +3857,10 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
 
                     break;
                 }
-                break;
             }
+          
+                break;
+               }
             break;
         default:
             ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
@@ -3854,8 +3910,8 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
                 //1 - Generate and report new FARM data and save to disc(~45ms)(SATA only)
                 //2 - Report previous FARM data from disc(~20ms)(SATA only)
                 //3 - Report FARM factory data from disc(~20ms)(SATA only)
-                
-                
+
+
 
                 if (SUCCESS == ret)
                 {
@@ -3876,68 +3932,71 @@ eReturnValues pull_FARM_Log(tDevice *device, const char * const filePath, uint32
                 //1 - Generate and report new FARM data and save to disc(~45ms)(SATA only)
                 //2 - Report previous FARM data from disc(~20ms)(SATA only)
                 //3 - Report FARM factory data from disc(~20ms)(SATA only)
-                
-                              
+
+
                 if (genericLogBuf) {
                     if (issueFactory == 1)
                     {
-                       
+
                         logName = "P_AND_S_FARM";
                     }
                     else if (issueFactory == 2)
                     {
-                        
+
                         logName = "PREVIOUS_FARM";
                     }
                     else if (issueFactory == 3)
                     {
-                        
+
                         logName = "FACTORY_FARM";
                     }
                     else
                     {
-                        
+
                         logName = "FARM";
                     }
 
-                } else{
+                }
+                else {
                     ret = MEMORY_FAILURE;
                 }
-
-                bool fileOpened = false;
-                secureFileInfo* fp_log = M_NULLPTR;
-                uint16_t pagesToReadNow = 1;
-
-                if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, FILE_NAME_TYPE, filePath, logName, "bin"))
+                if (ret == SUCCESS)
                 {
-                    fileOpened = true;
-                }
-                else
-                {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
-                    {
-                        printf("Failed to open file!\n");
-                    }
-                    ret = FAILURE;
-                    free_Secure_File_Info(&fp_log);
-                    return FILE_OPEN_ERROR;
-                }
-                if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, genericLogBuf, C_CAST(size_t, pagesToReadNow) * logSize, sizeof(uint8_t), logSize, M_NULLPTR))
-                {
-                    if (device->deviceVerbosity > VERBOSITY_QUIET)
-                    {
-                        perror("Error writing data to a file!\n");
-                    }
-                    if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
-                    {
-                        printf("Error closing file!\n");
-                    }
-                    free_Secure_File_Info(&fp_log);
-                    fileOpened = false;
-                    safe_free_aligned(&genericLogBuf);
-                    return ERROR_WRITING_FILE;
+                    bool fileOpened = false;
+                    secureFileInfo* fp_log = M_NULLPTR;
+                    uint16_t pagesToReadNow = 1;
 
-                    break;
+                    if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, FILE_NAME_TYPE, filePath, logName, "bin"))
+                    {
+                        fileOpened = true;
+                    }
+                    else
+                    {
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        {
+                            printf("Failed to open file!\n");
+                        }
+                        ret = FAILURE;
+                        free_Secure_File_Info(&fp_log);
+                        return FILE_OPEN_ERROR;
+                    }
+                    if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, genericLogBuf, C_CAST(size_t, pagesToReadNow) * logSize, sizeof(uint8_t), logSize, M_NULLPTR))
+                    {
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            perror("Error writing data to a file!\n");
+                        }
+                        if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                        {
+                            printf("Error closing file!\n");
+                        }
+                        free_Secure_File_Info(&fp_log);
+                        fileOpened = false;
+                        safe_free_aligned(&genericLogBuf);
+                        return ERROR_WRITING_FILE;
+
+                        break;
+                    }
                 }
             }
         }
