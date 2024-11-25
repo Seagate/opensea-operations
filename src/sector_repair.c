@@ -395,7 +395,7 @@ eReturnValues repair_LBA(tDevice*    device,
     return ret;
 }
 
-void print_LBA_Error_List(const ptrErrorLBA LBAs, uint16_t numberOfErrors)
+void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
 {
     // need to print out a list of the LBAs and their status
     printf("                            Bad LBAs                            \n");

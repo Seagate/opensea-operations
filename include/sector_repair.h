@@ -40,6 +40,8 @@ extern "C"
         eRepairStatus repairStatus;
     } errorLBA, *ptrErrorLBA;
 
+    typedef const errorLBA* constPtrErrorLBA
+
     static M_INLINE void safe_free_error_lba(errorLBA** errlba)
     {
         safe_Free(M_REINTERPRET_CAST(void**, errlba));
@@ -88,7 +90,7 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_LBA_Error_List(const ptrErrorLBA LBAs, uint16_t numberOfErrors);
+    OPENSEA_OPERATIONS_API void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors);
 
     OPENSEA_OPERATIONS_API eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
                                                                             bool*    automaticWriteReallocationEnabled,
