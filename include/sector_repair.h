@@ -40,7 +40,7 @@ extern "C"
         eRepairStatus repairStatus;
     } errorLBA, *ptrErrorLBA;
 
-    typedef const errorLBA* constPtrErrorLBA
+    typedef const errorLBA* constPtrErrorLBA;
 
     static M_INLINE void safe_free_error_lba(errorLBA** errlba)
     {
