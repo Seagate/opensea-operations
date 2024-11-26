@@ -1612,8 +1612,8 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries e
 {
     eReturnValues ret             = NOT_SUPPORTED;
     uint8_t*      selfTestResults = M_NULLPTR;
-    uint32_t      logSize =
-        0; // used for compatibility purposes with drives that may have GPL, but not support the ext log...
+    uint32_t      logSize         = UINT32_C(0);
+    // used for compatibility purposes with drives that may have GPL, but not support the ext log...
     // device->drive_info.ata_Options.generalPurposeLoggingSupported = false;//for debugging SMART log version
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported &&
         SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)

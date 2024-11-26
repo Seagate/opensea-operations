@@ -220,7 +220,7 @@ eReturnValues get_Sanitize_Progress(tDevice* device, double* percentComplete, eS
 eReturnValues show_Sanitize_Progress(tDevice* device)
 {
     eReturnValues   ret                = UNKNOWN;
-    double          percentComplete    = 0;
+    double          percentComplete    = 0.0;
     eSanitizeStatus sanitizeInProgress = 0;
 
     ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
@@ -595,7 +595,7 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     eReturnValues ret             = IN_PROGRESS;
     uint8_t       minutes         = UINT8_C(0);
     uint8_t       seconds         = UINT8_C(0);
-    double        percentComplete = 0;
+    double        percentComplete = 0.0;
     convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
     printf("Sanitize progress will be updated every");
     print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);

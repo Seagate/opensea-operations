@@ -8388,8 +8388,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 
 void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 {
-    double mCapacity = 0;
-    double capacity  = 0;
+    double mCapacity = 0.0;
+    double capacity  = 0.0;
     DECLARE_ZERO_INIT_ARRAY(char, mCapUnits, UNIT_STRING_LENGTH);
     DECLARE_ZERO_INIT_ARRAY(char, capUnits, UNIT_STRING_LENGTH);
     char* mCapUnit = &mCapUnits[0];
