@@ -813,6 +813,28 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
         currentErase->eraseIdentifier = ERASE_SANITIZE_CRYPTO;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Crypto Erase");
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
+#if defined (_WIN32)
+        if (device->drive_info.drive_type == NVME_DRIVE)
+        {
+            if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
+            {
+                if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.sanitizeCrypto)
+                {
+                    currentErase->osSupported = true;
+                }
+                else
+                {
+                    currentErase->osSupported = false;
+                }
+            }
+            else
+                currentErase->osSupported = true;
+        }
+        else
+            currentErase->osSupported = true;
+#else
+        currentErase->osSupported = true;
+#endif
         currentErase->warningValid = true;
         currentErase->eraseWeight = 0;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -841,6 +863,30 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
         currentErase->eraseIdentifier = ERASE_SANITIZE_BLOCK;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Block Erase");
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
+
+
+#if defined (_WIN32)
+        if (device->drive_info.drive_type == NVME_DRIVE)
+        {
+            if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
+            {
+                if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.sanitizeBlock)
+                {
+                    currentErase->osSupported = true;
+                }
+                else
+                {
+                    currentErase->osSupported = false;
+                }
+            }
+            else
+                currentErase->osSupported = true;
+        }
+        else
+            currentErase->osSupported = true;
+#else
+        currentErase->osSupported = true;
+#endif
         currentErase->warningValid = true;
         currentErase->eraseWeight = 1;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -867,6 +913,43 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
         {
             currentErase->eraseIdentifier = ERASE_NVM_FORMAT_CRYPTO_SECURE_ERASE;
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: Crypto Erase");
+
+            //NVMe Format - in windows : some USB could support, and if drive is connected to PCIe slot, then not supported
+            //in linux : for all NVMe connected to PCIe slot it's supported, and USB - all except JM 0x0BC2 - STX vendor
+#if defined (_WIN32)
+            if (device->drive_info.interface_type == USB_INTERFACE)
+            {
+                if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
+                {
+                    if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.format)
+                    {
+                        currentErase->osSupported = true;
+                    }
+                }
+                else
+                {
+                    currentErase->osSupported = true;
+                    
+                }
+            }
+            else
+            {
+                currentErase->osSupported = false;
+            }
+#else
+            if (device->drive_info.interface_type != USB_INTERFACE)
+            {
+                currentErase->osSupported = true;
+            }
+            else
+            {
+                //check if not JM with 0x0BC2(STX vendor)
+                if (!(device->drive_info.adapter_info.vendorIDValid && device->drive_info.adapter_info.vendorID == 0x0BC2 && device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON))
+                {
+                    currentErase->osSupported = true;
+                }
+            }
+#endif
             currentErase->eraseWeight = 0;
             currentErase->warningValid = false;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_POSSIBLE_PURGE;
@@ -879,6 +962,40 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
             currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
             currentErase->eraseWeight = 1;
+#if defined (_WIN32)
+            if (device->drive_info.interface_type == USB_INTERFACE)
+            {
+                if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
+                {
+                    if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.format)
+                    {
+                        currentErase->osSupported = true;
+                    }
+                }
+                else
+                {
+                    currentErase->osSupported = true;
+
+                }
+            }
+            else
+            {
+                currentErase->osSupported = false;
+            }
+#else
+            if (device->drive_info.interface_type != USB_INTERFACE)
+            {
+                currentErase->osSupported = true;
+            }
+            else
+            {
+                //check if not JM with 0x0BC2(STX vendor)
+                if (!(device->drive_info.adapter_info.vendorIDValid && device->drive_info.adapter_info.vendorID == 0x0BC2 && device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON))
+                {
+                    currentErase->osSupported = true;
+                }
+            }
+#endif
             currentErase->warningValid = false;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;//only crypto erase is a possible purge in IEEE2883-2022
             //NOTE: We can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
@@ -920,6 +1037,30 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
         currentErase->eraseIdentifier = ERASE_SANITIZE_OVERWRITE;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Overwrite Erase");
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
+
+#if defined (_WIN32)
+        if (device->drive_info.drive_type == NVME_DRIVE)
+        {
+            if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
+            {
+                if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.sanitizeOverwrite)
+                {
+                    currentErase->osSupported = true;
+                }
+                else
+                {
+                    currentErase->osSupported = false;
+                }
+            }
+            else
+                currentErase->osSupported = true;
+        }
+        else
+            currentErase->osSupported = true;
+#else
+        currentErase->osSupported = true;
+#endif
+
         currentErase->warningValid = true;
         currentErase->eraseWeight = 7;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -945,6 +1086,44 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
         currentErase->eraseWeight = 8;//assuming that this will do a full drive overwrite format which will be slow
         //NOTE: If crypto is supported, a request for user secure erase may run a crypto erase, but no way to know for sure-TJE
+
+
+         //NVMe Format - in windows : some USB could support, and if drive is connected to PCIe slot, then not supported
+         //in linux : for all NVMe connected to PCIe slot it's supported, and USB - all except JM 0x0BC2 - STX vendor
+#if defined (_WIN32)
+        if (device->drive_info.interface_type == USB_INTERFACE)
+        {
+            if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
+            {
+                if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.format)
+                {
+                    currentErase->osSupported = true;
+                }
+            }
+            else
+            {
+                currentErase->osSupported = true;
+
+            }
+        }
+        else
+        {
+            currentErase->osSupported = false;
+        }
+#else
+        if (device->drive_info.interface_type != USB_INTERFACE)
+        {
+            currentErase->osSupported = true;
+        }
+        else
+        {
+            //check if not JM with 0x0BC2(STX vendor)
+            if (!(device->drive_info.adapter_info.vendorIDValid && device->drive_info.adapter_info.vendorID == 0x0BC2 && device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON))
+            {
+                currentErase->osSupported = true;
+            }
+        }
+#endif
         currentErase->warningValid = false;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
         //Note: We can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly

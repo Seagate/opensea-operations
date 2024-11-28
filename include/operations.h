@@ -338,6 +338,7 @@ extern "C"
         char eraseWarning[MAX_ERASE_WARNING_LENGTH];//may be an empty string. May contain something like "requires password" or "cannot be stopped"
         uint8_t eraseWeight;//used to store how fast/slow it is...used for sorting from fastest to slowest
         eraseSanitizationLevel sanitizationLevel;//What does the given erase type comply with as far as IEEE 2883 specification mentions.
+        bool osSupported;
     }eraseMethod;
 
     //-----------------------------------------------------------------------------
