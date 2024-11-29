@@ -925,6 +925,9 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
                     {
                         currentErase->osSupported = true;
                     }
+                    else {
+                        currentErase->osSupported = false;
+                    }
                 }
                 else
                 {
@@ -970,6 +973,9 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
                     if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.format)
                     {
                         currentErase->osSupported = true;
+                    }
+                    else {
+                        currentErase->osSupported = false;
                     }
                 }
                 else
@@ -1098,6 +1104,9 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
                 if (device->drive_info.passThroughHacks.nvmePTHacks.limitedCommandsSupported.format)
                 {
                     currentErase->osSupported = true;
+                }
+                else {
+                    currentErase->osSupported = false;
                 }
             }
             else
