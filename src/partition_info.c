@@ -758,16 +758,16 @@ static eReturnValues fill_GPT_Data(tDevice*   device,
                                       &gpt->partition[partIter].partitionTypeGUID.guid);
                         if (!gptGUIDsSorted)
                         {
-                            safe_qsort(gptGUIDNameLookup, sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
+                            safe_qsort(gptGUIDNameLookup, SIZE_OF_STACK_ARRAY(gptGUIDNameLookup),
                                        sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID);
                             gptGUIDsSorted = true;
                         }
 
-                        gptName = C_CAST(gptPartitionTypeName*,
-                                         safe_bsearch(&gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
-                                                      sizeof(gptGUIDNameLookup) / sizeof(gptGUIDNameLookup[0]),
-                                                      sizeof(gptGUIDNameLookup[0]),
-                                                      (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
+                        gptName =
+                            C_CAST(gptPartitionTypeName*,
+                                   safe_bsearch(&gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
+                                                SIZE_OF_STACK_ARRAY(gptGUIDNameLookup), sizeof(gptGUIDNameLookup[0]),
+                                                (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
 
                         if (gptName)
                         {
