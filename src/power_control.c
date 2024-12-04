@@ -996,8 +996,10 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
                                                      false, MPC_DEFAULT_VALUES, powerConditionsPage)))
             {
                 // uint16_t modeDataLength = M_BytesTo2ByteValue(powerConditionsPage[0], powerConditionsPage[1]);
-                uint16_t blockDescriptorLength = M_BytesTo2ByteValue(powerConditionsPage[6], powerConditionsPage[7]);
-                uint32_t mpStartOffset         = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                uint16_t blockDescriptorLength =
+                    M_BytesTo2ByteValue(powerConditionsPage[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                        powerConditionsPage[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
+                uint32_t mpStartOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
                 // read the power conditions values that were requested
                 if (powerConditions->idle_a.powerConditionValid && powerConditions->idle_a.restoreToDefault)
                 {
@@ -1111,8 +1113,10 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
                                                  MPC_CURRENT_VALUES, powerConditionsPage)))
         {
             // uint16_t modeDataLength = M_BytesTo2ByteValue(powerConditionsPage[0], powerConditionsPage[1]);
-            uint16_t blockDescriptorLength = M_BytesTo2ByteValue(powerConditionsPage[6], powerConditionsPage[7]);
-            uint32_t mpStartOffset         = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+            uint16_t blockDescriptorLength =
+                M_BytesTo2ByteValue(powerConditionsPage[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                    powerConditionsPage[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
+            uint32_t mpStartOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
             // read the power conditions values that were requested
             if (powerConditions->idle_a.powerConditionValid && !powerConditions->idle_a.restoreToDefault)
             {
@@ -3142,7 +3146,8 @@ eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
         {
             // make sure we got the header as we expect it, then validate we got all the data we needed.
             // uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
-            uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                 enhSasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
             // validate we got the right page
             if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 &&
                 (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x03 &&
@@ -3240,7 +3245,8 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8
                                              MPC_CURRENT_VALUES, enhSasPhyControl)))
     {
         // uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
-        uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+        uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                             enhSasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
         // validate we got the right page
         if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 &&
             (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x03 &&
@@ -3304,7 +3310,8 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*    
         {
             // make sure we got the header as we expect it, then validate we got all the data we needed.
             // uint16_t modeDataLength = M_BytesTo2ByteValue(enhSasPhyControl[0], enhSasPhyControl[1]);
-            uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[6], enhSasPhyControl[7]);
+            uint16_t blockDescriptorLength = M_BytesTo2ByteValue(enhSasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                 enhSasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
             // validate we got the right page
             if ((enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 &&
                 (enhSasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x03 &&

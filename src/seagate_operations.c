@@ -120,7 +120,8 @@ eReturnValues scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allP
     {
         // make sure we got the header as we expect it, then validate we got all the data we needed.
         // uint16_t modeDataLength = M_BytesTo2ByteValue(sasPhyControl[0], sasPhyControl[1]);
-        uint16_t blockDescriptorLength = M_BytesTo2ByteValue(sasPhyControl[6], sasPhyControl[7]);
+        uint16_t blockDescriptorLength = M_BytesTo2ByteValue(sasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                             sasPhyControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
         // validate we got the right page
         if ((sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 0] & 0x3F) == 0x19 &&
             (sasPhyControl[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength + 1]) == 0x01 &&

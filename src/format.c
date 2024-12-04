@@ -347,7 +347,8 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
         if (modeSelect10)
         {
             blockDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN;
-            blockDescriptorLength = M_BytesTo2ByteValue(modeParameterData[6], modeParameterData[7]);
+            blockDescriptorLength = M_BytesTo2ByteValue(modeParameterData[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        modeParameterData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
             // zero out the mode data length since we will not actually send it the mode page, just header and block
             // descriptor
             modeParameterData[0] = 0;
@@ -359,7 +360,7 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
         else // mode sense 6
         {
             blockDescriptorOffset = MODE_PARAMETER_HEADER_6_LEN;
-            blockDescriptorLength = modeParameterData[3];
+            blockDescriptorLength = modeParameterData[MODE_HEADER_6_BLK_DESC_OFFSET];
             // zero out the mode data length since we will not actually send it the mode page, just header and block
             // descriptor
             modeParameterData[0] = 0;
@@ -581,8 +582,9 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
                                       formatStatusPage, 307))
     {
         // NOTE: Parameters will be all F's when the data is not available or new or the last format failed
-        if (M_GETBITRANGE(formatStatusPage[0], 5, 0) == LP_FORMAT_STATUS_LOG_PAGE && !(formatStatusPage[0] & BIT6) &&
-            formatStatusPage[0] & BIT7 && formatStatusPage[1] == 0) // make sure we got the right page!
+        if (get_bit_range_uint8(formatStatusPage[0], 5, 0) == LP_FORMAT_STATUS_LOG_PAGE &&
+            !(formatStatusPage[0] & BIT6) && formatStatusPage[0] & BIT7 &&
+            formatStatusPage[1] == 0) // make sure we got the right page!
         {
             // got the data, so let's loop through it.
             uint16_t pageLength          = M_BytesTo2ByteValue(formatStatusPage[2], formatStatusPage[3]);
@@ -621,7 +623,7 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
                             if (formatStatusPage[offset + 3] >= 4)
                             {
                                 formatStatus->lastFormatData.protectionFieldUsage =
-                                    M_GETBITRANGE(formatStatusPage[offset + 4], 2, 0);
+                                    get_bit_range_uint8(formatStatusPage[offset + 4], 2, 0);
                                 formatStatus->lastFormatData.formatOptionsValid = formatStatusPage[offset + 5] & BIT7;
                                 formatStatus->lastFormatData.disablePrimaryList = formatStatusPage[offset + 5] & BIT6;
                                 formatStatus->lastFormatData.disableCertify     = formatStatusPage[offset + 5] & BIT5;
@@ -1354,7 +1356,7 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
                 C_CAST(uint32_t, power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS));
             formats->sectorSizes[iter].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_NVME;
             formats->sectorSizes[iter].nvmeSectorBits.relativePerformance =
-                M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].rp, 1, 0);
+                get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].rp, 1, 0);
             formats->sectorSizes[iter].nvmeSectorBits.metadataSize =
                 device->drive_info.IdentifyData.nvme.ns.lbaf[iter].ms;
             ++formats->numberOfSectorSizes;
@@ -1838,9 +1840,9 @@ eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
         {
             if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
             {
-                if (M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0) != 0)
+                if (get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0) != 0)
                 {
-                    *percentComplete = 100 - M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
+                    *percentComplete = 100 - get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
                     ret              = IN_PROGRESS;
                 }
             }
@@ -1941,7 +1943,7 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
     // Set metadata, PI, PIL settings to current device settings to start
     formatCmdOptions.ms  = (device->drive_info.IdentifyData.nvme.ns.mc & BIT0) ? 1 : 0;
     formatCmdOptions.pil = (device->drive_info.IdentifyData.nvme.ns.dps & BIT3) ? 1 : 0;
-    formatCmdOptions.pi  = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
+    formatCmdOptions.pi  = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
 
     if (nvmParams.metadataSettings.valid)
     {
@@ -1965,12 +1967,12 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
     else
     {
         // need to figure out what format we want to run!
-        uint8_t flbas = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
+        uint8_t flbas = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
         // get the LBAF number. THis field varies depending on other things reported by the drive in NVMe 2.0
         if (device->drive_info.IdentifyData.nvme.ns.nlbaf > 16)
         {
             // need to append 2 more bits to interpret this correctly since number of formats > 16
-            flbas |= M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
+            flbas |= get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
         }
         uint32_t fmtBlockSize    = device->drive_info.deviceBlockSize;
         uint16_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].ms;

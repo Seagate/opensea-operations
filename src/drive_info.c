@@ -151,7 +151,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     // check if the really OLD Mb/s bits are set...if they are, set the speed based off of them
     // This will be changed later if other words are set.-TJE
-    if (is_ATA_Identify_Word_Valid(wordPtr[0]) && M_GETBITRANGE(wordPtr[0], 10, 8) > 0)
+    if (is_ATA_Identify_Word_Valid(wordPtr[0]) && get_8bit_range_uint16(wordPtr[0], 10, 8) > 0)
     {
         driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_ANCIENT; // ESDI bits
         driveInfo->interfaceSpeedInfo.speedIsValid = true;
@@ -400,8 +400,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         // SWDMA (obsolete since MW is so much faster...) (word 52 also holds the max supported value, but is also long
         // obsolete...it can be checked if word 62 is not supported)
-        uint8_t swdmaSupported = M_GETBITRANGE(wordPtr[62], 2, 0);
-        uint8_t swdmaSelected  = M_GETBITRANGE(wordPtr[62], 10, 8);
+        uint8_t swdmaSupported = get_8bit_range_uint16(wordPtr[62], 2, 0);
+        uint8_t swdmaSelected  = get_8bit_range_uint16(wordPtr[62], 10, 8);
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
@@ -498,8 +498,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         int8_t counter = INT8_C(-1);
         // MWDMA
-        uint8_t mwdmaSupported = M_GETBITRANGE(wordPtr[63], 2, 0);
-        uint8_t mwdmaSelected  = M_GETBITRANGE(wordPtr[63], 10, 8);
+        uint8_t mwdmaSupported = get_8bit_range_uint16(wordPtr[63], 2, 0);
+        uint8_t mwdmaSelected  = get_8bit_range_uint16(wordPtr[63], 10, 8);
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
@@ -732,7 +732,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     uint8_t queueDepth = UINT8_C(1); // minimum queue depth for any device is 1
     if (is_ATA_Identify_Word_Valid(wordPtr[75]))
     {
-        queueDepth = M_GETBITRANGE(wordPtr[75], 4, 0) + 1;
+        queueDepth = get_8bit_range_uint16(wordPtr[75], 4, 0) + 1;
     }
 
     // SATA Capabilities (Words 76 & 77)
@@ -1661,17 +1661,17 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.ata80PinCableDetected = true;
             }
-            if (M_GETBITRANGE(wordPtr[93], 12, 8) > 0 && wordPtr[93] & BIT8)
+            if (get_8bit_range_uint16(wordPtr[93], 12, 8) > 0 && wordPtr[93] & BIT8)
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = true;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined =
-                    M_GETBITRANGE(wordPtr[93], 10, 9);
+                    get_8bit_range_uint16(wordPtr[93], 10, 9);
             }
-            else if (M_GETBITRANGE(wordPtr[93], 7, 0) > 0 && wordPtr[93] & BIT0)
+            else if (get_8bit_range_uint16(wordPtr[93], 7, 0) > 0 && wordPtr[93] & BIT0)
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = false;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined =
-                    M_GETBITRANGE(wordPtr[93], 2, 1);
+                    get_8bit_range_uint16(wordPtr[93], 2, 1);
             }
         }
     }
@@ -3558,10 +3558,10 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo
     eReturnValues ret = SUCCESS;
     if (driveInfo && scsiInfo && inquiryData && dataLength >= INQ_RETURN_DATA_LENGTH_SCSI2)
     {
-        uint8_t responseFormat = M_GETBITRANGE(inquiryData[3], 3, 0);
+        uint8_t responseFormat = get_bit_range_uint8(inquiryData[3], 3, 0);
         // now parse the data
-        scsiInfo->peripheralQualifier  = M_GETBITRANGE(inquiryData[0], 7, 5);
-        scsiInfo->peripheralDeviceType = M_GETBITRANGE(inquiryData[0], 4, 0);
+        scsiInfo->peripheralQualifier  = get_bit_range_uint8(inquiryData[0], 7, 5);
+        scsiInfo->peripheralDeviceType = get_bit_range_uint8(inquiryData[0], 4, 0);
         // Vendor ID
         safe_memcpy(&driveInfo->vendorID, T10_VENDOR_ID_LEN + 1, &inquiryData[8], INQ_DATA_T10_VENDOR_ID_LEN);
         // MN-product identification
@@ -3993,7 +3993,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                         driveInfo->longDSTTimeMinutes =
                             M_BytesTo2ByteValue(extendedInquiryData[10], extendedInquiryData[11]);
                         // get supported protection types
-                        switch (M_GETBITRANGE(extendedInquiryData[4], 5, 3))
+                        switch (get_bit_range_uint8(extendedInquiryData[4], 5, 3))
                         {
                         case 0:
                             scsiInfo->protectionType1Supported = true;
@@ -4135,7 +4135,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                         if (logicalBlockProvisioning[5] & BIT7)
                         {
                             DECLARE_ZERO_INIT_ARRAY(char, unmapDetails, 48);
-                            uint8_t lbprz = M_GETBITRANGE(logicalBlockProvisioning[5], 4, 2);
+                            uint8_t lbprz = get_bit_range_uint8(logicalBlockProvisioning[5], 4, 2);
                             if (logicalBlockProvisioning[5] & BIT1 || lbprz)
                             {
                                 DECLARE_ZERO_INIT_ARRAY(char, lbprzStr, 22);
@@ -4690,7 +4690,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             {
                                 // check that we have the correct page
                                 if (!(startStopCounterLog[0] & BIT6) &&
-                                    M_GETBITRANGE(startStopCounterLog[0], 5, 0) == LP_START_STOP_CYCLE_COUNTER &&
+                                    get_bit_range_uint8(startStopCounterLog[0], 5, 0) == LP_START_STOP_CYCLE_COUNTER &&
                                     startStopCounterLog[1] == 0)
                                 {
                                     // check the parameter code in case a device/translator with this page is responding
@@ -5042,7 +5042,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
                         }
                         if (scsiInfo->protectionSupported && readCapBuf[12] & BIT0) // protection enabled
                         {
-                            switch (M_GETBITRANGE(readCapBuf[12], 3, 1))
+                            switch (get_bit_range_uint8(readCapBuf[12], 3, 1))
                             {
                             case 0:
                                 protectionTypeEnabled = 1;
@@ -5115,7 +5115,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
                                             &driveInfo->maxLBA, &driveInfo->sectorAlignment, readCapBuf, true);
                     if (scsiInfo->protectionSupported && readCapBuf[12] & BIT0) // protection enabled
                     {
-                        switch (M_GETBITRANGE(readCapBuf[12], 3, 1))
+                        switch (get_bit_range_uint8(readCapBuf[12], 3, 1))
                         {
                         case 0:
                             protectionTypeEnabled = 1;
@@ -5375,13 +5375,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 if (sixByte)
                                 {
                                     headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                    blockDescLen = readWriteErrorRecovery[2];
+                                    blockDescLen = readWriteErrorRecovery[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 }
                                 else
                                 {
                                     headerLength = MODE_PARAMETER_HEADER_10_LEN;
                                     blockDescLen =
-                                        M_BytesTo2ByteValue(readWriteErrorRecovery[6], readWriteErrorRecovery[7]);
+                                        M_BytesTo2ByteValue(readWriteErrorRecovery[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                            readWriteErrorRecovery[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 }
                                 headerLength += blockDescLen;
                             }
@@ -5448,7 +5449,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 if (sixByte)
                                 {
                                     headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                    blockDescLen = readWriteErrorRecovery[2];
+                                    blockDescLen = readWriteErrorRecovery[MODE_HEADER_6_BLK_DESC_OFFSET];
                                     if (readWriteErrorRecovery[2] & BIT7)
                                     {
                                         driveInfo->isWriteProtected = true;
@@ -5458,7 +5459,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 {
                                     headerLength = MODE_PARAMETER_HEADER_10_LEN;
                                     blockDescLen =
-                                        M_BytesTo2ByteValue(readWriteErrorRecovery[6], readWriteErrorRecovery[7]);
+                                        M_BytesTo2ByteValue(readWriteErrorRecovery[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                            readWriteErrorRecovery[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                     if (readWriteErrorRecovery[3] & BIT7)
                                     {
                                         driveInfo->isWriteProtected = true;
@@ -5524,14 +5526,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             {
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                               &driveInfo->numberOfFeaturesSupported, awreString);
+                                safe_free(&awreString);
                             }
                             if (arreString)
                             {
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                               &driveInfo->numberOfFeaturesSupported, arreString);
+                                safe_free(&arreString);
                             }
-                            safe_free(&awreString);
-                            safe_free(&arreString);
                         }
                         break;
                     default:
@@ -5558,7 +5560,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 if (sixByte)
                                 {
                                     headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                    blockDescLen = rigidGeometry[2];
+                                    blockDescLen = rigidGeometry[MODE_HEADER_6_BLK_DESC_OFFSET];
                                     if (rigidGeometry[2] & BIT7)
                                     {
                                         driveInfo->isWriteProtected = true;
@@ -5567,7 +5569,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                    blockDescLen = M_BytesTo2ByteValue(rigidGeometry[6], rigidGeometry[7]);
+                                    blockDescLen =
+                                        M_BytesTo2ByteValue(rigidGeometry[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                            rigidGeometry[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                     if (rigidGeometry[3] & BIT7)
                                     {
                                         driveInfo->isWriteProtected = true;
@@ -5606,7 +5610,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = cachingPage[2];
+                                blockDescLen = cachingPage[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (cachingPage[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5615,7 +5619,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(cachingPage[6], cachingPage[7]);
+                                blockDescLen = M_BytesTo2ByteValue(cachingPage[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                   cachingPage[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (cachingPage[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5659,7 +5664,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     if (sixByte)
                                     {
                                         headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                        blockDescLen = cachingPage[2];
+                                        blockDescLen = cachingPage[MODE_HEADER_6_BLK_DESC_OFFSET];
                                         if (cachingPage[2] & BIT7)
                                         {
                                             driveInfo->isWriteProtected = true;
@@ -5668,7 +5673,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     else
                                     {
                                         headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                        blockDescLen = M_BytesTo2ByteValue(cachingPage[6], cachingPage[7]);
+                                        blockDescLen =
+                                            M_BytesTo2ByteValue(cachingPage[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                cachingPage[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                         if (cachingPage[3] & BIT7)
                                         {
                                             driveInfo->isWriteProtected = true;
@@ -5713,7 +5720,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = controlPage[2];
+                                blockDescLen = controlPage[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (controlPage[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5722,7 +5729,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(controlPage[6], controlPage[7]);
+                                blockDescLen = M_BytesTo2ByteValue(controlPage[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                   controlPage[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (controlPage[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5733,7 +5741,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                         if (pageRead)
                         {
                             // check the page code and page length
-                            if (M_GETBITRANGE(controlPage[headerLength + 0], 5, 0) == MP_CONTROL)
+                            if (get_bit_range_uint8(controlPage[headerLength + 0], 5, 0) == MP_CONTROL)
                             {
                                 // check length since the page needs to be long enough for this data. Earlier specs this
                                 // page was shorter
@@ -5778,12 +5786,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = controlExtensionPage[2];
+                                blockDescLen = controlExtensionPage[MODE_HEADER_6_BLK_DESC_OFFSET];
                             }
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(controlExtensionPage[6], controlExtensionPage[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(controlExtensionPage[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        controlExtensionPage[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                             }
                             headerLength += blockDescLen;
                         }
@@ -5824,7 +5834,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = controlExtensionPage[2];
+                                blockDescLen = controlExtensionPage[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (controlExtensionPage[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5833,7 +5843,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(controlExtensionPage[6], controlExtensionPage[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(controlExtensionPage[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        controlExtensionPage[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (controlExtensionPage[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5872,8 +5884,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, dlcString);
+                            safe_free(&dlcString);
                         }
-                        safe_free(&dlcString);
                     }
                     break;
                     case 0x03: // CDL A
@@ -5911,7 +5923,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = ioAdviceHints[2];
+                                blockDescLen = ioAdviceHints[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (ioAdviceHints[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5920,7 +5932,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(ioAdviceHints[6], ioAdviceHints[7]);
+                                blockDescLen = M_BytesTo2ByteValue(ioAdviceHints[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                   ioAdviceHints[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (ioAdviceHints[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -5993,7 +6006,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // if (sixByte)
                             // {
                             //     headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                            //     blockDescLen = pataControl[2];
+                            //     blockDescLen = pataControl[MODE_HEADER_6_BLK_DESC_OFFSET];
                             //     if (pataControl[2] & BIT7)
                             //     {
                             //         driveInfo->isWriteProtected = true;
@@ -6002,8 +6015,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // else
                             // {
                             //     headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                            //     blockDescLen = M_BytesTo2ByteValue(pataControl[6], pataControl[7]);
-                            //     if (pataControl[3] & BIT7)
+                            //     blockDescLen = M_BytesTo2ByteValue(pataControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                            //     pataControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]); if (pataControl[3] & BIT7)
                             //     {
                             //         driveInfo->isWriteProtected = true;
                             //     }
@@ -6031,7 +6044,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = ataFeatureControl[2];
+                                blockDescLen = ataFeatureControl[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (ataFeatureControl[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6040,14 +6053,16 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(ataFeatureControl[6], ataFeatureControl[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(ataFeatureControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        ataFeatureControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (ataFeatureControl[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
                                 }
                             }
                             headerLength += blockDescLen;
-                            if (M_GETBITRANGE(ataFeatureControl[headerLength + 4], 2, 0))
+                            if (get_bit_range_uint8(ataFeatureControl[headerLength + 4], 2, 0))
                             {
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                               &driveInfo->numberOfFeaturesSupported,
@@ -6082,7 +6097,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = protocolSpecificPort[2];
+                                blockDescLen = protocolSpecificPort[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (protocolSpecificPort[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6091,7 +6106,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (protocolSpecificPort[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6124,7 +6141,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = protocolSpecificPort[2];
+                                blockDescLen = protocolSpecificPort[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (protocolSpecificPort[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6133,7 +6150,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (protocolSpecificPort[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6269,7 +6288,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = protocolSpecificPort[2];
+                                blockDescLen = protocolSpecificPort[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (protocolSpecificPort[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6278,7 +6297,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (protocolSpecificPort[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6378,7 +6399,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = protocolSpecificPort[2];
+                                blockDescLen = protocolSpecificPort[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (protocolSpecificPort[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6387,7 +6408,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(protocolSpecificPort[6], protocolSpecificPort[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        protocolSpecificPort[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (protocolSpecificPort[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6495,12 +6518,13 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = powerConditions[2];
+                                blockDescLen = powerConditions[MODE_HEADER_6_BLK_DESC_OFFSET];
                             }
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(powerConditions[6], powerConditions[7]);
+                                blockDescLen = M_BytesTo2ByteValue(powerConditions[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                   powerConditions[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                             }
                             headerLength += blockDescLen;
                         }
@@ -6567,7 +6591,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = powerConditions[2];
+                                blockDescLen = powerConditions[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (powerConditions[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6576,7 +6600,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(powerConditions[6], powerConditions[7]);
+                                blockDescLen = M_BytesTo2ByteValue(powerConditions[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                                   powerConditions[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (powerConditions[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6645,8 +6670,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, epcFeatureString);
+                            safe_free(&epcFeatureString);
                         }
-                        safe_free(&epcFeatureString);
                     }
                     break;
                     case 0xF1: // ata power conditions
@@ -6666,7 +6691,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = ataPowerConditions[2];
+                                blockDescLen = ataPowerConditions[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (ataPowerConditions[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6675,7 +6700,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(ataPowerConditions[6], ataPowerConditions[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(ataPowerConditions[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        ataPowerConditions[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (ataPowerConditions[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6722,7 +6749,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = informationalExceptions[2];
+                                blockDescLen = informationalExceptions[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (informationalExceptions[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6732,7 +6759,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
                                 blockDescLen =
-                                    M_BytesTo2ByteValue(informationalExceptions[6], informationalExceptions[7]);
+                                    M_BytesTo2ByteValue(informationalExceptions[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        informationalExceptions[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (informationalExceptions[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6773,12 +6801,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = backgroundControl[2];
+                                blockDescLen = backgroundControl[MODE_HEADER_6_BLK_DESC_OFFSET];
                             }
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(backgroundControl[6], backgroundControl[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(backgroundControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        backgroundControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                             }
                             headerLength += blockDescLen;
                         }
@@ -6843,7 +6873,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             if (sixByte)
                             {
                                 headerLength = MODE_PARAMETER_HEADER_6_LEN;
-                                blockDescLen = backgroundControl[2];
+                                blockDescLen = backgroundControl[MODE_HEADER_6_BLK_DESC_OFFSET];
                                 if (backgroundControl[2] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6852,7 +6882,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else
                             {
                                 headerLength = MODE_PARAMETER_HEADER_10_LEN;
-                                blockDescLen = M_BytesTo2ByteValue(backgroundControl[6], backgroundControl[7]);
+                                blockDescLen =
+                                    M_BytesTo2ByteValue(backgroundControl[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        backgroundControl[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
                                 if (backgroundControl[3] & BIT7)
                                 {
                                     driveInfo->isWriteProtected = true;
@@ -6916,14 +6948,14 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, bmsString);
+                            safe_free(&bmsString);
                         }
                         if (bmsPSString)
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, bmsPSString);
+                            safe_free(&bmsPSString);
                         }
-                        safe_free(&bmsString);
-                        safe_free(&bmsPSString);
                     }
                     break;
                     default:
@@ -7644,7 +7676,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice*                d
     safe_memcpy(driveInfo->controllerData.nvmSubsystemNVMeQualifiedName, 257, &nvmeIdentifyData[768], 256);
     driveInfo->controllerData.nvmSubsystemNVMeQualifiedName[256] = '\0';
     // firmware slots
-    driveInfo->controllerData.numberOfFirmwareSlots = M_GETBITRANGE(nvmeIdentifyData[260], 3, 1);
+    driveInfo->controllerData.numberOfFirmwareSlots = get_bit_range_uint8(nvmeIdentifyData[260], 3, 1);
     // Add in other controller "Features" as needed
     if (nvmeIdentifyData[256] & BIT0)
     {
@@ -7831,7 +7863,7 @@ static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe dr
     uint8_t lbaFormatIdentifier = M_Nibble0(nvmeIdentifyData[26]);
     if (numLBAFormats > 16)
     {
-        lbaFormatIdentifier |= (M_GETBITRANGE(nvmeIdentifyData[26], 6, 5)) << 4;
+        lbaFormatIdentifier |= (get_bit_range_uint8(nvmeIdentifyData[26], 6, 5)) << 4;
     }
     // lba formats start at byte 128, and are 4 bytes in size each
     uint32_t lbaFormatOffset = UINT32_C(128) + (C_CAST(uint32_t, lbaFormatIdentifier) * UINT32_C(4));
@@ -7839,8 +7871,8 @@ static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe dr
         M_BytesTo4ByteValue(nvmeIdentifyData[lbaFormatOffset + 3], nvmeIdentifyData[lbaFormatOffset + 2],
                             nvmeIdentifyData[lbaFormatOffset + 1], nvmeIdentifyData[lbaFormatOffset + 0]);
     driveInfo->namespaceData.formattedLBASizeBytes =
-        C_CAST(uint32_t, power_Of_Two(M_GETBITRANGE(lbaFormatData, 23, 16)));
-    driveInfo->namespaceData.relativeFormatPerformance = M_GETBITRANGE(lbaFormatData, 25, 24);
+        C_CAST(uint32_t, power_Of_Two(get_8bit_range_uint32(lbaFormatData, 23, 16)));
+    driveInfo->namespaceData.relativeFormatPerformance = get_8bit_range_uint32(lbaFormatData, 25, 24);
     // nvm capacity
     for (uint8_t i = UINT8_C(0); i < 16; ++i)
     {
@@ -7869,7 +7901,7 @@ static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe dr
         M_BytesTo8ByteValue(nvmeIdentifyData[120], nvmeIdentifyData[121], nvmeIdentifyData[122], nvmeIdentifyData[123],
                             nvmeIdentifyData[124], nvmeIdentifyData[125], nvmeIdentifyData[126], nvmeIdentifyData[127]);
     // Namespace "features"
-    uint8_t protectionEnabled = M_GETBITRANGE(nvmeIdentifyData[29], 2, 0);
+    uint8_t protectionEnabled = get_bit_range_uint8(nvmeIdentifyData[29], 2, 0);
     if (nvmeIdentifyData[28] & BIT0)
     {
         if (protectionEnabled == 1)

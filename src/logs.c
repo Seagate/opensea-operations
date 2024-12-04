@@ -201,7 +201,7 @@ eReturnValues get_SCSI_Log_Size(tDevice* device, uint8_t logPage, uint8_t logSub
                                                          LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, 255))
     {
         // validate the page code and subpage code
-        uint8_t pageCode    = M_GETBITRANGE(logBuffer[0], 5, 0);
+        uint8_t pageCode    = get_bit_range_uint8(logBuffer[0], 5, 0);
         uint8_t subpageCode = logBuffer[1];
         bool    spf         = M_ToBool(logBuffer[0] & BIT6);
         if (spf && pageCode == LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES && subpageCode == 0xFF)
@@ -252,7 +252,7 @@ eReturnValues get_SCSI_Log_Size(tDevice* device, uint8_t logPage, uint8_t logSub
                                SCSI_LOG_PARAMETER_HEADER_LENGTH) == SUCCESS)
         {
             // validate the page code and subpage code
-            uint8_t pageCode    = M_GETBITRANGE(logBuffer[0], 5, 0);
+            uint8_t pageCode    = get_bit_range_uint8(logBuffer[0], 5, 0);
             uint8_t subpageCode = logBuffer[1];
             bool    spf         = M_ToBool(logBuffer[0] & BIT6);
             if ((logSubPage != 0 && spf && pageCode == logPage && subpageCode == logSubPage) ||
@@ -344,9 +344,9 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
     // checking for this for old drives that may support mode pages, but not the dbd bit properly
     // Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
     if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 ||
-        M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) ==
+        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) ==
             PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE ||
-        M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS ||
+        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS ||
         device->drive_info.passThroughHacks.scsiHacks.mode6bytes ||
         (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
     {
@@ -374,8 +374,9 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
         if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, false, longlba, mpc, modeBuffer))
         {
             // validate the correct page was returned!
-            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[6], modeBuffer[7]);
-            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
+            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {
@@ -469,8 +470,8 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
                 modeBuffer)) // don't disable block descriptors here since this is mostly to support old drives.
         {
             // validate the correct page was returned!
-            uint8_t blockDescLen = modeBuffer[2];
-            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+            uint8_t blockDescLen = modeBuffer[MODE_HEADER_6_BLK_DESC_OFFSET];
+            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {
@@ -546,9 +547,9 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
     // checking for this for old drives that may support mode pages, but not the dbd bit properly
     // Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
     if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 ||
-        M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) ==
+        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) ==
             PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE ||
-        M_GETBITRANGE(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS ||
+        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS ||
         device->drive_info.passThroughHacks.scsiHacks.mode6bytes ||
         (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
     {
@@ -582,8 +583,9 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 *used6ByteCmd = false;
             }
             // validate the correct page was returned!
-            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[6], modeBuffer[7]);
-            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET],
+                                                        modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
+            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {
@@ -749,8 +751,9 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 *used6ByteCmd = true;
             }
             // validate the correct page was returned!
-            uint8_t blockDescLen = modeBuffer[2];
-            if (modePage == M_GETBITRANGE(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+            uint8_t blockDescLen = modeBuffer[MODE_HEADER_6_BLK_DESC_OFFSET];
+            assert(MODE_PARAMETER_HEADER_6_LEN + blockDescLen <= modeLength);
+            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {
