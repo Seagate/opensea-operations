@@ -7418,7 +7418,7 @@ static void get_Set_Features_Command_Info(const char* commandName,
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - CFA (%02" PRIX8 "h) - Accepted for Compatibility",
                  commandName, setFeaturesSubcommand);
         break;
-    case SF_ENABLE_RETIRES:
+    case SF_ENABLE_RETRIES:
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Retries", commandName);
         break;
     case SF_SET_DEVICE_MAXIMUM_AVERAGE_CURRENT:
