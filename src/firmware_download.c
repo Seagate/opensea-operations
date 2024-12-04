@@ -150,8 +150,8 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice* 
             }
             else
             {
-                // uint8_t activeSlot = M_GETBITRANGE(firmwareLog[0], 2, 0);
-                uint8_t nextSlotToBeActivated = M_GETBITRANGE(firmwareLog[0], 6, 4);
+                // uint8_t activeSlot = get_bit_range_uint8(firmwareLog[0], 2, 0);
+                uint8_t nextSlotToBeActivated = get_bit_range_uint8(firmwareLog[0], 6, 4);
                 if (nextSlotToBeActivated != 0)
                 {
                     ret = POWER_CYCLE_REQUIRED;
@@ -999,7 +999,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                 supportedModes->firmwareSlotInfo.activateWithoutAResetSupported =
                     device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT4;
                 supportedModes->firmwareSlotInfo.numberOfSlots =
-                    M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1);
+                    get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1);
                 supportedModes->firmwareSlotInfo.slot1ReadOnly = device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT0;
                 // read the firmware log for more information
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareLog, 512);
@@ -1011,8 +1011,8 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                 if (SUCCESS == nvme_Get_Log_Page(device, &firmwareLogOpts))
                 {
                     supportedModes->firmwareSlotInfo.firmwareSlotInfoValid = true;
-                    supportedModes->firmwareSlotInfo.activeSlot            = M_GETBITRANGE(firmwareLog[0], 2, 0);
-                    supportedModes->firmwareSlotInfo.nextSlotToBeActivated = M_GETBITRANGE(firmwareLog[0], 6, 4);
+                    supportedModes->firmwareSlotInfo.activeSlot            = get_bit_range_uint8(firmwareLog[0], 2, 0);
+                    supportedModes->firmwareSlotInfo.nextSlotToBeActivated = get_bit_range_uint8(firmwareLog[0], 6, 4);
                     // set the firmware revision in each slot
                     for (uint32_t slotIter = UINT32_C(0), offset = UINT32_C(8);
                          slotIter <= supportedModes->firmwareSlotInfo.numberOfSlots &&
@@ -1066,7 +1066,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                         supportedModes->deferredVendorSpecificActivationSupported = true;
                     }
                     supportedModes->codeActivation =
-                        C_CAST(SCSIMicrocodeActivation, M_GETBITRANGE(extendedInq[4], 7, 6));
+                        C_CAST(SCSIMicrocodeActivation, get_bit_range_uint8(extendedInq[4], 7, 6));
                     if (extendedInq[12] & BIT4) // dms valid
                     {
                         supportedModes->downloadMicrocodeSupported = true;
@@ -1274,8 +1274,8 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                                         uint16_t serviceAction = M_BytesTo2ByteValue(
                                             reportAllOPs[supportedCmdsIter + 2], reportAllOPs[supportedCmdsIter + 3]);
                                         bool serviceActionValid = M_ToBool(reportAllOPs[supportedCmdsIter + 5] & BIT0);
-                                        eMLU mlu =
-                                            C_CAST(eMLU, M_GETBITRANGE(reportAllOPs[supportedCmdsIter + 5], 5, 4));
+                                        eMLU mlu                = C_CAST(
+                                                           eMLU, get_bit_range_uint8(reportAllOPs[supportedCmdsIter + 5], 5, 4));
                                         cmdDescriptorLength = (reportAllOPs[supportedCmdsIter + 5] & BIT1) ? 20 : 8;
                                         switch (operationCode)
                                         {

@@ -498,7 +498,7 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
         }
         if (readPage)
         {
-            if (M_GETBITRANGE(readWriteErrorRecoveryMP[headerLength + 0], 5, 0) == MP_READ_WRITE_ERROR_RECOVERY &&
+            if (get_bit_range_uint8(readWriteErrorRecoveryMP[headerLength + 0], 5, 0) == MP_READ_WRITE_ERROR_RECOVERY &&
                 readWriteErrorRecoveryMP[headerLength + 1] == 0x0A)
             {
                 ret = SUCCESS;

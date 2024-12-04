@@ -5869,7 +5869,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatist
                             deviceStats->sasStatistics.minimumTemperatureSincePowerOn.statisticValue =
                                 tempLogBuf[iter + 9];
                             ++deviceStats->sasStatistics.statisticsPopulated;
-                            if (parameterLength > 6 && M_GETBITRANGE(tempLogBuf[iter + 4], 1, 0) == 1)
+                            if (parameterLength > 6 && get_bit_range_uint8(tempLogBuf[iter + 4], 1, 0) == 1)
                             {
                                 deviceStats->sasStatistics.maximumOtherTemperature.isSupported  = true;
                                 deviceStats->sasStatistics.maximumOtherTemperature.isValueValid = true;
@@ -5979,7 +5979,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatist
                             deviceStats->sasStatistics.minimumRelativeHumiditySincePoweron.statisticValue =
                                 tempLogBuf[iter + 9];
                             ++deviceStats->sasStatistics.statisticsPopulated;
-                            if (parameterLength > 6 && M_GETBITRANGE(tempLogBuf[iter + 4], 1, 0) == 1)
+                            if (parameterLength > 6 && get_bit_range_uint8(tempLogBuf[iter + 4], 1, 0) == 1)
                             {
                                 deviceStats->sasStatistics.maximumOtherRelativeHumidity.isSupported  = true;
                                 deviceStats->sasStatistics.maximumOtherRelativeHumidity.isValueValid = true;

@@ -69,9 +69,10 @@ eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounte
                         counters->numberOfCounters -= 1;
                         break;
                     }
-                    uint16_t counterBits = M_GETBITRANGE(counters->counters[counters->numberOfCounters].rawID, 14, 12);
+                    uint16_t counterBits =
+                        get_bit_range_uint16(counters->counters[counters->numberOfCounters].rawID, 14, 12);
                     counters->counters[counters->numberOfCounters].eventID =
-                        M_GETBITRANGE(counters->counters[counters->numberOfCounters].rawID, 11, 0);
+                        get_bit_range_uint16(counters->counters[counters->numberOfCounters].rawID, 11, 0);
                     if (counters->counters[counters->numberOfCounters].rawID & BIT15)
                     {
                         counters->counters[counters->numberOfCounters].vendorUnique = true;

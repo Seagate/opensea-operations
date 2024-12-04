@@ -751,8 +751,8 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
         if (SUCCESS == scsi_Inquiry(device, blockCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
                                     BLOCK_DEVICE_CHARACTERISTICS, true, false))
         {
-            writeReq->blockErase  = C_CAST(eWriteAfterEraseReq, M_GETBITRANGE(blockCharacteristics[7], 7, 6));
-            writeReq->cryptoErase = C_CAST(eWriteAfterEraseReq, M_GETBITRANGE(blockCharacteristics[7], 5, 4));
+            writeReq->blockErase  = C_CAST(eWriteAfterEraseReq, get_bit_range_uint8(blockCharacteristics[7], 7, 6));
+            writeReq->cryptoErase = C_CAST(eWriteAfterEraseReq, get_bit_range_uint8(blockCharacteristics[7], 5, 4));
             if ((writeReq->cryptoErase <= WAEREQ_READ_COMPLETES_GOOD_STATUS ||
                  writeReq->blockErase <= WAEREQ_READ_COMPLETES_GOOD_STATUS) &&
                 device->drive_info.currentProtectionType > 0)
@@ -776,7 +776,7 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
                 {
                     // check if lbpu, lbpws, or lbpws10 are set since this can indicate support for provisioning. If
                     // none are set, provisioning is not supported.
-                    if (M_GETBITRANGE(logicalBlockProvisioning[5], 7, 5) > 0)
+                    if (get_bit_range_uint8(logicalBlockProvisioning[5], 7, 5) > 0)
                     {
                         needPIWriteAfterErase = false;
                     }
@@ -1611,7 +1611,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
                         uint16_t currentPageToSetLength = used6ByteCmd
                                                               ? MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength
                                                               : MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
-                        uint8_t  currentPage            = M_GETBITRANGE(modeData[offset + 0], 5, 0);
+                        uint8_t  currentPage            = get_bit_range_uint8(modeData[offset + 0], 5, 0);
                         uint8_t  currentSubPage         = UINT8_C(0);
                         uint16_t currentPageOffset      = UINT16_C(0);
                         if (modeData[offset] & BIT6)
@@ -1818,7 +1818,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice* device, uint8_t* modePageData, uint16_
         return BAD_PARAMETER;
     }
     uint32_t modePageLength = UINT32_C(0);
-    uint8_t  modePage       = M_GETBITRANGE(modePageData[0], 5, 0);
+    uint8_t  modePage       = get_bit_range_uint8(modePageData[0], 5, 0);
     uint8_t  subpage        = UINT8_C(0);
     if (modePageData[0] & BIT6)
     {
@@ -1911,7 +1911,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice* device, uint8_t* modePageData, uint16_
 //       pages are being looked up for other device types as well.
 static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char* mpName)
 {
-    scsiDeviceType = M_GETBITRANGE(scsiDeviceType, 4, 0); // strip off the qualifier if it was passed
+    scsiDeviceType = get_bit_range_uint8(scsiDeviceType, 4, 0); // strip off the qualifier if it was passed
     switch (modePage)
     {
     case 0x00: // vendor unique
@@ -2354,7 +2354,7 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
 {
     if (modeData && modeDataLen > UINT32_C(2))
     {
-        uint8_t  pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
+        uint8_t  pageNumber = get_bit_range_uint8(modeData[0], 5, 0);
         uint8_t  subpage    = UINT8_C(0);
         uint16_t pageLength = modeData[1] + UINT16_C(2); // page 0 format
         if (modeData[0] & BIT6)
@@ -2480,7 +2480,7 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
     else if (modeData)
     {
         // page not supported
-        uint8_t pageNumber = M_GETBITRANGE(modeData[0], 5, 0);
+        uint8_t pageNumber = get_bit_range_uint8(modeData[0], 5, 0);
         uint8_t subpage    = UINT8_C(0);
         if (modeData[0] & BIT6)
         {
@@ -2690,7 +2690,7 @@ static bool reset_Specific_Log_Page_Supported(tDevice* device)
         {
             if (logSenseSupReq.cdbUsageDataLength > 0)
             {
-                if (M_GETBITRANGE(logSenseSupReq.cdbUsageData[2], 5, 0) > 0 && logSenseSupReq.cdbUsageData[3] > 0)
+                if (get_bit_range_uint8(logSenseSupReq.cdbUsageData[2], 5, 0) > 0 && logSenseSupReq.cdbUsageData[3] > 0)
                 {
                     supported = true;
                 }
@@ -2783,13 +2783,13 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice* device, uint8_t m
                     {
                         // NOLINTBEGIN(bugprone-branch-clone)
                         // disabling clang-tidy for readability
-                        if (modePage == M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) &&
+                        if (modePage == get_bit_range_uint8(vpdModePagePolicy[vpdMPOffset], 5, 0) &&
                             subPage == vpdModePagePolicy[vpdMPOffset + 1])
                         {
                             mlus = M_ToBool(vpdModePagePolicy[vpdMPOffset + 2] & BIT7);
                             break;
                         }
-                        else if (M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F && subPage == 0 &&
+                        else if (get_bit_range_uint8(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F && subPage == 0 &&
                                  vpdModePagePolicy[vpdMPOffset + 1] == 0)
                         {
                             // This is the "report all mode pages", no subpages to indicate that the mlus applies to all
@@ -2797,7 +2797,7 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice* device, uint8_t m
                             mlus = M_ToBool(vpdModePagePolicy[vpdMPOffset + 2] & BIT7);
                             break;
                         }
-                        else if (M_GETBITRANGE(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F &&
+                        else if (get_bit_range_uint8(vpdModePagePolicy[vpdMPOffset], 5, 0) == 0x3F &&
                                  vpdModePagePolicy[vpdMPOffset + 1] == 0xFF)
                         {
                             // This is the "report all mode pages and subpages", to indicate that the mlus applies to

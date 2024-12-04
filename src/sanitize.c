@@ -56,7 +56,7 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
             *sanitizeStatus = SANITIZE_STATUS_FREEZELOCK_FAILED_DUE_TO_ANTI_FREEZE_LOCK;
         }
         // NOTE: If more status bits are added to the spec, then we will need to add support for detecting them here.
-        else if (M_GETBITRANGE(device->drive_info.lastCommandRTFRs.secCntExt, 4, 0) != 0)
+        else if (get_bit_range_uint8(device->drive_info.lastCommandRTFRs.secCntExt, 4, 0) != 0)
         {
             // unknown status
             *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
@@ -125,7 +125,7 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice*         device,
         uint16_t sstat   = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
         *percentComplete = sprog;
 
-        switch (M_GETBITRANGE(sstat, 2, 0))
+        switch (get_8bit_range_uint16(sstat, 2, 0))
         {
         case 0:
             *sanitizeStatus = SANITIZE_STATUS_NEVER_SANITIZED;
@@ -429,8 +429,9 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->noDeallocateInhibited = true;
         }
-        sanitizeOptions->nodmmas               = C_CAST(noDeallocateModifiesAfterSanitize,
-                                                        M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30));
+        sanitizeOptions->nodmmas =
+            C_CAST(noDeallocateModifiesAfterSanitize,
+                   get_8bit_range_uint32(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30));
         sanitizeOptions->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         sanitizeOptions->writeAfterBlockErase  = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         if (sanitizeOptions->noDeallocateInhibited)

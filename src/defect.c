@@ -57,7 +57,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
             defectListLength          = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
             listHasPrimaryDescriptors = defectData[1] & BIT4;
             listHasGrownDescriptors   = defectData[1] & BIT3;
-            returnedDefectListFormat  = M_GETBITRANGE(defectData[1], 2, 0);
+            returnedDefectListFormat  = get_bit_range_uint8(defectData[1], 2, 0);
             generationCode            = M_BytesTo2ByteValue(defectData[2], defectData[3]);
         }
         else
@@ -72,7 +72,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                 defectListLength          = M_BytesTo2ByteValue(defectData[2], defectData[3]);
                 listHasPrimaryDescriptors = defectData[1] & BIT4;
                 listHasGrownDescriptors   = defectData[1] & BIT3;
-                returnedDefectListFormat  = M_GETBITRANGE(defectData[1], 2, 0);
+                returnedDefectListFormat  = get_bit_range_uint8(defectData[1], 2, 0);
             }
         }
         if (gotDefectData)
@@ -132,7 +132,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                 defectListLength          = M_BytesTo2ByteValue(defectData[2], defectData[3]);
                                 listHasPrimaryDescriptors = defectData[1] & BIT4;
                                 listHasGrownDescriptors   = defectData[1] & BIT3;
-                                returnedDefectListFormat  = M_GETBITRANGE(defectData[1], 2, 0);
+                                returnedDefectListFormat  = get_bit_range_uint8(defectData[1], 2, 0);
                                 // now allocate our list to return to the caller!
                                 *defects = M_REINTERPRET_CAST(ptrSCSIDefectList,
                                                               safe_malloc(sizeof(scsiDefectList) + defectAlloc));
@@ -186,8 +186,8 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                             ptrDefects->bfi[elementNumber].multiAddressDescriptorStart =
                                                 defectData[offset + 4] & BIT7;
                                             ptrDefects->bfi[elementNumber].bytesFromIndex = M_BytesTo4ByteValue(
-                                                M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5],
-                                                defectData[offset + 6], defectData[offset + 7]);
+                                                get_bit_range_uint8(defectData[offset + 4], 3, 0),
+                                                defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
                                             break;
                                         case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
                                             ptrDefects->bfi[elementNumber].cylinderNumber =
@@ -206,8 +206,8 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                             ptrDefects->physical[elementNumber].multiAddressDescriptorStart =
                                                 defectData[offset + 4] & BIT7;
                                             ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(
-                                                M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5],
-                                                defectData[offset + 6], defectData[offset + 7]);
+                                                get_bit_range_uint8(defectData[offset + 4], 3, 0),
+                                                defectData[offset + 5], defectData[offset + 6], defectData[offset + 7]);
                                             break;
                                         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                             ptrDefects->physical[elementNumber].cylinderNumber =
@@ -314,7 +314,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                                                    defectData[6], defectData[7]);
                                             listHasPrimaryDescriptors = defectData[1] & BIT4;
                                             listHasGrownDescriptors   = defectData[1] & BIT3;
-                                            returnedDefectListFormat  = M_GETBITRANGE(defectData[1], 2, 0);
+                                            returnedDefectListFormat  = get_bit_range_uint8(defectData[1], 2, 0);
                                             generationCode = M_BytesTo2ByteValue(defectData[2], defectData[3]);
                                             if (!filledInListInfo)
                                             {
@@ -373,7 +373,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                             defectData[offset + 4] & BIT7;
                                                         ptrDefects->bfi[elementNumber].bytesFromIndex =
                                                             M_BytesTo4ByteValue(
-                                                                M_GETBITRANGE(defectData[offset + 4], 3, 0),
+                                                                get_bit_range_uint8(defectData[offset + 4], 3, 0),
                                                                 defectData[offset + 5], defectData[offset + 6],
                                                                 defectData[offset + 7]);
                                                         break;
@@ -401,7 +401,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                             defectData[offset + 4] & BIT7;
                                                         ptrDefects->physical[elementNumber].sectorNumber =
                                                             M_BytesTo4ByteValue(
-                                                                M_GETBITRANGE(defectData[offset + 4], 3, 0),
+                                                                get_bit_range_uint8(defectData[offset + 4], 3, 0),
                                                                 defectData[offset + 5], defectData[offset + 6],
                                                                 defectData[offset + 7]);
                                                         break;
@@ -469,7 +469,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                         M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
                                     listHasPrimaryDescriptors = defectData[1] & BIT4;
                                     listHasGrownDescriptors   = defectData[1] & BIT3;
-                                    returnedDefectListFormat  = M_GETBITRANGE(defectData[1], 2, 0);
+                                    returnedDefectListFormat  = get_bit_range_uint8(defectData[1], 2, 0);
                                     generationCode            = M_BytesTo2ByteValue(defectData[2], defectData[3]);
                                     // now allocate our list to return to the caller!
                                     *defects = M_REINTERPRET_CAST(ptrSCSIDefectList,
@@ -524,8 +524,9 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                 ptrDefects->bfi[elementNumber].multiAddressDescriptorStart =
                                                     defectData[offset + 4] & BIT7;
                                                 ptrDefects->bfi[elementNumber].bytesFromIndex = M_BytesTo4ByteValue(
-                                                    M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5],
-                                                    defectData[offset + 6], defectData[offset + 7]);
+                                                    get_bit_range_uint8(defectData[offset + 4], 3, 0),
+                                                    defectData[offset + 5], defectData[offset + 6],
+                                                    defectData[offset + 7]);
                                                 break;
                                             case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
                                                 ptrDefects->bfi[elementNumber].cylinderNumber =
@@ -544,8 +545,9 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                 ptrDefects->physical[elementNumber].multiAddressDescriptorStart =
                                                     defectData[offset + 4] & BIT7;
                                                 ptrDefects->physical[elementNumber].sectorNumber = M_BytesTo4ByteValue(
-                                                    M_GETBITRANGE(defectData[offset + 4], 3, 0), defectData[offset + 5],
-                                                    defectData[offset + 6], defectData[offset + 7]);
+                                                    get_bit_range_uint8(defectData[offset + 4], 3, 0),
+                                                    defectData[offset + 5], defectData[offset + 6],
+                                                    defectData[offset + 7]);
                                                 break;
                                             case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                                 ptrDefects->physical[elementNumber].cylinderNumber =
@@ -1356,7 +1358,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
             {
                 // First, validate that we got the right SCSI log page...I've seen some USB devices ignore the subpage
                 // code and return the wrong data. - TJE
-                if (M_GETBITRANGE(pendingDefectsLog[0], 5, 0) == 0x15 && pendingDefectsLog[0] & BIT6 &&
+                if (get_bit_range_uint8(pendingDefectsLog[0], 5, 0) == 0x15 && pendingDefectsLog[0] & BIT6 &&
                     pendingDefectsLog[1] == 0x01)
                 {
                     uint16_t pageLength = M_BytesTo2ByteValue(pendingDefectsLog[2],

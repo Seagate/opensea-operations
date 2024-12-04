@@ -933,8 +933,8 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
 
 static void print_MBR_CHS(mbrCHSAddress address)
 {
-    uint16_t cylinder = M_BytesTo2ByteValue(M_GETBITRANGE(address.sector, 7, 6), address.cylinder);
-    uint8_t  sector   = M_GETBITRANGE(address.sector, 5, 0);
+    uint16_t cylinder = M_BytesTo2ByteValue(get_bit_range_uint8(address.sector, 7, 6), address.cylinder);
+    uint8_t  sector   = get_bit_range_uint8(address.sector, 5, 0);
     printf("%" PRIu16 ":%" PRIu8 ":%" PRIu8, cylinder, address.head, sector);
 }
 

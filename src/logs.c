@@ -752,7 +752,6 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
             }
             // validate the correct page was returned!
             uint8_t blockDescLen = modeBuffer[MODE_HEADER_6_BLK_DESC_OFFSET];
-            assert(MODE_PARAMETER_HEADER_6_LEN + blockDescLen <= modeLength);
             if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)

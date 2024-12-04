@@ -523,7 +523,8 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
                 nvmps->powerState[powerIter].idlePowerValid = true;
                 nvmps->powerState[powerIter].idlePowerMilliWatts =
                     device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idlePower;
-                uint8_t scale = M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idleScale, 7, 6);
+                uint8_t scale =
+                    get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idleScale, 7, 6);
                 if (scale == 2)
                 {
                     // reported in centiwatts, so convert it
@@ -542,9 +543,9 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
                 nvmps->powerState[powerIter].activePowerMilliWatts =
                     device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activePower;
                 nvmps->powerState[powerIter].activePowerWorkload =
-                    M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activeWorkScale, 2, 0);
+                    get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activeWorkScale, 2, 0);
                 uint8_t scale =
-                    M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activeWorkScale, 7, 6);
+                    get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activeWorkScale, 7, 6);
                 if (scale == 2)
                 {
                     // reported in centiwatts, so convert it
@@ -1026,7 +1027,7 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
                 if (powerConditions->powerModeBackgroundValid && powerConditions->powerModeBackgroundResetDefault)
                 {
                     powerConditions->powerModeBackGroundRelationShip =
-                        M_GETBITRANGE(powerConditionsPage[mpStartOffset + 2], 7, 6);
+                        get_bit_range_uint8(powerConditionsPage[mpStartOffset + 2], 7, 6);
                     powerConditions->powerModeBackgroundResetDefault = false;
                 }
                 if (powerConditionsPage[mpStartOffset + 1] >
@@ -1070,21 +1071,21 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
                         powerConditions->checkConditionFlags.ccfIdleResetDefault)
                     {
                         powerConditions->checkConditionFlags.ccfIdleMode =
-                            M_GETBITRANGE(powerConditionsPage[mpStartOffset + 39], 7, 6);
+                            get_bit_range_uint8(powerConditionsPage[mpStartOffset + 39], 7, 6);
                         powerConditions->checkConditionFlags.ccfIdleResetDefault = false;
                     }
                     if (powerConditions->checkConditionFlags.ccfStandbyValid &&
                         powerConditions->checkConditionFlags.ccfStandbyResetDefault)
                     {
                         powerConditions->checkConditionFlags.ccfStandbyMode =
-                            M_GETBITRANGE(powerConditionsPage[mpStartOffset + 39], 5, 4);
+                            get_bit_range_uint8(powerConditionsPage[mpStartOffset + 39], 5, 4);
                         powerConditions->checkConditionFlags.ccfStandbyResetDefault = false;
                     }
                     if (powerConditions->checkConditionFlags.ccfStopValid &&
                         powerConditions->checkConditionFlags.ccfStopResetDefault)
                     {
                         powerConditions->checkConditionFlags.ccfStopMode =
-                            M_GETBITRANGE(powerConditionsPage[mpStartOffset + 39], 3, 2);
+                            get_bit_range_uint8(powerConditionsPage[mpStartOffset + 39], 3, 2);
                         powerConditions->checkConditionFlags.ccfStopResetDefault = false;
                     }
                 }
@@ -1744,7 +1745,7 @@ eReturnValues get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsump
             if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01,
                                               true, false, MPC_CHANGABLE_VALUES, pcModePage))
             {
-                if (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) > 0)
+                if (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) > 0)
                 {
                     identifiers->activeLevelChangable = true;
                 }

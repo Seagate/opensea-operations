@@ -751,7 +751,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                 // The above comment was true for OLD drives. New ones now use the active power mode field to
                 // enable/disable this feature
                 if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0xFF &&
-                    (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
+                    (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
                 {
                     // If in here, this is an old drive since it doesn't allow setting the active power mode.
                     if (supported)
@@ -772,7 +772,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                         ret = SUCCESS;
                     }
                 }
-                else if (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 3 &&
+                else if (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 3 &&
                          pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0)
                 {
                     // if in here, this is a new drive which only allows this change via the active mode field.
@@ -850,7 +850,7 @@ eReturnValues seagate_Set_Power_Balance(tDevice* device, ePowerBalanceMode power
         {
             // Detect the old method by seeing if active mode is not changable, but power condition identifier is.
             if (pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0xFF &&
-                (M_GETBITRANGE(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
+                (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
             {
                 oldMethod = true;
             }

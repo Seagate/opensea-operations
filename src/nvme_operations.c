@@ -138,13 +138,13 @@ static eReturnValues nvme_Print_Arbitration_Feature_Details(tDevice* device, eNv
         printf("\n\tArbitration & Command Processing Feature\n");
         printf("=============================================\n");
         printf("Hi  Priority Weight (HPW) :\t\t0x%02" PRIX8 "\n",
-               C_CAST(uint8_t, M_GETBITRANGE(featureCmd.featSetGetValue, 31, 24)));
+               get_8bit_range_uint32(featureCmd.featSetGetValue, 31, 24));
         printf("Med Priority Weight (MPW) :\t\t0x%02" PRIX8 "\n",
-               C_CAST(uint8_t, M_GETBITRANGE(featureCmd.featSetGetValue, 23, 16)));
+               get_8bit_range_uint32(featureCmd.featSetGetValue, 23, 16));
         printf("Low Priority Weight (LPW) :\t\t0x%02" PRIX8 "\n",
-               C_CAST(uint8_t, M_GETBITRANGE(featureCmd.featSetGetValue, 15, 8)));
+               get_8bit_range_uint32(featureCmd.featSetGetValue, 15, 8));
         printf("Arbitration Burst    (AB) :\t\t0x%02" PRIX8 "\n",
-               C_CAST(uint8_t, M_GETBITRANGE(featureCmd.featSetGetValue, 2, 0)));
+               get_8bit_range_uint32(featureCmd.featSetGetValue, 2, 0));
     }
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
@@ -665,7 +665,7 @@ eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* lo
                 uint32_t bootPartitionInfo =
                     M_BytesTo4ByteValue(logPageHeader[7], logPageHeader[6], logPageHeader[5], logPageHeader[4]);
                 *logSize = UINT64_C(16) + (UINT64_C(131072) /*128KiB units*/ *
-                                           M_GETBITRANGE(bootPartitionInfo, 14, 0) /*boot partition count*/);
+                                           get_16bit_range_uint32(bootPartitionInfo, 14, 0) /*boot partition count*/);
             }
             break;
         case NVME_LOG_DISCOVERY_ID:

@@ -3712,7 +3712,7 @@ bool is_SMART_Check_Supported(tDevice* device)
                                                   false, MPC_CURRENT_VALUES, informationalExceptionsModePage))
                 {
                     // check the page code to be sure we got the right page.
-                    if (M_GETBITRANGE(informationalExceptionsModePage[0], 5, 0) == 0x1C &&
+                    if (get_bit_range_uint8(informationalExceptionsModePage[0], 5, 0) == 0x1C &&
                         informationalExceptionsModePage[1] >= 0x0A)
                     {
                         supported = true;
@@ -4319,7 +4319,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice*                   
                                               infoLogPage, LP_INFORMATION_EXCEPTIONS_LEN))
             {
                 // validate the page code since some SATLs return bad data
-                if (M_GETBITRANGE(infoLogPage[0], 5, 0) == 0x2F && infoLogPage[1] == 0 &&
+                if (get_bit_range_uint8(infoLogPage[0], 5, 0) == 0x2F && infoLogPage[1] == 0 &&
                     M_BytesTo2ByteValue(infoLogPage[4], infoLogPage[5]) == 0 // make sure it's param 0
                 )
                 {
@@ -4359,7 +4359,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice*                   
         if (gotData)
         {
             ret = SUCCESS;
-            if (M_GETBITRANGE(infoControlPage[headerLength + 0], 5, 0) ==
+            if (get_bit_range_uint8(infoControlPage[headerLength + 0], 5, 0) ==
                 0x1C) // check page code since some SATLs return bad data
             {
                 controlData->isValid  = true;
@@ -5625,9 +5625,9 @@ static void get_Read_Write_Command_Info(const char* commandName,
         if (ext)
         {
             // interpretting all of this as LBA mode since spec requires it
-            bool    forceUnitAccess = device & BIT7;                // fpdma only
-            uint8_t prio            = M_GETBITRANGE(count, 15, 14); // fpdma only
-            uint8_t tag             = M_GETBITRANGE(count, 7, 3);
+            bool    forceUnitAccess = device & BIT7;                        // fpdma only
+            uint8_t prio            = get_8bit_range_uint16(count, 15, 14); // fpdma only
+            uint8_t tag             = get_8bit_range_uint16(count, 7, 3);
             bool    rarc            = count & BIT0; // read fpdma only
             if (sectorsToTransfer == 0)
             {
@@ -5649,7 +5649,7 @@ static void get_Read_Write_Command_Info(const char* commandName,
         }
         else // old dma queued commands
         {
-            uint8_t tag = M_GETBITRANGE(count, 7, 3);
+            uint8_t tag = get_8bit_range_uint16(count, 7, 3);
             if (sectorsToTransfer == 0)
             {
                 sectorsToTransfer = 256;
@@ -5693,7 +5693,7 @@ static void get_Read_Write_Command_Info(const char* commandName,
                     bool    notSequentialORFlush  = features & BIT5; // not sequential = read; flush = write
                     bool    handleStreamingError  = features & BIT4;
                     // bool reserved = features & BIT2;
-                    uint8_t streamID = M_GETBITRANGE(features, 2, 0);
+                    uint8_t streamID = get_8bit_range_uint16(features, 2, 0);
                     if (streamDir) // true = write
                     {
                         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
@@ -6881,7 +6881,7 @@ static void get_SATA_Feature_Control_Command_Info(const char* commandName,
     {
 #define HARDWARE_FEATURE_NAME_LENGTH UINT8_C(31)
         DECLARE_ZERO_INIT_ARRAY(char, hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH);
-        uint16_t functionID = M_GETBITRANGE(lba, 15, 0);
+        uint16_t functionID = get_16bit_range_uint64(lba, 15, 0);
         switch (functionID)
         {
         case 0x0001:
@@ -6953,8 +6953,8 @@ static void get_Set_Features_Command_Info(const char* commandName,
         break;
     case SF_SET_TRANSFER_MODE:
     {
-        uint8_t transferType = M_GETBITRANGE(subcommandCount, 7, 3);
-        uint8_t mode         = M_GETBITRANGE(subcommandCount, 2, 0);
+        uint8_t transferType = get_bit_range_uint8(subcommandCount, 7, 3);
+        uint8_t mode         = get_bit_range_uint8(subcommandCount, 2, 0);
 #define TRANSFER_MODE_LENGTH UINT8_C(31)
         DECLARE_ZERO_INIT_ARRAY(char, transferMode, TRANSFER_MODE_LENGTH);
         switch (transferType)
@@ -7187,7 +7187,7 @@ static void get_Set_Features_Command_Info(const char* commandName,
         break;
     case SF_EXTENDED_POWER_CONDITIONS:
     {
-        uint8_t  subcommand         = M_GETBITRANGE(lba, 3, 0);
+        uint8_t  subcommand         = get_8bit_range_uint64(lba, 3, 0);
         uint8_t  powerConditionCode = subcommandCount;
         uint32_t epcLBA             = C_CAST(uint32_t, lba);
         if (commandOpCode == ATA_SET_FEATURE)
@@ -7242,7 +7242,7 @@ static void get_Set_Features_Command_Info(const char* commandName,
         break;
         case EPC_SET_POWER_CONDITION_TIMER:
         {
-            uint32_t timer  = M_GETBITRANGE(epcLBA, 23, 8);
+            uint32_t timer  = get_bit_range_uint32(epcLBA, 23, 8);
             bool     units  = epcLBA & BIT7;
             bool     enable = epcLBA & BIT5;
             bool     save   = epcLBA & BIT4;
@@ -7277,7 +7277,7 @@ static void get_Set_Features_Command_Info(const char* commandName,
             break;
         case EPC_SET_EPC_POWER_SOURCE:
         {
-            uint8_t powerSource = M_GETBITRANGE(subcommandCount, 1, 0);
+            uint8_t powerSource = get_bit_range_uint8(subcommandCount, 1, 0);
 #define POWER_SOURCE_STRING_LENGTH 21
             DECLARE_ZERO_INIT_ARRAY(char, powerSourceString, POWER_SOURCE_STRING_LENGTH);
             switch (powerSource)
@@ -7530,7 +7530,7 @@ static void get_ZAC_Management_In_Command_Info(const char*           commandName
     case ZM_ACTION_REPORT_ZONES:
     {
         bool    partial          = featuresActionSpecific & BIT7;
-        uint8_t reportingOptions = M_GETBITRANGE(featuresActionSpecific, 5, 0);
+        uint8_t reportingOptions = get_bit_range_uint8(featuresActionSpecific, 5, 0);
         if (featureActionSpecificAvailable)
         {
 #define ZONE_REPORT_OPTIONS_STRING_LENGTH 61
@@ -7698,14 +7698,14 @@ static void get_NCQ_Non_Data_Command_Info(const char* commandName,
                                           char        commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
     uint8_t subcommand = M_Nibble0(features);
-    uint8_t tag        = M_GETBITRANGE(count, 7, 3);
-    uint8_t prio       = M_GETBITRANGE(count, 15, 14); // technically subcommand specific...
+    uint8_t tag        = get_8bit_range_uint16(count, 7, 3);
+    uint8_t prio       = get_8bit_range_uint16(count, 15, 14); // technically subcommand specific...
     switch (subcommand)
     {
     case NCQ_NON_DATA_ABORT_NCQ_QUEUE:
     {
-        uint8_t abortType = M_GETBITRANGE(features, 7, 4);
-        uint8_t ttag      = M_GETBITRANGE(lba, 7, 3);
+        uint8_t abortType = get_8bit_range_uint16(features, 7, 4);
+        uint8_t ttag      = get_8bit_range_uint64(lba, 7, 3);
 #define ABORT_TYPE_STRING_LENGTH 31
         DECLARE_ZERO_INIT_ARRAY(char, abortTypeString, ABORT_TYPE_STRING_LENGTH);
         switch (abortType)
@@ -7741,7 +7741,7 @@ static void get_NCQ_Non_Data_Command_Info(const char* commandName,
     case NCQ_NON_DATA_HYBRID_DEMOTE_BY_SIZE:
     {
         uint16_t sectorCount  = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
-        uint8_t  fromPriority = M_GETBITRANGE(features, 7, 4);
+        uint8_t  fromPriority = get_8bit_range_uint16(features, 7, 4);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                  "%s - Hybrid Demote By Size. Tag: %" PRIu8 " LBA: %" PRIu64 " Count: %" PRIu16
                  " From Priority: %" PRIu8 "",
@@ -7813,9 +7813,9 @@ static void get_Receive_FPDMA_Command_Info(const char* commandName,
                                            uint8_t     device,
                                            char        commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    uint8_t subcommand = M_GETBITRANGE(count, 12, 8);
-    uint8_t tag        = M_GETBITRANGE(count, 7, 3);
-    uint8_t prio       = M_GETBITRANGE(count, 15, 14);
+    uint8_t subcommand = get_8bit_range_uint16(count, 12, 8);
+    uint8_t tag        = get_8bit_range_uint16(count, 7, 3);
+    uint8_t prio       = get_8bit_range_uint16(count, 15, 14);
     switch (subcommand)
     {
     case RECEIVE_FPDMA_READ_LOG_DMA_EXT:
@@ -7854,9 +7854,9 @@ static void get_Send_FPDMA_Command_Info(const char* commandName,
                                         uint8_t     device,
                                         char        commandInfo[ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    uint8_t  subcommand       = M_GETBITRANGE(count, 12, 8);
-    uint8_t  tag              = M_GETBITRANGE(count, 7, 3);
-    uint8_t  prio             = M_GETBITRANGE(count, 15, 14);
+    uint8_t  subcommand       = get_8bit_range_uint16(count, 12, 8);
+    uint8_t  tag              = get_8bit_range_uint16(count, 7, 3);
+    uint8_t  prio             = get_8bit_range_uint16(count, 15, 14);
     uint32_t blocksToTransfer = features;
     if (blocksToTransfer == 0)
     {
@@ -8006,8 +8006,8 @@ static void get_Command_Info(uint8_t  commandOpCode,
     case 0x1F:
         if (commandOpCode == ATA_GET_PHYSICAL_ELEMENT_STATUS && count != 0)
         {
-            uint8_t filter     = M_GETBITRANGE(features, 15, 14);
-            uint8_t reportType = M_GETBITRANGE(features, 11, 8);
+            uint8_t filter     = get_8bit_range_uint16(features, 15, 14);
+            uint8_t reportType = get_8bit_range_uint16(features, 11, 8);
             snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                      "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8
                      " Report Type: %" PRIu8 "",
@@ -8169,7 +8169,7 @@ static void get_Command_Info(uint8_t  commandOpCode,
         uint8_t defaultCCTL     = M_Byte1(features);
         bool    addRemoveStream = features & BIT7;
         bool    readWriteStream = features & BIT6;
-        uint8_t streamID        = M_GETBITRANGE(features, 2, 0);
+        uint8_t streamID        = get_8bit_range_uint16(features, 2, 0);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                  "Configure Stream, Default CCTL: %" PRIu8
                  ", Add/Remove Stream: %d, readWriteStream: %d, Stream ID: %" PRIu8 "",
@@ -8394,7 +8394,7 @@ static void get_Command_Info(uint8_t  commandOpCode,
         break;
     case ATA_SET_SECTOR_CONFIG_EXT:
     {
-        uint8_t descriptorIndex = M_GETBITRANGE(count, 2, 0);
+        uint8_t descriptorIndex = get_8bit_range_uint16(count, 2, 0);
         snprintf(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                  "Set Sector Configuration Ext - Descriptor: %" PRIu8 ", Command Check: %" PRIX16 "h", descriptorIndex,
                  features);

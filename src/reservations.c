@@ -181,7 +181,8 @@ eReturnValues get_Persistent_Reservations_Capabilities(tDevice*                 
                 {
                     prCapabilities->persistThroughPowerLossCapable = false;
                 }
-                prCapabilities->allowedCommandsInfo.allowedCommandsRawValue = M_GETBITRANGE(capabilities[3], 6, 4);
+                prCapabilities->allowedCommandsInfo.allowedCommandsRawValue =
+                    get_bit_range_uint8(capabilities[3], 6, 4);
                 switch (prCapabilities->allowedCommandsInfo.allowedCommandsRawValue)
                 {
                 case 0:
@@ -828,7 +829,7 @@ eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptr
                     reservationKeys[offset + 11]); // obsolete on newer drives
                 reservations->reservation[reservationIter].extentLength = M_BytesTo2ByteValue(
                     reservationKeys[offset + 14], reservationKeys[offset + 15]); // obsolete on newer drives
-                switch (M_GETBITRANGE(reservationKeys[offset + 13], 7, 4))
+                switch (get_bit_range_uint8(reservationKeys[offset + 13], 7, 4))
                 {
                 case 0:
                     reservations->reservation[reservationIter].scope = RESERVATION_SCOPE_LOGICAL_UNIT;
@@ -843,7 +844,7 @@ eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptr
                     reservations->reservation[reservationIter].scope = RESERVATION_SCOPE_UNKNOWN;
                     break;
                 }
-                switch (M_GETBITRANGE(reservationKeys[offset + 13], 3, 0))
+                switch (get_bit_range_uint8(reservationKeys[offset + 13], 3, 0))
                 {
                 case 0:
                     reservations->reservation[reservationIter].type = RES_TYPE_READ_SHARED;
@@ -1211,7 +1212,7 @@ eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullRes
                         M_ToBool(fullStatusData[offset + 12] & BIT0);
                     fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier =
                         M_BytesTo2ByteValue(fullStatusData[offset + 18], fullStatusData[offset + 19]);
-                    switch (M_GETBITRANGE(fullStatusData[offset + 13], 7, 4))
+                    switch (get_bit_range_uint8(fullStatusData[offset + 13], 7, 4))
                     {
                     case 0:
                         fullReservation->reservationKey[keyIter].scope = RESERVATION_SCOPE_LOGICAL_UNIT;
@@ -1226,7 +1227,7 @@ eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullRes
                         fullReservation->reservationKey[keyIter].scope = RESERVATION_SCOPE_UNKNOWN;
                         break;
                     }
-                    switch (M_GETBITRANGE(fullStatusData[offset + 13], 3, 0))
+                    switch (get_bit_range_uint8(fullStatusData[offset + 13], 3, 0))
                     {
                     case 0:
                         if (fullReservation->reservationKey[keyIter].reservationHolder)

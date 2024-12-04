@@ -44,7 +44,7 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
             uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(
                 supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4],
                 supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
-            if (supportedCapabilitiesQWord0 & BIT63 && M_GETBITRANGE(supportedCapabilitiesQWord0, 23, 16) ==
+            if (supportedCapabilitiesQWord0 & BIT63 && get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
                                                            0x03) // make sure required bits/fields are there...checking
                                                                  // for bit63 to be 1 and page number to be 3
             {
@@ -949,7 +949,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
                                         supportedCapabilities[4], supportedCapabilities[3], supportedCapabilities[2],
                                         supportedCapabilities[1], supportedCapabilities[0]);
                 if (supportedCapabilitiesQWord0 & BIT63 &&
-                    M_GETBITRANGE(supportedCapabilitiesQWord0, 23, 16) ==
+                    get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
                         ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES) // make sure required bits/fields are there...checking
                                                                 // for bit63 to be 1 and page number to be 3
                 {
@@ -979,7 +979,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
                 supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4],
                 supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
             if (supportedCapabilitiesQWord0 & BIT63 &&
-                M_GETBITRANGE(supportedCapabilitiesQWord0, 23, 16) ==
+                get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
                     ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION) // make sure required bits/fields are there...checking for
                                                               // bit63 to be 1 and page number to be 9
             {
@@ -1059,7 +1059,7 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
             uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(
                 supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4],
                 supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
-            if (supportedCapabilitiesQWord0 & BIT63 && M_GETBITRANGE(supportedCapabilitiesQWord0, 23, 16) ==
+            if (supportedCapabilitiesQWord0 & BIT63 && get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
                                                            0x03) // make sure required bits/fields are there...checking
                                                                  // for bit63 to be 1 and page number to be 3
             {
