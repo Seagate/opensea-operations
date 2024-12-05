@@ -41,12 +41,12 @@
 #include "dst.h"
 #include "logs.h"//for SCSI mode pages
 
-eReturnValues get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
+eReturnValues get_Ready_LED_State(tDevice* device, bool* readyLEDOnOff)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *modeSense = C_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeSense = C_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!modeSense)
         {
             perror("calloc failure!");
@@ -77,12 +77,12 @@ eReturnValues get_Ready_LED_State(tDevice *device, bool *readyLEDOnOff)
     return ret;
 }
 
-eReturnValues change_Ready_LED(tDevice *device, bool readyLEDDefault, bool readyLEDOnOff)
+eReturnValues change_Ready_LED(tDevice* device, bool readyLEDDefault, bool readyLEDOnOff)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint8_t *modeSelect = C_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeSelect = C_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!modeSelect)
         {
             perror("calloc failure!");
@@ -140,7 +140,7 @@ eReturnValues change_Ready_LED(tDevice *device, bool readyLEDDefault, bool ready
 }
 
 //SBC spec. Caching Mode Page NV_DIS
-eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
+eReturnValues scsi_Set_NV_DIS(tDevice* device, bool nv_disEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
 
@@ -149,7 +149,7 @@ eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
         return NOT_SUPPORTED;
     }
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -196,11 +196,11 @@ eReturnValues scsi_Set_NV_DIS(tDevice *device, bool nv_disEnableDisable)
     return ret;
 }
 
-eReturnValues scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
+eReturnValues scsi_Set_Read_Look_Ahead(tDevice* device, bool readLookAheadEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -245,7 +245,7 @@ eReturnValues scsi_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnable
     return ret;
 }
 
-eReturnValues ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
+eReturnValues ata_Set_Read_Look_Ahead(tDevice* device, bool readLookAheadEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     //on ata, we just send a set features command to change this
@@ -260,7 +260,7 @@ eReturnValues ata_Set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableD
     return ret;
 }
 
-eReturnValues set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisable)
+eReturnValues set_Read_Look_Ahead(tDevice* device, bool readLookAheadEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -278,11 +278,11 @@ eReturnValues set_Read_Look_Ahead(tDevice *device, bool readLookAheadEnableDisab
     return ret;
 }
 
-eReturnValues scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues scsi_Set_Write_Cache(tDevice* device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -327,7 +327,7 @@ eReturnValues scsi_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable
     return ret;
 }
 
-eReturnValues ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues ata_Set_Write_Cache(tDevice* device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     //on ata, we just send a set features command to change this
@@ -342,7 +342,7 @@ eReturnValues ata_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     return ret;
 }
 
-eReturnValues nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues nvme_Set_Write_Cache(tDevice* device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
@@ -360,7 +360,7 @@ eReturnValues nvme_Set_Write_Cache(tDevice *device, bool writeCacheEnableDisable
     return ret;
 }
 
-eReturnValues set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
+eReturnValues set_Write_Cache(tDevice* device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     switch (device->drive_info.drive_type)
@@ -380,7 +380,7 @@ eReturnValues set_Write_Cache(tDevice *device, bool writeCacheEnableDisable)
     return ret;
 }
 
-bool is_Read_Look_Ahead_Supported(tDevice *device)
+bool is_Read_Look_Ahead_Supported(tDevice* device)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -394,11 +394,11 @@ bool is_Read_Look_Ahead_Supported(tDevice *device)
 }
 
 //NOTE: this uses the RCD bit. Old drives do not support this bit. Checking the changable values to detect support before trying to change it.
-bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
+bool scsi_Is_Read_Look_Ahead_Supported(tDevice* device)
 {
     bool supported = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -427,7 +427,7 @@ bool scsi_Is_Read_Look_Ahead_Supported(tDevice *device)
     return supported;
 }
 
-bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
+bool ata_Is_Read_Look_Ahead_Supported(tDevice* device)
 {
     bool supported = false;
     if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT6)
@@ -437,7 +437,7 @@ bool ata_Is_Read_Look_Ahead_Supported(tDevice *device)
     return supported;
 }
 
-bool is_NV_Cache_Enabled(tDevice *device)
+bool is_NV_Cache_Enabled(tDevice* device)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -447,7 +447,7 @@ bool is_NV_Cache_Enabled(tDevice *device)
     return false;
 }
 
-bool is_Read_Look_Ahead_Enabled(tDevice *device)
+bool is_Read_Look_Ahead_Enabled(tDevice* device)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -461,7 +461,7 @@ bool is_Read_Look_Ahead_Enabled(tDevice *device)
 }
 
 //SPC3 added this page, but the NV_DIS bit is on the caching mode page.
-bool scsi_Is_NV_Cache_Supported(tDevice *device)
+bool scsi_Is_NV_Cache_Supported(tDevice* device)
 {
     bool supported = false;
     //check the extended inquiry data for the NV_SUP bit
@@ -476,7 +476,7 @@ bool scsi_Is_NV_Cache_Supported(tDevice *device)
     return supported;
 }
 
-bool is_NV_Cache_Supported(tDevice *device)
+bool is_NV_Cache_Supported(tDevice* device)
 {
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -485,11 +485,11 @@ bool is_NV_Cache_Supported(tDevice *device)
     return false;
 }
 
-bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
+bool scsi_is_NV_DIS_Bit_Set(tDevice* device)
 {
     bool enabled = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -513,11 +513,11 @@ bool scsi_is_NV_DIS_Bit_Set(tDevice *device)
     return enabled;
 }
 
-bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
+bool scsi_Is_Read_Look_Ahead_Enabled(tDevice* device)
 {
     bool enabled = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -540,7 +540,7 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice *device)
     return enabled;
 }
 
-bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device)
+bool ata_Is_Read_Look_Ahead_Enabled(tDevice* device)
 {
     bool enabled = false;
     if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT6)
@@ -550,7 +550,7 @@ bool ata_Is_Read_Look_Ahead_Enabled(tDevice *device)
     return enabled;
 }
 
-bool nvme_Is_Write_Cache_Supported(tDevice *device)
+bool nvme_Is_Write_Cache_Supported(tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
@@ -560,7 +560,7 @@ bool nvme_Is_Write_Cache_Supported(tDevice *device)
     return supported;
 }
 
-bool is_Write_Cache_Supported(tDevice *device)
+bool is_Write_Cache_Supported(tDevice* device)
 {
     switch (device->drive_info.drive_type)
     {
@@ -576,11 +576,11 @@ bool is_Write_Cache_Supported(tDevice *device)
     return false;
 }
 
-bool scsi_Is_Write_Cache_Supported(tDevice *device)
+bool scsi_Is_Write_Cache_Supported(tDevice* device)
 {
     bool supported = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -609,7 +609,7 @@ bool scsi_Is_Write_Cache_Supported(tDevice *device)
     return supported;
 }
 
-bool ata_Is_Write_Cache_Supported(tDevice *device)
+bool ata_Is_Write_Cache_Supported(tDevice* device)
 {
     bool supported = false;
     if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) && device->drive_info.IdentifyData.ata.Word082 & BIT5)
@@ -619,7 +619,7 @@ bool ata_Is_Write_Cache_Supported(tDevice *device)
     return supported;
 }
 
-bool nvme_Is_Write_Cache_Enabled(tDevice *device)
+bool nvme_Is_Write_Cache_Enabled(tDevice* device)
 {
     bool enabled = false;
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc & BIT0)//This bit must be set to 1 to control whether write caching is enabled or disabled.
@@ -637,7 +637,7 @@ bool nvme_Is_Write_Cache_Enabled(tDevice *device)
     return enabled;
 }
 
-bool is_Write_Cache_Enabled(tDevice *device)
+bool is_Write_Cache_Enabled(tDevice* device)
 {
     switch (device->drive_info.drive_type)
     {
@@ -653,11 +653,11 @@ bool is_Write_Cache_Enabled(tDevice *device)
     return false;
 }
 
-bool scsi_Is_Write_Cache_Enabled(tDevice *device)
+bool scsi_Is_Write_Cache_Enabled(tDevice* device)
 {
     bool enabled = false;
     //on SAS we change this through a mode page
-    uint8_t *cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* cachingModePage = C_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -680,7 +680,7 @@ bool scsi_Is_Write_Cache_Enabled(tDevice *device)
     return enabled;
 }
 
-bool ata_Is_Write_Cache_Enabled(tDevice *device)
+bool ata_Is_Write_Cache_Enabled(tDevice* device)
 {
     bool enabled = false;
     if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) && device->drive_info.IdentifyData.ata.Word085 & BIT5)
@@ -755,7 +755,7 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
 }
 
 //erase weights are hard coded right now....-TJE
-eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes)
+eReturnValues get_Supported_Erase_Methods(tDevice* device, eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t* overwriteEraseTimeEstimateMinutes)
 {
     eReturnValues ret = SUCCESS;
     ataSecurityStatus ataSecurityInfo;
@@ -767,7 +767,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
     bool nvmFormatAdded = false;
     bool isWriteSameSupported = is_Write_Same_Supported(device, 0, C_CAST(uint32_t, device->drive_info.deviceMaxLba), &maxNumberOfLogicalBlocksPerCommand);
     bool isFormatUnitSupported = is_Format_Unit_Supported(device, M_NULLPTR);
-    eraseMethod * currentErase = C_CAST(eraseMethod*, eraseMethodList);
+    eraseMethod* currentErase = C_CAST(eraseMethod*, eraseMethodList);
     if (!currentErase)
     {
         return BAD_PARAMETER;
@@ -795,6 +795,8 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
     if (sanitizeInfo.crypto)
     {
         DECLARE_ZERO_INIT_ARRAY(char, sanitizeWarning, MAX_ERASE_WARNING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
+
         if (writeAfterEraseRequirements.cryptoErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
         {
             if (writeAfterEraseRequirements.cryptoErase == WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE)
@@ -835,6 +837,11 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
 #else
         currentErase->osSupported = true;
 #endif
+
+        if (!currentErase->osSupported) {
+            snprintf(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "Sanitize Block erase is not supported on this OS");
+        }
+        snprintf(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
         currentErase->warningValid = true;
         currentErase->eraseWeight = 0;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -845,6 +852,8 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
     if (sanitizeInfo.blockErase)
     {
         DECLARE_ZERO_INIT_ARRAY(char, sanitizeWarning, MAX_ERASE_WARNING_LENGTH);
+        DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
+
         if (writeAfterEraseRequirements.blockErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
         {
             if (writeAfterEraseRequirements.blockErase == WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE)
@@ -887,6 +896,12 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
 #else
         currentErase->osSupported = true;
 #endif
+
+
+        if (!currentErase->osSupported) {
+            snprintf(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "Sanitize Block erase is not supported on this OS");
+        }
+        snprintf(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
         currentErase->warningValid = true;
         currentErase->eraseWeight = 1;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -911,6 +926,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
         //next up for NVMe is to list the format with user and crypto erase support.
         if (nvmeFormatInfo.cryptographicEraseSupported)
         {
+            DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
             currentErase->eraseIdentifier = ERASE_NVM_FORMAT_CRYPTO_SECURE_ERASE;
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: Crypto Erase");
 
@@ -932,7 +948,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
                 else
                 {
                     currentErase->osSupported = true;
-                    
+
                 }
             }
             else
@@ -953,6 +969,12 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
                 }
             }
 #endif
+
+            if (!currentErase->osSupported) {
+                snprintf(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "NVM Format: User Data Erase is not supported on this OS");
+            }
+            snprintf(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+
             currentErase->eraseWeight = 0;
             currentErase->warningValid = false;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_POSSIBLE_PURGE;
@@ -962,6 +984,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
         //if NOT an NVM HDD, user erase should be next since it will most likely be as fast as a sanitize block erase
         if (is_SSD(device))
         {
+            DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
             currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
             snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
             currentErase->eraseWeight = 1;
@@ -1002,6 +1025,12 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
                 }
             }
 #endif
+
+            if (!currentErase->osSupported) {
+                snprintf(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "NVM Format: User Data Erase is not supported on this OS");
+            }
+            snprintf(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+
             currentErase->warningValid = false;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;//only crypto erase is a possible purge in IEEE2883-2022
             //NOTE: We can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
@@ -1040,6 +1069,9 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
     //sanitize overwrite
     if (sanitizeInfo.overwrite)
     {
+        DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
+
+
         currentErase->eraseIdentifier = ERASE_SANITIZE_OVERWRITE;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Overwrite Erase");
         snprintf(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
@@ -1066,7 +1098,10 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
 #else
         currentErase->osSupported = true;
 #endif
-
+        if (!currentErase->osSupported) {
+            snprintf(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "Sanitize overwrite erase is not supported on this OS");
+        }
+        snprintf(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
         currentErase->warningValid = true;
         currentErase->eraseWeight = 7;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -1088,6 +1123,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
 
     if (device->drive_info.drive_type == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported && !nvmFormatAdded)
     {
+        DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
         currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
         snprintf(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
         currentErase->eraseWeight = 8;//assuming that this will do a full drive overwrite format which will be slow
@@ -1133,7 +1169,13 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
             }
         }
 #endif
-        currentErase->warningValid = false;
+
+        if (!currentErase->osSupported) {
+            snprintf(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "Sanitize overwrite erase is not supported on this OS");
+        }
+        snprintf(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+
+        currentErase->warningValid = true;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
         //Note: We can create a list of known devices capable of meeting purge and a list of those know to meet clear to set this more clearly
         ++currentErase;
@@ -1240,7 +1282,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice *device, eraseMethod eraseMeth
     return ret;
 }
 
-void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t *overwriteEraseTimeEstimateMinutes)
+void print_Supported_Erase_Methods(tDevice* device, eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS], uint32_t* overwriteEraseTimeEstimateMinutes)
 {
     uint8_t counter = 0;
     bool cryptoSupported = false;
@@ -1315,6 +1357,10 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
         {
             printf("%2" PRIu8 " %-*s (%s)\n\n", counter + 1, MAX_ERASE_NAME_LENGTH, eraseMethodList[counter].eraseName, eraseDataCapabilities);
         }
+
+        if (!eraseMethodList[counter].osSupported) {
+            printf("        %s\n\n", eraseMethodList[counter].ossupportWarning);
+        }
         ++counter;
     }
     if (overwriteEraseTimeEstimateMinutes)
@@ -1344,7 +1390,7 @@ void print_Supported_Erase_Methods(tDevice *device, eraseMethod const eraseMetho
     return;
 }
 
-eReturnValues set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
+eReturnValues set_Sense_Data_Format(tDevice* device, bool defaultSetting, bool descriptorFormat, bool saveParameters)
 {
     eReturnValues ret = NOT_SUPPORTED;
     //Change D_Sense for Control Mode page
@@ -1424,7 +1470,7 @@ eReturnValues set_Sense_Data_Format(tDevice *device, bool defaultSetting, bool d
     return ret;
 }
 
-eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16_t *sensitivity)
+eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice* device, uint16_t* sensitivity)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!sensitivity)
@@ -1453,7 +1499,7 @@ eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice * device, uint16
     return ret;
 }
 
-eReturnValues set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensitivity)
+eReturnValues set_Free_Fall_Control_Sensitivity(tDevice* device, uint8_t sensitivity)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1469,7 +1515,7 @@ eReturnValues set_Free_Fall_Control_Sensitivity(tDevice *device, uint8_t sensiti
     return ret;
 }
 
-eReturnValues disable_Free_Fall_Control_Feature(tDevice *device)
+eReturnValues disable_Free_Fall_Control_Feature(tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1485,7 +1531,7 @@ eReturnValues disable_Free_Fall_Control_Feature(tDevice *device)
     return ret;
 }
 
-void show_Test_Unit_Ready_Status(tDevice *device)
+void show_Test_Unit_Ready_Status(tDevice* device)
 {
     scsiStatus returnedStatus;
     memset(&returnedStatus, 0, sizeof(scsiStatus));
@@ -1504,7 +1550,7 @@ void show_Test_Unit_Ready_Status(tDevice *device)
     }
 }
 
-eReturnValues enable_Disable_AAM_Feature(tDevice *device, bool enable)
+eReturnValues enable_Disable_AAM_Feature(tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1542,7 +1588,7 @@ eReturnValues enable_Disable_AAM_Feature(tDevice *device, bool enable)
 // 80h = minimum acoustic emanation
 // 81h - FDh = intermediate acoustic management levels
 // FEh = maximum performance.
-eReturnValues set_AAM_Level(tDevice *device, uint8_t apmLevel)
+eReturnValues set_AAM_Level(tDevice* device, uint8_t apmLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1557,7 +1603,7 @@ eReturnValues set_AAM_Level(tDevice *device, uint8_t apmLevel)
     return ret;
 }
 
-eReturnValues get_AAM_Level(tDevice *device, uint8_t *aamLevel)
+eReturnValues get_AAM_Level(tDevice* device, uint8_t* aamLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1581,7 +1627,7 @@ eReturnValues get_AAM_Level(tDevice *device, uint8_t *aamLevel)
 }
 
 
-bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device)
+bool scsi_MP_Reset_To_Defaults_Supported(tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SCSI2)//VPD added in SCSI2
@@ -1599,7 +1645,7 @@ bool scsi_MP_Reset_To_Defaults_Supported(tDevice *device)
 }
 
 
-eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode)
+eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t subpage, eSCSI_MP_UPDATE_MODE updateMode)
 {
     eReturnValues ret = NOT_SUPPORTED;
     uint32_t modePageLength = 0;
@@ -1639,7 +1685,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
         {
             if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
             {
-                uint8_t *modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!modeData)
                 {
                     return MEMORY_FAILURE;
@@ -1781,7 +1827,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
         //individual page...easy peasy
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
         {
-            uint8_t *modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!modeData)
             {
                 return MEMORY_FAILURE;
@@ -1850,7 +1896,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice *device, uint8_t modePage, uint8_t s
 }
 
 //NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
-eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
+eReturnValues scsi_Set_Mode_Page(tDevice* device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!modePageData || modeDataLength == 0)
@@ -1868,7 +1914,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_
     //even though we have the data we want to send, we must ALWAYS request the page first, then modify the data and send it back.
     if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
     {
-        uint8_t *modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (!modeData)
         {
             return MEMORY_FAILURE;
@@ -1942,7 +1988,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice *device, uint8_t* modePageData, uint16_
 //      Reviewing all the various SCSI standards for different device types would be necessary in order to make this
 //      100% correct and complete. We are currently focussed on block and zoned block devices, however some
 //      pages are being looked up for other device types as well.
-static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char *mpName)
+static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char* mpName)
 {
     scsiDeviceType = M_GETBITRANGE(scsiDeviceType, 4, 0);//strip off the qualifier if it was passed
     switch (modePage)
@@ -2557,14 +2603,14 @@ static void print_Mode_Page(uint8_t scsiPeripheralDeviceType, uint8_t* modeData,
 }
 
 //shows a single mode page for the selected control(current, saved, changable, default)
-void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput)
+void show_SCSI_Mode_Page(tDevice* device, uint8_t modePage, uint8_t subpage, eScsiModePageControl mpc, bool bufferFormatOutput)
 {
     uint32_t modePageLength = 0;
     if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)//if asking for all mode pages, all mode pages and subpages, or all subpages of a specific page, we need to handle it in here.
     {
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
         {
-            uint8_t *modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!modeData)
             {
                 return;
@@ -2621,7 +2667,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
         //single page...easy
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
         {
-            uint8_t *modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (!modeData)
             {
                 return;
@@ -2655,7 +2701,7 @@ void show_SCSI_Mode_Page(tDevice * device, uint8_t modePage, uint8_t subpage, eS
 
 //shows all mpc values for a given page.
 //should we return an error when asking for all mode pages since that output will otherwise be really messy???
-void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput)
+void show_SCSI_Mode_Page_All(tDevice* device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput)
 {
     eScsiModePageControl mpc = MPC_CURRENT_VALUES;//will be incremented through a loop
     for (; mpc <= MPC_SAVED_VALUES; ++mpc)
@@ -2665,7 +2711,7 @@ void show_SCSI_Mode_Page_All(tDevice * device, uint8_t modePage, uint8_t subpage
 }
 
 //if yes, a page and subpage can be provided when doing a log page reset
-static bool reset_Specific_Log_Page_Supported(tDevice *device)
+static bool reset_Specific_Log_Page_Supported(tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
@@ -2696,7 +2742,7 @@ static bool reset_Specific_Log_Page_Supported(tDevice *device)
     return supported;
 }
 
-eReturnValues reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges)
+eReturnValues reset_SCSI_Log_Page(tDevice* device, eScsiLogPageControl pageControl, uint8_t logPage, uint8_t logSubPage, bool saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (logPage || logSubPage)
@@ -2712,7 +2758,7 @@ eReturnValues reset_SCSI_Log_Page(tDevice * device, eScsiLogPageControl pageCont
 }
 
 //doing this in SCSI way for now...should handle nvme separately at some point since a namespace is similar to a lun
-uint8_t get_LUN_Count(tDevice *device)
+uint8_t get_LUN_Count(tDevice* device)
 {
     uint8_t lunCount = 1;//assume 1 since we are talking over a lun right now. - TJE
     if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
@@ -2728,7 +2774,7 @@ uint8_t get_LUN_Count(tDevice *device)
     return lunCount;
 }
 
-eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, uint16_t serviceAction)
+eMLU get_MLU_Value_For_SCSI_Operation(tDevice* device, uint8_t operationCode, uint16_t serviceAction)
 {
     eMLU mlu = MLU_NOT_REPORTED;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, reportOp, 4);
@@ -2751,11 +2797,11 @@ eMLU get_MLU_Value_For_SCSI_Operation(tDevice *device, uint8_t operationCode, ui
     return mlu;
 }
 
-bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice *device, uint8_t modePage, uint8_t subPage)
+bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice* device, uint8_t modePage, uint8_t subPage)
 {
     bool mlus = false;
     uint32_t modePagePolicyLength = 4;
-    uint8_t *vpdModePagePolicy = C_CAST(uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* vpdModePagePolicy = C_CAST(uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (vpdModePagePolicy)
     {
         if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
@@ -2813,9 +2859,9 @@ typedef struct _concurrentRangesV1
     uint32_t version;
     uint8_t numberOfRanges;
     concurrentRangeDescriptionV1 range[15];//maximum of 15 concurrent ranges per ACS5
-}concurrentRangesV1, *ptrConcurrentRangesV1;
+}concurrentRangesV1, * ptrConcurrentRangesV1;
 
-eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRanges ranges)
+eReturnValues get_Concurrent_Positioning_Ranges(tDevice* device, ptrConcurrentRanges ranges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (ranges && ranges->size >= sizeof(concurrentRangesV1) && ranges->version >= CONCURRENT_RANGES_VERSION_V1)
@@ -2825,7 +2871,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRa
             uint32_t concurrentLogSizeBytes = 0;//NOTE: spec currently says this is at most 1024 bytes, but may be as low as 512
             if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, &concurrentLogSizeBytes, true, false) && concurrentLogSizeBytes > 0)
             {
-                uint8_t *concurrentRangeLog = C_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* concurrentRangeLog = C_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!concurrentRangeLog)
                 {
                     return MEMORY_FAILURE;
@@ -2853,7 +2899,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice *device, ptrConcurrentRa
             uint32_t concurrentLogSizeBytes = 0;
             if (SUCCESS == get_SCSI_VPD_Page_Size(device, CONCURRENT_POSITIONING_RANGES, &concurrentLogSizeBytes) && concurrentLogSizeBytes > 0)
             {
-                uint8_t *concurrentRangeVPD = C_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* concurrentRangeVPD = C_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!concurrentRangeVPD)
                 {
                     return MEMORY_FAILURE;
