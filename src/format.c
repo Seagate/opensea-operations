@@ -351,11 +351,11 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                                                         modeParameterData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
             // zero out the mode data length since we will not actually send it the mode page, just header and block
             // descriptor
-            modeParameterData[0] = 0;
-            modeParameterData[1] = 0;
+            modeParameterData[MODE_HEADER_10_MP_LEN_OFFSET]     = 0;
+            modeParameterData[MODE_HEADER_10_MP_LEN_OFFSET + 1] = 0;
             // zero out device specific parameter since those bits are mostly reserved in this case and don't really
             // matter for a reformat.
-            modeParameterData[3] = 0;
+            modeParameterData[MODE_HEADER_10_DEV_SPECIFIC] = 0;
         }
         else // mode sense 6
         {
@@ -363,12 +363,12 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
             blockDescriptorLength = modeParameterData[MODE_HEADER_6_BLK_DESC_OFFSET];
             // zero out the mode data length since we will not actually send it the mode page, just header and block
             // descriptor
-            modeParameterData[0] = 0;
+            modeParameterData[MODE_HEADER_6_MP_LEN_OFFSET] = 0;
             // zero out device specific parameter since those bits are mostly reserved in this case and don't really
             // matter for a reformat.
-            modeParameterData[2] = 0;
+            modeParameterData[MODE_HEADER_6_DEV_SPECIFIC] = 0;
         }
-        if (blockDescriptorLength == 8)
+        if (blockDescriptorLength == SHORT_LBA_BLOCK_DESCRIPTOR_LEN)
         {
             // short block descriptor
             // set the LBA to all Fs to reset to maximum LBA of the drive
@@ -398,7 +398,7 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                 modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newBlockSize);
             }
         }
-        else if (blockDescriptorLength == 16)
+        else if (blockDescriptorLength == LONG_LBA_BLOCK_DESCRIPTOR_LEN)
         {
             // long block descriptor
             // set the LBA to all Fs to reset to maximum LBA of the drive

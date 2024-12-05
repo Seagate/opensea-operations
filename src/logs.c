@@ -374,9 +374,12 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
         if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, false, longlba, mpc, modeBuffer))
         {
             // validate the correct page was returned!
-            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                        modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+            uint16_t modeDataLen  = UINT16_C(0);
+            uint16_t blockDescLen = UINT16_C(0);
+            get_mode_param_header_10_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                            &blockDescLen);
+            if (modeDataLen > 0 &&
+                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {
@@ -470,8 +473,11 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
                 modeBuffer)) // don't disable block descriptors here since this is mostly to support old drives.
         {
             // validate the correct page was returned!
-            uint8_t blockDescLen = modeBuffer[MODE_HEADER_6_BLK_DESC_OFFSET];
-            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+            uint8_t modeDataLen  = UINT8_C(0);
+            uint8_t blockDescLen = UINT8_C(0);
+            get_mode_param_header_6_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, &blockDescLen);
+            if (modeDataLen > 0 &&
+                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {
@@ -583,9 +589,12 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 *used6ByteCmd = false;
             }
             // validate the correct page was returned!
-            uint16_t blockDescLen = M_BytesTo2ByteValue(modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                        modeBuffer[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+            uint16_t modeDataLen  = UINT16_C(0);
+            uint16_t blockDescLen = UINT16_C(0);
+            get_mode_param_header_10_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                            &blockDescLen);
+            if (modeDataLen > 0 &&
+                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {
@@ -751,8 +760,11 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 *used6ByteCmd = true;
             }
             // validate the correct page was returned!
-            uint8_t blockDescLen = modeBuffer[MODE_HEADER_6_BLK_DESC_OFFSET];
-            if (modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+            uint8_t modeDataLen  = UINT8_C(0);
+            uint8_t blockDescLen = UINT8_C(0);
+            get_mode_param_header_6_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, &blockDescLen);
+            if (modeDataLen > 0 &&
+                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
             {
                 if (subpage > 0)
                 {

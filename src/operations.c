@@ -1589,23 +1589,25 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
                     // now we need to loop through each page, and send it to the drive as a new mode select command.
                     uint32_t offset                = UINT32_C(0);
                     uint16_t blockDescriptorLength = UINT16_C(0);
-                    if (!used6ByteCmd)
+                    uint16_t modeDataLen           = UINT16_C(0);
+
+                    get_SBC_Mode_Header_Blk_Desc_Fields(used6ByteCmd, modeData, modePageLength, &modeDataLen, M_NULLPTR,
+                                                        M_NULLPTR, M_NULLPTR, &blockDescriptorLength, M_NULLPTR,
+                                                        M_NULLPTR);
+                    if (used6ByteCmd)
                     {
-                        // got 10 byte command data
-                        blockDescriptorLength = M_BytesTo2ByteValue(modeData[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                                    modeData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-                        offset                = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                        offset = MODE_PARAMETER_HEADER_6_LEN;
                     }
                     else
                     {
-                        // got 6 byte command data.
-                        blockDescriptorLength = modeData[MODE_HEADER_6_BLK_DESC_OFFSET];
-                        offset                = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                        offset = MODE_PARAMETER_HEADER_10_LEN;
                     }
+                    offset += blockDescriptorLength;
+
                     uint16_t currentPageLength = UINT16_C(0);
                     uint16_t counter           = UINT16_C(0);
                     uint16_t failedModeSelects = UINT16_C(0);
-                    for (; offset < modePageLength; offset += currentPageLength, ++counter)
+                    for (; offset < modePageLength && modeDataLen > 0; offset += currentPageLength, ++counter)
                     {
                         uint8_t* currentPageToSet       = M_NULLPTR;
                         uint16_t currentPageToSetLength = used6ByteCmd
@@ -1747,10 +1749,12 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
             {
                 uint16_t offset                = UINT16_C(0);
                 uint16_t blockDescriptorLength = UINT16_C(0);
+                uint16_t modeDataLen           = UINT16_C(0);
+                get_SBC_Mode_Header_Blk_Desc_Fields(used6ByteCmd, modeData, modePageLength, &modeDataLen, M_NULLPTR,
+                                                    M_NULLPTR, M_NULLPTR, &blockDescriptorLength, M_NULLPTR, M_NULLPTR);
                 if (used6ByteCmd)
                 {
-                    blockDescriptorLength = modeData[MODE_HEADER_6_BLK_DESC_OFFSET];
-                    offset                = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                    offset = MODE_PARAMETER_HEADER_6_LEN;
                     // now zero out the reserved bytes for the mode select command
                     modeData[0] = 0; // mode data length is reserved for mode select commands
                     // leave medium type alone
@@ -1759,9 +1763,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
                 }
                 else
                 {
-                    blockDescriptorLength = M_BytesTo2ByteValue(modeData[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                                modeData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-                    offset                = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                    offset = MODE_PARAMETER_HEADER_10_LEN;
                     // now zero out the reserved bytes for the mode select command
                     modeData[0] = 0; // mode data length is reserved for mode select commands
                     modeData[1] = 0;
@@ -1769,6 +1771,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
                     // leave device specific parameter alone???
                     // leave block descriptor length alone in case we got some.
                 }
+                offset += blockDescriptorLength;
                 // now send the mode select command
                 bool pageFormat = modePage == 0 ? false : true; // set to false when reading vendor unique page zero
                 bool savable =
@@ -1842,28 +1845,28 @@ eReturnValues scsi_Set_Mode_Page(tDevice* device, uint8_t* modePageData, uint16_
         {
             uint16_t offset                = UINT16_C(0);
             uint16_t blockDescriptorLength = UINT16_C(0);
+            get_SBC_Mode_Header_Blk_Desc_Fields(used6ByteCmd, modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                                M_NULLPTR, &blockDescriptorLength, M_NULLPTR, M_NULLPTR);
             if (used6ByteCmd)
             {
-                blockDescriptorLength = modeData[MODE_HEADER_6_BLK_DESC_OFFSET];
-                offset                = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                offset = MODE_PARAMETER_HEADER_6_LEN;
                 // now zero out the reserved bytes for the mode select command
-                modeData[0] = 0; // mode data length is reserved for mode select commands
+                modeData[0] = RESERVED; // mode data length is reserved for mode select commands
                 // leave medium type alone
                 // leave device specific parameter alone???
                 // leave block descriptor length alone in case we got some.
             }
             else
             {
-                blockDescriptorLength = M_BytesTo2ByteValue(modeData[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                            modeData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-                offset                = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                offset = MODE_PARAMETER_HEADER_10_LEN;
                 // now zero out the reserved bytes for the mode select command
-                modeData[0] = 0; // mode data length is reserved for mode select commands
-                modeData[1] = 0;
+                modeData[0] = RESERVED; // mode data length is reserved for mode select commands
+                modeData[1] = RESERVED;
                 // leave medium type alone
                 // leave device specific parameter alone???
                 // leave block descriptor length alone in case we got some.
             }
+            offset += blockDescriptorLength;
             // copy the incoming buffer (which is ONLY mode page data)
             safe_memcpy(&modeData[offset], modePageLength - offset, modePageData, modeDataLength);
             // now send the mode select command
@@ -2571,22 +2574,23 @@ void show_SCSI_Mode_Page(tDevice*             device,
                 // Loop through each page returned in the buffer and print it to the screen
                 uint32_t offset                = UINT32_C(0);
                 uint16_t blockDescriptorLength = UINT16_C(0);
+                uint16_t modeDataLen           = UINT16_C(0);
+                get_SBC_Mode_Header_Blk_Desc_Fields(used6ByteCmd, modeData, modePageLength, &modeDataLen, M_NULLPTR,
+                                                    M_NULLPTR, M_NULLPTR, &blockDescriptorLength, M_NULLPTR, M_NULLPTR);
                 if (!used6ByteCmd)
                 {
                     // got 10 byte command data
-                    blockDescriptorLength = M_BytesTo2ByteValue(modeData[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                                modeData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-                    offset                = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
+                    offset = MODE_PARAMETER_HEADER_10_LEN;
                 }
                 else
                 {
                     // got 6 byte command data.
-                    blockDescriptorLength = modeData[MODE_HEADER_6_BLK_DESC_OFFSET];
-                    offset                = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
+                    offset = MODE_PARAMETER_HEADER_6_LEN;
                 }
+                offset += blockDescriptorLength;
                 uint16_t currentPageLength = UINT16_C(0);
                 uint16_t counter           = UINT16_C(0);
-                for (; offset < modePageLength; offset += currentPageLength, ++counter)
+                for (; offset < modePageLength && modeDataLen > 0; offset += currentPageLength, ++counter)
                 {
                     if (modeData[offset] & BIT6)
                     {
@@ -2631,24 +2635,24 @@ void show_SCSI_Mode_Page(tDevice*             device,
             if (SUCCESS == get_SCSI_Mode_Page(device, mpc, modePage, subpage, M_NULLPTR, M_NULLPTR, true, modeData,
                                               modePageLength, M_NULLPTR, &used6ByteCmd))
             {
-                if (used6ByteCmd)
+                uint16_t blockDescriptorLength = UINT16_C(0);
+                uint16_t modeDataLen           = UINT16_C(0);
+                get_SBC_Mode_Header_Blk_Desc_Fields(used6ByteCmd, modeData, modePageLength, &modeDataLen, M_NULLPTR,
+                                                    M_NULLPTR, M_NULLPTR, &blockDescriptorLength, M_NULLPTR, M_NULLPTR);
+                if (modeDataLen > 0)
                 {
-                    print_Mode_Page(
-                        device->drive_info.scsiVpdData.inquiryData[0],
-                        &modeData
-                            [MODE_PARAMETER_HEADER_6_LEN +
-                             modeData
-                                 [MODE_HEADER_6_BLK_DESC_OFFSET] /*block descripto length in case one was returned*/],
-                        modePageLength - MODE_PARAMETER_HEADER_10_LEN - modeData[3], mpc, bufferFormatOutput);
+                    uint8_t headerLen = MODE_PARAMETER_HEADER_10_LEN;
+                    if (used6ByteCmd)
+                    {
+                        headerLen = MODE_PARAMETER_HEADER_6_LEN;
+                    }
+                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0],
+                                    &modeData[headerLen + blockDescriptorLength],
+                                    modePageLength - headerLen - blockDescriptorLength, mpc, bufferFormatOutput);
                 }
                 else
                 {
-                    uint16_t blockDescriptorLength = M_BytesTo2ByteValue(modeData[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                                         modeData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-                    print_Mode_Page(device->drive_info.scsiVpdData.inquiryData[0],
-                                    &modeData[MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength],
-                                    modePageLength - MODE_PARAMETER_HEADER_10_LEN - blockDescriptorLength, mpc,
-                                    bufferFormatOutput);
+                    printf("No mode page data was returned.\n");
                 }
             }
             safe_free_aligned(&modeData);
