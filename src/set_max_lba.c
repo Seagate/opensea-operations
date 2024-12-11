@@ -702,7 +702,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                                     ' '; // replace with a space
                             }
                         }
-#if !defined(__BIG_ENDIAN__)
+#if !defined(ENV_BIG_ENDIAN)
                         byte_Swap_String_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
 #endif
                         remove_Leading_And_Trailing_Whitespace_Len(
