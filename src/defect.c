@@ -868,6 +868,7 @@ eReturnValues create_Uncorrectables(tDevice*                    device,
     startingLBA = align_LBA(device, startingLBA);
     for (iterator = startingLBA; iterator < (startingLBA + range); iterator += increment)
     {
+        ret = SUCCESS;
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
             printf("Creating Uncorrectable error at LBA %-20" PRIu64 "\n", iterator);
@@ -876,10 +877,19 @@ eReturnValues create_Uncorrectables(tDevice*                    device,
         {
             ret = write_Psuedo_Uncorrectable_Error(device, iterator);
         }
-        else if (readWriteLong)
+        if (readWriteLong && ret != SUCCESS)
         {
             ret = corrupt_LBA_Read_Write_Long(
                 device, iterator, UINT16_MAX); // saying to corrupt all the data bytes to make sure we do get an error.
+            if (ret == SUCCESS && wue)
+            {
+                // for some odd reason wue did not work but this method did...so switch to using this
+                wue = false;
+                if (device->drive_info.drive_type == ATA_DRIVE)
+                {
+                    increment = 1;
+                }
+            }
         }
         else
         {
