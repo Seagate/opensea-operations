@@ -192,7 +192,7 @@ extern "C"
 
     static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping** mnmap)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, mnmap));
+        safe_free_core(M_REINTERPRET_CAST(void**, mnmap));
     }
 
     //-----------------------------------------------------------------------------

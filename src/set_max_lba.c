@@ -710,7 +710,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
                     }
                 }
             }
-            safe_Free_aligned(C_CAST(void**, &capMNMappingLog));
+            safe_free_aligned_core(C_CAST(void**, &capMNMappingLog));
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)

@@ -1602,7 +1602,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
                 printf("No bad LBAs detected during DST and Clean.\n");
             }
         }
-        safe_Free_aligned(C_CAST(void**, &errorList));
+        safe_free_aligned_core(C_CAST(void**, &errorList));
     }
     return ret;
 }

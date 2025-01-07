@@ -344,7 +344,7 @@ extern "C"
 
     static M_INLINE void safe_free_supported_formats(supportedFormats** formats)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, formats));
+        safe_free_core(M_REINTERPRET_CAST(void**, formats));
     }
 
     //-----------------------------------------------------------------------------

@@ -84,7 +84,7 @@ extern "C"
 
     static M_INLINE void safe_free_mbrdata(mbrData** mbr)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, mbr));
+        safe_free_core(M_REINTERPRET_CAST(void**, mbr));
     }
 
     // Please read through the lists on both of these websites. This list may be incomplete and be aware that some
@@ -399,7 +399,7 @@ extern "C"
 
     static M_INLINE void safe_free_apmdata(apmData** apm)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, apm));
+        safe_free_core(M_REINTERPRET_CAST(void**, apm));
     }
 
     //----------------------------------------GPT--------------------------------------
@@ -567,7 +567,7 @@ extern "C"
 
     static M_INLINE void safe_free_gptdata(gptData** gpt)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, gpt));
+        safe_free_core(M_REINTERPRET_CAST(void**, gpt));
     }
 
     // Ideas when reading this info. Note whether the partitions are aligned per the drive's requirements (physical
@@ -587,7 +587,7 @@ extern "C"
 
     static M_INLINE void safe_free_partition_info(partitionInfo** info)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, info));
+        safe_free_core(M_REINTERPRET_CAST(void**, info));
     }
 
     OPENSEA_OPERATIONS_API ptrPartitionInfo get_Partition_Info(tDevice* device);

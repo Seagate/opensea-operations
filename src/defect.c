@@ -608,7 +608,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
 
 void free_Defect_List(scsiDefectList** defects)
 {
-    safe_Free(M_REINTERPRET_CAST(void**, defects));
+    safe_free_core(M_REINTERPRET_CAST(void**, defects));
 }
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
@@ -1598,7 +1598,7 @@ eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundRes
             {
                 ret = FAILURE;
             }
-            safe_Free_aligned(C_CAST(void**, &backgroundScanResults));
+            safe_free_aligned_core(C_CAST(void**, &backgroundScanResults));
         }
     }
     return ret;

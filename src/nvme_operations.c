@@ -928,7 +928,7 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrin
             }
         }
     }
-    safe_Free_aligned(C_CAST(void**, &pErrLogBuf));
+    safe_free_aligned_core(C_CAST(void**, &pErrLogBuf));
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
 #endif

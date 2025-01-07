@@ -141,7 +141,7 @@ extern "C"
 
     static M_INLINE void safe_free_registration_key_data(registrationKeysData** regKeyData)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, regKeyData));
+        safe_free_core(M_REINTERPRET_CAST(void**, regKeyData));
     }
 
     OPENSEA_OPERATIONS_API eReturnValues get_Registration_Keys(tDevice*                device,
@@ -175,7 +175,7 @@ extern "C"
 
     static M_INLINE void safe_free_reservation_data(reservationsData** resData)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, resData));
+        safe_free_core(M_REINTERPRET_CAST(void**, resData));
     }
 
     OPENSEA_OPERATIONS_API eReturnValues get_Reservations(tDevice*            device,
@@ -213,7 +213,7 @@ extern "C"
 
     static M_INLINE void safe_free_full_reservation_info(fullReservationInfo** resInfo)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, resInfo));
+        safe_free_core(M_REINTERPRET_CAST(void**, resInfo));
     }
 
     OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(tDevice*               device,

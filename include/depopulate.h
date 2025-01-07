@@ -73,7 +73,7 @@ extern "C"
 
     static M_INLINE void safe_free_physical_element(physicalElement** pe)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, pe));
+        safe_free_core(M_REINTERPRET_CAST(void**, pe));
     }
 
     //-----------------------------------------------------------------------------

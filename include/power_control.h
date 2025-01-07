@@ -362,7 +362,7 @@ extern "C"
 
     static M_INLINE void safe_free_sasEnhPhyControl(sasEnhPhyControl** mem)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, mem));
+        safe_free_core(M_REINTERPRET_CAST(void**, mem));
     }
 
     // If doing all phys, use get_SAS_Enhanced_Phy_Control_Number_Of_Phys first to figure out how much memory must be

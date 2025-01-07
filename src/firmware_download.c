@@ -1084,7 +1084,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                         // - TJE
                     }
                 }
-                safe_Free_aligned(C_CAST(void**, &extendedInq)); // PRH valgrind check
+                safe_free_aligned_core(C_CAST(void**, &extendedInq)); // PRH valgrind check
             }
 
             // PMC 8070 fails this command for some unknown reason even if a drive supports it, so skip these requests

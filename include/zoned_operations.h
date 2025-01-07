@@ -69,7 +69,7 @@ extern "C"
 
     static M_INLINE void safe_free_zone_descriptor(zoneDescriptor** zd)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, zd));
+        safe_free_core(M_REINTERPRET_CAST(void**, zd));
     }
 
     OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(tDevice*              device,

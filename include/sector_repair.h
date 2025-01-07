@@ -44,7 +44,7 @@ extern "C"
 
     static M_INLINE void safe_free_error_lba(errorLBA** errlba)
     {
-        safe_Free(M_REINTERPRET_CAST(void**, errlba));
+        safe_free_core(M_REINTERPRET_CAST(void**, errlba));
     }
 
     //-----------------------------------------------------------------------------
