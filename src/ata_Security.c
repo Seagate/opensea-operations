@@ -534,7 +534,7 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
     if (ptrData && ataPassword)
     {
         // copy the password in, but the max length is 32 bytes according to the spec!
-        safe_memcpy(&ptrData[2], 512, ataPassword->password,
+        safe_memcpy(&ptrData[2], 510, ataPassword->password,
                     M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH));
         if (setPassword) // if setting the password in the set password command, we need to set a few other things up
         {
