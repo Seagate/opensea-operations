@@ -333,20 +333,20 @@ extern "C"
         }checkConditionFlags;
     }powerConditionTimers, *ptrPowerConditionTimers;
 
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions, bool saveChanges);
 
-    OPENSEA_OPERATIONS_API eReturnValues set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
+    OPENSEA_OPERATIONS_API eReturnValues set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions, bool saveChanges);
 
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer, bool saveChanges);
 
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable, bool saveChanges);
 
     //When ATA drive, the restoreToDefaults is not allowed. Also, translation of timer value is done according to SAT spec
-    OPENSEA_OPERATIONS_API eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
+    OPENSEA_OPERATIONS_API eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault, bool saveChanges);
 
     //SCSI/SAS Only
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable);
-    OPENSEA_OPERATIONS_API eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable, bool saveChanges);
+    OPENSEA_OPERATIONS_API eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault, bool saveChanges);
 
     //-----------------------------------------------------------------------------
     //
