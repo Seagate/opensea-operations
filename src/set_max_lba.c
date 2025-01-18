@@ -421,9 +421,9 @@ static uint64_t get_ATA_MaxLBA(tDevice* device)
     uint64_t maxLBA = UINT64_C(0);
     // read the max LBA from idenfity data.
     // now we need to compare read capacity data and ATA identify data.
-    if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), 512))
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, identifyData, 512);
+    if (SUCCESS == ata_Identify(device, identifyData, 512))
     {
-        uint8_t* identifyData = C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000);
         if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) &&
             device->drive_info.IdentifyData.ata.Word083 & BIT10)
         {
@@ -480,9 +480,9 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
         {
             // try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a
             // physical sector size whereas readcap10 data will not
-            uint8_t* temp = C_CAST(
+            uint8_t* temp = M_REINTERPRET_CAST(
                 uint8_t*, safe_realloc_aligned(readCapBuf, 0, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
-            if (!temp)
+            if (temp == M_NULLPTR)
             {
                 safe_free_aligned(&readCapBuf);
                 return maxLBA;

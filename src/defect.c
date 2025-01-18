@@ -120,7 +120,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                         uint8_t* temp =
                             M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(defectData, 0, dataLength,
                                                                               device->os_info.minimumAlignment));
-                        if (temp)
+                        if (temp != M_NULLPTR)
                         {
                             defectData = temp;
                             safe_memset(defectData, dataLength, 0, dataLength);
@@ -282,7 +282,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                             uint8_t* temp =
                                 M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(defectData, 0, dataLength,
                                                                                   device->os_info.minimumAlignment));
-                            if (temp)
+                            if (temp != M_NULLPTR)
                             {
                                 defectData = temp;
                                 safe_memset(defectData, dataLength, 0, dataLength);
@@ -456,7 +456,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                             uint8_t* temp =
                                 M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(defectData, 0, dataLength,
                                                                                   device->os_info.minimumAlignment));
-                            if (temp)
+                            if (temp != M_NULLPTR)
                             {
                                 defectData = temp;
                                 safe_memset(defectData, dataLength, 0, dataLength);
@@ -1187,7 +1187,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
             }
             uint8_t* temp = M_REINTERPRET_CAST(
                 uint8_t*, safe_realloc_aligned(dataBuffer, 0, dataLength, device->os_info.minimumAlignment));
-            if (temp)
+            if (temp != M_NULLPTR)
             {
                 dataBuffer = temp;
                 safe_memset(dataBuffer, dataLength, 0, dataLength);

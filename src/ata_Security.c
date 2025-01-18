@@ -1317,7 +1317,8 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
     }
     // issue an identify device command before we read the ATA security bits to make sure the data isn't stale in our
     // structure.
-    ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
+    ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
     get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
     if (SUCCESS == ataEraseResult && !finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
     {
@@ -1369,8 +1370,7 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
             {
                 unlock_ATA_Security(device, ataPassword, satATASecuritySupported);
                 safe_memset(&finalSecurityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
-                ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000),
-                             LEGACY_DRIVE_SEC_SIZE);
+                ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
                 get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
             }
             if (finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)

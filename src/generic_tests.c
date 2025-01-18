@@ -553,7 +553,7 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         dataBufSize =
             uint32_to_sizet(device->drive_info.deviceBlockSize) * uint32_to_sizet(sectorCount) * sizeof(uint8_t);
         dataBuf = M_REINTERPRET_CAST(uint8_t*, safe_malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
-        if (!dataBuf)
+        if (dataBuf == M_NULLPTR)
         {
             perror("failed to allocate memory for reading data at OD\n");
             return MEMORY_FAILURE;
@@ -1497,7 +1497,7 @@ eReturnValues butterfly_Test(tDevice*                    device,
         dataBufSize =
             uint32_to_sizet(device->drive_info.deviceBlockSize) * uint32_to_sizet(sectorCount) * sizeof(uint8_t);
         dataBuf = M_REINTERPRET_CAST(uint8_t*, safe_malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
-        if (!dataBuf)
+        if (dataBuf == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1764,7 +1764,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
         dataBufSize =
             uint32_to_sizet(device->drive_info.deviceBlockSize) * uint32_to_sizet(sectorCount) * sizeof(uint8_t);
         dataBuf = M_REINTERPRET_CAST(uint8_t*, safe_malloc_aligned(dataBufSize, device->os_info.minimumAlignment));
-        if (!dataBuf)
+        if (dataBuf == M_NULLPTR)
         {
             perror("failed to allocate memory!\n");
             return MEMORY_FAILURE;

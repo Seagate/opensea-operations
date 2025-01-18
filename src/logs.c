@@ -3706,7 +3706,7 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice* device, uin
                 uint8_t* temp =
                     M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(errorHistoryDirectory, 0, errorHistorySize,
                                                                       device->os_info.minimumAlignment));
-                if (temp)
+                if (temp != M_NULLPTR)
                 {
                     errorHistoryDirectory = temp;
                     safe_memset(errorHistoryDirectory, errorHistorySize, 0, errorHistorySize);

@@ -276,8 +276,8 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeatures
     eReturnValues ret = FAILURE;
     if (device->drive_info.IdentifyData.ata.Word255 == 0)
     {
-        ret =
-            ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
+        ret = ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
     }
     else
     {

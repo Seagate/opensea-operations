@@ -2175,9 +2175,7 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
         bool     cdlSupported = false;
         bool     cdlEnabled   = false;
         for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET;
-             iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) &&
-             iter < ATA_LOG_PAGE_LEN_BYTES;
-             ++iter)
+             iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < ATA_LOG_PAGE_LEN_BYTES; ++iter)
         {
             switch (idDataLog[iter])
             {

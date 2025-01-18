@@ -2875,6 +2875,7 @@ eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevic
         bool supported = false;
         if (SUCCESS == sata_Get_Device_Initiated_Interface_Power_State_Transitions(device, &supported, M_NULLPTR))
         {
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
             if (enable)
             {
                 ret = ata_Set_Features(device, SF_ENABLE_SATA_FEATURE, 0x03, 0, 0, 0);
@@ -2886,13 +2887,11 @@ eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevic
             // Issue an identify to update the identify data...
             if (device->drive_info.drive_type == ATA_DRIVE)
             {
-                ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000),
-                             LEGACY_DRIVE_SEC_SIZE);
+                ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
             }
             else if (device->drive_info.drive_type == ATAPI_DRIVE)
             {
-                ata_Identify_Packet_Device(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000),
-                                           LEGACY_DRIVE_SEC_SIZE);
+                ata_Identify_Packet_Device(device, iddata, LEGACY_DRIVE_SEC_SIZE);
             }
         }
     }
@@ -2948,6 +2947,7 @@ eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
             bool supported = false;
             if (SUCCESS == sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(device, &supported, M_NULLPTR))
             {
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
                 if (enable)
                 {
                     ret = ata_Set_Features(device, SF_ENABLE_SATA_FEATURE, 0x07, 0, 0, 0);
@@ -2959,13 +2959,11 @@ eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
                 // Issue an identify to update the identify data...
                 if (device->drive_info.drive_type == ATA_DRIVE)
                 {
-                    ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000),
-                                 LEGACY_DRIVE_SEC_SIZE);
+                    ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
                 }
                 else if (device->drive_info.drive_type == ATAPI_DRIVE)
                 {
-                    ata_Identify_Packet_Device(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000),
-                                               LEGACY_DRIVE_SEC_SIZE);
+                    ata_Identify_Packet_Device(device, iddata, LEGACY_DRIVE_SEC_SIZE);
                 }
             }
         }

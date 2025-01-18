@@ -323,7 +323,8 @@ int is_Low_Current_Spin_Up_Enabled(tDevice* device, bool sctCommandSupported)
         else if (!sctCommandSupported) // check the identify data for a bit (2.5" drives only I think) - TJE
         {
             // refresh Identify data
-            ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
+            ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
             if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word155) &&
                 device->drive_info.IdentifyData.ata.Word155 & BIT1)
             {

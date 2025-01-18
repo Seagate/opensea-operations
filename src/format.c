@@ -1609,7 +1609,7 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
         uint32_t formatsDataSize =
             C_CAST(uint32_t, sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats));
         ptrSupportedFormats formats = M_REINTERPRET_CAST(ptrSupportedFormats, safe_malloc(formatsDataSize));
-        if (!formats)
+        if (formats == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }

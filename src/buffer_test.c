@@ -19,7 +19,7 @@
 #include "error_translation.h"
 #include "io_utils.h"
 #include "math_utils.h"
-#include "memory_safety.h" 
+#include "memory_safety.h"
 #include "pattern_utils.h"
 #include "precision_timer.h"
 #include "string_utils.h"
