@@ -37,7 +37,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                    scsiDefectList**        defects)
 {
     eReturnValues ret = SUCCESS;
-    if (defects)
+    if (defects != M_NULLPTR)
     {
         bool     tenByte                   = false;
         bool     gotDefectData             = false;
@@ -613,7 +613,7 @@ void free_Defect_List(scsiDefectList** defects)
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
 {
-    if (defects)
+    if (defects != M_NULLPTR)
     {
         printf("===SCSI Defect List===\n");
         if (defects->containsPrimaryList)
@@ -905,7 +905,7 @@ eReturnValues create_Uncorrectables(tDevice*                    device,
                 uint32_to_sizet(device->drive_info.deviceBlockSize) * uint16_to_sizet(logicalPerPhysicalSectors);
             uint8_t* dataBuf = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!dataBuf)
+            if (dataBuf == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1041,7 +1041,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
             uint32_t dataSize                = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
             uint8_t* data                    = M_REINTERPRET_CAST(
                                    uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!data)
+            if (data == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1056,7 +1056,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
                 {
                     data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                 }
-                if (numberOfBlocksRequested)
+                if (numberOfBlocksRequested > UINT16_C(0))
                 {
                     // The drive responded through SAT enough to tell us exactly how many blocks are expected...so we
                     // can set the data transfer length as is expected...since this wasn't clear on non 512B logical
@@ -1087,7 +1087,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
             uint32_t dataSize = device->drive_info.deviceBlockSize + device->drive_info.IdentifyData.ata.Word022;
             uint8_t* data     = M_REINTERPRET_CAST(
                     uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!data)
+            if (data == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1291,7 +1291,7 @@ eReturnValues corrupt_LBAs(tDevice*                    device,
                 uint32_to_sizet(device->drive_info.deviceBlockSize) * uint16_to_sizet(logicalPerPhysicalSectors);
             uint8_t* dataBuf = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!dataBuf)
+            if (dataBuf == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1359,7 +1359,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
         {
             uint8_t* pendingDefectsLog = C_CAST(
                 uint8_t*, safe_calloc_aligned(pendingLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!pendingDefectsLog)
+            if (pendingDefectsLog == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1466,7 +1466,7 @@ eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect d
             // ACS Pending List
             uint8_t* pendingList = C_CAST(
                 uint8_t*, safe_calloc_aligned(pendingLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!pendingList)
+            if (pendingList == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1548,7 +1548,7 @@ eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundRes
             uint8_t* backgroundScanResults =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(backgroundScanResultsLength, sizeof(uint8_t),
                                                                  device->os_info.minimumAlignment));
-            if (!backgroundScanResults)
+            if (backgroundScanResults == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1620,7 +1620,7 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
     *numberOfDefects = 0;
     ptrBackgroundResults bmsResults =
         M_REINTERPRET_CAST(ptrBackgroundResults, safe_malloc(sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS));
-    if (!bmsResults)
+    if (bmsResults == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }

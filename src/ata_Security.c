@@ -472,7 +472,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
 
 static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
 {
-    if (ataPassword)
+    if (ataPassword != M_NULLPTR)
     {
         // first check if it is empty
         if (ataPassword->passwordLength > 0)
@@ -589,7 +589,7 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
 
 void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT)
 {
-    if (ptrData)
+    if (ptrData != M_NULLPTR)
     {
         if (eraseType == ATA_SECURITY_ERASE_ENHANCED_ERASE)
         {
@@ -618,7 +618,7 @@ eReturnValues set_ATA_Security_Password(tDevice* device, ataSecurityPassword ata
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
              uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!securityPassword)
+    if (securityPassword == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -643,7 +643,7 @@ eReturnValues disable_ATA_Security_Password(tDevice* device, ataSecurityPassword
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
              uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!securityPassword)
+    if (securityPassword == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -668,7 +668,7 @@ eReturnValues unlock_ATA_Security(tDevice* device, ataSecurityPassword ataPasswo
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
              uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!securityPassword)
+    if (securityPassword == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -697,7 +697,7 @@ eReturnValues start_ATA_Security_Erase(tDevice*              device,
     eReturnValues ret           = SUCCESS;
     uint8_t*      securityErase = M_REINTERPRET_CAST(
              uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!securityErase)
+    if (securityErase == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }

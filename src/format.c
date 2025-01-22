@@ -35,7 +35,7 @@
 bool is_Format_Unit_Supported(tDevice* device, bool* fastFormatSupported)
 {
     bool supported = false;
-    if (fastFormatSupported)
+    if (fastFormatSupported != M_NULLPTR)
     {
         *fastFormatSupported = false; // make sure this defaults to false
     }
@@ -49,7 +49,7 @@ bool is_Format_Unit_Supported(tDevice* device, bool* fastFormatSupported)
     {
         supported = true;
         // if we made it here, then it's at least supported...not check the bit field for fast format support
-        if (fastFormatSupported) // make sure the pointer is valid
+        if (fastFormatSupported != M_NULLPTR) // make sure the pointer is valid
         {
             if (!(formatUnitSupReq.cdbUsageData[3] == 0xFF &&
                   formatUnitSupReq.cdbUsageData[4] == 0xFF)) // if both these bytes are FFh, then the drive conforms to
@@ -214,7 +214,7 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
     // allocate memory
     dataBuf = C_CAST(
         uint8_t*, safe_calloc_aligned(dataSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!dataBuf)
+    if (dataBuf == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -574,7 +574,7 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
     // 4 + 4 for param 4
     uint8_t* formatStatusPage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(307, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!formatStatusPage)
+    if (formatStatusPage == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -610,7 +610,7 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
                     {
                         uint8_t* allFs =
                             M_REINTERPRET_CAST(uint8_t*, safe_calloc(formatStatusPage[offset + 3], sizeof(uint8_t*)));
-                        if (allFs)
+                        if (allFs != M_NULLPTR)
                         {
                             if (memcmp(allFs, &formatStatusPage[offset + 4], formatStatusPage[offset + 3]) == 0)
                             {
@@ -1008,7 +1008,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
     eReturnValues ret         = NOT_SUPPORTED;
     uint8_t*      inquiryData = C_CAST(
              uint8_t*, safe_calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!inquiryData)
+    if (inquiryData == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -1083,7 +1083,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
         uint8_t* supportedBlockLengthsData =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(supportedSectorSizesDataLength, sizeof(uint8_t),
                                                              device->os_info.minimumAlignment));
-        if (!supportedBlockLengthsData)
+        if (supportedBlockLengthsData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1371,7 +1371,7 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
 eReturnValues get_Supported_Formats(tDevice* device, ptrSupportedFormats formats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!formats)
+    if (formats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1705,7 +1705,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         uint8_t* eraseMBR =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
                                                              device->os_info.minimumAlignment));
-        if (eraseMBR)
+        if (eraseMBR != M_NULLPTR)
         {
             // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
             // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is why
@@ -1827,11 +1827,11 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
 eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
 {
     eReturnValues ret = SUCCESS;
-    if (!percentComplete)
+    if (percentComplete == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    *percentComplete = 0;
+    *percentComplete = UINT8_C(0);
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
         ret = nvme_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.nvme.ns, device->drive_info.namespaceID,
@@ -1842,8 +1842,9 @@ eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
             {
                 if (get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0) != 0)
                 {
-                    *percentComplete = 100 - get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
-                    ret              = IN_PROGRESS;
+                    *percentComplete =
+                        UINT8_C(100) - get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.fpi, 6, 0);
+                    ret = IN_PROGRESS;
                 }
             }
         }

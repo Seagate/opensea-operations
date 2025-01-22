@@ -32,7 +32,7 @@
 
 ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
 {
-    if (partInfo)
+    if (partInfo != M_NULLPTR)
     {
         switch (partInfo->partitionDataType)
         {
@@ -729,7 +729,7 @@ static eReturnValues fill_GPT_Data(tDevice*   device,
                     }
                     gptPartitionArray =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
-                    if (!gptPartitionArray)
+                    if (gptPartitionArray == M_NULLPTR)
                     {
                         return MEMORY_FAILURE;
                     }
@@ -769,7 +769,7 @@ static eReturnValues fill_GPT_Data(tDevice*   device,
                                                 SIZE_OF_STACK_ARRAY(gptGUIDNameLookup), sizeof(gptGUIDNameLookup[0]),
                                                 (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
 
-                        if (gptName)
+                        if (gptName != M_NULLPTR)
                         {
                             // found a match, so set the partition info in the structure to the matched data
                             safe_memcpy(&gpt->partition[partIter].partitionTypeGUID, sizeof(gptPartitionTypeName),
@@ -940,7 +940,7 @@ static void print_MBR_CHS(mbrCHSAddress address)
 
 static void print_MBR_Info(ptrMBRData mbrTable)
 {
-    if (mbrTable)
+    if (mbrTable != M_NULLPTR)
     {
         printf("---MBR info---\n");
         // bool checkForAAP = false;
@@ -1040,7 +1040,7 @@ static void print_GPT_GUID(gptGUID guid)
 
 static void print_GPT_Info(ptrGPTData gptTable)
 {
-    if (gptTable)
+    if (gptTable != M_NULLPTR)
     {
         if (gptTable->mbrValid)
         {
@@ -1164,7 +1164,7 @@ static void print_GPT_Info(ptrGPTData gptTable)
 
 static void print_APM_Info(ptrAPMData apmTable)
 {
-    if (apmTable)
+    if (apmTable != M_NULLPTR)
     {
         printf("---APM info---\n");
     }
@@ -1172,7 +1172,7 @@ static void print_APM_Info(ptrAPMData apmTable)
 
 void print_Partition_Info(ptrPartitionInfo partitionTable)
 {
-    if (partitionTable)
+    if (partitionTable != M_NULLPTR)
     {
         printf("\n=====================\n");
         printf("   Partition Table   \n");
@@ -1183,7 +1183,7 @@ void print_Partition_Info(ptrPartitionInfo partitionTable)
             printf("No partition table was found.\n");
             printf("NOTE: When validating an erased drive, this is not enough information to say\n");
             printf("      that all user data is successfully erased and unretrievable.\n");
-            printf("      Verifcation of erasure must check more of the drive as data recovery software\n");
+            printf("      Verification of erasure must check more of the drive as data recovery software\n");
             printf("      may still be able to recover files when a partition table was deleted, but the\n");
             printf("      rest of the drive was not completely erased.\n\n");
             break;

@@ -61,7 +61,7 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
                     }
                 }
                 // get depopulation execution time
-                if (depopulationTime)
+                if (depopulationTime != M_NULLPTR)
                 {
                     uint64_t supportedCapabilitiesQWord19 = M_BytesTo8ByteValue(
                         supportedCapabilities[167], supportedCapabilities[166], supportedCapabilities[165],
@@ -101,7 +101,7 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
             getElementStatusSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
             supported = true;
-            if (depopulationTime)
+            if (depopulationTime != M_NULLPTR)
             {
                 *depopulationTime = UINT64_MAX;
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
@@ -121,7 +121,7 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
 eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!numberOfDescriptors)
+    if (numberOfDescriptors == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -155,7 +155,7 @@ eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
     // NOTE: Seagate legacy method uses head numbers starting at zero, but STD spec starts at 1. Add 1 to anything from
     // Seagate legacy method
     eReturnValues ret = NOT_SUPPORTED;
-    if (!elementList)
+    if (elementList == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -168,7 +168,7 @@ eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
         ((getPhysicalElementsDataSize + LEGACY_DRIVE_SEC_SIZE - 1) / LEGACY_DRIVE_SEC_SIZE) * LEGACY_DRIVE_SEC_SIZE;
     uint8_t* getPhysicalElements = C_CAST(
         uint8_t*, safe_calloc_aligned(getPhysicalElementsDataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (getPhysicalElements)
+    if (getPhysicalElements != M_NULLPTR)
     {
         uint32_t numberOfDescriptorsReturned = UINT32_C(0);
         if (device->drive_info.drive_type == ATA_DRIVE)
@@ -366,7 +366,7 @@ eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescr
 eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!depopStatus)
+    if (depopStatus == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -382,7 +382,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x24) // depop in progress
             {
                 ret = SUCCESS;
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 255.0;
                 }
@@ -391,7 +391,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x25) // repop in progress
             {
                 ret = SUCCESS;
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 255.0;
                 }
@@ -400,7 +400,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
             {
                 ret = SUCCESS;
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -409,7 +409,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00) // invalid field in CDB
             {
                 ret = SUCCESS;
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -417,7 +417,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             }
             else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x04) // depop failed
             {
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -425,7 +425,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             }
             else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x05) // repop failed
             {
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -451,7 +451,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             {
                 ptrPhysicalElement elementList =
                     M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
-                if (elementList)
+                if (elementList != M_NULLPTR)
                 {
                     safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
                                 numberOfDescriptors * sizeof(physicalElement));
@@ -467,7 +467,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                             {
                             case 0xFB: // repop error
                                 *depopStatus = DEPOP_REPOP_FAILED;
-                                if (progress)
+                                if (progress != M_NULLPTR)
                                 {
                                     *progress = 0.0;
                                 }
@@ -475,7 +475,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                                 break;
                             case 0xFC: // repop in progress
                                 *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-                                if (progress)
+                                if (progress != M_NULLPTR)
                                 {
                                     *progress = 255.0;
                                 }
@@ -483,7 +483,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                                 break;
                             case 0xFD: // depop error
                                 *depopStatus = DEPOP_FAILED;
-                                if (progress)
+                                if (progress != M_NULLPTR)
                                 {
                                     *progress = 0.0;
                                 }
@@ -491,7 +491,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                                 break;
                             case 0xFE: // depop in progress
                                 *depopStatus = DEPOP_IN_PROGRESS;
-                                if (progress)
+                                if (progress != M_NULLPTR)
                                 {
                                     *progress = 255.0;
                                 }
@@ -536,7 +536,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                 {
                     *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
                 }
-                else if (progress)
+                else if (progress != M_NULLPTR)
                 {
                     *progress = 255.0;
                 }
@@ -552,7 +552,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                 {
                     *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
                 }
-                else if (progress)
+                else if (progress != M_NULLPTR)
                 {
                     *progress = 255.0;
                 }
@@ -563,7 +563,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                      senseFields.scsiStatusCodes.ascq == 0x1E) // microcode activation required
             {
                 ret = SUCCESS;
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -574,7 +574,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                      senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
             {
                 ret = SUCCESS;
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -584,7 +584,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                      senseFields.scsiStatusCodes.asc == 0x31 &&
                      senseFields.scsiStatusCodes.ascq == 0x04) // depop failed
             {
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -594,7 +594,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                      senseFields.scsiStatusCodes.asc == 0x31 &&
                      senseFields.scsiStatusCodes.ascq == 0x05) // repop failed
             {
-                if (progress)
+                if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
@@ -814,7 +814,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                 {
                     ptrPhysicalElement elementList = M_REINTERPRET_CAST(
                         ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
-                    if (elementList)
+                    if (elementList != M_NULLPTR)
                     {
                         safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
                                     numberOfDescriptors * sizeof(physicalElement));
@@ -938,7 +938,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
     {
         // support is listed in the ID Data log, supported capabilities page
         DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
-        if (depopulationTime)
+        if (depopulationTime != M_NULLPTR)
         {
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
                                                      ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities,
@@ -1010,7 +1010,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
         if (removeAndTruncateSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
             supported = true;
-            if (depopulationTime)
+            if (depopulationTime != M_NULLPTR)
             {
                 *depopulationTime = UINT64_MAX;
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
@@ -1075,7 +1075,7 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
                     }
                 }
                 // get depopulation execution time
-                if (depopulationTime)
+                if (depopulationTime != M_NULLPTR)
                 {
                     uint64_t supportedCapabilitiesQWord19 = M_BytesTo8ByteValue(
                         supportedCapabilities[167], supportedCapabilities[166], supportedCapabilities[165],
@@ -1106,7 +1106,7 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
         if (repopulateSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
             supported = true;
-            if (depopulationTime)
+            if (depopulationTime != M_NULLPTR)
             {
                 *depopulationTime = UINT64_MAX;
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
@@ -1270,7 +1270,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                         {
                             ptrPhysicalElement elementList = M_REINTERPRET_CAST(
                                 ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
-                            if (elementList)
+                            if (elementList != M_NULLPTR)
                             {
                                 safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
                                             numberOfDescriptors * sizeof(physicalElement));

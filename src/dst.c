@@ -657,7 +657,7 @@ static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, 
                 if (smartData[367] & BIT0) // bit0 = the subcommand
                 {
                     supported = true;
-                    if (abortRestart)
+                    if (abortRestart != M_NULLPTR)
                     {
                         if (smartData[367] & BIT2)
                         {
@@ -668,7 +668,7 @@ static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, 
                             *abortRestart = false;
                         }
                     }
-                    if (offlineTimeSeconds)
+                    if (offlineTimeSeconds != M_NULLPTR)
                     {
                         *offlineTimeSeconds = M_BytesTo2ByteValue(smartData[365], smartData[364]);
                     }
@@ -687,7 +687,7 @@ static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, 
 static eReturnValues get_SMART_Offline_Status(tDevice* device, uint8_t* status)
 {
     eReturnValues ret = SUCCESS;
-    if (!status)
+    if (status == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1321,7 +1321,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
         passthroughWrite = true; // in this case, since sector size emulation is active, we need to issue a passthrough
                                  // command for the repair instead of a standard interface command. - TJE
     }
-    if (!externalErrorList)
+    if (externalErrorList == M_NULLPTR)
     {
         size_t errorListAllocation = SIZE_T_C(0);
         if (errorLimit < 1)
@@ -1335,7 +1335,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
         }
         errorList = C_CAST(
             errorLBA*, safe_calloc_aligned(errorListAllocation, sizeof(errorLBA), device->os_info.minimumAlignment));
-        if (!errorList)
+        if (errorList == M_NULLPTR)
         {
             perror("calloc failure\n");
             return MEMORY_FAILURE;
@@ -1437,7 +1437,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
                     // we got a valid LBA, so time to fix it
                     eReturnValues repairRet = repair_LBA(device, &errorList[*errorIndex], passthroughWrite,
                                                          autoWriteReassign, autoReadReassign);
-                    if (repaired)
+                    if (repaired != M_NULLPTR)
                     {
                         *repaired = true;
                     }
@@ -1581,7 +1581,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
     {
         ret = FAILURE;
     }
-    if (!externalErrorList)
+    if (externalErrorList == M_NULLPTR)
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
@@ -1622,7 +1622,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries e
         selfTestResults     = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint16_t lastPage = C_CAST(uint16_t, (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1); // zero indexed
-        if (!selfTestResults)
+        if (selfTestResults == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1824,7 +1824,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries e
     {
         selfTestResults = C_CAST(
             uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!selfTestResults)
+        if (selfTestResults == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1972,7 +1972,7 @@ static eReturnValues get_SCSI_DST_Log_Entries(tDevice* device, ptrDstLogEntries 
 {
     eReturnValues ret = NOT_SUPPORTED;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, dstLog, LP_SELF_TEST_RESULTS_LEN);
-    if (!entries)
+    if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -2016,7 +2016,7 @@ static eReturnValues get_SCSI_DST_Log_Entries(tDevice* device, ptrDstLogEntries 
 static eReturnValues get_NVMe_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!entries)
+    if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -2111,7 +2111,7 @@ eReturnValues get_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
 
 eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
 {
-    if (!entries)
+    if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }

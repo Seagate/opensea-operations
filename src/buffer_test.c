@@ -541,7 +541,7 @@ static void perform_Random_Pattern_Test(tDevice* device, uint32_t deviceBufferSi
 eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResults)
 {
     eReturnValues ret = SUCCESS;
-    if (!testResults)
+    if (testResults == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }

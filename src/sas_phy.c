@@ -60,7 +60,7 @@ static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t                 diagP
                                                    uint64_t                phyTestPatternDwords)
 {
     eReturnValues ret = SUCCESS;
-    if (!diagPage)
+    if (diagPage == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }

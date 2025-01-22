@@ -48,7 +48,7 @@ eReturnValues get_Ready_LED_State(tDevice* device, bool* readyLEDOnOff)
     {
         uint8_t* modeSense =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!modeSense)
+        if (modeSense == M_NULLPTR)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
@@ -86,7 +86,7 @@ eReturnValues change_Ready_LED(tDevice* device, bool readyLEDDefault, bool ready
     {
         uint8_t* modeSelect =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!modeSelect)
+        if (modeSelect == M_NULLPTR)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
@@ -742,7 +742,7 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
     if (device->drive_info.drive_type == SCSI_DRIVE && !device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
     {
         ret = SUCCESS;
-        if (!writeReq)
+        if (writeReq == M_NULLPTR)
         {
             return BAD_PARAMETER;
         }
@@ -799,7 +799,7 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
             }
         }
     }
-    else if (writeReq)
+    else if (writeReq != M_NULLPTR)
     {
         writeReq->cryptoErase = WAEREQ_NOT_SPECIFIED;
         writeReq->blockErase  = WAEREQ_NOT_SPECIFIED;
@@ -824,13 +824,13 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
                                                          &maxNumberOfLogicalBlocksPerCommand);
     bool isFormatUnitSupported = is_Format_Unit_Supported(device, M_NULLPTR);
     eraseMethod* currentErase  = C_CAST(eraseMethod*, eraseMethodList);
-    if (!currentErase)
+    if (currentErase == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    if (overwriteEraseTimeEstimateMinutes)
+    if (overwriteEraseTimeEstimateMinutes != M_NULLPTR)
     {
-        *overwriteEraseTimeEstimateMinutes = 0; // start off with zero
+        *overwriteEraseTimeEstimateMinutes = UINT32_C(0); // start off with zero
     }
     safe_memset(&sanitizeInfo, sizeof(sanitizeFeaturesSupported), 0, sizeof(sanitizeFeaturesSupported));
     safe_memset(&ataSecurityInfo, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
@@ -1114,8 +1114,8 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
     currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
     ++currentErase;
 
-    if (overwriteEraseTimeEstimateMinutes) // make sure the incoming value is zero in case time was set by something
-                                           // above here (like ata security erase)
+    if (overwriteEraseTimeEstimateMinutes != M_NULLPTR) // make sure the incoming value is zero in case time was set by
+                                                        // something above here (like ata security erase)
     {
         uint8_t hours   = UINT8_C(0);
         uint8_t minutes = UINT8_C(0);
@@ -1224,7 +1224,7 @@ void print_Supported_Erase_Methods(tDevice*          device,
         }
         ++counter;
     }
-    if (overwriteEraseTimeEstimateMinutes)
+    if (overwriteEraseTimeEstimateMinutes != M_NULLPTR)
     {
         uint16_t days    = UINT16_C(0);
         uint8_t  hours   = UINT8_C(0);
@@ -1343,7 +1343,7 @@ eReturnValues set_Sense_Data_Format(tDevice* device, bool defaultSetting, bool d
 eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice* device, uint16_t* sensitivity)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!sensitivity)
+    if (sensitivity == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1577,7 +1577,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
             {
                 uint8_t* modeData = C_CAST(
                     uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (!modeData)
+                if (modeData == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
                 }
@@ -1632,7 +1632,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
                         currentPageToSet =
                             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(currentPageToSetLength, sizeof(uint8_t),
                                                                              device->os_info.minimumAlignment));
-                        if (!currentPageToSet)
+                        if (currentPageToSet == M_NULLPTR)
                         {
                             safe_free_aligned(&modeData);
                             return MEMORY_FAILURE;
@@ -1738,7 +1738,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
         {
             uint8_t* modeData = C_CAST(
                 uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!modeData)
+            if (modeData == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1834,7 +1834,7 @@ eReturnValues scsi_Set_Mode_Page(tDevice* device, uint8_t* modePageData, uint16_
     {
         uint8_t* modeData = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!modeData)
+        if (modeData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -2480,7 +2480,7 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
         }
         printf("\n");
     }
-    else if (modeData)
+    else if (modeData != M_NULLPTR)
     {
         // page not supported
         uint8_t pageNumber = get_bit_range_uint8(modeData[0], 5, 0);
@@ -2562,7 +2562,7 @@ void show_SCSI_Mode_Page(tDevice*             device,
         {
             uint8_t* modeData = C_CAST(
                 uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!modeData)
+            if (modeData == M_NULLPTR)
             {
                 return;
             }
@@ -2626,7 +2626,7 @@ void show_SCSI_Mode_Page(tDevice*             device,
         {
             uint8_t* modeData = C_CAST(
                 uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!modeData)
+            if (modeData == M_NULLPTR)
             {
                 return;
             }
@@ -2767,7 +2767,7 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice* device, uint8_t m
     uint32_t modePagePolicyLength = UINT32_C(4);
     uint8_t* vpdModePagePolicy    = M_REINTERPRET_CAST(
            uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (vpdModePagePolicy)
+    if (vpdModePagePolicy != M_NULLPTR)
     {
         if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
         {
@@ -2775,7 +2775,7 @@ bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(tDevice* device, uint8_t m
             safe_free_aligned(&vpdModePagePolicy);
             vpdModePagePolicy = C_CAST(
                 uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (vpdModePagePolicy)
+            if (vpdModePagePolicy != M_NULLPTR)
             {
                 if (SUCCESS ==
                     scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
@@ -2853,7 +2853,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice* device, ptrConcurrentRa
                 uint8_t* concurrentRangeLog =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t),
                                                                      device->os_info.minimumAlignment));
-                if (!concurrentRangeLog)
+                if (concurrentRangeLog == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
                 }
@@ -2895,7 +2895,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice* device, ptrConcurrentRa
                 uint8_t* concurrentRangeVPD =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t),
                                                                      device->os_info.minimumAlignment));
-                if (!concurrentRangeVPD)
+                if (concurrentRangeVPD == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
                 }
@@ -3045,7 +3045,7 @@ eReturnValues get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
 
 void print_Write_Read_Verify_Info(ptrWRVInfo info)
 {
-    if (info)
+    if (info != M_NULLPTR)
     {
         printf("\n=====Write-Read-Verify=====\n");
         if (info->supported)

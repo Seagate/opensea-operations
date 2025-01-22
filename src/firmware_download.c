@@ -559,7 +559,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 downloadOffset += downloadSize;
             }
 
-            if (!downloadRemainder)
+            if (downloadRemainder == UINT32_C(0))
             {
                 options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
             }
@@ -1048,7 +1048,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
             uint8_t* extendedInq =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t),
                                                                  device->os_info.minimumAlignment));
-            if (extendedInq)
+            if (extendedInq != M_NULLPTR)
             {
                 if (SUCCESS ==
                     scsi_Inquiry(device, extendedInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
@@ -1241,7 +1241,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                     uint8_t* reportAllOPs =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (reportAllOPs)
+                    if (reportAllOPs != M_NULLPTR)
                     {
                         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0,
                                                                              reportAllOPsLength, reportAllOPs))
@@ -1254,7 +1254,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                             reportAllOPs =
                                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t),
                                                                                  device->os_info.minimumAlignment));
-                            if (reportAllOPs)
+                            if (reportAllOPs != M_NULLPTR)
                             {
                                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0,
                                                                                      reportAllOPsLength, reportAllOPs))
@@ -1423,7 +1423,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
             {
                 uint8_t* c3VPD = M_REINTERPRET_CAST(
                     uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (c3VPD)
+                if (c3VPD != M_NULLPTR)
                 {
                     // If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific
                     // for the supported features

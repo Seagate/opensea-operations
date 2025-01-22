@@ -468,7 +468,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
     // if read capacity 10 fails, retry with read capacity 16
     uint8_t* readCapBuf = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!readCapBuf)
+    if (readCapBuf == M_NULLPTR)
     {
         return maxLBA;
     }
@@ -658,7 +658,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
         {
             uint8_t* capMNMappingLog = C_CAST(
                 uint8_t*, safe_calloc_aligned(capMNLogSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!capMNMappingLog)
+            if (capMNMappingLog == M_NULLPTR)
             {
                 return M_NULLPTR;
             }
@@ -721,7 +721,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
         {
             uint8_t* capProdIDMappingVPD = C_CAST(
                 uint8_t*, safe_calloc_aligned(capIDVPDSizeBytes, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!capProdIDMappingVPD)
+            if (capProdIDMappingVPD == M_NULLPTR)
             {
                 return M_NULLPTR;
             }
@@ -784,7 +784,7 @@ void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModel
 
 void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
 {
-    if (capModelMapping)
+    if (capModelMapping != M_NULLPTR)
     {
         printf("---Capacity model number mapping---\n");
         printf("              MaxLBA Model number\n");

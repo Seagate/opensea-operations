@@ -46,7 +46,7 @@ void scsi_Threshold_Comparison(statistic* ptrStatistic); // prototype
 static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!deviceStats)
+    if (deviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -59,7 +59,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
         bool     dsnFeatureEnabled   = M_ToBool(device->drive_info.IdentifyData.ata.Word120 & BIT9);
         uint8_t* deviceStatsLog      = M_REINTERPRET_CAST(
                  uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!deviceStatsLog)
+        if (deviceStatsLog == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1679,7 +1679,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
 static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!deviceStats)
+    if (deviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -8566,7 +8566,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatist
                     uint8_t* protSpData =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (protSpData)
+                    if (protSpData != M_NULLPTR)
                     {
                         if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES,
                                                           LP_PROTOCOL_SPECIFIC_PORT, 0, 0, protSpData,
@@ -8916,7 +8916,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatist
 eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!deviceStats)
+    if (deviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -8933,7 +8933,7 @@ eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceSt
 
 void scsi_Threshold_Comparison(statistic* ptrStatistic)
 {
-    if (ptrStatistic)
+    if (ptrStatistic != M_NULLPTR)
     {
         if (ptrStatistic->isThresholdValid && ptrStatistic->thresholdNotificationEnabled &&
             ptrStatistic->supportsNotification)
@@ -9030,7 +9030,7 @@ static void print_Count_Statistic(statistic theStatistic, const char* statisticN
         if (theStatistic.isValueValid)
         {
             printf("%" PRIu64, theStatistic.statisticValue);
-            if (statisticUnit)
+            if (statisticUnit != M_NULLPTR)
             {
                 printf(" %s", statisticUnit);
             }
@@ -10068,7 +10068,7 @@ static void print_Humidity_Statistic(statistic theStatistic, const char* statist
 static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = SUCCESS;
-    if (!deviceStats)
+    if (deviceStats == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -10240,7 +10240,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
 static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = SUCCESS;
-    if (!deviceStats)
+    if (deviceStats == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -10625,7 +10625,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
 eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!deviceStats)
+    if (deviceStats == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }

@@ -30,7 +30,7 @@ eReturnValues get_Number_Of_Zones(tDevice*              device,
                                   uint32_t*             numberOfMatchingZones)
 {
     eReturnValues ret = SUCCESS;
-    if (!numberOfMatchingZones)
+    if (numberOfMatchingZones == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -67,14 +67,14 @@ eReturnValues get_Zone_Descriptors(tDevice*              device,
     eReturnValues ret                = SUCCESS;
     uint8_t*      reportZones        = M_NULLPTR;
     uint32_t      sectorCount        = get_Sector_Count_For_512B_Based_XFers(device);
-    uint32_t      dataBytesToRequest = numberOfZoneDescriptors * 64;
-    if (!zoneDescriptors || numberOfZoneDescriptors == 0)
+    uint32_t      dataBytesToRequest = numberOfZoneDescriptors * UINT32_C(64);
+    if (zoneDescriptors == M_NULLPTR || numberOfZoneDescriptors == UINT32_C(0))
     {
         return BAD_PARAMETER;
     }
     reportZones = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE * uint32_to_sizet(sectorCount),
                                                                    sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!reportZones)
+    if (reportZones == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -318,7 +318,7 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
         snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
         break;
     }
-    if (!zoneDescriptors)
+    if (zoneDescriptors == M_NULLPTR)
     {
         perror("bad pointer to zoneDescriptors");
         return;

@@ -217,7 +217,7 @@ eReturnValues print_Current_Power_Mode(tDevice* device)
         */
         uint8_t* senseData = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!senseData)
+        if (senseData == M_NULLPTR)
         {
             perror("Calloc Failure!\n");
             return MEMORY_FAILURE;
@@ -678,7 +678,7 @@ static const char* convert_NVM_Latency_To_HR_Time_Str(uint64_t timeInNanoSeconds
 #define NVM_POWER_WATTS_MAX_STR_LEN 10
 void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
 {
-    if (nvmps)
+    if (nvmps != M_NULLPTR)
     {
         printf("\nSupported NVMe Power States\n");
         // flags = non operational, current power state
@@ -873,7 +873,7 @@ eReturnValues ata_Set_Device_Power_Mode(tDevice*          device,
     // first verify the device supports the EPC feature
     uint8_t* ataDataBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!ataDataBuffer)
+    if (ataDataBuffer == M_NULLPTR)
     {
         perror("calloc failure!\n");
         return MEMORY_FAILURE;
@@ -947,7 +947,7 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
             powerConditionsPage =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(powerConditionsPageLength, sizeof(uint8_t),
                                                                  device->os_info.minimumAlignment));
-            if (!powerConditionsPage)
+            if (powerConditionsPage == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -963,7 +963,7 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
     }
     else
     {
-        if (!powerConditions)
+        if (powerConditions == M_NULLPTR)
         {
             return BAD_PARAMETER;
         }
@@ -989,7 +989,7 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
             powerConditionsPage =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(powerConditionsPageLength, sizeof(uint8_t),
                                                                  device->os_info.minimumAlignment));
-            if (!powerConditionsPage)
+            if (powerConditionsPage == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1106,7 +1106,7 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
         powerConditionsPage =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(powerConditionsPageLength, sizeof(uint8_t),
                                                              device->os_info.minimumAlignment));
-        if (!powerConditionsPage)
+        if (powerConditionsPage == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1317,7 +1317,7 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice*                device
             }
             else
             {
-                if (powerConditions)
+                if (powerConditions != M_NULLPTR)
                 {
                     // go through each and every power condition and for each valid one, pass it to the ATA function. If
                     // unsuccessful, return immediately This does it in the same top-down order as the SCSI mode page to
@@ -1405,7 +1405,7 @@ eReturnValues scsi_Set_Device_Power_Mode(tDevice*          device,
         uint8_t*,
         safe_calloc_aligned(VPD_POWER_CONDITION_LEN, sizeof(uint8_t),
                             device->os_info.minimumAlignment)); // size of 18 is defined in SPC4 for this VPD page
-    if (!powerConditionVPD)
+    if (powerConditionVPD == M_NULLPTR)
     {
         perror("calloc failure!");
         return MEMORY_FAILURE;
@@ -1703,7 +1703,7 @@ eReturnValues get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsump
             uint8_t* powerConsumptionPage =
                 C_CAST(uint8_t*,
                        safe_calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!powerConsumptionPage)
+            if (powerConsumptionPage == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1737,7 +1737,7 @@ eReturnValues get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsump
             uint8_t* pcModePage =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t),
                                                                  device->os_info.minimumAlignment));
-            if (!pcModePage)
+            if (pcModePage == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1790,7 +1790,7 @@ eReturnValues get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsump
 
 void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
 {
-    if (identifiers)
+    if (identifiers != M_NULLPTR)
     {
         if (identifiers->numberOfPCIdentifiers > 0)
         {
@@ -1941,7 +1941,7 @@ eReturnValues set_Power_Consumption(tDevice*       device,
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
                                                              device->os_info.minimumAlignment));
         eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
-        if (!pcModePage)
+        if (pcModePage == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -2225,7 +2225,7 @@ eReturnValues get_APM_Level(tDevice* device, uint8_t* apmLevel)
 static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!epcSettings)
+    if (epcSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -2234,7 +2234,7 @@ static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSet
     // drive for the EPC log size rather than use the hard coded value above.
     uint8_t* epcLog = C_CAST(
         uint8_t*, safe_calloc_aligned(epcLogSize * sizeof(uint8_t), sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!epcLog)
+    if (epcLog == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -2265,7 +2265,7 @@ static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSet
             default:
                 continue;
             }
-            if (!currentPowerCondition)
+            if (currentPowerCondition == M_NULLPTR)
             {
                 continue;
             }
@@ -2320,7 +2320,7 @@ static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSet
 static eReturnValues scsi_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!epcSettings)
+    if (epcSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -2623,7 +2623,7 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char* c
 
 void print_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 {
-    if (!epcSettings)
+    if (epcSettings == M_NULLPTR)
     {
         return;
     }
@@ -2678,12 +2678,12 @@ eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice*                  device,
     }
     powerConditionTimers pwrConditions;
     safe_memset(&pwrConditions, sizeof(powerConditionTimers), 0, sizeof(powerConditionTimers));
-    if (standbyTimer)
+    if (standbyTimer != M_NULLPTR)
     {
         safe_memcpy(&pwrConditions.standby, sizeof(powerConditionSettings), standbyTimer,
                     sizeof(powerConditionSettings));
     }
-    if (idleTimer)
+    if (idleTimer != M_NULLPTR)
     {
         safe_memcpy(&pwrConditions.idle, sizeof(powerConditionSettings), idleTimer, sizeof(powerConditionSettings));
     }
@@ -2839,7 +2839,7 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevic
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
-        if (supported)
+        if (supported != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word078) &&
                 device->drive_info.IdentifyData.ata.Word078 & BIT3)
@@ -2851,7 +2851,7 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevic
                 *supported = false;
             }
         }
-        if (enabled)
+        if (enabled != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word079) &&
                 device->drive_info.IdentifyData.ata.Word079 & BIT3)
@@ -2906,7 +2906,7 @@ eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
-        if (supported)
+        if (supported != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word076) &&
                 device->drive_info.IdentifyData.ata.Word076 & BIT14)
@@ -2918,7 +2918,7 @@ eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
                 *supported = false;
             }
         }
-        if (enabled)
+        if (enabled != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word079) &&
                 device->drive_info.IdentifyData.ata.Word079 & BIT7)
@@ -3106,7 +3106,7 @@ eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
     uint8_t* enhSasPhyControl =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(enhPhyControlLength * sizeof(uint8_t), sizeof(uint8_t),
                                                          device->os_info.minimumAlignment));
-    if (!enhSasPhyControl)
+    if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -3125,7 +3125,7 @@ eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
             gotFullPageLength   = true;
             uint8_t* temp       = safe_reallocf_aligned(C_CAST(void**, &enhSasPhyControl), 0, enhPhyControlLength,
                                                         device->os_info.minimumAlignment);
-            if (!temp)
+            if (temp == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -3226,7 +3226,7 @@ eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
 eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8_t* phyCount)
 {
     eReturnValues ret = SUCCESS;
-    if (!phyCount)
+    if (phyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -3234,7 +3234,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
            uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
                                          sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!enhSasPhyControl)
+    if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -3280,7 +3280,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*    
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
            uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
                                          sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!enhSasPhyControl)
+    if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -3296,7 +3296,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*    
         enhSasPhyControl = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
                                           sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!enhSasPhyControl)
+        if (enhSasPhyControl == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -3430,7 +3430,7 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
 eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!info)
+    if (info == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }

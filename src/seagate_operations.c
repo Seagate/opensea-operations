@@ -111,7 +111,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allP
                                       // reallocate and read more from the drive.
     uint8_t* sasPhyControl = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(phyControlLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!sasPhyControl)
+    if (sasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -140,7 +140,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allP
                 uint8_t* temp =
                     safe_reallocf_aligned(C_CAST(void**, &sasPhyControl), 0, phyControlLength * sizeof(uint8_t),
                                           device->os_info.minimumAlignment);
-                if (!temp)
+                if (temp == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
                 }
@@ -467,7 +467,7 @@ static eReturnValues seagate_SAS_Get_JIT_Modes(tDevice* device, ptrSeagateJITMod
 {
     eReturnValues  ret    = NOT_SUPPORTED;
     eSeagateFamily family = is_Seagate_Family(device);
-    if (!jitModes)
+    if (jitModes == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -684,7 +684,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
         if (is_Seagate_Family(device) == SEAGATE)
         {
             ret = SUCCESS;
-            if (supported)
+            if (supported != M_NULLPTR)
             {
                 // BIT8 for older products with this feature. EX: ST10000NM*
                 // Bit10 for newwer products with this feature. EX: ST12000NM*
@@ -699,7 +699,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     *supported = false;
                 }
             }
-            if (enabled)
+            if (enabled != M_NULLPTR)
             {
                 // BIT9 for older products with this feature. EX: ST10000NM*
                 // Bit11 for newwer products with this feature. EX: ST12000NM*
@@ -729,7 +729,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
             {
                 // If this page is supported, we're calling power balance on SAS not supported.
                 // Note: This may need changing in the future, but right now this is still accurate - TJE
-                if (supported)
+                if (supported != M_NULLPTR)
                 {
                     *supported = false;
                 }
@@ -738,7 +738,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
             uint8_t* pcModePage =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t),
                                                                  device->os_info.minimumAlignment));
-            if (!pcModePage)
+            if (pcModePage == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -755,7 +755,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
                 {
                     // If in here, this is an old drive since it doesn't allow setting the active power mode.
-                    if (supported)
+                    if (supported != M_NULLPTR)
                     {
                         *supported = true;
                     }
@@ -779,7 +779,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     // if in here, this is a new drive which only allows this change via the active mode field.
                     // On these drives, we can check to make sure the changable fields apply to the active mode field,
                     // but NOT the power condition identifier.
-                    if (supported)
+                    if (supported != M_NULLPTR)
                     {
                         *supported = true;
                     }
@@ -799,7 +799,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                             *enabled = false;
                         }
                         // Commented out but can be put back in. Resolves clang-tidy warning
-                        // else if (enabled)
+                        // else if (enabled != M_NULLPTR)
                         // {
                         //     // I guess say it's off???
                         //     *enabled = false;
@@ -840,7 +840,7 @@ eReturnValues seagate_Set_Power_Balance(tDevice* device, ePowerBalanceMode power
         uint8_t* pcModePage =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
                                                              device->os_info.minimumAlignment));
-        if (!pcModePage)
+        if (pcModePage == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -907,7 +907,7 @@ eReturnValues get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSuppor
             uint8_t* smartData =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t),
                                                                  device->os_info.minimumAlignment));
-            if (!smartData)
+            if (smartData == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -937,7 +937,7 @@ eReturnValues get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSuppor
         {
             uint8_t* iddDiagPage = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (iddDiagPage)
+            if (iddDiagPage != M_NULLPTR)
             {
                 if (SUCCESS == scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12,
                                                                iddDiagPage, 15))
@@ -1038,7 +1038,7 @@ eReturnValues get_IDD_Status(tDevice* device, uint8_t* status)
         // read diagnostic page
         uint8_t* iddDiagPage =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (iddDiagPage)
+        if (iddDiagPage != M_NULLPTR)
         {
             // do not use the return value from this since IDD can return a few different sense codes with unit
             // attention, that we may otherwise call an error
@@ -1241,7 +1241,7 @@ static eReturnValues start_IDD_Operation(tDevice* device, eIDDTests iddOperation
         // send diagnostic
         uint8_t* iddDiagPage =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (iddDiagPage)
+        if (iddDiagPage != M_NULLPTR)
         {
             uint32_t commandTimeoutSeconds = SEAGATE_IDD_TIMEOUT;
             iddDiagPage[0]                 = SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS; // page code
@@ -1567,7 +1567,7 @@ eReturnValues request_Power_Measurement(tDevice*                          device
 eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry pwrTelData)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!pwrTelData)
+    if (pwrTelData == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1581,7 +1581,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry p
         {
             powerTelemetryLog = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t),
                                                                                  device->os_info.minimumAlignment));
-            if (powerTelemetryLog)
+            if (powerTelemetryLog != M_NULLPTR)
             {
                 ret = get_ATA_Log(device, SEAGATE_ATA_LOG_POWER_TELEMETRY, M_NULLPTR, M_NULLPTR, true, false, true,
                                   powerTelemetryLog, powerTelemetryLogSize, M_NULLPTR, 0, 0);
@@ -1605,7 +1605,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry p
         {
             powerTelemetryLog = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(powerTelemetryLogSize, sizeof(uint8_t),
                                                                                  device->os_info.minimumAlignment));
-            if (powerTelemetryLog)
+            if (powerTelemetryLog != M_NULLPTR)
             {
                 ret =
                     get_SCSI_Error_History(device, SEAGATE_ERR_HIST_POWER_TELEMETRY, M_NULLPTR, false, rb16, M_NULLPTR,
@@ -1678,7 +1678,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry p
 
 void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
 {
-    if (pwrTelData)
+    if (pwrTelData != M_NULLPTR)
     {
         // doubles for end statistics of measurement
         double sum5v = 0, sum12v = 0, min5v = DBL_MAX, max5v = DBL_MIN, min12v = DBL_MAX, max12v = DBL_MIN;
@@ -2254,12 +2254,12 @@ eReturnValues get_Ext_Smrt_Log(tDevice* device) //, nvmeGetLogPageCmdOpts * getL
 #ifdef _DEBUG
         printf("-->%s\n", __FUNCTION__);
 #endif
-        eReturnValues         ret   = 0;
+        eReturnValues         ret   = SUCCESS;
         int                   index = 0;
         EXTENDED_SMART_INFO_T ExtdSMARTInfo;
         safe_memset(&ExtdSMARTInfo, sizeof(EXTENDED_SMART_INFO_T), 0x00, sizeof(EXTENDED_SMART_INFO_T));
         ret = nvme_Read_Ext_Smt_Log(device, &ExtdSMARTInfo);
-        if (!ret)
+        if (ret == SUCCESS)
         {
             printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
             for (index = 0; index < 80; index++)
@@ -2337,7 +2337,7 @@ bool is_Seagate_DeviceStatistics_Supported(tDevice* device)
 static eReturnValues get_Seagate_ATA_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!seagateDeviceStats)
+    if (seagateDeviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -2348,7 +2348,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(tDevice* device, ptrSeagat
     {
         uint8_t* deviceStatsLog = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!deviceStatsLog)
+        if (deviceStatsLog == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -2752,7 +2752,7 @@ typedef enum eSeagateSMARTStatusLogPageParamCodeEnum
 static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!seagateDeviceStats)
+    if (seagateDeviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -2762,7 +2762,7 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice* device, ptrSeaga
     {
         uint8_t* deviceStatsLog = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!deviceStatsLog)
+        if (deviceStatsLog == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -2857,7 +2857,7 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice* device, ptrSeaga
 eReturnValues get_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!seagateDeviceStats)
+    if (seagateDeviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -3267,7 +3267,7 @@ void print_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics 
 eReturnValues get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!fwNumbers)
+    if (fwNumbers == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }

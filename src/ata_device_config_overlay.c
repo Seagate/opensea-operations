@@ -44,7 +44,7 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
              device->drive_info.IdentifyData.ata.Word086 & BIT11))
         {
             supported = true;
-            if (dmaSupport)
+            if (dmaSupport != M_NULLPTR)
             {
                 *dmaSupport = false;
                 if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) &&
@@ -100,7 +100,7 @@ eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
     bool          dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
-        if (data)
+        if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
             if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
@@ -188,7 +188,7 @@ eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
 
 void show_DCO_Identify_Data(ptrDcoData data)
 {
-    if (data)
+    if (data != M_NULLPTR)
     {
         printf("\n===============================\n");
         printf(" DCO Identify Changable Fields \n");
@@ -361,7 +361,7 @@ eReturnValues dco_Set(tDevice* device, ptrDcoData data)
     bool          dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
-        if (data)
+        if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
             if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)

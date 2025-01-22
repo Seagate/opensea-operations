@@ -86,7 +86,7 @@ eReturnValues erase_Range(tDevice* device,
             }
             // set the pattern, or clear the buffer at the LBA the user requested
             uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
-            if (pattern)
+            if (pattern != M_NULLPTR)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes],
                                                         dataLength - adjustmentBytes);
@@ -112,7 +112,7 @@ eReturnValues erase_Range(tDevice* device,
             eraseRangeStart += sectors;
         }
     }
-    if (pattern)
+    if (pattern != M_NULLPTR)
     {
         fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, writeBuffer, dataLength);
     }
@@ -133,7 +133,7 @@ eReturnValues erase_Range(tDevice* device,
                     if (SUCCESS == read_LBA(device, iter, false, writeBuffer, dataLength))
                     {
                         // modify only the LBAs we want to overwrite
-                        if (pattern)
+                        if (pattern != M_NULLPTR)
                         {
                             fill_Pattern_Buffer_Into_Another_Buffer(
                                 pattern, patternLength, writeBuffer,
@@ -241,7 +241,7 @@ eReturnValues erase_Time(tDevice* device,
             }
             // set the pattern, or clear the buffer at the LBA the user requested
             uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
-            if (pattern)
+            if (pattern != M_NULLPTR)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes],
                                                         dataLength - adjustmentBytes);
@@ -265,7 +265,7 @@ eReturnValues erase_Time(tDevice* device,
             }
         }
     }
-    if (pattern)
+    if (pattern != M_NULLPTR)
     {
         fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, writeBuffer, dataLength);
     }

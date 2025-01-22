@@ -571,7 +571,7 @@ eReturnValues run_Sanitize_Operation(tDevice*            device,
         sanitizeOptions.sanitizeEraseOperation                      = OVERWRITE_ERASE;
         sanitizeOptions.overwriteOptions.invertPatternBetweenPasses = false;
         sanitizeOptions.overwriteOptions.numberOfPasses             = UINT8_C(1);
-        if (pattern)
+        if (pattern != M_NULLPTR)
         {
             safe_memcpy(&sanitizeOptions.overwriteOptions.pattern, sizeof(uint32_t), pattern,
                         M_Min(patternLength, sizeof(uint32_t)));

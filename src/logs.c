@@ -38,7 +38,7 @@
 // returning unknown
 const char* get_Drive_ID_For_Logfile_Name(tDevice* device)
 {
-    if (device)
+    if (device != M_NULLPTR)
     {
         // Try SN first
         if ((device->drive_info.interface_type == USB_INTERFACE ||
@@ -90,7 +90,7 @@ eReturnValues get_ATA_Log_Size(tDevice* device, uint8_t logAddress, uint32_t* lo
 
     uint8_t* logBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!logBuffer)
+    if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -191,7 +191,7 @@ eReturnValues get_SCSI_Log_Size(tDevice* device, uint8_t logPage, uint8_t logSub
     eReturnValues ret = NOT_SUPPORTED; // assume the log is not supported
     uint8_t*      logBuffer =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!logBuffer)
+    if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -284,7 +284,7 @@ eReturnValues get_SCSI_VPD_Page_Size(tDevice* device, uint8_t vpdPage, uint32_t*
     uint32_t      vpdBufferLength = INQ_RETURN_DATA_LENGTH;
     uint8_t*      vpdBuffer       = M_REINTERPRET_CAST(
                    uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!vpdBuffer)
+    if (vpdBuffer == M_NULLPTR)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -355,7 +355,7 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
     }
     uint8_t* modeBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(modeLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!modeBuffer)
+    if (modeBuffer == M_NULLPTR)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -425,7 +425,7 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
                 // reallocate memory!
                 uint8_t* temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &modeBuffer), 0, modeLength,
                                                                        device->os_info.minimumAlignment));
-                if (!temp)
+                if (temp == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
                 }
@@ -563,7 +563,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
     }
     uint8_t* modeBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(modeLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!modeBuffer)
+    if (modeBuffer == M_NULLPTR)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
@@ -584,7 +584,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
             secureFileInfo* fpmp       = M_NULLPTR;
             bool            fileOpened = false;
             ret                        = SUCCESS;
-            if (used6ByteCmd)
+            if (used6ByteCmd != M_NULLPTR)
             {
                 *used6ByteCmd = false;
             }
@@ -705,7 +705,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 // reallocate memory!
                 uint8_t* temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &modeBuffer), 0, modeLength,
                                                                        device->os_info.minimumAlignment));
-                if (!temp)
+                if (temp == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
                 }
@@ -897,14 +897,14 @@ eReturnValues get_SCSI_Error_History_Size(tDevice*  device,
                                           bool      useReadBuffer16)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!errorHistorySize)
+    if (errorHistorySize == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
     uint8_t* errorHistoryDirectory =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_ERROR_HISTORY_DIRECTORY_LEN, sizeof(uint8_t),
                                                          device->os_info.minimumAlignment));
-    if (!errorHistoryDirectory)
+    if (errorHistoryDirectory == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -993,7 +993,7 @@ eReturnValues get_SCSI_Error_History(tDevice*    device,
         historyBuffer = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(increment, sizeof(uint8_t), device->os_info.minimumAlignment));
 
-        if (!historyBuffer)
+        if (historyBuffer == M_NULLPTR)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
@@ -1043,7 +1043,8 @@ eReturnValues get_SCSI_Error_History(tDevice*    device,
                         break;
                     }
                 }
-                if (logName && fileExtension) // Because you can also get a log file & get it in buffer.
+                if (logName != M_NULLPTR &&
+                    fileExtension != M_NULLPTR) // Because you can also get a log file & get it in buffer.
                 {
                     if (!logFileOpened)
                     {
@@ -1274,7 +1275,7 @@ eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath)
         8; // set to size of defect data without any address descriptors so we know how much we will be pulling
     uint8_t* defectData = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(defectDataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!defectData)
+    if (defectData == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -1290,7 +1291,7 @@ eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath)
         uint8_t* temp =
             C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &defectData), 0, defectDataSize * sizeof(uint8_t),
                                                    device->os_info.minimumAlignment));
-        if (!temp)
+        if (temp == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1437,7 +1438,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
         secureFileInfo* fp_log     = M_NULLPTR;
         uint8_t*        logBuffer  = M_REINTERPRET_CAST(
                     uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!logBuffer)
+        if (logBuffer == M_NULLPTR)
         {
             perror("Calloc Failure!\n");
             return MEMORY_FAILURE;
@@ -1461,7 +1462,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
                 // chips that typically don't allow larger transfers.
                 pagesToReadAtATime = 1;
             }
-            if (transferSizeBytes)
+            if (transferSizeBytes > UINT32_C(0))
             {
                 // caller is telling us how much to read at a time...so let them.
                 pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / LEGACY_DRIVE_SEC_SIZE));
@@ -2083,7 +2084,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                 uint16_t pageNumber         = UINT16_C(0); // keep track of the current page we are reading/saving
                 uint32_t pullChunkSize =
                     UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE; // pull the remainder of the log in 4k chunks
-                if (transferSizeBytes)
+                if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
                 }
@@ -2310,7 +2311,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
     printf("--> %s\n", __FUNCTION__);
 #endif
 
-    if (!dataBuffer)
+    if (dataBuffer == M_NULLPTR)
     {
         perror("calloc failure");
         return MEMORY_FAILURE;
@@ -2380,7 +2381,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
             {
                 uint32_t pullChunkSize =
                     UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE; // pull the remainder of the log in 4k chunks
-                if (transferSizeBytes)
+                if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
                 }
@@ -2682,7 +2683,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 uint16_t pageNumber         = UINT16_C(0); // keep track of the offset we are reading/saving
                 uint32_t pullChunkSize =
                     UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE; // pull the remainder of the log in 4k chunks
-                if (transferSizeBytes)
+                if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
                 }
@@ -3069,7 +3070,7 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
     uint8_t* smartLogBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
-    if (smartLogBuffer)
+    if (smartLogBuffer != M_NULLPTR)
     {
         if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))
         {
@@ -3086,7 +3087,7 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
             safe_free_aligned(&smartLogBuffer);
         }
     }
-    if (gplLogBuffer)
+    if (gplLogBuffer != M_NULLPTR)
     {
         if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
         {
@@ -3170,7 +3171,7 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
             case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
             case ATA_LOG_SMART_SELF_TEST_LOG:
             case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
-                if (gplLogSize)
+                if (gplLogSize > UINT32_C(0))
                 {
                     bug = true;
                 }
@@ -3199,7 +3200,7 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
             case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG:
             case ATA_LOG_SECTOR_CONFIGURATION_LOG:
             case ATA_LOG_CAPACITY_MODELNUMBER_MAPPING:
-                if (smartLogSize)
+                if (smartLogSize > UINT32_C(0))
                 {
                     bug = true;
                 }
@@ -3228,11 +3229,11 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
             bug          = false;
             gplLogSize   = UINT32_C(0);
             smartLogSize = UINT32_C(0);
-            if (gplLogBuffer)
+            if (gplLogBuffer != M_NULLPTR)
             {
                 gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
             }
-            if (smartLogBuffer)
+            if (smartLogBuffer != M_NULLPTR)
             {
                 smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
             }
@@ -3250,11 +3251,11 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
             bug          = false;
             gplLogSize   = UINT32_C(0);
             smartLogSize = UINT32_C(0);
-            if (gplLogBuffer)
+            if (gplLogBuffer != M_NULLPTR)
             {
                 gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
             }
-            if (smartLogBuffer)
+            if (smartLogBuffer != M_NULLPTR)
             {
                 smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
             }
@@ -3270,11 +3271,11 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
             bug          = false;
             gplLogSize   = UINT32_C(0);
             smartLogSize = UINT32_C(0);
-            if (gplLogBuffer)
+            if (gplLogBuffer != M_NULLPTR)
             {
                 gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
             }
-            if (smartLogBuffer)
+            if (smartLogBuffer != M_NULLPTR)
             {
                 smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
             }
@@ -3392,7 +3393,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
     {
         uint8_t* supportedLogsPage =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(1024, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (supportedLogsPage)
+        if (supportedLogsPage != M_NULLPTR)
         {
             nvmeGetLogPageCmdOpts suptLogOpts;
             safe_memset(&suptLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
@@ -3689,7 +3690,7 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice* device, uin
              uint8_t*, safe_calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
-    if (errorHistoryDirectory)
+    if (errorHistoryDirectory != M_NULLPTR)
     {
         if ((rb16 && SUCCESS == scsi_Read_Buffer_16(device, 0x1C, 0, 0, 0, errorHistorySize, errorHistoryDirectory)) ||
             SUCCESS == scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory))
@@ -3807,7 +3808,7 @@ static eReturnValues pull_Generic_ATA_Log(tDevice*     device,
         {
             genericLogBuf = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (genericLogBuf)
+            if (genericLogBuf != M_NULLPTR)
             {
                 retStatus = get_ATA_Log(device, logNum, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize,
                                         M_NULLPTR, transferSizeBytes, 0);
@@ -3849,7 +3850,7 @@ static eReturnValues pull_Generic_SCSI_Log(tDevice*     device,
         {
             genericLogBuf = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (genericLogBuf)
+            if (genericLogBuf != M_NULLPTR)
             {
                 retStatus = get_SCSI_Log(device, logNum, subpage, M_NULLPTR, M_NULLPTR, true, genericLogBuf, logSize,
                                          M_NULLPTR);
@@ -4007,7 +4008,7 @@ eReturnValues pull_FARM_LogPage(tDevice*     device,
                 pagesToReadAtATime = 1;
             }
 
-            if (transferSizeBytes)
+            if (transferSizeBytes > UINT32_C(0))
             {
                 if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
                 {
@@ -4128,7 +4129,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                     ret = MEMORY_FAILURE;
                 }
 
-                if (genericLogBuf)
+                if (genericLogBuf != M_NULLPTR)
                 {
                     if (issueFactory == 2)
                     {
@@ -4219,7 +4220,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                     ret = MEMORY_FAILURE;
                 }
 
-                if (genericLogBuf)
+                if (genericLogBuf != M_NULLPTR)
                 {
                     if (issueFactory == 1)
                     {
@@ -4312,7 +4313,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                 {
                     genericLogBuf = C_CAST(
                         uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (genericLogBuf)
+                    if (genericLogBuf != M_NULLPTR)
                     {
                         ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, M_NULLPTR, M_NULLPTR, true,
                                            genericLogBuf, logSize, M_NULLPTR);
@@ -4329,7 +4330,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                 {
                     genericLogBuf = C_CAST(
                         uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-                    if (genericLogBuf)
+                    if (genericLogBuf != M_NULLPTR)
                     {
                         ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, M_NULLPTR, M_NULLPTR, true,
                                            genericLogBuf, logSize, M_NULLPTR);

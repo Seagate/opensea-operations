@@ -533,7 +533,7 @@ eReturnValues nvme_Print_Feature_Details(tDevice* device, uint8_t featureID, eNv
 eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* logSize)
 {
     eReturnValues ret = SUCCESS;
-    if (logSize)
+    if (logSize != M_NULLPTR)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, logPageHeader, UINT32_C(16));
         nvmeGetLogPageCmdOpts getLogHeader;
@@ -901,9 +901,9 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrin
     printf("-->%s\n", __FUNCTION__);
 #endif
     // TODO: If this is not specified get the value.
-    if (!numOfErrToPrint)
+    if (numOfErrToPrint == UINT64_C(0))
     {
-        numOfErrToPrint = 32;
+        numOfErrToPrint = UINT32_C(32);
     }
     pErrLogBuf = M_REINTERPRET_CAST(nvmeErrLogEntry*,
                                     safe_calloc_aligned(uint64_to_sizet(numOfErrToPrint), sizeof(nvmeErrLogEntry),

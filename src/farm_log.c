@@ -1071,7 +1071,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
     {
         size_t   zeroPaddingLen = uint32_to_sizet(paddingSize);
         uint8_t* zeroPadding    = M_REINTERPRET_CAST(uint8_t*, safe_calloc(zeroPaddingLen, sizeof(uint8_t)));
-        if (zeroPadding)
+        if (zeroPadding != M_NULLPTR)
         {
             if (SEC_FILE_SUCCESS !=
                 secure_Write_File(farmFile, zeroPadding, zeroPaddingLen, sizeof(uint8_t), zeroPaddingLen, M_NULLPTR))

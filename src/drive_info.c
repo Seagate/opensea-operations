@@ -3174,7 +3174,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     bool                           smartStatusFromSCTStatusLog = false;
     idDataCapabilitiesForDriveInfo ataCap;
     safe_memset(&ataCap, sizeof(idDataCapabilitiesForDriveInfo), 0, sizeof(idDataCapabilitiesForDriveInfo));
-    if (!driveInfo)
+    if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -3193,7 +3193,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     uint32_t logBufferSize = ATA_LOG_PAGE_LEN_BYTES;
     uint8_t* logBuffer     = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!logBuffer)
+    if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -3255,7 +3255,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
         {
             uint8_t* idDataLog = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(idDataLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (idDataLog)
+            if (idDataLog != M_NULLPTR)
             {
                 if (SUCCESS == get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, M_NULLPTR, M_NULLPTR, true, true, true,
                                            idDataLog, idDataLogSize, M_NULLPTR, 0, 0))
@@ -3271,7 +3271,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
         {
             uint8_t* devStats = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(devStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (devStats)
+            if (devStats != M_NULLPTR)
             {
                 if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, M_NULLPTR, M_NULLPTR, true, true, true,
                                            devStats, devStatsSize, M_NULLPTR, 0, 0))
@@ -3383,7 +3383,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
         {
             uint8_t* farmData = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(16384, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (farmData)
+            if (farmData != M_NULLPTR)
             {
                 // read "page 0" or first 4KB for header/top level information and verify this is in fact the FARM log
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS,
@@ -3682,7 +3682,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
         // are interested in trying to read...this is to work around crappy USB bridges
         uint8_t* tempBuf = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(SIZE_T_C(1024), sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!tempBuf)
+        if (tempBuf == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -3770,7 +3770,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
             uint16_t supportedVPDPagesLength = M_BytesTo2ByteValue(tempBuf[2], tempBuf[3]);
             uint8_t* supportedVPDPages =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc(supportedVPDPagesLength, sizeof(uint8_t)));
-            if (!supportedVPDPages)
+            if (supportedVPDPages == M_NULLPTR)
             {
                 perror("Error allocating memory for supported VPD pages!\n");
                 safe_free_aligned(&tempBuf);
@@ -3791,7 +3791,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* unitSerialNumber =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(unitSerialNumberPageLength, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (!unitSerialNumber)
+                    if (unitSerialNumber == M_NULLPTR)
                     {
                         perror("Error allocating memory to read the unit serial number");
                         continue; // continue the loop
@@ -3848,7 +3848,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* deviceIdentification =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (!deviceIdentification)
+                    if (deviceIdentification == M_NULLPTR)
                     {
                         perror("Error allocating memory to read device identification VPD page");
                         continue;
@@ -3861,10 +3861,10 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                         {
                             // realloc and re-read the page with the larger pagelength
                             uint8_t* temp = M_REINTERPRET_CAST(
-                                uint8_t*, safe_reallocf_aligned(C_CAST(void**, &deviceIdentification), 0,
+                                uint8_t*, safe_reallocf_aligned(M_REINTERPRET_CAST(void**, &deviceIdentification), 0,
                                                                 uint16_to_sizet(devIDPageLen) + SIZE_T_C(4),
                                                                 device->os_info.minimumAlignment));
-                            if (!temp)
+                            if (temp == M_NULLPTR)
                             {
                                 perror("Error trying to realloc for larget device identification VPD page data!\n");
                                 return 101;
@@ -3977,7 +3977,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* extendedInquiryData =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (!extendedInquiryData)
+                    if (extendedInquiryData == M_NULLPTR)
                     {
                         perror("Error allocating memory to read extended inquiry VPD page");
                         continue;
@@ -4022,7 +4022,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                                 uint8_t* supportedBlockSizesAndProtectionTypes = C_CAST(
                                     uint8_t*, safe_calloc_aligned(supportedBlockSizesAndProtectionTypesLength,
                                                                   sizeof(uint8_t), device->os_info.minimumAlignment));
-                                if (supportedBlockSizesAndProtectionTypes)
+                                if (supportedBlockSizesAndProtectionTypes != M_NULLPTR)
                                 {
                                     if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes,
                                                                 supportedBlockSizesAndProtectionTypesLength,
@@ -4033,10 +4033,11 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                                             M_BytesTo2ByteValue(supportedBlockSizesAndProtectionTypes[2],
                                                                 supportedBlockSizesAndProtectionTypes[3]);
                                         uint8_t* temp = C_CAST(
-                                            uint8_t*, safe_reallocf_aligned(
-                                                          C_CAST(void**, &supportedBlockSizesAndProtectionTypes), 0,
-                                                          supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t),
-                                                          device->os_info.minimumAlignment));
+                                            uint8_t*,
+                                            safe_reallocf_aligned(
+                                                M_REINTERPRET_CAST(void**, &supportedBlockSizesAndProtectionTypes), 0,
+                                                supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t),
+                                                device->os_info.minimumAlignment));
                                         supportedBlockSizesAndProtectionTypes = temp;
                                         if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes,
                                                                     supportedBlockSizesAndProtectionTypesLength,
@@ -4091,7 +4092,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* blockDeviceCharacteristics = M_REINTERPRET_CAST(
                         uint8_t*, safe_calloc_aligned(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t),
                                                       device->os_info.minimumAlignment));
-                    if (!blockDeviceCharacteristics)
+                    if (blockDeviceCharacteristics == M_NULLPTR)
                     {
                         perror("Error allocating memory to read block device characteistics VPD page");
                         continue;
@@ -4122,7 +4123,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* logicalBlockProvisioning = M_REINTERPRET_CAST(
                         uint8_t*, safe_calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t),
                                                       device->os_info.minimumAlignment));
-                    if (!logicalBlockProvisioning)
+                    if (logicalBlockProvisioning == M_NULLPTR)
                     {
                         perror("Error allocating memory to read logical block provisioning VPD page");
                         continue;
@@ -4176,7 +4177,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* blockLimits =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (!blockLimits)
+                    if (blockLimits == M_NULLPTR)
                     {
                         perror("Error allocating memory to read logical block provisioning VPD page");
                         continue;
@@ -4216,7 +4217,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* ataInformation =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (!ataInformation)
+                    if (ataInformation == M_NULLPTR)
                     {
                         perror("Error allocating memory to read ATA Information VPD page");
                         continue;
@@ -4241,7 +4242,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* concurrentRangesData =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(concurrentRangesLength, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (!concurrentRangesData)
+                    if (concurrentRangesData == M_NULLPTR)
                     {
                         perror("Error allocating memory to read concurrent positioning ranges VPD page");
                         continue;
@@ -4263,7 +4264,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                     uint8_t* zbdCharacteristics = M_REINTERPRET_CAST(
                         uint8_t*, safe_calloc_aligned(VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t),
                                                       device->os_info.minimumAlignment));
-                    if (!zbdCharacteristics)
+                    if (zbdCharacteristics == M_NULLPTR)
                     {
                         perror("Error allocating memory to read zoned block device characteristics VPD page");
                         continue;
@@ -4320,7 +4321,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
             // Check log pages for data->start with list of pages and subpages
             uint8_t* scsiLogBuf = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (scsiLogBuf)
+            if (scsiLogBuf != M_NULLPTR)
             {
                 if (!device->drive_info.passThroughHacks.scsiHacks.noLogSubPages &&
                     SUCCESS != scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES,
@@ -4505,7 +4506,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             // assume we only need to read 16 bytes to get this value
                             uint8_t* writeErrorData = C_CAST(
                                 uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!writeErrorData)
+                            if (writeErrorData == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4558,7 +4559,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             // assume we only need to read 16 bytes to get this value
                             uint8_t* readErrorData = C_CAST(
                                 uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!readErrorData)
+                            if (readErrorData == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4615,7 +4616,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                         {
                             uint8_t* temperatureData = C_CAST(
                                 uint8_t*, safe_calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!temperatureData)
+                            if (temperatureData == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4632,7 +4633,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                         {
                             uint8_t* environmentReporting = C_CAST(
                                 uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!environmentReporting)
+                            if (environmentReporting == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4679,7 +4680,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                         {
                             uint8_t* startStopCounterLog = C_CAST(
                                 uint8_t*, safe_calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!startStopCounterLog)
+                            if (startStopCounterLog == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4723,7 +4724,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                         {
                             uint8_t* utilizationData = C_CAST(
                                 uint8_t*, safe_calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!utilizationData)
+                            if (utilizationData == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4749,7 +4750,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                         {
                             uint8_t* applicationClient = C_CAST(
                                 uint8_t*, safe_calloc_aligned(4, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!applicationClient)
+                            if (applicationClient == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4774,7 +4775,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             uint8_t* selfTestResults = M_REINTERPRET_CAST(
                                 uint8_t*, safe_calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t),
                                                               device->os_info.minimumAlignment));
-                            if (!selfTestResults)
+                            if (selfTestResults == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4806,7 +4807,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             // need parameter 0001h
                             uint8_t* ssdEnduranceData = C_CAST(
                                 uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!ssdEnduranceData)
+                            if (ssdEnduranceData == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4825,7 +4826,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             // reading power on minutes from here
                             uint8_t* backgroundScanResults = C_CAST(
                                 uint8_t*, safe_calloc_aligned(19, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!backgroundScanResults)
+                            if (backgroundScanResults == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4847,7 +4848,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             // parameter code 1 is what we're interested in for this one
                             uint8_t* generalStatsAndPerformance = C_CAST(
                                 uint8_t*, safe_calloc_aligned(72, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!generalStatsAndPerformance)
+                            if (generalStatsAndPerformance == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4880,7 +4881,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                         {
                             uint8_t* informationExceptions = C_CAST(
                                 uint8_t*, safe_calloc_aligned(11, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!informationExceptions)
+                            if (informationExceptions == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4918,7 +4919,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                             // TODO: Expand this to read more info out of FARM
                             uint8_t* farmData = C_CAST(
                                 uint8_t*, safe_calloc_aligned(76, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!farmData)
+                            if (farmData == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4947,7 +4948,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
                         {
                             uint8_t* ssdUsage = C_CAST(
                                 uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
-                            if (!ssdUsage)
+                            if (ssdUsage == M_NULLPTR)
                             {
                                 break;
                             }
@@ -4991,7 +4992,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
         // bridges passing the command and returning no data.
         uint8_t* readCapBuf = C_CAST(
             uint8_t*, safe_calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!readCapBuf)
+        if (readCapBuf == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -5014,7 +5015,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
                         M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN,
                                                                           READ_CAPACITY_16_LEN * sizeof(uint8_t),
                                                                           device->os_info.minimumAlignment));
-                    if (!temp)
+                    if (temp == M_NULLPTR)
                     {
                         safe_free_aligned(&readCapBuf);
                         return MEMORY_FAILURE;
@@ -5396,7 +5397,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 // awre
                                 if (readWriteErrorRecovery[headerLength + 2] & BIT7)
                                 {
-                                    if (!awreString)
+                                    if (awreString == M_NULLPTR)
                                     {
                                         awreStringLength = 30;
                                         awreString =
@@ -5406,14 +5407,15 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         awreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_realloc(awreString, awreStringLength * sizeof(char)));
-                                        if (temp)
+                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
+                                                                       awreStringLength * sizeof(char)));
+                                        if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
                                             safe_memset(awreString, awreStringLength, 0, awreStringLength);
                                         }
                                     }
-                                    if (awreString && awreStringLength >= 30)
+                                    if (awreString != M_NULLPTR && awreStringLength >= 30)
                                     {
                                         snprintf(awreString, awreStringLength, "Automatic Write Reassignment");
                                     }
@@ -5421,7 +5423,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 // arre
                                 if (readWriteErrorRecovery[headerLength + 2] & BIT6)
                                 {
-                                    if (!arreString)
+                                    if (arreString == M_NULLPTR)
                                     {
                                         arreStringLength = 30;
                                         arreString =
@@ -5431,14 +5433,15 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         arreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_realloc(arreString, arreStringLength * sizeof(char)));
-                                        if (temp)
+                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
+                                                                       arreStringLength * sizeof(char)));
+                                        if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
                                             safe_memset(arreString, arreStringLength, 0, arreStringLength);
                                         }
                                     }
-                                    if (arreString && arreStringLength >= 30)
+                                    if (arreString != M_NULLPTR && arreStringLength >= 30)
                                     {
                                         snprintf(arreString, arreStringLength, "Automatic Read Reassignment");
                                     }
@@ -5475,7 +5478,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 // awre
                                 if (readWriteErrorRecovery[headerLength + 2] & BIT7)
                                 {
-                                    if (!awreString)
+                                    if (awreString == M_NULLPTR)
                                     {
                                         awreStringLength = 40;
                                         awreString =
@@ -5485,14 +5488,15 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         awreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_realloc(awreString, awreStringLength * sizeof(char)));
-                                        if (temp)
+                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
+                                                                       awreStringLength * sizeof(char)));
+                                        if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
                                             safe_memset(awreString, awreStringLength, 0, awreStringLength);
                                         }
                                     }
-                                    if (awreString && awreStringLength >= 40)
+                                    if (awreString != M_NULLPTR && awreStringLength >= 40)
                                     {
                                         snprintf(awreString, awreStringLength,
                                                  "Automatic Write Reassignment [Enabled]");
@@ -5501,7 +5505,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 // arre
                                 if (readWriteErrorRecovery[headerLength + 2] & BIT6)
                                 {
-                                    if (!arreString)
+                                    if (arreString == M_NULLPTR)
                                     {
                                         arreStringLength = 40;
                                         arreString =
@@ -5511,26 +5515,27 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         arreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_realloc(arreString, arreStringLength * sizeof(char)));
-                                        if (temp)
+                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
+                                                                       arreStringLength * sizeof(char)));
+                                        if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
                                             safe_memset(arreString, arreStringLength, 0, arreStringLength);
                                         }
                                     }
-                                    if (arreString && arreStringLength >= 40)
+                                    if (arreString != M_NULLPTR && arreStringLength >= 40)
                                     {
                                         snprintf(arreString, arreStringLength, "Automatic Read Reassignment [Enabled]");
                                     }
                                 }
                             }
-                            if (awreString)
+                            if (awreString != M_NULLPTR)
                             {
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                               &driveInfo->numberOfFeaturesSupported, awreString);
                                 safe_free(&awreString);
                             }
-                            if (arreString)
+                            if (arreString != M_NULLPTR)
                             {
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                               &driveInfo->numberOfFeaturesSupported, arreString);
@@ -5800,7 +5805,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // dlc
                             if (controlExtensionPage[headerLength + 4] & BIT3)
                             {
-                                if (!dlcString)
+                                if (dlcString == M_NULLPTR)
                                 {
                                     dlcStringLength = 50;
                                     dlcString = M_REINTERPRET_CAST(char*, safe_calloc(dlcStringLength, sizeof(char)));
@@ -5808,15 +5813,16 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     dlcStringLength = 50;
-                                    char* temp      = M_REINTERPRET_CAST(
-                                             char*, safe_realloc(dlcString, dlcStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        M_REINTERPRET_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &dlcString),
+                                                                                dlcStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         dlcString = temp;
                                         safe_memset(dlcString, dlcStringLength, 0, dlcStringLength);
                                     }
                                 }
-                                if (dlcString && dlcStringLength >= 50)
+                                if (dlcString != M_NULLPTR && dlcStringLength >= 50)
                                 {
                                     snprintf(dlcString, dlcStringLength, "Device Life Control");
                                 }
@@ -5853,7 +5859,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // dlc
                             if (controlExtensionPage[headerLength + 4] & BIT3)
                             {
-                                if (!dlcString)
+                                if (dlcString == M_NULLPTR)
                                 {
                                     dlcStringLength = 50;
                                     dlcString = M_REINTERPRET_CAST(char*, safe_calloc(dlcStringLength, sizeof(char)));
@@ -5861,21 +5867,22 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     dlcStringLength = 50;
-                                    char* temp      = M_REINTERPRET_CAST(
-                                             char*, safe_realloc(dlcString, dlcStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        M_REINTERPRET_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &dlcString),
+                                                                                dlcStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         dlcString = temp;
                                         safe_memset(dlcString, dlcStringLength, 0, dlcStringLength);
                                     }
                                 }
-                                if (dlcString && dlcStringLength >= 50)
+                                if (dlcString != M_NULLPTR && dlcStringLength >= 50)
                                 {
                                     snprintf(dlcString, dlcStringLength, "Device Life Control [Enabled]");
                                 }
                             }
                         }
-                        if (dlcString)
+                        if (dlcString != M_NULLPTR)
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, dlcString);
@@ -6522,7 +6529,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                         {
                             if (powerConditions[1 + headerLength] > 0x0A)
                             {
-                                if (!epcFeatureString)
+                                if (epcFeatureString == M_NULLPTR)
                                 {
                                     epcFeatureStringLength = 4;
                                     epcFeatureString =
@@ -6531,23 +6538,24 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     epcFeatureStringLength = 4;
-                                    char* temp             = C_CAST(
-                                                    char*, safe_realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        C_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &epcFeatureString),
+                                                                    epcFeatureStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
                                         safe_memset(epcFeatureString, epcFeatureStringLength, 0,
                                                     epcFeatureStringLength);
                                     }
                                 }
-                                if (epcFeatureString && epcFeatureStringLength >= 4)
+                                if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 4)
                                 {
                                     snprintf(epcFeatureString, epcFeatureStringLength, "EPC");
                                 }
                             }
                             else
                             {
-                                if (!epcFeatureString)
+                                if (epcFeatureString == M_NULLPTR)
                                 {
                                     epcFeatureStringLength = 17;
                                     epcFeatureString =
@@ -6556,16 +6564,17 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     epcFeatureStringLength = 17;
-                                    char* temp             = C_CAST(
-                                                    char*, safe_realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        C_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &epcFeatureString),
+                                                                    epcFeatureStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
                                         safe_memset(epcFeatureString, epcFeatureStringLength, 0,
                                                     epcFeatureStringLength);
                                     }
                                 }
-                                if (epcFeatureString && epcFeatureStringLength >= 17)
+                                if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 17)
                                 {
                                     snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions");
                                 }
@@ -6603,7 +6612,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                  powerConditions[3 + headerLength] & BIT1 || powerConditions[3 + headerLength] & BIT2 ||
                                  powerConditions[3 + headerLength] & BIT3))
                             {
-                                if (!epcFeatureString)
+                                if (epcFeatureString == M_NULLPTR)
                                 {
                                     epcFeatureStringLength = 14;
                                     epcFeatureString =
@@ -6612,16 +6621,17 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     epcFeatureStringLength = 14;
-                                    char* temp             = C_CAST(
-                                                    char*, safe_realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        C_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &epcFeatureString),
+                                                                    epcFeatureStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
                                         safe_memset(epcFeatureString, epcFeatureStringLength, 0,
                                                     epcFeatureStringLength);
                                     }
                                 }
-                                if (epcFeatureString && epcFeatureStringLength >= 14)
+                                if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 14)
                                 {
                                     snprintf(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]");
                                 }
@@ -6629,7 +6639,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             else if (powerConditions[3 + headerLength] & BIT0 ||
                                      powerConditions[3 + headerLength] & BIT1)
                             {
-                                if (!epcFeatureString)
+                                if (epcFeatureString == M_NULLPTR)
                                 {
                                     epcFeatureStringLength = 27;
                                     epcFeatureString =
@@ -6638,22 +6648,23 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     epcFeatureStringLength = 27;
-                                    char* temp             = C_CAST(
-                                                    char*, safe_realloc(epcFeatureString, epcFeatureStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        C_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &epcFeatureString),
+                                                                    epcFeatureStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
                                         safe_memset(epcFeatureString, epcFeatureStringLength, 0,
                                                     epcFeatureStringLength);
                                     }
                                 }
-                                if (epcFeatureString && epcFeatureStringLength >= 27)
+                                if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 27)
                                 {
                                     snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions [Enabled]");
                                 }
                             }
                         }
-                        if (epcFeatureString)
+                        if (epcFeatureString != M_NULLPTR)
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, epcFeatureString);
@@ -6804,7 +6815,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // bms
                             if (backgroundControl[headerLength + 4] & BIT0)
                             {
-                                if (!bmsString)
+                                if (bmsString == M_NULLPTR)
                                 {
                                     bmsStringLength = 50;
                                     bmsString = M_REINTERPRET_CAST(char*, safe_calloc(bmsStringLength, sizeof(char)));
@@ -6812,15 +6823,16 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     bmsStringLength = 50;
-                                    char* temp      = M_REINTERPRET_CAST(
-                                             char*, safe_realloc(bmsString, bmsStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        M_REINTERPRET_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsString),
+                                                                                bmsStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         bmsString = temp;
                                         safe_memset(bmsString, bmsStringLength, 0, bmsStringLength);
                                     }
                                 }
-                                if (bmsString && bmsStringLength >= 50)
+                                if (bmsString != M_NULLPTR && bmsStringLength >= 50)
                                 {
                                     snprintf(bmsString, bmsStringLength, "Background Media Scan");
                                 }
@@ -6828,7 +6840,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // bms-ps
                             if (backgroundControl[headerLength + 5] & BIT0)
                             {
-                                if (!bmsPSString)
+                                if (bmsPSString == M_NULLPTR)
                                 {
                                     bmsPSStringLength = 50;
                                     bmsPSString =
@@ -6838,14 +6850,15 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 {
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
-                                               char*, safe_realloc(bmsPSString, bmsPSStringLength * sizeof(char)));
-                                    if (temp)
+                                               char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
+                                                                    bmsPSStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
                                         safe_memset(bmsPSString, bmsPSStringLength, 0, bmsPSStringLength);
                                     }
                                 }
-                                if (bmsPSString && bmsPSStringLength >= 50)
+                                if (bmsPSString != M_NULLPTR && bmsPSStringLength >= 50)
                                 {
                                     snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan");
                                 }
@@ -6880,7 +6893,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // bms
                             if (backgroundControl[headerLength + 4] & BIT0)
                             {
-                                if (!bmsString)
+                                if (bmsString == M_NULLPTR)
                                 {
                                     bmsStringLength = 50;
                                     bmsString = M_REINTERPRET_CAST(char*, safe_calloc(bmsStringLength, sizeof(char)));
@@ -6888,15 +6901,16 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 else
                                 {
                                     bmsStringLength = 50;
-                                    char* temp      = M_REINTERPRET_CAST(
-                                             char*, safe_realloc(bmsString, bmsStringLength * sizeof(char)));
-                                    if (temp)
+                                    char* temp =
+                                        M_REINTERPRET_CAST(char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsString),
+                                                                                bmsStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         bmsString = temp;
                                         safe_memset(bmsString, bmsStringLength, 0, bmsStringLength);
                                     }
                                 }
-                                if (bmsString && bmsStringLength >= 50)
+                                if (bmsString != M_NULLPTR && bmsStringLength >= 50)
                                 {
                                     snprintf(bmsString, bmsStringLength, "Background Media Scan [Enabled]");
                                 }
@@ -6904,7 +6918,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                             // bms-ps
                             if (backgroundControl[headerLength + 5] & BIT0)
                             {
-                                if (!bmsPSString)
+                                if (bmsPSString == M_NULLPTR)
                                 {
                                     bmsPSStringLength = 50;
                                     bmsPSString =
@@ -6914,26 +6928,27 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 {
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
-                                               char*, safe_realloc(bmsPSString, bmsPSStringLength * sizeof(char)));
-                                    if (temp)
+                                               char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
+                                                                    bmsPSStringLength * sizeof(char)));
+                                    if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
                                         safe_memset(bmsPSString, bmsPSStringLength, 0, bmsPSStringLength);
                                     }
                                 }
-                                if (bmsPSString && bmsPSStringLength >= 50)
+                                if (bmsPSString != M_NULLPTR && bmsPSStringLength >= 50)
                                 {
                                     snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan [Enabled]");
                                 }
                             }
                         }
-                        if (bmsString)
+                        if (bmsString != M_NULLPTR)
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, bmsString);
                             safe_free(&bmsString);
                         }
-                        if (bmsPSString)
+                        if (bmsPSString != M_NULLPTR)
                         {
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, bmsPSString);
@@ -6973,7 +6988,7 @@ static eReturnValues get_SCSI_Diagnostic_Data(tDevice*                    device
             uint16_t supportedDiagsLength = UINT16_C(512);
             uint8_t* supportedDiagnostics = C_CAST(
                 uint8_t*, safe_calloc_aligned(supportedDiagsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (supportedDiagnostics)
+            if (supportedDiagnostics != M_NULLPTR)
             {
                 bool gotDiagData = false;
                 if (scsiInfo->version >= 3) // PCV bit and page code fields introduced in SPC specification
@@ -7301,7 +7316,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
 eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
     eReturnValues ret = SUCCESS;
-    if (!driveInfo)
+    if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -7311,7 +7326,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
     // start with standard inquiry data
     uint8_t* inquiryData =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (inquiryData)
+    if (inquiryData != M_NULLPTR)
     {
         if (SUCCESS == scsi_Inquiry(device, inquiryData, 255, 0, false, false))
         {
@@ -7347,7 +7362,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
         // (check for security protocol EFh? We can do that for ATA Security information)
         uint8_t* securityProtocols =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (securityProtocols)
+        if (securityProtocols != M_NULLPTR)
         {
             if (SUCCESS ==
                 scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 512, securityProtocols))
@@ -7991,7 +8006,7 @@ static eReturnValues get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe 
 eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!driveInfo)
+    if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -8000,7 +8015,7 @@ eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVM
     ret                       = SUCCESS;
     uint8_t* nvmeIdentifyData = C_CAST(
         uint8_t*, safe_calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!nvmeIdentifyData)
+    if (nvmeIdentifyData == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -8214,16 +8229,16 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         }
         // Long DST time
         printf("\tLong Drive Self Test Time: ");
-        if (driveInfo->controllerData.longDSTTimeMinutes > 0)
+        if (driveInfo->controllerData.longDSTTimeMinutes > UINT64_C(0))
         {
             // print as hours:minutes
-            years   = 0;
-            days    = 0;
-            hours   = 0;
-            minutes = 0;
-            seconds = 0;
-            convert_Seconds_To_Displayable_Time(driveInfo->controllerData.longDSTTimeMinutes * 60, &years, &days,
-                                                &hours, &minutes, &seconds);
+            years   = UINT8_C(0);
+            days    = UINT16_C(0);
+            hours   = UINT8_C(0);
+            minutes = UINT8_C(0);
+            seconds = UINT8_C(0);
+            convert_Seconds_To_Displayable_Time(driveInfo->controllerData.longDSTTimeMinutes * UINT64_C(60), &years,
+                                                &days, &hours, &minutes, &seconds);
             print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
         }
         else
@@ -8239,9 +8254,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 #endif // !MINUTES_IN_1_YEAR
         double totalTerabytesRead    = (driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0) / 1000000000000.0;
         double totalTerabytesWritten = (driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0) / 1000000000000.0;
-        double calculatedUsage =
-            C_CAST(double, totalTerabytesRead + totalTerabytesWritten) *
-            C_CAST(double, MINUTES_IN_1_YEAR / C_CAST(double, driveInfo->smartData.powerOnHoursD) * 60.0);
+        double calculatedUsage       = C_CAST(double, totalTerabytesRead + totalTerabytesWritten) *
+                                 C_CAST(double, MINUTES_IN_1_YEAR / (driveInfo->smartData.powerOnHoursD * 60.0));
         printf("%0.02f\n", calculatedUsage);
         // Total Bytes Read
         printf("\tTotal Bytes Read ");
@@ -9386,7 +9400,7 @@ void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
         printf("NVMe Reported Information:\n");
         print_Device_Information(driveInfo);
     }
-    else if (driveInfo)
+    else if (driveInfo != M_NULLPTR)
     {
         printf("Unknown device Information type:\n");
         print_Device_Information(driveInfo);
@@ -9581,7 +9595,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
 #endif // DEBUG_DRIVE_INFO_TIME
        // allocate ataDriveInfo since this is an ATA drive
         ataDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-        if (ataDriveInfo)
+        if (ataDriveInfo != M_NULLPTR)
         {
             ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
             ret                    = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
@@ -9597,7 +9611,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
 #endif // DEBUG_DRIVE_INFO_TIME
        // allocate nvmeDriveInfo since this is an NVMe drive
         nvmeDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-        if (nvmeDriveInfo)
+        if (nvmeDriveInfo != M_NULLPTR)
         {
             nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
             ret                     = get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
@@ -9606,7 +9620,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
         stop_Timer(&nvmeTime);
 #endif // DEBUG_DRIVE_INFO_TIME
     }
-    if (scsiDriveInfo)
+    if (scsiDriveInfo != M_NULLPTR)
     {
 #if defined(DEBUG_DRIVE_INFO_TIME)
         start_Timer(&scsiTime);
@@ -9681,7 +9695,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
                 ataDriveInfo && scsiDriveInfo && device->drive_info.drive_type == ATA_DRIVE)
             {
                 usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-                if (usbDriveInfo)
+                if (usbDriveInfo != M_NULLPTR)
                 {
                     usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
                     generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata,
@@ -9698,7 +9712,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
                      device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo && scsiDriveInfo)
             {
                 usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-                if (usbDriveInfo)
+                if (usbDriveInfo != M_NULLPTR)
                 {
                     usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
                     generate_External_NVMe_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata,
@@ -9722,7 +9736,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
                     print_Device_Information(nvmeDriveInfo);
                     // print_Nvme_Ctrl_Information(device);
                 }
-                else if (scsiDriveInfo)
+                else if (scsiDriveInfo != M_NULLPTR)
                 {
                     print_Device_Information(scsiDriveInfo);
                 }

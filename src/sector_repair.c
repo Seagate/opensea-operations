@@ -39,7 +39,7 @@ eReturnValues repair_LBA(tDevice*    device,
     uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
     uint8_t* dataBuf =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (!dataBuf)
+    if (dataBuf == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
@@ -61,7 +61,7 @@ eReturnValues repair_LBA(tDevice*    device,
             dataSize           = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
             temp = M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t),
                                                                      device->os_info.minimumAlignment));
-            if (!temp)
+            if (temp == M_NULLPTR)
             {
                 safe_free_aligned(&dataBuf);
                 return MEMORY_FAILURE;
@@ -442,11 +442,11 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
                                                  bool*    automaticReadReallocationEnabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (automaticReadReallocationEnabled)
+    if (automaticReadReallocationEnabled != M_NULLPTR)
     {
         *automaticReadReallocationEnabled = false;
     }
-    if (automaticWriteReallocationEnabled)
+    if (automaticWriteReallocationEnabled != M_NULLPTR)
     {
         *automaticWriteReallocationEnabled = false;
     }
@@ -454,11 +454,11 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
     {
         // ATA always supports automatic write reallocation.
         // ATA does not support automatic read reallocation.
-        if (automaticReadReallocationEnabled)
+        if (automaticReadReallocationEnabled != M_NULLPTR)
         {
             *automaticReadReallocationEnabled = false;
         }
-        if (automaticWriteReallocationEnabled)
+        if (automaticWriteReallocationEnabled != M_NULLPTR)
         {
             *automaticWriteReallocationEnabled = true;
         }
@@ -466,11 +466,11 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        if (automaticReadReallocationEnabled)
+        if (automaticReadReallocationEnabled != M_NULLPTR)
         {
             *automaticReadReallocationEnabled = true;
         }
-        if (automaticWriteReallocationEnabled)
+        if (automaticWriteReallocationEnabled != M_NULLPTR)
         {
             *automaticWriteReallocationEnabled = true;
         }
@@ -503,14 +503,14 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
             {
                 ret = SUCCESS;
                 // we have the right page, so we can get the bits
-                if (automaticReadReallocationEnabled)
+                if (automaticReadReallocationEnabled != M_NULLPTR)
                 {
                     if (readWriteErrorRecoveryMP[headerLength + 2] & BIT7)
                     {
                         *automaticReadReallocationEnabled = true;
                     }
                 }
-                if (automaticWriteReallocationEnabled)
+                if (automaticWriteReallocationEnabled != M_NULLPTR)
                 {
                     if (readWriteErrorRecoveryMP[headerLength + 2] & BIT6)
                     {
@@ -581,7 +581,7 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
 bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
 {
     bool inList = false;
-    if (!LBAList)
+    if (LBAList == M_NULLPTR)
     {
         return inList;
     }
@@ -600,7 +600,7 @@ bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheL
 uint32_t find_LBA_Entry_In_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
 {
     uint32_t index = UINT32_MAX; // something invalid
-    if (!LBAList)
+    if (LBAList == M_NULLPTR)
     {
         return index;
     }

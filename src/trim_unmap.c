@@ -142,7 +142,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
                     uint8_t* blockLimits =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t),
                                                                          device->os_info.minimumAlignment));
-                    if (!blockLimits)
+                    if (blockLimits != M_NULLPTR)
                     {
                         perror("calloc failure!");
                         return supported;
@@ -329,7 +329,7 @@ eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range)
             C_CAST(uint16_t, (((trimBufferLen / LEGACY_DRIVE_SEC_SIZE) + maxTRIMdataBlocks) - 1) / maxTRIMdataBlocks);
         uint32_t trimCommandLen =
             C_CAST(uint32_t, M_Min(C_CAST(uint64_t, maxTRIMdataBlocks) * LEGACY_DRIVE_SEC_SIZE, trimBufferLen));
-        if (!trimBuffer)
+        if (trimBuffer != M_NULLPTR)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;

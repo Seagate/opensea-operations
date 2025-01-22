@@ -44,10 +44,10 @@ bool is_Write_Same_Supported(tDevice*               device,
             supported = true;
             // as far as I know, ATA drives don't have a limit so just return the range from the requested start and the
             // maxLBA of the device - TJE
-            if (maxNumberOfLogicalBlocksPerCommand)
+            if (maxNumberOfLogicalBlocksPerCommand != M_NULLPTR)
             {
                 *maxNumberOfLogicalBlocksPerCommand =
-                    device->drive_info.deviceMaxLba + 1; // adding plus 1 because the range is zero indexed!
+                    device->drive_info.deviceMaxLba + UINT64_C(1); // adding plus 1 because the range is zero indexed!
             }
         }
     }
@@ -79,7 +79,7 @@ bool is_Write_Same_Supported(tDevice*               device,
         if (writeSameSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
             supported = true;
-            if (maxNumberOfLogicalBlocksPerCommand)
+            if (maxNumberOfLogicalBlocksPerCommand != M_NULLPTR)
             {
                 *maxNumberOfLogicalBlocksPerCommand = UINT32_MAX;
             }
@@ -92,23 +92,23 @@ bool is_Write_Same_Supported(tDevice*               device,
             if (writeSameSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
             {
                 supported = true;
-                if (maxNumberOfLogicalBlocksPerCommand)
+                if (maxNumberOfLogicalBlocksPerCommand != M_NULLPTR)
                 {
                     *maxNumberOfLogicalBlocksPerCommand = UINT32_MAX;
                 }
             }
             else
             {
-                if (maxNumberOfLogicalBlocksPerCommand)
+                if (maxNumberOfLogicalBlocksPerCommand != M_NULLPTR)
                 {
-                    *maxNumberOfLogicalBlocksPerCommand = 0;
+                    *maxNumberOfLogicalBlocksPerCommand = UINT64_C(0);
                 }
             }
             if (writeSameSupport == SCSI_CMD_SUPPORT_UNKNOWN && device->drive_info.scsiVersion >= SCSI_VERSION_SCSI2)
             {
                 // Assume supported for SCSI 2
                 supported = true;
-                if (maxNumberOfLogicalBlocksPerCommand)
+                if (maxNumberOfLogicalBlocksPerCommand != M_NULLPTR)
                 {
                     *maxNumberOfLogicalBlocksPerCommand = UINT16_MAX;
                 }
@@ -124,7 +124,7 @@ bool is_Write_Same_Supported(tDevice*               device,
             // don't get in a trouble spot...(we may need chunk the write same command...ugh).
             uint8_t* blockLimits = C_CAST(
                 uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!blockLimits)
+            if (blockLimits == M_NULLPTR)
             {
                 perror("Error allocating memory to check block limits VPD page");
                 return false;
@@ -189,7 +189,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
         // need to get status from SCT status command data
         uint8_t* sctStatusBuf = C_CAST(
             uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!sctStatusBuf)
+        if (sctStatusBuf == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -246,7 +246,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
         //asc = 0x00, ascq = 0x16 - Operation In Progress
         //if the progress is reported, then we just have to return it... i think...
         uint8_t *senseData = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SPC3_SENSE_LEN, sizeof(uint8_t),
-    device->os_info.minimumAlignment)); if (!senseData)
+    device->os_info.minimumAlignment)); if (senseData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -295,7 +295,7 @@ eReturnValues show_Write_Same_Current_LBA(tDevice* device)
         // need to get status from SCT status command data
         uint8_t* sctStatusBuf = C_CAST(
             uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!sctStatusBuf)
+        if (sctStatusBuf == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -405,7 +405,7 @@ eReturnValues writesame(tDevice* device,
                 zeroPatternBufLen = device->drive_info.deviceBlockSize;
                 zeroPatternBuf    = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(zeroPatternBufLen, sizeof(uint8_t),
                                                                                      device->os_info.minimumAlignment));
-                if (!zeroPatternBuf)
+                if (zeroPatternBuf == M_NULLPTR)
                 {
                     perror("Error allocating logical sector sized buffer for zero pattern\n");
                 }

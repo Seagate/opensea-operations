@@ -123,7 +123,7 @@ eReturnValues get_Persistent_Reservations_Capabilities(tDevice*                 
 {
     // note: some older drives don't support report capabilities...need to figure out what to do about those - TJE
     eReturnValues ret = NOT_SUPPORTED;
-    if (!prCapabilities)
+    if (prCapabilities == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -444,7 +444,7 @@ static void show_Allowed_Commands_Value(eAllowedCommandDetail value)
 
 void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities)
 {
-    if (prCapabilities)
+    if (prCapabilities == M_NULLPTR)
     {
         if ((prCapabilities->version >= PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 &&
              prCapabilities->size >= sizeof(persistentReservationCapabilitiesV1)))
@@ -588,7 +588,7 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
 eReturnValues get_Registration_Key_Count(tDevice* device, uint16_t* keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!keyCount)
+    if (keyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -632,7 +632,7 @@ eReturnValues get_Registration_Keys(tDevice* device, uint16_t numberOfKeys, ptrR
 {
     // get only registration keys
     eReturnValues ret = NOT_SUPPORTED;
-    if (!keys)
+    if (keys == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -645,7 +645,7 @@ eReturnValues get_Registration_Keys(tDevice* device, uint16_t numberOfKeys, ptrR
         uint16_t dataLength       = C_CAST(uint16_t, (numberOfKeys * UINT16_C(8)) + UINT16_C(8));
         uint8_t* registrationKeys = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!registrationKeys)
+        if (registrationKeys == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -678,7 +678,7 @@ eReturnValues get_Registration_Keys(tDevice* device, uint16_t numberOfKeys, ptrR
             UINT32_C(24); // 24 byte header, then 24 bytes per key....if extended, then it is even larger.
         uint8_t* registrationKeys = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!registrationKeys)
+        if (registrationKeys == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -728,7 +728,7 @@ eReturnValues get_Reservation_Count(tDevice* device, uint16_t* reservationKeyCou
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
-    if (!reservationKeyCount)
+    if (reservationKeyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -788,7 +788,7 @@ eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptr
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
-    if (!reservations)
+    if (reservations == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -801,7 +801,7 @@ eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptr
         uint16_t reservationsLength = C_CAST(uint16_t, numberReservations * UINT16_C(16) + UINT16_C(8));
         uint8_t* reservationKeys    = C_CAST(
                uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!reservationKeys)
+        if (reservationKeys == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -892,7 +892,7 @@ eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptr
             uint32_t reservationsLength = (C_CAST(uint32_t, totalReservationKeys) * UINT32_C(24)) + UINT32_C(24);
             uint8_t* reservationKeys    = C_CAST(
                    uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!reservationKeys)
+            if (reservationKeys == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1043,18 +1043,18 @@ void show_Reservations(ptrReservationsData reservations)
 eReturnValues get_Full_Status_Key_Count(tDevice* device, uint16_t* keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!keyCount)
+    if (keyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    *keyCount = 0;
+    *keyCount = UINT16_C(0);
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         uint32_t fullStatusDataLength = UINT32_C(32); // some drive FW have a bug where if this is read as 8 bytes, it
                                                       // returns that there are no keys, even when there are...-TJE
         uint8_t* fullStatusData = C_CAST(
             uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!fullStatusData)
+        if (fullStatusData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1072,7 +1072,7 @@ eReturnValues get_Full_Status_Key_Count(tDevice* device, uint16_t* keyCount)
             safe_free_aligned(&fullStatusData);
             fullStatusData = C_CAST(
                 uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!fullStatusData)
+            if (fullStatusData == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1145,7 +1145,7 @@ eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullRes
     // If older SPC, use the get_Registrations and get_Reservations functions to get all the data we need to collect. -
     // TJE
     eReturnValues ret = NOT_SUPPORTED;
-    if (!fullReservation)
+    if (fullReservation == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1160,7 +1160,7 @@ eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullRes
                                                       // returns that there are no keys, even when there are...-TJE
         uint8_t* fullStatusData = C_CAST(
             uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!fullStatusData)
+        if (fullStatusData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
@@ -1178,7 +1178,7 @@ eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullRes
             safe_free_aligned(&fullStatusData);
             fullStatusData = C_CAST(
                 uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (!fullStatusData)
+            if (fullStatusData == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
@@ -1370,7 +1370,7 @@ eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullRes
         uint32_t nvmeFullDataLen = UINT32_C(24) + (UINT32_C(24) * C_CAST(uint32_t, numberOfKeys));
         uint8_t* nvmeFullData    = M_REINTERPRET_CAST(
                uint8_t*, safe_calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (!nvmeFullData)
+        if (nvmeFullData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
