@@ -2726,27 +2726,27 @@ eReturnValues show_NVMe_Health(tDevice* device)
             printf("Num. Of Error Info. Log             : %.0f\n",
                    convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.numErrLogEntries));
             printf("Warning Composite Temperature Time  : %" PRIu32 "\n",
-                   smartData.attributes.nvmeSMARTAttr.warningTempTime);
+                   le32_to_host(smartData.attributes.nvmeSMARTAttr.warningTempTime));
             printf("Critical Composite Temperature Time : %" PRIu32 "\n",
-                   smartData.attributes.nvmeSMARTAttr.criticalCompTime);
+                   le32_to_host(smartData.attributes.nvmeSMARTAttr.criticalCompTime));
             for (uint8_t temperatureSensorCount = UINT8_C(0); temperatureSensorCount < 8; ++temperatureSensorCount)
             {
                 if (smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] != 0)
                 {
                     uint16_t temperatureSensor =
-                        smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount] - 273;
+                        le16_to_host(smartData.attributes.nvmeSMARTAttr.tempSensor[temperatureSensorCount]) - 273;
                     printf("Temperature Sensor %" PRIu8 "                : %" PRIu16 " C\n",
                            (temperatureSensorCount + UINT8_C(1)), temperatureSensor);
                 }
             }
             printf("Thermal Management T1 Trans Count   : %" PRIu32 "\n",
-                   smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp1TransCount);
+                   le32_to_host(smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp1TransCount));
             printf("Thermal Management T2 Trans Count   : %" PRIu32 "\n",
-                   smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp2TransCount);
+                   le32_to_host(smartData.attributes.nvmeSMARTAttr.thermalMgmtTemp2TransCount));
             printf("Thermal Management T1 Total Time    : %" PRIu32 "\n",
-                   smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp1);
+                   le32_to_host(smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp1));
             printf("Thermal Management T2 Total Time    : %" PRIu32 "\n",
-                   smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp2);
+                   le32_to_host(smartData.attributes.nvmeSMARTAttr.totalTimeThermalMgmtTemp2));
         }
     }
     return ret;
@@ -2757,8 +2757,8 @@ bool is_SMART_Command_Transport_Supported(tDevice* device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-            device->drive_info.IdentifyData.ata.Word206 & BIT0)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT0)
         {
             supported = true;
         }
@@ -2771,10 +2771,12 @@ bool is_SMART_Error_Logging_Supported(tDevice* device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) &&
-             device->drive_info.IdentifyData.ata.Word084 & BIT0) ||
-            (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) &&
-             device->drive_info.IdentifyData.ata.Word087 & BIT0))
+        if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT0) ||
+            (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT0))
         {
             supported = true;
         }
@@ -3633,8 +3635,8 @@ bool is_SMART_Enabled(tDevice* device)
     {
     case ATA_DRIVE:
         // check identify data
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) &&
-            device->drive_info.IdentifyData.ata.Word085 & BIT0)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0)
         {
             enabled = true;
         }
@@ -3742,10 +3744,10 @@ eReturnValues get_Pending_List_Count(tDevice* device, uint32_t* pendingCount)
                                                      ATA_DEVICE_STATS_LOG_ROTATING_MEDIA, rotatingMediaStatistics,
                                                      LEGACY_DRIVE_SEC_SIZE, 0))
             {
-                uint64_t* qWordPtr = (uint64_t*)&rotatingMediaStatistics[0];
-                if (qWordPtr[7] & BIT63 && qWordPtr[7] & BIT62)
+                uint64_t* qWordPtr = M_REINTERPRET_CAST(uint64_t*, &rotatingMediaStatistics[0]);
+                if (le64_to_host(qWordPtr[7]) & BIT63 && le64_to_host(qWordPtr[7]) & BIT62)
                 {
-                    *pendingCount     = M_DoubleWord0(qWordPtr[7]);
+                    *pendingCount     = M_DoubleWord0(le64_to_host(qWordPtr[7]));
                     pendingCountFound = true;
                 }
             }
@@ -3813,10 +3815,10 @@ eReturnValues get_Grown_List_Count(tDevice* device, uint32_t* grownCount)
                                                      ATA_DEVICE_STATS_LOG_ROTATING_MEDIA, rotatingMediaStatistics,
                                                      LEGACY_DRIVE_SEC_SIZE, 0))
             {
-                uint64_t* qWordPtr = (uint64_t*)&rotatingMediaStatistics[0];
-                if (qWordPtr[4] & BIT63 && qWordPtr[4] & BIT62)
+                uint64_t* qWordPtr = M_REINTERPRET_CAST(uint64_t*, &rotatingMediaStatistics[0]);
+                if (le64_to_host(qWordPtr[4]) & BIT63 && le64_to_host(qWordPtr[4]) & BIT62)
                 {
-                    *grownCount     = M_DoubleWord0(qWordPtr[4]);
+                    *grownCount     = M_DoubleWord0(le64_to_host(qWordPtr[4]));
                     grownCountFound = true;
                 }
             }
@@ -3895,8 +3897,9 @@ eReturnValues sct_Set_Feature_Control(tDevice*    device,
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check if SCT and SCT feature control is supported
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-            device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT0 &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT4)
         {
             uint16_t featureCode = UINT16_C(0);
             uint16_t state       = UINT16_C(0);
@@ -3990,8 +3993,9 @@ eReturnValues sct_Get_Feature_Control(tDevice*    device,
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check if SCT and SCT feature control is supported
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-            device->drive_info.IdentifyData.ata.Word206 & BIT0 && device->drive_info.IdentifyData.ata.Word206 & BIT4)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT0 &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT4)
         {
             uint16_t featureCode = UINT16_C(0);
             uint16_t state       = UINT16_C(0);
@@ -4102,8 +4106,9 @@ eReturnValues sct_Set_Command_Timer(tDevice*                 device,
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-            device->drive_info.IdentifyData.ata.Word206 & BIT3) // check that the feature is supported by this drive
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) &
+                BIT3) // check that the feature is supported by this drive
         {
             if ((timerValueMilliseconds / 100) > UINT16_MAX)
             {
@@ -4139,8 +4144,9 @@ eReturnValues sct_Get_Command_Timer(tDevice*                 device,
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-            device->drive_info.IdentifyData.ata.Word206 & BIT3) // check that the feature is supported by this drive
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) &
+                BIT3) // check that the feature is supported by this drive
         {
             // made it this far, so the feature is supported
             uint16_t currentTimerValue = UINT16_C(0);
@@ -4171,8 +4177,9 @@ eReturnValues sct_Restore_Command_Timer(tDevice* device, eSCTErrorRecoveryComman
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-            device->drive_info.IdentifyData.ata.Word206 & BIT3) // check that the feature is supported by this drive
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) &
+                BIT3) // check that the feature is supported by this drive
         {
             // made it this far, so the feature is supported
             switch (ercCommand)
@@ -4222,8 +4229,8 @@ eReturnValues enable_Disable_SMART_Feature(tDevice* device, bool enable)
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) &&
-            device->drive_info.IdentifyData.ata.Word082 & BIT0)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT0)
         {
             if (enable)
             {
@@ -4486,10 +4493,10 @@ eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice* device, bool enab
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) &&
-             device->drive_info.IdentifyData.ata.Word082 & BIT0) &&
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) &&
-             device->drive_info.IdentifyData.ata.Word085 & BIT0))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT0) &&
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0))
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
             // read the data
@@ -4515,10 +4522,10 @@ eReturnValues enable_Disable_SMART_Auto_Offline(tDevice* device, bool enable)
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) &&
-             device->drive_info.IdentifyData.ata.Word082 & BIT0) &&
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) &&
-             device->drive_info.IdentifyData.ata.Word085 & BIT0))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT0) &&
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0))
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
             // read the data
@@ -4549,10 +4556,10 @@ eReturnValues get_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check SMART support and enabled
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) &&
-             device->drive_info.IdentifyData.ata.Word082 & BIT0) &&
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) &&
-             device->drive_info.IdentifyData.ata.Word085 & BIT0))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT0) &&
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0))
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
             // read the data
@@ -4796,9 +4803,9 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
             {
                 temperature = M_BytesTo2ByteValue(smartLog.temperature[1], smartLog.temperature[0]);
                 temperature = temperature ? temperature - 273 : 0;
-                pcbTemp     = smartLog.tempSensor[0];
+                pcbTemp     = le16_to_host(smartLog.tempSensor[0]);
                 pcbTemp     = pcbTemp ? pcbTemp - 273 : 0;
-                socTemp     = smartLog.tempSensor[1];
+                socTemp     = le16_to_host(smartLog.tempSensor[1]);
                 socTemp     = socTemp ? socTemp - 273 : 0;
 
                 printf("%-20s : %" PRIu32 " C\n", "Current Temperature", temperature);
@@ -4829,7 +4836,8 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
                 {
                     if (extSmartLog.vendorData[index].AttributeNumber == VS_ATTR_ID_MAX_LIFE_TEMPERATURE)
                     {
-                        maxTemperature = smart_attribute_vs(extSmartLog.Version, extSmartLog.vendorData[index]);
+                        maxTemperature =
+                            smart_attribute_vs(le16_to_host(extSmartLog.Version), extSmartLog.vendorData[index]);
                         maxTemperature = maxTemperature ? maxTemperature - 273 : 0;
 
                         printf("%-20s : %" PRIu32 " C\n", "Highest Temperature", C_CAST(uint32_t, maxTemperature));
@@ -4837,7 +4845,8 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
 
                     if (extSmartLog.vendorData[index].AttributeNumber == VS_ATTR_ID_MAX_SOC_LIFE_TEMPERATURE)
                     {
-                        maxSocTemp = smart_attribute_vs(extSmartLog.Version, extSmartLog.vendorData[index]);
+                        maxSocTemp =
+                            smart_attribute_vs(le16_to_host(extSmartLog.Version), extSmartLog.vendorData[index]);
                         maxSocTemp = maxSocTemp ? maxSocTemp - 273 : 0;
 
                         printf("%-20s : %" PRIu32 " C\n", "Max SOC Temperature", C_CAST(uint32_t, maxSocTemp));
@@ -4857,11 +4866,11 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
 
             if (ret == SUCCESS)
             {
-                scCurrentTemp = scDramSmart.attrScSmart.superCapCurrentTemperature;
+                scCurrentTemp = le16_to_host(scDramSmart.attrScSmart.superCapCurrentTemperature);
                 scCurrentTemp = scCurrentTemp ? scCurrentTemp - 273 : 0;
                 printf("%-20s : %" PRIu32 " C\n", "Super-cap Current Temperature", scCurrentTemp);
 
-                scMaxTemp = scDramSmart.attrScSmart.superCapMaximumTemperature;
+                scMaxTemp = le16_to_host(scDramSmart.attrScSmart.superCapMaximumTemperature);
                 scMaxTemp = scMaxTemp ? scMaxTemp - 273 : 0;
                 printf("%-20s : %" PRIu32 " C\n", "Super-cap Max Temperature", scMaxTemp);
             }
@@ -4903,36 +4912,47 @@ eReturnValues nvme_Print_PCI_Statistics(tDevice* device)
 
             if (ret == SUCCESS)
             {
-                correctPcieEc = pcieErrorLog.badDllpErrCnt + pcieErrorLog.badTlpErrCnt + pcieErrorLog.rcvrErrCnt +
-                                pcieErrorLog.replayTOErrCnt + pcieErrorLog.replayNumRolloverErrCnt;
+                correctPcieEc = le32_to_host(pcieErrorLog.badDllpErrCnt) + le32_to_host(pcieErrorLog.badTlpErrCnt) +
+                                le32_to_host(pcieErrorLog.rcvrErrCnt) + le32_to_host(pcieErrorLog.replayTOErrCnt) +
+                                le32_to_host(pcieErrorLog.replayNumRolloverErrCnt);
 
-                uncorrectPcieEc = pcieErrorLog.fcProtocolErrCnt + pcieErrorLog.dllpProtocolErrCnt +
-                                  pcieErrorLog.cmpltnTOErrCnt + pcieErrorLog.rcvrQOverflowErrCnt +
-                                  pcieErrorLog.unexpectedCplTlpErrCnt + pcieErrorLog.cplTlpURErrCnt +
-                                  pcieErrorLog.cplTlpCAErrCnt + pcieErrorLog.reqCAErrCnt + pcieErrorLog.reqURErrCnt +
-                                  pcieErrorLog.ecrcErrCnt + pcieErrorLog.malformedTlpErrCnt +
-                                  pcieErrorLog.cplTlpPoisonedErrCnt + pcieErrorLog.memRdTlpPoisonedErrCnt;
+                uncorrectPcieEc =
+                    le32_to_host(pcieErrorLog.fcProtocolErrCnt) + le32_to_host(pcieErrorLog.dllpProtocolErrCnt) +
+                    le32_to_host(pcieErrorLog.cmpltnTOErrCnt) + le32_to_host(pcieErrorLog.rcvrQOverflowErrCnt) +
+                    le32_to_host(pcieErrorLog.unexpectedCplTlpErrCnt) + le32_to_host(pcieErrorLog.cplTlpURErrCnt) +
+                    le32_to_host(pcieErrorLog.cplTlpCAErrCnt) + le32_to_host(pcieErrorLog.reqCAErrCnt) +
+                    le32_to_host(pcieErrorLog.reqURErrCnt) + le32_to_host(pcieErrorLog.ecrcErrCnt) +
+                    le32_to_host(pcieErrorLog.malformedTlpErrCnt) + le32_to_host(pcieErrorLog.cplTlpPoisonedErrCnt) +
+                    le32_to_host(pcieErrorLog.memRdTlpPoisonedErrCnt);
 
                 printf("%-45s : %u\n", "PCIe Correctable Error Count", correctPcieEc);
                 printf("%-45s : %u\n", "PCIe Un-Correctable Error Count", uncorrectPcieEc);
-                printf("%-45s : %u\n", "Unsupported Request Error Status (URES)", pcieErrorLog.reqURErrCnt);
-                printf("%-45s : %u\n", "ECRC Error Status (ECRCES)", pcieErrorLog.ecrcErrCnt);
-                printf("%-45s : %u\n", "Malformed TLP Status (MTS)", pcieErrorLog.malformedTlpErrCnt);
-                printf("%-45s : %u\n", "Receiver Overflow Status (ROS)", pcieErrorLog.rcvrQOverflowErrCnt);
-                printf("%-45s : %u\n", "Unexpected Completion Status(UCS)", pcieErrorLog.unexpectedCplTlpErrCnt);
-                printf("%-45s : %u\n", "Completion Timeout Status (CTS)", pcieErrorLog.cmpltnTOErrCnt);
-                printf("%-45s : %u\n", "Flow Control Protocol Error Status (FCPES)", pcieErrorLog.fcProtocolErrCnt);
-                printf("%-45s : %u\n", "Poisoned TLP Status (PTS)", pcieErrorLog.memRdTlpPoisonedErrCnt);
-                printf("%-45s : %u\n", "Data Link Protocol Error Status(DLPES)", pcieErrorLog.dllpProtocolErrCnt);
-                printf("%-45s : %u\n", "Replay Timer Timeout Status(RTS)", pcieErrorLog.replayTOErrCnt);
-                printf("%-45s : %u\n", "Replay_NUM Rollover Status(RRS)", pcieErrorLog.replayNumRolloverErrCnt);
-                printf("%-45s : %u\n", "Bad DLLP Status (BDS)", pcieErrorLog.badDllpErrCnt);
-                printf("%-45s : %u\n", "Bad TLP Status (BTS)", pcieErrorLog.badTlpErrCnt);
-                printf("%-45s : %u\n", "Receiver Error Status (RES)", pcieErrorLog.rcvrErrCnt);
-                printf("%-45s : %u\n", "Cpl TLP Unsupported Request Error Count", pcieErrorLog.cplTlpURErrCnt);
-                printf("%-45s : %u\n", "Cpl TLP Completion Abort Error Count", pcieErrorLog.cplTlpCAErrCnt);
-                printf("%-45s : %u\n", "Cpl TLP Poisoned Error Count", pcieErrorLog.cplTlpPoisonedErrCnt);
-                printf("%-45s : %u\n", "Request Completion Abort Error Count", pcieErrorLog.reqCAErrCnt);
+                printf("%-45s : %u\n", "Unsupported Request Error Status (URES)",
+                       le32_to_host(pcieErrorLog.reqURErrCnt));
+                printf("%-45s : %u\n", "ECRC Error Status (ECRCES)", le32_to_host(pcieErrorLog.ecrcErrCnt));
+                printf("%-45s : %u\n", "Malformed TLP Status (MTS)", le32_to_host(pcieErrorLog.malformedTlpErrCnt));
+                printf("%-45s : %u\n", "Receiver Overflow Status (ROS)",
+                       le32_to_host(pcieErrorLog.rcvrQOverflowErrCnt));
+                printf("%-45s : %u\n", "Unexpected Completion Status(UCS)",
+                       le32_to_host(pcieErrorLog.unexpectedCplTlpErrCnt));
+                printf("%-45s : %u\n", "Completion Timeout Status (CTS)", le32_to_host(pcieErrorLog.cmpltnTOErrCnt));
+                printf("%-45s : %u\n", "Flow Control Protocol Error Status (FCPES)",
+                       le32_to_host(pcieErrorLog.fcProtocolErrCnt));
+                printf("%-45s : %u\n", "Poisoned TLP Status (PTS)", le32_to_host(pcieErrorLog.memRdTlpPoisonedErrCnt));
+                printf("%-45s : %u\n", "Data Link Protocol Error Status(DLPES)",
+                       le32_to_host(pcieErrorLog.dllpProtocolErrCnt));
+                printf("%-45s : %u\n", "Replay Timer Timeout Status(RTS)", le32_to_host(pcieErrorLog.replayTOErrCnt));
+                printf("%-45s : %u\n", "Replay_NUM Rollover Status(RRS)",
+                       le32_to_host(pcieErrorLog.replayNumRolloverErrCnt));
+                printf("%-45s : %u\n", "Bad DLLP Status (BDS)", le32_to_host(pcieErrorLog.badDllpErrCnt));
+                printf("%-45s : %u\n", "Bad TLP Status (BTS)", le32_to_host(pcieErrorLog.badTlpErrCnt));
+                printf("%-45s : %u\n", "Receiver Error Status (RES)", le32_to_host(pcieErrorLog.rcvrErrCnt));
+                printf("%-45s : %u\n", "Cpl TLP Unsupported Request Error Count",
+                       le32_to_host(pcieErrorLog.cplTlpURErrCnt));
+                printf("%-45s : %u\n", "Cpl TLP Completion Abort Error Count",
+                       le32_to_host(pcieErrorLog.cplTlpCAErrCnt));
+                printf("%-45s : %u\n", "Cpl TLP Poisoned Error Count", le32_to_host(pcieErrorLog.cplTlpPoisonedErrCnt));
+                printf("%-45s : %u\n", "Request Completion Abort Error Count", le32_to_host(pcieErrorLog.reqCAErrCnt));
                 printf("%-45s : %s\n", "Advisory Non-Fatal Error Status(ANFES)", "Not Supported");
                 printf("%-45s : %s\n", "Completer Abort Status (CAS)", "Not Supported");
             }

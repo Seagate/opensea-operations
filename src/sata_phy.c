@@ -39,8 +39,8 @@ eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounte
     {
         // check the ID bits that show this is supported, then just read the page.
         // SATA defines this as 512B and no more.
-        if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word076) &&
-            device->drive_info.IdentifyData.ata.Word076 & BIT10)
+        if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word076) & BIT10)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, phyEventLog, 512);
             ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, 0, phyEventLog, 512, 0);

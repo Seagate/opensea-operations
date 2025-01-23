@@ -801,10 +801,11 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
         case ATA_DRIVE:
         {
             // first check the bits in the identify data
-            if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) &&
-                 device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
-                && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) &&
-                    device->drive_info.IdentifyData.ata.Word069 & BIT8))
+            if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word053) &
+                     BIT1) /* this is a validity bit for field 69 */
+                && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT8))
             {
                 supportedModes->downloadMicrocodeSupported          = true;
                 supportedModes->firmwareDownloadDMACommandSupported = true;
@@ -812,26 +813,27 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                 supportedModes->driveOffsetBoundaryInBytes          = LEGACY_DRIVE_SEC_SIZE;
                 supportedModes->driveOffsetBoundary                 = 9;
             }
-            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) &&
-                 device->drive_info.IdentifyData.ata.Word083 & BIT0) ||
-                (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-                 device->drive_info.IdentifyData.ata.Word086 & BIT0))
+            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT0) ||
+                (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT0))
             {
                 supportedModes->downloadMicrocodeSupported = true;
                 supportedModes->fullBuffer                 = true;
             }
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-                device->drive_info.IdentifyData.ata.Word086 & BIT15) /*words 119, 120 valid*/
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15) /*words 119, 120 valid*/
             {
-                if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word119) &&
-                     device->drive_info.IdentifyData.ata.Word119 & BIT4) ||
-                    (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word120) &&
-                     device->drive_info.IdentifyData.ata.Word120 & BIT4))
+                if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT4) ||
+                    (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word120)) &&
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT4))
                 {
                     supportedModes->segmented = true;
                 }
             }
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word234))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word234)))
             {
                 supportedModes->minSegmentSize =
                     M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word234),
@@ -841,7 +843,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
             {
                 supportedModes->minSegmentSize = 0;
             }
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word235))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word235)))
             {
                 supportedModes->maxSegmentSize =
                     M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word235),
@@ -852,8 +854,8 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                 supportedModes->maxSegmentSize = UINT32_MAX;
             }
             if (is_Seagate_Family(device) == SEAGATE &&
-                is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word243) &&
-                device->drive_info.IdentifyData.ata.Word243 & BIT12)
+                is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word243)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word243) & BIT12)
             {
                 supportedModes->seagateDeferredPowerCycleActivate     = true;
                 supportedModes->deferredPowerCycleActivationSupported = true;
@@ -927,7 +929,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
         }
         break;
         case NVME_DRIVE:
-            if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT2)
+            if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT2)
             {
                 supportedModes->downloadMicrocodeSupported = true;
                 supportedModes->deferred                   = true;

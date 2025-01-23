@@ -455,8 +455,8 @@ bool scsi_Is_Read_Look_Ahead_Supported(tDevice* device)
 bool ata_Is_Read_Look_Ahead_Supported(tDevice* device)
 {
     bool supported = false;
-    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) &&
-        device->drive_info.IdentifyData.ata.Word082 & BIT6)
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT6)
     {
         supported = true;
     }
@@ -576,8 +576,8 @@ bool scsi_Is_Read_Look_Ahead_Enabled(tDevice* device)
 bool ata_Is_Read_Look_Ahead_Enabled(tDevice* device)
 {
     bool enabled = false;
-    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) &&
-        device->drive_info.IdentifyData.ata.Word085 & BIT6)
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT6)
     {
         enabled = true;
     }
@@ -652,8 +652,8 @@ bool scsi_Is_Write_Cache_Supported(tDevice* device)
 bool ata_Is_Write_Cache_Supported(tDevice* device)
 {
     bool supported = false;
-    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) &&
-        device->drive_info.IdentifyData.ata.Word082 & BIT5)
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT5)
     {
         supported = true;
     }
@@ -728,8 +728,8 @@ bool scsi_Is_Write_Cache_Enabled(tDevice* device)
 bool ata_Is_Write_Cache_Enabled(tDevice* device)
 {
     bool enabled = false;
-    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) &&
-        device->drive_info.IdentifyData.ata.Word085 & BIT5)
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT5)
     {
         enabled = true;
     }
@@ -1349,19 +1349,21 @@ eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice* device, uint16_
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-            device->drive_info.IdentifyData.ata.Word086 & BIT15)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15)
         {
-            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) &&
-                device->drive_info.IdentifyData.ata.Word119 & BIT5) // supported
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT5) // supported
             {
                 ret          = SUCCESS;
                 *sensitivity = UINT16_MAX; // this can be used to filter out invalid value, a.k.a. feature is not
                                            // enabled, but is supported.
-                if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word120) &&
-                    device->drive_info.IdentifyData.ata.Word120 & BIT5) // enabled
+                if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                        le16_to_host(device->drive_info.IdentifyData.ata.Word120)) &&
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT5) // enabled
                 {
-                    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053))
+                    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)))
                     {
                         // Word 53, bits 15:8
                         *sensitivity = M_Byte1(device->drive_info.IdentifyData.ata.Word053);
@@ -1378,11 +1380,12 @@ eReturnValues set_Free_Fall_Control_Sensitivity(tDevice* device, uint8_t sensiti
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-            device->drive_info.IdentifyData.ata.Word086 & BIT15)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15)
         {
-            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) &&
-                device->drive_info.IdentifyData.ata.Word119 & BIT5) // supported
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT5) // supported
             {
                 ret = ata_Set_Features(device, SF_ENABLE_FREE_FALL_CONTROL_FEATURE, sensitivity, 0, 0, 0);
             }
@@ -1396,11 +1399,12 @@ eReturnValues disable_Free_Fall_Control_Feature(tDevice* device)
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-            device->drive_info.IdentifyData.ata.Word086 & BIT15)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15)
         {
-            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) &&
-                device->drive_info.IdentifyData.ata.Word119 & BIT5) // supported
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT5) // supported
             {
                 ret = ata_Set_Features(device, SF_DISABLE_FREE_FALL_CONTROL_FEATURE, 0, 0, 0, 0);
             }
@@ -1437,15 +1441,15 @@ eReturnValues enable_Disable_AAM_Feature(tDevice* device, bool enable)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure APM is supported.
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT9)
         {
             if (enable)
             {
                 // set value to the vendor recommended value reported in identify data when requesting an enable
                 // operation
                 uint8_t enableValue = UINT8_C(128);
-                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word094))
+                if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word094)))
                 {
                     enableValue = M_Byte1(device->drive_info.IdentifyData.ata.Word094);
                 }
@@ -1477,8 +1481,8 @@ eReturnValues set_AAM_Level(tDevice* device, uint8_t aamLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure APM is supported.
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT9)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT9)
         {
             // subcommand 42 with the aamLevel in the count field
             ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, aamLevel, 0, 0, 0);
@@ -1493,13 +1497,13 @@ eReturnValues get_AAM_Level(tDevice* device, uint8_t* aamLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure AAM is supported.
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 &
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) &
                 BIT9) // word 86 says "enabled". We may or may not want to check for that.
         {
             // get it from identify device word 94
             ret = SUCCESS;
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word094))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word094)))
             {
                 *aamLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word094);
             }
@@ -2981,37 +2985,41 @@ eReturnValues get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
         ret = SUCCESS;
         // check identify data
         info->bytesBeingVerified = 0; // start by setting to zero
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-            device->drive_info.IdentifyData.ata.Word086 & BIT15) // words 119, 120 valid
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15) // words 119, 120 valid
         {
-            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) &&
-                device->drive_info.IdentifyData.ata.Word119 & BIT1) // supported
+            if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT1) // supported
             {
                 info->supported = true;
-                if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word120) &&
-                    device->drive_info.IdentifyData.ata.Word120 & BIT1)
+                if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                        le16_to_host(device->drive_info.IdentifyData.ata.Word120)) &&
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT1)
                 {
                     info->enabled = true;
                 }
-                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word220))
+                if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word220)))
                 {
                     info->currentWRVMode = M_Byte0(device->drive_info.IdentifyData.ata.Word220);
                 }
                 // filling in remaining data because it is possible some drives will report valid data for these other
                 // modes even if not enabled.
                 if (info->currentWRVMode == ATA_WRV_MODE_USER &&
-                    (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word211) &&
-                     is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word210)))
+                    (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word211)) &&
+                     is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word210))))
                 {
-                    info->wrv3sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word211,
-                                                                device->drive_info.IdentifyData.ata.Word210);
+                    info->wrv3sectorCount =
+                        M_WordsTo4ByteValue(le16_to_host(device->drive_info.IdentifyData.ata.Word211),
+                                            device->drive_info.IdentifyData.ata.Word210);
                 }
                 if (info->currentWRVMode == ATA_WRV_MODE_VENDOR &&
-                    (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word213) &&
-                     is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word212)))
+                    (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word213)) &&
+                     is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word212))))
                 {
-                    info->wrv2sectorCount = M_WordsTo4ByteValue(device->drive_info.IdentifyData.ata.Word213,
-                                                                device->drive_info.IdentifyData.ata.Word212);
+                    info->wrv2sectorCount =
+                        M_WordsTo4ByteValue(le16_to_host(device->drive_info.IdentifyData.ata.Word213),
+                                            device->drive_info.IdentifyData.ata.Word212);
                 }
 
                 if (info->enabled)

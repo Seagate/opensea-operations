@@ -433,8 +433,8 @@ static eReturnValues nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesS
     ret                   = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        double hmbRec = C_CAST(double, device->drive_info.IdentifyData.nvme.ctrl.hmpre) * 4096.0;
-        double hmbMin = C_CAST(double, device->drive_info.IdentifyData.nvme.ctrl.hmmin) * 4096.0;
+        double hmbRec = C_CAST(double, le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.hmpre)) * 4096.0;
+        double hmbMin = C_CAST(double, le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.hmmin)) * 4096.0;
         DECLARE_ZERO_INIT_ARRAY(char, hmbRecUnits, UNIT_STRING_LENGTH);
         DECLARE_ZERO_INIT_ARRAY(char, hmbMinUnits, UNIT_STRING_LENGTH);
         char* hmbRecUnit = &hmbRecUnits[0];
@@ -595,7 +595,8 @@ eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* lo
         break;
         case NVME_LOG_PREDICTABLE_LATENCY_EVENT_AGREGATE_ID:
             *logSize =
-                UINT64_C(8) + (UINT64_C(2) * C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.nsetidmax));
+                UINT64_C(8) +
+                (UINT64_C(2) * C_CAST(uint64_t, le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.nsetidmax)));
             break;
         case NVME_LOG_ASYMMETRIC_NAMESPACE_ACCESS_ID:
             // ANAGRPMAX for maximum value
@@ -611,20 +612,23 @@ eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* lo
                 *logSize =
                     UINT64_C(16) +
                     (numberOfANAGroupDescriptors *
-                     (UINT64_C(32) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.nn) * UINT64_C(4))));
+                     (UINT64_C(32) +
+                      (C_CAST(uint64_t, le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.nn)) * UINT64_C(4))));
             }
             // old maximum size calculation:
-            //*logSize = UINT64_C(16) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.anagrpmax) *
-            //(UINT64_C(32) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.nn) * UINT64_C(4))));
+            //*logSize = UINT64_C(16) + (C_CAST(uint64_t,
+            // le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.anagrpmax)) * (UINT64_C(32) + (C_CAST(uint64_t,
+            // le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.nn)) * UINT64_C(4))));
             break;
         case NVME_LOG_PERSISTENT_EVENT_LOG_ID:
             // 512B header, each event is24B + vendor specific info (max 65535B) + event data
             // PELS is maximum persistent events in 64KiB units
-            *logSize = C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.pels) * UINT64_C(65536);
+            *logSize = C_CAST(uint64_t, le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.pels)) * UINT64_C(65536);
             break;
         case NVME_LOG_ENDURANCE_GROUP_EVENT_AGREGATE_ID:
             *logSize =
-                UINT64_C(8) + (C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.endgidmax) * UINT64_C(2));
+                UINT64_C(8) +
+                (C_CAST(uint64_t, le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.endgidmax)) * UINT64_C(2));
             break;
         case NVME_LOG_MEDIA_UNIT_STATUS_ID:
             // Read the first 16B to get NMU and CCHANS to figure out the total size
@@ -708,7 +712,8 @@ eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice* device)
     printf("-->%s\n", __FUNCTION__);
 #endif
     safe_memset(&fwSlotsLogInfo, sizeof(nvmeFirmwareSlotInfo), 0, sizeof(nvmeFirmwareSlotInfo));
-    ret = nvme_Get_FWSLOTS_Log_Page(device, (uint8_t*)&fwSlotsLogInfo, sizeof(nvmeFirmwareSlotInfo));
+    ret =
+        nvme_Get_FWSLOTS_Log_Page(device, M_REINTERPRET_CAST(uint8_t*, &fwSlotsLogInfo), sizeof(nvmeFirmwareSlotInfo));
     if (ret == SUCCESS)
     {
 #ifdef _DEBUG
@@ -775,13 +780,13 @@ eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice* device)
 #endif
 
     safe_memset(&effectsLogInfo, sizeof(nvmeEffectsLog), 0, sizeof(nvmeEffectsLog));
-    ret = nvme_Get_CmdSptEfft_Log_Page(device, (uint8_t*)&effectsLogInfo, sizeof(nvmeEffectsLog));
+    ret = nvme_Get_CmdSptEfft_Log_Page(device, M_REINTERPRET_CAST(uint8_t*, &effectsLogInfo), sizeof(nvmeEffectsLog));
     if (ret == SUCCESS)
     {
         printf("Admin Command Set\n");
         for (i = 0; i < 256; i++)
         {
-            effect = effectsLogInfo.acs[i];
+            effect = le32_to_host(effectsLogInfo.acs[i]);
             if (effect & NVME_CMD_EFFECTS_CSUPP)
             {
                 printf("ACS%-6" PRIu16 "[%-32s] %08" PRIX32, i, nvme_cmd_to_string(1, C_CAST(uint8_t, i)), effect);
@@ -791,7 +796,7 @@ eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice* device)
         printf("\nNVM Command Set\n");
         for (i = 0; i < 256; i++)
         {
-            effect = effectsLogInfo.iocs[i];
+            effect = le32_to_host(effectsLogInfo.iocs[i]);
             if (effect & NVME_CMD_EFFECTS_CSUPP)
             {
                 printf("IOCS%-5" PRIu16 "[%-32s] %08" PRIX32, i, nvme_cmd_to_string(0, C_CAST(uint8_t, i)), effect);
@@ -831,7 +836,8 @@ eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice* device)
 #endif
 
     safe_memset(&selfTestLogInfo, sizeof(nvmeSelfTestLog), 0, sizeof(nvmeSelfTestLog));
-    ret = nvme_Get_DevSelfTest_Log_Page(device, (uint8_t*)&selfTestLogInfo, sizeof(nvmeSelfTestLog));
+    ret =
+        nvme_Get_DevSelfTest_Log_Page(device, M_REINTERPRET_CAST(uint8_t*, &selfTestLogInfo), sizeof(nvmeSelfTestLog));
     if (ret == SUCCESS)
     {
         printf("Current operation : %#x\n", selfTestLogInfo.crntDevSelftestOprn);
@@ -840,8 +846,9 @@ eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice* device)
         {
             temp = selfTestLogInfo.result[i].deviceSelfTestStatus & 0xf;
             if (temp == 0xf)
+            {
                 continue;
-
+            }
             printf("Result[%d]:\n", i);
             printf("  Test Result                  : %#x %s\n", temp, test_res[temp > 9 ? 9 : temp]);
 
@@ -867,13 +874,15 @@ eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice* device)
 
             temp = selfTestLogInfo.result[i].validDiagnosticInfo;
             printf("  Valid Diagnostic Information : %#x\n", temp);
-            printf("  Power on hours (POH)         : %#" PRIx64 "\n", selfTestLogInfo.result[i].powerOnHours);
+            printf("  Power on hours (POH)         : %#" PRIx64 "\n",
+                   le64_to_host(selfTestLogInfo.result[i].powerOnHours));
 
             if (temp & NVME_SELF_TEST_VALID_NSID)
-                printf("  Namespace Identifier         : %#x\n", selfTestLogInfo.result[i].nsid);
+                printf("  Namespace Identifier         : %#x\n", le32_to_host(selfTestLogInfo.result[i].nsid));
 
             if (temp & NVME_SELF_TEST_VALID_FLBA)
-                printf("  Failing LBA                  : %#" PRIx64 "\n", selfTestLogInfo.result[i].failingLba);
+                printf("  Failing LBA                  : %#" PRIx64 "\n",
+                       le64_to_host(selfTestLogInfo.result[i].failingLba));
 
             if (temp & NVME_SELF_TEST_VALID_SCT)
                 printf("  Status Code Type             : %#x\n", selfTestLogInfo.result[i].statusCodeType);
@@ -918,12 +927,13 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrin
             printf("=======================================================\n");
             for (err = 0; err < C_CAST(int, numOfErrToPrint); err++)
             {
-                if (pErrLogBuf[err].errorCount)
+                if (le64_to_host(pErrLogBuf[err].errorCount) > 0)
                 {
 
                     printf("%" PRIu64 "\t%" PRIu64 "\t%" PRIu16 "\t%" PRIu16 "\t0x%02" PRIX16 "\t0x%02" PRIX16 "\n",
-                           pErrLogBuf[err].errorCount, pErrLogBuf[err].lba, pErrLogBuf[err].subQueueID,
-                           pErrLogBuf[err].cmdID, pErrLogBuf[err].statusField, pErrLogBuf[err].paramErrLocation);
+                           le64_to_host(pErrLogBuf[err].errorCount), le64_to_host(pErrLogBuf[err].lba),
+                           le16_to_host(pErrLogBuf[err].subQueueID), le16_to_host(pErrLogBuf[err].cmdID),
+                           le16_to_host(pErrLogBuf[err].statusField), le16_to_host(pErrLogBuf[err].paramErrLocation));
                 }
             }
         }

@@ -151,46 +151,47 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     // check if the really OLD Mb/s bits are set...if they are, set the speed based off of them
     // This will be changed later if other words are set.-TJE
-    if (is_ATA_Identify_Word_Valid(wordPtr[0]) && get_8bit_range_uint16(wordPtr[0], 10, 8) > 0)
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[0])) &&
+        get_8bit_range_uint16(le16_to_host(wordPtr[0]), 10, 8) > 0)
     {
         driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_ANCIENT; // ESDI bits
         driveInfo->interfaceSpeedInfo.speedIsValid = true;
-        if (wordPtr[0] & BIT10)
+        if (le16_to_host(wordPtr[0]) & BIT10)
         {
             driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt10MbS = true; // 1.25MB/s
         }
-        if (wordPtr[0] & BIT9)
+        if (le16_to_host(wordPtr[0]) & BIT9)
         {
             driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt5MbSLte10MbS =
                 true; // 7.5Mb/s - 0.9375MB/s - used 7.5Mb/s as the middle of these values
         }
-        if (wordPtr[0] & BIT8)
+        if (le16_to_host(wordPtr[0]) & BIT8)
         {
             driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferLte5MbS = true; // 0.625MB/s
         }
-        if (wordPtr[0] & BIT3)
+        if (le16_to_host(wordPtr[0]) & BIT3)
         {
             driveInfo->interfaceSpeedInfo.ancientHistorySpeed.notMFMEncoded = true;
         }
     }
 
     // Check if CHS words are non-zero to see if the information is valid.
-    if (is_ATA_Identify_Word_Valid(wordPtr[1]) && is_ATA_Identify_Word_Valid(wordPtr[3]) &&
-        is_ATA_Identify_Word_Valid(wordPtr[6]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[1])) && is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[3])) &&
+        is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[6])))
     {
         driveInfo->ataLegacyCHSInfo.legacyCHSValid                 = true;
-        driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders       = wordPtr[1];
-        driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads           = M_Byte0(wordPtr[3]);
-        driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack = M_Byte0(wordPtr[6]);
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalCylinders       = le16_to_host(wordPtr[1]);
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalHeads           = M_Byte0(le16_to_host(wordPtr[3]));
+        driveInfo->ataLegacyCHSInfo.numberOfLogicalSectorsPerTrack = M_Byte0(le16_to_host(wordPtr[6]));
         // According to ATA, word 53, bit 0 set to 1 means the words 54,-58 are valid.
         // if set to zero they MAY be valid....so just check validity on everything
     }
 
     // buffer type is in word 20. According to very old product manuals, if this is set to 3, then read-look ahead is
     // supported.
-    if (is_ATA_Identify_Word_Valid(wordPtr[20]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[20])))
     {
-        if (wordPtr[20] == 0x0003)
+        if (le16_to_host(wordPtr[20]) == 0x0003)
         {
             driveInfo->readLookAheadSupported = true;
             // NOTE: It is not possible to determine whether this is currently enabled or not.
@@ -198,34 +199,34 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     }
     // cache size (legacy method - from ATA 1) Word 21
     // note: Changed from multiplying by logical sector size to 512 as that is what ATA says this is increments of.
-    if (is_ATA_Identify_Word_Valid(wordPtr[21]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[21])))
     {
-        driveInfo->cacheSize = C_CAST(uint64_t, wordPtr[21]) * 512;
+        driveInfo->cacheSize = C_CAST(uint64_t, le16_to_host(wordPtr[21])) * 512;
     }
 
     // these are words 10-19, 23-26, and 27-46
     fill_ATA_Strings_From_Identify_Data(identify, driveInfo->modelNumber, driveInfo->serialNumber,
                                         driveInfo->firmwareRevision);
 
-    if (is_ATA_Identify_Word_Valid(wordPtr[47]) && M_Byte0(wordPtr[47]) > 0)
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[47])) && M_Byte0(le16_to_host(wordPtr[47])) > 0)
     {
         add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                       "Read/Write Multiple");
     }
 
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[48]))
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[48])))
     {
-        if (wordPtr[48] & BIT0)
+        if (le16_to_host(wordPtr[48]) & BIT0)
         {
             ataCapabilities->tcgSupported = true;
         }
     }
-    else if (is_ATA_Identify_Word_Valid(wordPtr[48]))
+    else if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[48])))
     {
         // NOTE: ATA 1 lists this as can or cannot perform doubleword I/O. This is listed as vendor unique as well.
         //       This is reserved in ATA-2 until it gets used later. This is PROBABLY safe to use without additional
         //       version checks. Most likely this was only used by one vendor
-        if (wordPtr[48] == 0x0001)
+        if (le16_to_host(wordPtr[48]) == 0x0001)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "Doubleword I/O");
@@ -234,22 +235,22 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     bool lbaModeSupported = false;
     bool dmaSupported     = false; // to be used later when determining transfer speeds
-    if (is_ATA_Identify_Word_Valid(wordPtr[49]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[49])))
     {
-        if (wordPtr[49] & BIT9)
+        if (le16_to_host(wordPtr[49]) & BIT9)
         {
             lbaModeSupported = true;
         }
-        if (wordPtr[49] & BIT8)
+        if (le16_to_host(wordPtr[49]) & BIT8)
         {
             dmaSupported = true;
         }
     }
 
     // Prefer word 64 over this if it is supported
-    if (is_ATA_Identify_Word_Valid(wordPtr[51]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[51])))
     {
-        uint8_t pioCycleTime = M_Byte1(wordPtr[51]);
+        uint8_t pioCycleTime = M_Byte1(le16_to_host(wordPtr[51]));
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
@@ -286,10 +287,10 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //       In this case, we may not want to change the speed to say "PIO-0" since it has a different transfer rate.
 
     // prefer words 62/63 (DW/MW DMA) if they ae supported
-    if (is_ATA_Identify_Word_Valid(wordPtr[52]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[52])))
     {
         // retired by ATA/ATAPI 4
-        uint8_t dmaCycleTime = M_Byte1(wordPtr[52]);
+        uint8_t dmaCycleTime = M_Byte1(le16_to_host(wordPtr[52]));
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
@@ -353,33 +354,35 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     bool words64to70Valid = false;
     bool word88Valid      = false;
-    if (is_ATA_Identify_Word_Valid(wordPtr[53]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[53])))
     {
-        if (wordPtr[53] & BIT2)
+        if (le16_to_host(wordPtr[53]) & BIT2)
         {
             word88Valid = true;
         }
-        if (wordPtr[53] & BIT1)
+        if (le16_to_host(wordPtr[53]) & BIT1)
         {
             words64to70Valid = true;
         }
-        if ((wordPtr[53] & BIT0) ||
-            (is_ATA_Identify_Word_Valid(wordPtr[54]) && is_ATA_Identify_Word_Valid(wordPtr[55]) &&
-             is_ATA_Identify_Word_Valid(wordPtr[56]) && is_ATA_Identify_Word_Valid(wordPtr[57]) &&
-             is_ATA_Identify_Word_Valid(wordPtr[58])))
+        if ((le16_to_host(wordPtr[53]) & BIT0) || (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[54])) &&
+                                                   is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[55])) &&
+                                                   is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[56])) &&
+                                                   is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[57])) &&
+                                                   is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[58]))))
         {
             driveInfo->ataLegacyCHSInfo.currentInfoconfigurationValid         = true;
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders       = wordPtr[54];
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads           = M_Byte0(wordPtr[55]);
-            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = M_Byte0(wordPtr[56]);
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalCylinders       = le16_to_host(wordPtr[54]);
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalHeads           = M_Byte0(le16_to_host(wordPtr[55]));
+            driveInfo->ataLegacyCHSInfo.numberOfCurrentLogicalSectorsPerTrack = M_Byte0(le16_to_host(wordPtr[56]));
             // words 57 & 58
-            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors = M_WordsTo4ByteValue(wordPtr[57], wordPtr[58]);
+            driveInfo->ataLegacyCHSInfo.currentCapacityInSectors =
+                M_WordsTo4ByteValue(le16_to_host(wordPtr[57]), le16_to_host(wordPtr[58]));
         }
     }
 
-    if (is_ATA_Identify_Word_Valid(wordPtr[59]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[59])))
     {
-        if (wordPtr[59] & BIT12)
+        if (le16_to_host(wordPtr[59]) & BIT12)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "Sanitize");
@@ -387,21 +390,22 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     }
 
     // 28bit max LBA...start with this and adjust to larger size later as needed
-    if (lbaModeSupported || (is_ATA_Identify_Word_Valid(wordPtr[60]) || is_ATA_Identify_Word_Valid(wordPtr[61])))
+    if (lbaModeSupported || (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[60])) ||
+                             is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[61]))))
     {
         lbaModeSupported  = true; // workaround for some devices that may not have set the earlier LBA mode bit
-        driveInfo->maxLBA = M_WordsTo4ByteValue(wordPtr[60], wordPtr[61]);
+        driveInfo->maxLBA = M_WordsTo4ByteValue(le16_to_host(wordPtr[60]), le16_to_host(wordPtr[61]));
     }
 
     // interface speed: NOTE: for old drives, word 51 indicates highest supported  PIO mode 0-2 supported
     //                        word 52 indicates highest supported single word DMA mode 0, 1, 2 supported
     //                  See ATA-2
-    if (is_ATA_Identify_Word_Valid(wordPtr[62]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[62])))
     {
         // SWDMA (obsolete since MW is so much faster...) (word 52 also holds the max supported value, but is also long
         // obsolete...it can be checked if word 62 is not supported)
-        uint8_t swdmaSupported = get_8bit_range_uint16(wordPtr[62], 2, 0);
-        uint8_t swdmaSelected  = get_8bit_range_uint16(wordPtr[62], 10, 8);
+        uint8_t swdmaSupported = get_8bit_range_uint16(le16_to_host(wordPtr[62]), 2, 0);
+        uint8_t swdmaSelected  = get_8bit_range_uint16(le16_to_host(wordPtr[62]), 10, 8);
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
@@ -494,12 +498,12 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
     }
 
-    if (is_ATA_Identify_Word_Valid(wordPtr[63]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[63])))
     {
         int8_t counter = INT8_C(-1);
         // MWDMA
-        uint8_t mwdmaSupported = get_8bit_range_uint16(wordPtr[63], 2, 0);
-        uint8_t mwdmaSelected  = get_8bit_range_uint16(wordPtr[63], 10, 8);
+        uint8_t mwdmaSupported = get_8bit_range_uint16(le16_to_host(wordPtr[63]), 2, 0);
+        uint8_t mwdmaSelected  = get_8bit_range_uint16(le16_to_host(wordPtr[63]), 10, 8);
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
@@ -603,10 +607,10 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
-        if (is_ATA_Identify_Word_Valid(wordPtr[64]))
+        if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[64])))
         {
             // PIO - from cycle time & mode3/4 support bits
-            if (wordPtr[64] & BIT1)
+            if (le16_to_host(wordPtr[64]) & BIT1)
             {
                 if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
                 {
@@ -616,7 +620,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                              PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
                 }
             }
-            else if (wordPtr[64] & BIT0)
+            else if (le16_to_host(wordPtr[64]) & BIT0)
             {
                 if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 11.1)
                 {
@@ -631,10 +635,10 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         // 66 = manufacturers recommended mwdma cycle time
         // 67 = min PIO cycle time without flow control (pio-2 to PIO-2)
         // 68 = min PIO cycle time with IORDY flow control (pio-3 & pio-4)
-        if (is_ATA_Identify_Word_Valid(wordPtr[68]))
+        if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[68])))
         {
             // determine maximum from cycle times?
-            uint16_t pioCycleTime = wordPtr[68];
+            uint16_t pioCycleTime = le16_to_host(wordPtr[68]);
             switch (pioCycleTime)
             {
             case 120: // PIO4
@@ -684,59 +688,59 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 break;
             }
         }
-        if (is_ATA_Identify_Word_Valid(wordPtr[69]))
+        if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[69])))
         {
-            if (wordPtr[69] & BIT15)
+            if (le16_to_host(wordPtr[69]) & BIT15)
             {
                 // CFast supported
                 add_Specification_To_Supported_List(driveInfo->specificationsSupported,
                                                     &driveInfo->numberOfSpecificationsSupported, "CFast");
             }
-            if (wordPtr[69] & BIT14)
+            if (le16_to_host(wordPtr[69]) & BIT14)
             {
                 deterministicTrim = true;
             }
-            if (wordPtr[69] & BIT8)
+            if (le16_to_host(wordPtr[69]) & BIT8)
             {
                 driveInfo->fwdlSupport.dmaModeSupported = true;
             }
-            if (wordPtr[69] & BIT7)
+            if (le16_to_host(wordPtr[69]) & BIT7)
             {
                 ataCapabilities->ieee1667Supported = true;
             }
-            if (wordPtr[69] & BIT6)
+            if (le16_to_host(wordPtr[69]) & BIT6)
             {
                 zeroesAfterTrim = true;
             }
             // get if it's FDE/TCG
-            if (wordPtr[69] & BIT4)
+            if (le16_to_host(wordPtr[69]) & BIT4)
             {
                 // FDE
                 driveInfo->encryptionSupport                 = ENCRYPTION_FULL_DISK;
                 driveInfo->ataSecurityInformation.encryptAll = true;
             }
-            if (wordPtr[69] & BIT3)
+            if (le16_to_host(wordPtr[69]) & BIT3)
             {
                 extendedLBAFieldValid = true;
             }
-            if (wordPtr[69] & BIT2)
+            if (le16_to_host(wordPtr[69]) & BIT2)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "All Write Cache Non-Volatile");
             }
             // zoned capabilities (ACS4)
-            driveInfo->zonedDevice = C_CAST(uint8_t, wordPtr[69] & (BIT0 | BIT1));
+            driveInfo->zonedDevice = C_CAST(uint8_t, le16_to_host(wordPtr[69]) & (BIT0 | BIT1));
         }
     }
 
     uint8_t queueDepth = UINT8_C(1); // minimum queue depth for any device is 1
-    if (is_ATA_Identify_Word_Valid(wordPtr[75]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[75])))
     {
-        queueDepth = get_8bit_range_uint16(wordPtr[75], 4, 0) + 1;
+        queueDepth = get_8bit_range_uint16(le16_to_host(wordPtr[75]), 4, 0) + 1;
     }
 
     // SATA Capabilities (Words 76 & 77)
-    if (is_ATA_Identify_Word_Valid_SATA(wordPtr[76]))
+    if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(wordPtr[76])))
     {
         safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
                     sizeof(interfaceSpeed)); // clear anything we've set so far
@@ -745,12 +749,12 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         // port speed
         driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts    = 1;
         driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber = 0;
-        if (wordPtr[77] & BIT12)
+        if (le16_to_host(wordPtr[77]) & BIT12)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "SATA NCQ Priority");
         }
-        if (wordPtr[76] & BIT8)
+        if (le16_to_host(wordPtr[76]) & BIT8)
         {
             DECLARE_ZERO_INIT_ARRAY(char, ncqFeatureString, MAX_FEATURE_LENGTH);
             snprintf(ncqFeatureString, MAX_FEATURE_LENGTH, "SATA NCQ [QD=%" PRIu8 "]", queueDepth);
@@ -758,15 +762,15 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                           ncqFeatureString);
         }
         // Word 76 holds bits for supporteed signalling speeds (SATA)
-        if (wordPtr[76] & BIT3)
+        if (le16_to_host(wordPtr[76]) & BIT3)
         {
             driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 3;
         }
-        else if (wordPtr[76] & BIT2)
+        else if (le16_to_host(wordPtr[76]) & BIT2)
         {
             driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 2;
         }
-        else if (wordPtr[76] & BIT1)
+        else if (le16_to_host(wordPtr[76]) & BIT1)
         {
             driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0] = 1;
         }
@@ -776,20 +780,20 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
     }
 
-    if (is_ATA_Identify_Word_Valid_SATA(wordPtr[77]))
+    if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(wordPtr[77])))
     {
-        if (wordPtr[77] & BIT9)
+        if (le16_to_host(wordPtr[77]) & BIT9)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "SATA Out Of Band Management");
         }
-        if (wordPtr[77] & BIT4)
+        if (le16_to_host(wordPtr[77]) & BIT4)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "SATA NCQ Streaming");
         }
         // Word 77 has a coded value for the negotiated speed.
-        switch (M_Nibble0(wordPtr[77]) >> 1)
+        switch (M_Nibble0(le16_to_host(wordPtr[77])) >> 1)
         {
         case 3: // 6.0Gb/s
             driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0] = 3;
@@ -808,11 +812,12 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     }
 
     // SATA Features supported and enabled (Words 78 & 79)
-    if (is_ATA_Identify_Word_Valid_SATA(wordPtr[78]) && is_ATA_Identify_Word_Valid_SATA(wordPtr[79]))
+    if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(wordPtr[78])) &&
+        is_ATA_Identify_Word_Valid_SATA(le16_to_host(wordPtr[79])))
     {
-        if (wordPtr[78] & BIT12)
+        if (le16_to_host(wordPtr[78]) & BIT12)
         {
-            if (wordPtr[79] & BIT10)
+            if (le16_to_host(wordPtr[79]) & BIT10)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA Power Disable [Enabled]");
@@ -823,9 +828,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "SATA Power Disable");
             }
         }
-        if (wordPtr[78] & BIT11)
+        if (le16_to_host(wordPtr[78]) & BIT11)
         {
-            if (wordPtr[79] & BIT11)
+            if (le16_to_host(wordPtr[79]) & BIT11)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA Rebuild Assist [Enabled]");
@@ -836,9 +841,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "SATA Rebuild Assist");
             }
         }
-        if (wordPtr[78] & BIT9)
+        if (le16_to_host(wordPtr[78]) & BIT9)
         {
-            if (wordPtr[79] & BIT9)
+            if (le16_to_host(wordPtr[79]) & BIT9)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA Hybrid Information [Enabled]");
@@ -849,9 +854,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "SATA Hybrid Information");
             }
         }
-        if (wordPtr[78] & BIT8)
+        if (le16_to_host(wordPtr[78]) & BIT8)
         {
-            if (wordPtr[79] & BIT8)
+            if (le16_to_host(wordPtr[79]) & BIT8)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA Device Sleep [Enabled]");
@@ -862,14 +867,14 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "SATA Device Sleep");
             }
         }
-        if (wordPtr[78] & BIT8)
+        if (le16_to_host(wordPtr[78]) & BIT8)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "SATA NCQ Autosense");
         }
-        if (wordPtr[78] & BIT6)
+        if (le16_to_host(wordPtr[78]) & BIT6)
         {
-            if (wordPtr[79] & BIT6)
+            if (le16_to_host(wordPtr[79]) & BIT6)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA Software Settings Preservation [Enabled]");
@@ -880,9 +885,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "SATA Software Settings Preservation");
             }
         }
-        if (wordPtr[78] & BIT5)
+        if (le16_to_host(wordPtr[78]) & BIT5)
         {
-            if (wordPtr[79] & BIT5)
+            if (le16_to_host(wordPtr[79]) & BIT5)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA Hardware Feature Control [Enabled]");
@@ -893,9 +898,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "SATA Hardware Feature Control");
             }
         }
-        if (wordPtr[78] & BIT4)
+        if (le16_to_host(wordPtr[78]) & BIT4)
         {
-            if (wordPtr[79] & BIT4)
+            if (le16_to_host(wordPtr[79]) & BIT4)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA In-Order Data Delivery [Enabled]");
@@ -906,9 +911,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "SATA In-Order Data Delivery");
             }
         }
-        if (wordPtr[78] & BIT3)
+        if (le16_to_host(wordPtr[78]) & BIT3)
         {
-            if (wordPtr[79] & BIT3)
+            if (le16_to_host(wordPtr[79]) & BIT3)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SATA Device Initiated Power Management [Enabled]");
@@ -922,8 +927,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     }
 
     // get which specifications are supported and the number of them added to the list (ATA Spec listed in word 80)
-    uint16_t specsBits = wordPtr[80];
-    if (is_ATA_Identify_Word_Valid(wordPtr[80]))
+    uint16_t specsBits = le16_to_host(wordPtr[80]);
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[80])))
     {
         // Guessed name as this doesn't exist yet
         if (specsBits & BIT15)
@@ -1011,9 +1016,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                             &driveInfo->numberOfSpecificationsSupported, "ATA-1 or Pre-ATA");
     }
     // Get the ATA Minor version to add to the list too.
-    if (is_ATA_Identify_Word_Valid(wordPtr[81]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[81])))
     {
-        switch (wordPtr[81])
+        switch (le16_to_host(wordPtr[81]))
         {
         case ATA_MINOR_VERSION_NOT_REPORTED:
             break;
@@ -1248,43 +1253,43 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     // Some of these are also paired between supported and enabled.
     // The following code assumes these pairs to parse this data as best it can without making things too
     // complicated-TJE
-    if (is_ATA_Identify_Word_Valid(wordPtr[82]) && is_ATA_Identify_Word_Valid(wordPtr[85]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[82])) && is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[85])))
     {
-        if (wordPtr[82] & BIT10 || wordPtr[85] & BIT10)
+        if (le16_to_host(wordPtr[82]) & BIT10 || le16_to_host(wordPtr[85]) & BIT10)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "HPA");
         }
         // read look ahead
-        if (wordPtr[82] & BIT6)
+        if (le16_to_host(wordPtr[82]) & BIT6)
         {
             driveInfo->readLookAheadSupported = true;
-            if (wordPtr[85] & BIT6)
+            if (le16_to_host(wordPtr[85]) & BIT6)
             {
                 driveInfo->readLookAheadEnabled = true;
             }
         }
         // write cache
-        if (wordPtr[82] & BIT5)
+        if (le16_to_host(wordPtr[82]) & BIT5)
         {
             driveInfo->writeCacheSupported = true;
-            if (wordPtr[85] & BIT5)
+            if (le16_to_host(wordPtr[85]) & BIT5)
             {
                 driveInfo->writeCacheEnabled = true;
             }
         }
-        if (wordPtr[82] & BIT4 || wordPtr[85] & BIT4)
+        if (le16_to_host(wordPtr[82]) & BIT4 || le16_to_host(wordPtr[85]) & BIT4)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "Packet");
         }
-        if (wordPtr[82] & BIT3)
+        if (le16_to_host(wordPtr[82]) & BIT3)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "Power Management");
         }
-        if (wordPtr[82] & BIT1)
+        if (le16_to_host(wordPtr[82]) & BIT1)
         {
-            if (wordPtr[85] & BIT1)
+            if (le16_to_host(wordPtr[85]) & BIT1)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "Security [Enabled]");
@@ -1295,9 +1300,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "Security");
             }
         }
-        if (wordPtr[82] & BIT0)
+        if (le16_to_host(wordPtr[82]) & BIT0)
         {
-            if (wordPtr[85] & BIT0)
+            if (le16_to_host(wordPtr[85]) & BIT0)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SMART [Enabled]");
@@ -1311,24 +1316,25 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     }
 
     bool words119to120Valid = false;
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[83]) && is_ATA_Identify_Word_Valid(wordPtr[86]))
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[83])) &&
+        is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[86])))
     {
-        if (wordPtr[86] & BIT15)
+        if (le16_to_host(wordPtr[86]) & BIT15)
         {
             words119to120Valid = true;
         }
-        if (wordPtr[83] & BIT11 || wordPtr[86] & BIT11)
+        if (le16_to_host(wordPtr[83]) & BIT11 || le16_to_host(wordPtr[86]) & BIT11)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "DCO");
         }
-        if (wordPtr[83] & BIT10 || wordPtr[86] & BIT10)
+        if (le16_to_host(wordPtr[83]) & BIT10 || le16_to_host(wordPtr[86]) & BIT10)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "48bit Address");
         }
-        if (wordPtr[83] & BIT9)
+        if (le16_to_host(wordPtr[83]) & BIT9)
         {
-            if (wordPtr[86] & BIT9)
+            if (le16_to_host(wordPtr[86]) & BIT9)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "AAM [Enabled]");
@@ -1339,9 +1345,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "AAM");
             }
         }
-        if (wordPtr[83] & BIT8)
+        if (le16_to_host(wordPtr[83]) & BIT8)
         {
-            if (wordPtr[86] & BIT8)
+            if (le16_to_host(wordPtr[86]) & BIT8)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "Set Max Security Extension [Enabled]");
@@ -1352,9 +1358,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "Set Max Security Extension");
             }
         }
-        if (wordPtr[83] & BIT5)
+        if (le16_to_host(wordPtr[83]) & BIT5)
         {
-            if (wordPtr[86] & BIT5)
+            if (le16_to_host(wordPtr[86]) & BIT5)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "PUIS [Enabled]");
@@ -1365,9 +1371,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "PUIS");
             }
         }
-        if (wordPtr[83] & BIT4)
+        if (le16_to_host(wordPtr[83]) & BIT4)
         {
-            if (wordPtr[86] & BIT4)
+            if (le16_to_host(wordPtr[86]) & BIT4)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "Removable Media Status Notification [Enabled]");
@@ -1378,9 +1384,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "Removable Media Status Notification");
             }
         }
-        if (wordPtr[83] & BIT3)
+        if (le16_to_host(wordPtr[83]) & BIT3)
         {
-            if (wordPtr[86] & BIT3)
+            if (le16_to_host(wordPtr[86]) & BIT3)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "APM [Enabled]");
@@ -1391,9 +1397,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "APM");
             }
         }
-        if (wordPtr[83] & BIT2)
+        if (le16_to_host(wordPtr[83]) & BIT2)
         {
-            if (wordPtr[86] & BIT2)
+            if (le16_to_host(wordPtr[86]) & BIT2)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "CFA [Enabled]");
@@ -1404,14 +1410,14 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "CFA");
             }
         }
-        if (wordPtr[83] & BIT1 || wordPtr[86] & BIT1)
+        if (le16_to_host(wordPtr[83]) & BIT1 || le16_to_host(wordPtr[86]) & BIT1)
         {
             DECLARE_ZERO_INIT_ARRAY(char, tcqFeatureString, MAX_FEATURE_LENGTH);
             snprintf(tcqFeatureString, MAX_FEATURE_LENGTH, "TCQ [QD=%" PRIu8 "]", queueDepth);
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           tcqFeatureString);
         }
-        if (wordPtr[83] & BIT0 || wordPtr[86] & BIT0)
+        if (le16_to_host(wordPtr[83]) & BIT0 || le16_to_host(wordPtr[86]) & BIT0)
         {
             driveInfo->fwdlSupport.downloadSupported = true;
         }
@@ -1419,49 +1425,49 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     bool word84Valid = false;
     bool word87Valid = false;
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[84]))
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[84])))
     {
         word84Valid = true;
     }
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[87]))
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[87])))
     {
         word87Valid = true;
     }
 
-    if ((word84Valid && wordPtr[84] & BIT8) || (word87Valid && wordPtr[87] & BIT8))
+    if ((word84Valid && le16_to_host(wordPtr[84]) & BIT8) || (word87Valid && le16_to_host(wordPtr[87]) & BIT8))
     {
         driveInfo->worldWideNameSupported = true;
         safe_memcpy(&driveInfo->worldWideName, sizeof(uint64_t), &wordPtr[108],
                     8);                          // copy the 8 bytes into the world wide name
         word_Swap_64(&driveInfo->worldWideName); // byte swap to make useful
     }
-    if ((word84Valid && wordPtr[84] & BIT5) || (word87Valid && wordPtr[87] & BIT5))
+    if ((word84Valid && le16_to_host(wordPtr[84]) & BIT5) || (word87Valid && le16_to_host(wordPtr[87]) & BIT5))
     {
         add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "GPL");
         ataCapabilities->gplSupported = true;
     }
-    if (word84Valid && wordPtr[84] & BIT4)
+    if (word84Valid && le16_to_host(wordPtr[84]) & BIT4)
     {
         add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "Streaming");
     }
-    if ((word84Valid && wordPtr[84] & BIT3) || (word87Valid && wordPtr[87] & BIT3))
+    if ((word84Valid && le16_to_host(wordPtr[84]) & BIT3) || (word87Valid && le16_to_host(wordPtr[87]) & BIT3))
     {
         add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                       "Media Card Pass-through");
     }
-    if ((word84Valid && wordPtr[84] & BIT1) || (word87Valid && wordPtr[87] & BIT1))
+    if ((word84Valid && le16_to_host(wordPtr[84]) & BIT1) || (word87Valid && le16_to_host(wordPtr[87]) & BIT1))
     {
         add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                       "SMART Self-Test");
     }
-    if ((word84Valid && wordPtr[84] & BIT0) || (word87Valid && wordPtr[87] & BIT0))
+    if ((word84Valid && le16_to_host(wordPtr[84]) & BIT0) || (word87Valid && le16_to_host(wordPtr[87]) & BIT0))
     {
         ataCapabilities->smartErrorLoggingSupported = true;
         add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                       "SMART Error Logging");
     }
 
-    if (word88Valid && is_ATA_Identify_Word_Valid(wordPtr[88]) &&
+    if (word88Valid && is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[88])) &&
         driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_SERIAL)
     {
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
@@ -1471,8 +1477,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
-        uint8_t supported = M_Byte0(wordPtr[88]);
-        uint8_t selected  = M_Byte1(wordPtr[88]);
+        uint8_t supported = M_Byte0(le16_to_host(wordPtr[88]));
+        uint8_t selected  = M_Byte1(le16_to_host(wordPtr[88]));
         int8_t  counter   = -1;
         while (supported > 0)
         {
@@ -1594,13 +1600,13 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
     }
 
-    if (is_ATA_Identify_Word_Valid(wordPtr[89]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[89])))
     {
-        if (wordPtr[89] & BIT15)
+        if (le16_to_host(wordPtr[89]) & BIT15)
         {
             driveInfo->ataSecurityInformation.extendedTimeFormat = true;
             // bits 14:0
-            driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = (wordPtr[89] & 0x7FFF) * 2;
+            driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = (le16_to_host(wordPtr[89]) & 0x7FFF) * 2;
             if (driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes == (32767 * 2))
             {
                 driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = UINT16_MAX;
@@ -1609,20 +1615,21 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         else
         {
             // bits 7:0
-            driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = M_Byte0(wordPtr[89]) * 2;
+            driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = M_Byte0(le16_to_host(wordPtr[89])) * 2;
             if (driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes == (255 * 2))
             {
                 driveInfo->ataSecurityInformation.securityEraseUnitTimeMinutes = UINT16_MAX;
             }
         }
     }
-    if (is_ATA_Identify_Word_Valid(wordPtr[90]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[90])))
     {
-        if (wordPtr[90] & BIT15)
+        if (le16_to_host(wordPtr[90]) & BIT15)
         {
             driveInfo->ataSecurityInformation.extendedTimeFormat = true;
             // bits 14:0
-            driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = (wordPtr[90] & 0x7FFF) * 2;
+            driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes =
+                (le16_to_host(wordPtr[90]) & 0x7FFF) * 2;
             if (driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes == (32767 * 2))
             {
                 driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
@@ -1631,7 +1638,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         else
         {
             // bits 7:0
-            driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = M_Byte0(wordPtr[90]) * 2;
+            driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes =
+                M_Byte0(le16_to_host(wordPtr[90])) * 2;
             if (driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes == (255 * 2))
             {
                 driveInfo->ataSecurityInformation.enhancedSecurityEraseUnitTimeMinutes = UINT16_MAX;
@@ -1639,9 +1647,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
     }
 
-    if (is_ATA_Identify_Word_Valid(wordPtr[92]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[92])))
     {
-        driveInfo->ataSecurityInformation.masterPasswordIdentifier = wordPtr[92];
+        driveInfo->ataSecurityInformation.masterPasswordIdentifier = le16_to_host(wordPtr[92]);
     }
 
     // get ATA cabling info for pata devices. SATA should clear this to zero
@@ -1651,27 +1659,27 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     //       this individual device is reporting.
     //       Annex A gives additional detail of a non-standard way to determine it, but it is not recommended.
     // TLDR: The drive may not detect this properly in certain cases...see ATA8-APT for details
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[93]))
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[93])))
     {
         if (driveInfo->interfaceSpeedInfo.speedType == INTERFACE_SPEED_PARALLEL)
         {
             driveInfo->interfaceSpeedInfo.parallelSpeed.cableInfoType                 = CABLING_INFO_ATA;
             driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.cablingInfoValid = true;
-            if (wordPtr[93] & BIT13)
+            if (le16_to_host(wordPtr[93]) & BIT13)
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.ata80PinCableDetected = true;
             }
-            if (get_8bit_range_uint16(wordPtr[93], 12, 8) > 0 && wordPtr[93] & BIT8)
+            if (get_8bit_range_uint16(le16_to_host(wordPtr[93]), 12, 8) > 0 && le16_to_host(wordPtr[93]) & BIT8)
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = true;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined =
-                    get_8bit_range_uint16(wordPtr[93], 10, 9);
+                    get_8bit_range_uint16(le16_to_host(wordPtr[93]), 10, 9);
             }
-            else if (get_8bit_range_uint16(wordPtr[93], 7, 0) > 0 && wordPtr[93] & BIT0)
+            else if (get_8bit_range_uint16(le16_to_host(wordPtr[93]), 7, 0) > 0 && le16_to_host(wordPtr[93]) & BIT0)
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 = false;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined =
-                    get_8bit_range_uint16(wordPtr[93], 2, 1);
+                    get_8bit_range_uint16(le16_to_host(wordPtr[93]), 2, 1);
             }
         }
     }
@@ -1680,27 +1688,31 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         // max LBA from other words since 28bit max field is maxed out
         // check words 100-103 are valid values
-        if (is_ATA_Identify_Word_Valid(wordPtr[100]) || is_ATA_Identify_Word_Valid(wordPtr[101]) ||
-            is_ATA_Identify_Word_Valid(wordPtr[102]) || is_ATA_Identify_Word_Valid(wordPtr[103]))
+        if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[100])) ||
+            is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[101])) ||
+            is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[102])) ||
+            is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[103])))
         {
-            driveInfo->maxLBA = M_WordsTo8ByteValue(wordPtr[103], wordPtr[102], wordPtr[101], wordPtr[100]);
+            driveInfo->maxLBA = M_WordsTo8ByteValue(le16_to_host(wordPtr[103]), le16_to_host(wordPtr[102]),
+                                                    le16_to_host(wordPtr[101]), le16_to_host(wordPtr[100]));
         }
     }
 
     // get the sector sizes from the identify data
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[106])) // making sure this word has valid data
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+            le16_to_host(wordPtr[106]))) // making sure this word has valid data
     {
         // word 117 is only valid when word 106 bit 12 is set
-        if ((wordPtr[106] & BIT12) == BIT12)
+        if ((le16_to_host(wordPtr[106]) & BIT12) == BIT12)
         {
-            driveInfo->logicalSectorSize = M_WordsTo4ByteValue(wordPtr[117], wordPtr[118]);
+            driveInfo->logicalSectorSize = M_WordsTo4ByteValue(le16_to_host(wordPtr[117]), le16_to_host(wordPtr[118]));
             driveInfo->logicalSectorSize *= 2; // convert to words to bytes
         }
         else // means that logical sector size is 512bytes
         {
             driveInfo->logicalSectorSize = 512;
         }
-        if ((wordPtr[106] & BIT13) == 0)
+        if ((le16_to_host(wordPtr[106]) & BIT13) == 0)
         {
             driveInfo->physicalSectorSize = driveInfo->logicalSectorSize;
         }
@@ -1708,18 +1720,18 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         {
             uint8_t sectorSizeExponent = UINT8_C(0);
             // get the number of logical blocks per physical blocks
-            sectorSizeExponent = wordPtr[106] & 0x000F;
+            sectorSizeExponent = le16_to_host(wordPtr[106]) & 0x000F;
             driveInfo->physicalSectorSize =
                 C_CAST(uint32_t, driveInfo->logicalSectorSize * power_Of_Two(sectorSizeExponent));
         }
     }
 
-    if (words119to120Valid && is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[119]) &&
-        is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[120]))
+    if (words119to120Valid && is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[119])) &&
+        is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[120])))
     {
-        if (wordPtr[119] & BIT9)
+        if (le16_to_host(wordPtr[119]) & BIT9)
         {
-            if (wordPtr[120] & BIT9)
+            if (le16_to_host(wordPtr[120]) & BIT9)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "DSN [Enabled]");
@@ -1730,13 +1742,13 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "DSN");
             }
         }
-        if (wordPtr[119] & BIT8)
+        if (le16_to_host(wordPtr[119]) & BIT8)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported, "AMAC");
         }
-        if (wordPtr[119] & BIT7)
+        if (le16_to_host(wordPtr[119]) & BIT7)
         {
-            if (wordPtr[120] & BIT7)
+            if (le16_to_host(wordPtr[120]) & BIT7)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "EPC [Enabled]");
@@ -1747,9 +1759,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "EPC");
             }
         }
-        if (wordPtr[119] & BIT6)
+        if (le16_to_host(wordPtr[119]) & BIT6)
         {
-            if (wordPtr[120] & BIT6)
+            if (le16_to_host(wordPtr[120]) & BIT6)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "Sense Data Reporting [Enabled]");
@@ -1760,9 +1772,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "Sense Data Reporting");
             }
         }
-        if (wordPtr[119] & BIT5)
+        if (le16_to_host(wordPtr[119]) & BIT5)
         {
-            if (wordPtr[120] & BIT5)
+            if (le16_to_host(wordPtr[120]) & BIT5)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "Free-fall Control [Enabled]");
@@ -1773,13 +1785,13 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                                               "Free-fall Control");
             }
         }
-        if (wordPtr[119] & BIT4 || wordPtr[120] & BIT4)
+        if (le16_to_host(wordPtr[119]) & BIT4 || le16_to_host(wordPtr[120]) & BIT4)
         {
             driveInfo->fwdlSupport.segmentedSupported = true;
         }
-        if (wordPtr[119] & BIT1)
+        if (le16_to_host(wordPtr[119]) & BIT1)
         {
-            if (wordPtr[120] & BIT1)
+            if (le16_to_host(wordPtr[120]) & BIT1)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "Write-Read-Verify [Enabled]");
@@ -1794,43 +1806,43 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     // ata security status
     // word 128
-    if (is_ATA_Identify_Word_Valid(wordPtr[128]) && wordPtr[128] & BIT0)
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[128])) && le16_to_host(wordPtr[128]) & BIT0)
     {
         driveInfo->ataSecurityInformation.securitySupported = true;
-        if (wordPtr[128] & BIT1)
+        if (le16_to_host(wordPtr[128]) & BIT1)
         {
             driveInfo->ataSecurityInformation.securityEnabled = true;
         }
-        if (wordPtr[128] & BIT2)
+        if (le16_to_host(wordPtr[128]) & BIT2)
         {
             driveInfo->ataSecurityInformation.securityLocked = true;
         }
-        if (wordPtr[128] & BIT3)
+        if (le16_to_host(wordPtr[128]) & BIT3)
         {
             driveInfo->ataSecurityInformation.securityFrozen = true;
         }
-        if (wordPtr[128] & BIT4)
+        if (le16_to_host(wordPtr[128]) & BIT4)
         {
             driveInfo->ataSecurityInformation.securityCountExpired = true;
         }
-        if (wordPtr[128] & BIT5)
+        if (le16_to_host(wordPtr[128]) & BIT5)
         {
             driveInfo->ataSecurityInformation.enhancedEraseSupported = true;
         }
-        if (wordPtr[128] & BIT8)
+        if (le16_to_host(wordPtr[128]) & BIT8)
         {
             driveInfo->ataSecurityInformation.masterPasswordCapability = true;
         }
     }
 
     // form factor
-    if (is_ATA_Identify_Word_Valid(wordPtr[168]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[168])))
     {
-        driveInfo->formFactor = M_Nibble0(wordPtr[168]);
+        driveInfo->formFactor = M_Nibble0(le16_to_host(wordPtr[168]));
     }
-    if (is_ATA_Identify_Word_Valid(wordPtr[169]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[169])))
     {
-        if (wordPtr[169] & BIT0)
+        if (le16_to_host(wordPtr[169]) & BIT0)
         {
             // add additional info for deterministic and zeroes
             DECLARE_ZERO_INIT_ARRAY(char, trimDetails, 30);
@@ -1858,32 +1870,32 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             }
         }
     }
-    if (is_ATA_Identify_Word_Valid(wordPtr[206]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[206])))
     {
-        if (wordPtr[206] & BIT0)
+        if (le16_to_host(wordPtr[206]) & BIT0)
         {
             ataCapabilities->sctSupported = true;
-            if (wordPtr[206] & BIT1)
+            if (le16_to_host(wordPtr[206]) & BIT1)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SCT Read/Write Long");
             }
-            if (wordPtr[206] & BIT2)
+            if (le16_to_host(wordPtr[206]) & BIT2)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SCT Write Same");
             }
-            if (wordPtr[206] & BIT3)
+            if (le16_to_host(wordPtr[206]) & BIT3)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SCT Error Recovery Control");
             }
-            if (wordPtr[206] & BIT4)
+            if (le16_to_host(wordPtr[206]) & BIT4)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SCT Feature Control");
             }
-            if (wordPtr[206] & BIT5)
+            if (le16_to_host(wordPtr[206]) & BIT5)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "SCT Data Tables");
@@ -1891,21 +1903,21 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
     }
     // sector alignment
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(wordPtr[209]))
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(wordPtr[209])))
     {
         // bits 13:0 are valid for alignment. bit 15 will be 0 and bit 14 will be 1. remove bit 14 with an xor
-        driveInfo->sectorAlignment = C_CAST(uint16_t, wordPtr[209] ^ BIT14);
+        driveInfo->sectorAlignment = C_CAST(uint16_t, le16_to_host(wordPtr[209]) ^ BIT14);
     }
-    if (is_ATA_Identify_Word_Valid(wordPtr[214]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[214])))
     {
-        if (M_Byte3(wordPtr[214]) > 0)
+        if (M_Byte3(le16_to_host(wordPtr[214])) > 0)
         {
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           "NV Cache");
         }
-        if (wordPtr[214] & BIT0)
+        if (le16_to_host(wordPtr[214]) & BIT0)
         {
-            if (wordPtr[214] & BIT1)
+            if (le16_to_host(wordPtr[214]) & BIT1)
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "NV Cache Power Mode [Enabled]");
@@ -1917,16 +1929,18 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             }
         }
     }
-    if (is_ATA_Identify_Word_Valid(wordPtr[215]) && is_ATA_Identify_Word_Valid(wordPtr[216]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[215])) &&
+        is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[216])))
     {
         // NV Cache Size logical blocks - needs testing against different drives to make sure the value is correct
-        driveInfo->hybridNANDSize = C_CAST(uint64_t, M_WordsTo4ByteValue(wordPtr[215], wordPtr[216])) *
-                                    C_CAST(uint64_t, driveInfo->logicalSectorSize);
+        driveInfo->hybridNANDSize =
+            C_CAST(uint64_t, M_WordsTo4ByteValue(le16_to_host(wordPtr[215]), le16_to_host(wordPtr[216]))) *
+            C_CAST(uint64_t, driveInfo->logicalSectorSize);
     }
     // rotation rate
-    if (is_ATA_Identify_Word_Valid(wordPtr[217]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[217])))
     {
-        driveInfo->rotationRate = wordPtr[217];
+        driveInfo->rotationRate = le16_to_host(wordPtr[217]);
     }
     // Special case for SSD detection. One of these SSDs didn't set the media_type to SSD
     // but it is an SSD. So this match will catch it when this happens. It should be uncommon to find though -TJE
@@ -1938,9 +1952,9 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     }
     // Transport specs supported.
     uint8_t transportType = UINT8_C(0);
-    if (is_ATA_Identify_Word_Valid(wordPtr[222]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[222])))
     {
-        specsBits     = wordPtr[222];
+        specsBits     = le16_to_host(wordPtr[222]);
         transportType = M_Nibble3(specsBits); // 0 = parallel, 1 = serial, e = PCIe
         if (specsBits & BIT10)
         {
@@ -2096,10 +2110,10 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             }
         }
     }
-    if (is_ATA_Identify_Word_Valid(wordPtr[223]))
+    if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[223])))
     {
         // transport minor version
-        switch (wordPtr[223])
+        switch (le16_to_host(wordPtr[223]))
         {
         case TRANSPORT_MINOR_VERSION_ATA8_AST_D1697_VERSION_0B:
             add_Specification_To_Supported_List(driveInfo->specificationsSupported,
@@ -2118,11 +2132,13 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     }
 
     // if word 69 bit 3 is set, then words 230-233 re valid
-    if (extendedLBAFieldValid &&
-        (is_ATA_Identify_Word_Valid(wordPtr[230]) || is_ATA_Identify_Word_Valid(wordPtr[231]) ||
-         is_ATA_Identify_Word_Valid(wordPtr[232]) || is_ATA_Identify_Word_Valid(wordPtr[233])))
+    if (extendedLBAFieldValid && (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[230])) ||
+                                  is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[231])) ||
+                                  is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[232])) ||
+                                  is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[233]))))
     {
-        driveInfo->maxLBA = M_WordsTo8ByteValue(wordPtr[233], wordPtr[232], wordPtr[231], wordPtr[230]);
+        driveInfo->maxLBA = M_WordsTo8ByteValue(le16_to_host(wordPtr[233]), le16_to_host(wordPtr[232]),
+                                                le16_to_host(wordPtr[231]), le16_to_host(wordPtr[230]));
     }
 
     // adjust as reported value is one larger than last accessible LBA on the drive-TJE
@@ -2131,14 +2147,14 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         driveInfo->maxLBA -= 1;
     }
 
-    if (ataCapabilities->seagateFamily == SEAGATE && is_ATA_Identify_Word_Valid(wordPtr[243]))
+    if (ataCapabilities->seagateFamily == SEAGATE && is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[243])))
     {
-        if (wordPtr[243] & BIT14)
+        if (le16_to_host(wordPtr[243]) & BIT14)
         {
             // FDE
             driveInfo->encryptionSupport = ENCRYPTION_FULL_DISK;
         }
-        if (wordPtr[243] & BIT12)
+        if (le16_to_host(wordPtr[243]) & BIT12)
         {
             driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired = true;
         }

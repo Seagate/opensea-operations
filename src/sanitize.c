@@ -274,7 +274,7 @@ eReturnValues show_Sanitize_Progress(tDevice* device)
 eReturnValues get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
     eReturnValues ret = FAILURE;
-    if (device->drive_info.IdentifyData.ata.Word255 == 0)
+    if (le16_to_host(device->drive_info.IdentifyData.ata.Word255) == 0)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
         ret = ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
@@ -285,22 +285,22 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeatures
     }
     if (ret == SUCCESS)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word059) &&
-            device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_SANITIZE_SUPPORTED)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word059)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_SANITIZE_SUPPORTED)
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->exitFailMode       = true;
             sanitizeOptions->freezelock         = true;
-            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_CRYPTO_SUPPORTED)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_CRYPTO_SUPPORTED)
             {
                 sanitizeOptions->crypto = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
             {
                 sanitizeOptions->overwrite              = true;
                 sanitizeOptions->maximumOverwritePasses = 16;
             }
-            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
             {
                 sanitizeOptions->blockErase = true;
             }
@@ -309,7 +309,7 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeatures
             // ata identify device data log sets copies of word 59 on security page.
             // another bit describes commands allowed matching ACS-2 or not. Modern drives should set this to one to
             // match current standards. ACS-2 may set this to zero
-            if (device->drive_info.IdentifyData.ata.Word059 & BIT10)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & BIT10)
             {
                 sanitizeOptions->antiFreezeLock = true;
             }
@@ -401,7 +401,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
 eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
+    if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) > 0)
     {
         ret                                 = SUCCESS;
         sanitizeOptions->sanitizeCmdEnabled = true;
@@ -412,26 +412,26 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         // BIT0 = crypto
         // bit1 = block erase
         // bit 2 = overwrite
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT0)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT0)
         {
             sanitizeOptions->crypto = true;
         }
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT1)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT1)
         {
             sanitizeOptions->blockErase = true;
         }
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT2)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT2)
         {
             sanitizeOptions->overwrite               = true;
             sanitizeOptions->definitiveEndingPattern = true;
         }
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT29)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT29)
         {
             sanitizeOptions->noDeallocateInhibited = true;
         }
         sanitizeOptions->nodmmas =
             C_CAST(noDeallocateModifiesAfterSanitize,
-                   get_8bit_range_uint32(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30));
+                   get_8bit_range_uint32(le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap), 31, 30));
         sanitizeOptions->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         sanitizeOptions->writeAfterBlockErase  = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         if (sanitizeOptions->noDeallocateInhibited)

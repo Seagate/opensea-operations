@@ -962,9 +962,10 @@ bool is_Read_Long_Write_Long_Supported(tDevice* device)
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-             device->drive_info.IdentifyData.ata.Word206 & BIT1) ||
-            is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word022) /*legacy drive support case*/)
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT1) ||
+            is_ATA_Identify_Word_Valid(
+                le16_to_host(device->drive_info.IdentifyData.ata.Word022)) /*legacy drive support case*/)
         {
             supported = true;
         }
@@ -1032,8 +1033,8 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word206) &&
-            device->drive_info.IdentifyData.ata.Word206 & BIT1)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT1)
         {
             // use SCT read & write long commands
             uint16_t numberOfECCCRCBytes     = UINT16_C(0);
@@ -1069,12 +1070,12 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
             }
             safe_free_aligned(&data);
         }
-        else if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word022) &&
+        else if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word022)) &&
                  corruptLBA < MAX_28_BIT_LBA) /*a value of zero may be valid on really old drives which otherwise accept
                                                  this command, but this should be ok for now*/
         {
             bool setFeaturesToChangeECCBytes = false;
-            if (device->drive_info.IdentifyData.ata.Word022 != 4)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word022) != 4)
             {
                 // need to issue a set features command to specify the number of ECC bytes before doing a read or write
                 // long (according to old Seagate ATA reference manual from the web)
@@ -1084,9 +1085,10 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
                     setFeaturesToChangeECCBytes = true;
                 }
             }
-            uint32_t dataSize = device->drive_info.deviceBlockSize + device->drive_info.IdentifyData.ata.Word022;
-            uint8_t* data     = M_REINTERPRET_CAST(
-                    uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint32_t dataSize =
+                device->drive_info.deviceBlockSize + le16_to_host(device->drive_info.IdentifyData.ata.Word022);
+            uint8_t* data = M_REINTERPRET_CAST(
+                uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (data == M_NULLPTR)
             {
                 return MEMORY_FAILURE;

@@ -48,7 +48,8 @@ bool is_Persistent_Reservations_Supported(tDevice* device)
     {
         // Controller identify says if the commands are supported
         // NS identify says which types of reservations are supported...should have both non-zero if supported - TJE
-        if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT5 && device->drive_info.IdentifyData.nvme.ns.rescap > 0)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT5 &&
+            device->drive_info.IdentifyData.nvme.ns.rescap > 0)
         {
             supported = true;
         }

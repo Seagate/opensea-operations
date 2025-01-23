@@ -371,10 +371,12 @@ eReturnValues transition_Power_State(tDevice* device, ePowerConditionID newState
             ret = ata_Idle_Immediate(device, false);
             break;
         case PWR_CND_IDLE_UNLOAD: // send idle immediate - unload
-            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) &&
-                 device->drive_info.IdentifyData.ata.Word084 & BIT13) ||
-                (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) &&
-                 device->drive_info.IdentifyData.ata.Word087 & BIT13))
+            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT13) ||
+                (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT13))
             {
                 ret = ata_Idle_Immediate(device, true);
             }
@@ -488,11 +490,11 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
         {
             nvmps->powerState[powerIter].powerStateNumber = powerIter;
             // set max power if available
-            if (device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].maxPower > 0)
+            if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].maxPower) > 0)
             {
                 nvmps->powerState[powerIter].maxPowerValid = true;
                 nvmps->powerState[powerIter].maxPowerMilliWatts =
-                    device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].maxPower;
+                    le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].maxPower);
                 if ((device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].flags & BIT0) == 0)
                 {
                     // reported in centiwatts, so convert it
@@ -505,8 +507,9 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
             }
             // entry exit latency
             nvmps->powerState[powerIter].entryLatency =
-                device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].entryLat;
-            nvmps->powerState[powerIter].exitLatency = device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].exitLat;
+                le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].entryLat);
+            nvmps->powerState[powerIter].exitLatency =
+                le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].exitLat);
             // r/w throughput and latency are all 5bit fields, so stripping off the top 3 bits when assigning in case
             // future revisions make changes.
             nvmps->powerState[powerIter].relativeReadThroughput =
@@ -518,11 +521,11 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
             nvmps->powerState[powerIter].relativeWriteLatency =
                 device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].writeLat & 0x1F;
             // set idle power if available
-            if (device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idlePower > 0)
+            if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idlePower) > 0)
             {
                 nvmps->powerState[powerIter].idlePowerValid = true;
                 nvmps->powerState[powerIter].idlePowerMilliWatts =
-                    device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idlePower;
+                    le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idlePower);
                 uint8_t scale =
                     get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].idleScale, 7, 6);
                 if (scale == 2)
@@ -537,11 +540,11 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
                 }
             }
             // set active power if available
-            if (device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activePower > 0)
+            if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activePower) > 0)
             {
                 nvmps->powerState[powerIter].activePowerValid = true;
                 nvmps->powerState[powerIter].activePowerMilliWatts =
-                    device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activePower;
+                    le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activePower);
                 nvmps->powerState[powerIter].activePowerWorkload =
                     get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.psd[powerIter].activeWorkScale, 2, 0);
                 uint8_t scale =
@@ -881,7 +884,7 @@ eReturnValues ata_Set_Device_Power_Mode(tDevice*          device,
     if (SUCCESS == ata_Identify(device, ataDataBuffer, LEGACY_DRIVE_SEC_SIZE))
     {
         uint16_t* wordPtr = C_CAST(uint16_t*, ataDataBuffer);
-        if ((wordPtr[119] & BIT7) == 0)
+        if ((le16_to_host(wordPtr[119]) & BIT7) == 0)
         {
             // this means EPC is not supported by the drive.
             if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1301,11 +1304,11 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice*                device
                                                   ptrPowerConditionTimers powerConditions)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-        device->drive_info.IdentifyData.ata.Word086 & BIT15) // words 119, 120 valid
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15) // words 119, 120 valid
     {
-        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word119) &&
-            device->drive_info.IdentifyData.ata.Word119 & BIT7)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT7)
         {
             if (restoreAllToDefaults)
             {
@@ -2152,8 +2155,8 @@ eReturnValues enable_Disable_APM_Feature(tDevice* device, bool enable)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure APM is supported.
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT3)
         {
             if (enable)
             {
@@ -2188,8 +2191,8 @@ eReturnValues set_APM_Level(tDevice* device, uint8_t apmLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure APM is supported.
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT3)
         {
             // subcommand 05 with the apmLevel in the count field
             ret = ata_Set_Features(device, SF_ENABLE_APM_FEATURE, apmLevel, 0, 0, 0);
@@ -2204,12 +2207,12 @@ eReturnValues get_APM_Level(tDevice* device, uint8_t* apmLevel)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure APM is supported.
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT3)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT3)
         {
             // get it from identify device word 91
             ret = SUCCESS;
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word091))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word091)))
             {
                 *apmLevel = M_Byte0(device->drive_info.IdentifyData.ata.Word091);
             }
@@ -2695,8 +2698,8 @@ eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice*                  device,
 static eReturnValues ata_Set_Standby_Timer(tDevice* device, uint32_t hundredMillisecondIncrements)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word049) &&
-        device->drive_info.IdentifyData.ata.Word049 &
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word049)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word049) &
             BIT13) // this is the only bit across all ATA standards that will most likely work. Prior to ATA3, there was
                    // no other support bit for the power management feature set.
     {
@@ -2841,8 +2844,8 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevic
         ret = SUCCESS;
         if (supported != M_NULLPTR)
         {
-            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word078) &&
-                device->drive_info.IdentifyData.ata.Word078 & BIT3)
+            if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word078)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word078) & BIT3)
             {
                 *supported = true;
             }
@@ -2853,8 +2856,8 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevic
         }
         if (enabled != M_NULLPTR)
         {
-            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word079) &&
-                device->drive_info.IdentifyData.ata.Word079 & BIT3)
+            if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word079)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word079) & BIT3)
             {
                 *enabled = true;
             }
@@ -2908,8 +2911,8 @@ eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
         ret = SUCCESS;
         if (supported != M_NULLPTR)
         {
-            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word076) &&
-                device->drive_info.IdentifyData.ata.Word076 & BIT14)
+            if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word076) & BIT14)
             {
                 *supported = true;
             }
@@ -2920,8 +2923,8 @@ eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
         }
         if (enabled != M_NULLPTR)
         {
-            if (is_ATA_Identify_Word_Valid_SATA(device->drive_info.IdentifyData.ata.Word079) &&
-                device->drive_info.IdentifyData.ata.Word079 & BIT7)
+            if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word079)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word079) & BIT7)
             {
                 *enabled = true;
             }
@@ -3030,10 +3033,12 @@ eReturnValues transition_To_Idle(tDevice* device, bool unload)
     {
         if (unload)
         {
-            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) &&
-                 device->drive_info.IdentifyData.ata.Word084 & BIT13) ||
-                (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) &&
-                 device->drive_info.IdentifyData.ata.Word087 & BIT13))
+            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT13) ||
+                (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT13))
             {
                 // send the command since it supports the unload feature...otherwise we return NOT_SUPPORTED
                 ret = ata_Idle_Immediate(device, true);
@@ -3441,20 +3446,21 @@ eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info)
         info->puisSupported         = false;
         info->puisEnabled           = false;
         info->spinupCommandRequired = false;
-        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT5)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT5)
         {
             info->puisSupported = true;
         }
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-            device->drive_info.IdentifyData.ata.Word086 & BIT5)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT5)
         {
             info->puisEnabled = true;
         }
-        if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) &&
-             device->drive_info.IdentifyData.ata.Word083 & BIT6) ||
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-             device->drive_info.IdentifyData.ata.Word086 & BIT6))
+        if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT6) ||
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT6))
         {
             info->spinupCommandRequired = true;
         }
@@ -3468,8 +3474,8 @@ eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure PUIS is supported.
-        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT5)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT5)
         {
             if (enable)
             {
@@ -3490,8 +3496,9 @@ eReturnValues puis_Spinup(tDevice* device)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the identify bits to make sure PUIS is supported.
-        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word083) &&
-            device->drive_info.IdentifyData.ata.Word083 & BIT5 && device->drive_info.IdentifyData.ata.Word083 & BIT6)
+        if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT5 &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT6)
         {
             ret = ata_Set_Features(device, SF_PUIS_DEVICE_SPIN_UP, 0, 0, 0, 0);
         }

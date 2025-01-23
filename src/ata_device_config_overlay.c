@@ -29,28 +29,29 @@
 
 // Important notes:
 // If HPA is set (max < native max) commands to restore or set will be aborted. if
-// (device->drive_info.IdentifyData.ata.Word082 & BIT10) //HPA feature set DMA mode commands for identify and set only
-// possible if supported (check identify bit) If frozen, identify, identify dma, resotre, set will all be aborted. If id
-// bit shows supported, but the dco ident fails, consider the drive in a frozen state -TJE
+// (le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT10) //HPA feature set DMA mode commands for identify
+// and set only possible if supported (check identify bit) If frozen, identify, identify dma, restore, set will all be
+// aborted. If id bit shows supported, but the dco ident fails, consider the drive in a frozen state -TJE
 
 bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word083) &&
-             device->drive_info.IdentifyData.ata.Word083 & BIT11) ||
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word086) &&
-             device->drive_info.IdentifyData.ata.Word086 & BIT11))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT11) ||
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT11))
         {
             supported = true;
             if (dmaSupport != M_NULLPTR)
             {
                 *dmaSupport = false;
-                if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) &&
-                     device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
-                    && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) &&
-                        device->drive_info.IdentifyData.ata.Word069 & BIT12))
+                if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
+                     le16_to_host(device->drive_info.IdentifyData.ata.Word053) &
+                         BIT1) /* this is a validity bit for field 69 */
+                    && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
+                        le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT12))
                 {
                     *dmaSupport = true;
                 }

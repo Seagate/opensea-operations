@@ -130,43 +130,44 @@ void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus,
     else if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // word 128
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word128) &&
-            device->drive_info.IdentifyData.ata.Word128 & BIT0)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word128)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word128) & BIT0)
         {
             securityStatus->securitySupported = true;
-            if (device->drive_info.IdentifyData.ata.Word128 & BIT1)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word128) & BIT1)
             {
                 securityStatus->securityEnabled = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word128 & BIT2)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word128) & BIT2)
             {
                 securityStatus->securityLocked = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word128 & BIT3)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word128) & BIT3)
             {
                 securityStatus->securityFrozen = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word128 & BIT4)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word128) & BIT4)
             {
                 securityStatus->securityCountExpired = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word128 & BIT5)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word128) & BIT5)
             {
                 securityStatus->enhancedEraseSupported = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word128 & BIT8)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word128) & BIT8)
             {
                 securityStatus->masterPasswordCapability = true;
             }
             // word 89
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word089))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word089)))
             {
-                if (device->drive_info.IdentifyData.ata.Word089 & BIT15)
+                if (le16_to_host(device->drive_info.IdentifyData.ata.Word089) & BIT15)
                 {
                     securityStatus->extendedTimeFormat = true;
                     // bits 14:0
                     securityStatus->securityEraseUnitTimeMinutes =
-                        (device->drive_info.IdentifyData.ata.Word089 & 0x7FFF) * ATA_SECURITY_TIME_MULTIPLIER;
+                        (le16_to_host(device->drive_info.IdentifyData.ata.Word089) & 0x7FFF) *
+                        ATA_SECURITY_TIME_MULTIPLIER;
                     if (securityStatus->securityEraseUnitTimeMinutes ==
                         (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
@@ -177,7 +178,8 @@ void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus,
                 {
                     // bits 7:0
                     securityStatus->securityEraseUnitTimeMinutes =
-                        M_Byte0(device->drive_info.IdentifyData.ata.Word089) * ATA_SECURITY_TIME_MULTIPLIER;
+                        M_Byte0(le16_to_host(device->drive_info.IdentifyData.ata.Word089)) *
+                        ATA_SECURITY_TIME_MULTIPLIER;
                     if (securityStatus->securityEraseUnitTimeMinutes ==
                         (ATA_SECURITY_GREATER_THAN_MAX_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
@@ -186,14 +188,15 @@ void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus,
                 }
             }
             // word 90
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word090))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word090)))
             {
-                if (device->drive_info.IdentifyData.ata.Word090 & BIT15)
+                if (le16_to_host(device->drive_info.IdentifyData.ata.Word090) & BIT15)
                 {
                     securityStatus->extendedTimeFormat = true;
                     // bits 14:0
                     securityStatus->enhancedSecurityEraseUnitTimeMinutes =
-                        (device->drive_info.IdentifyData.ata.Word090 & 0x7FFF) * ATA_SECURITY_TIME_MULTIPLIER;
+                        (le16_to_host(device->drive_info.IdentifyData.ata.Word090) & 0x7FFF) *
+                        ATA_SECURITY_TIME_MULTIPLIER;
                     if (securityStatus->enhancedSecurityEraseUnitTimeMinutes ==
                         (ATA_SECURITY_GREATER_THAN_MAX_EXTENDED_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
@@ -204,7 +207,8 @@ void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus,
                 {
                     // bits 7:0
                     securityStatus->enhancedSecurityEraseUnitTimeMinutes =
-                        M_Byte0(device->drive_info.IdentifyData.ata.Word090) * ATA_SECURITY_TIME_MULTIPLIER;
+                        M_Byte0(le16_to_host(device->drive_info.IdentifyData.ata.Word090)) *
+                        ATA_SECURITY_TIME_MULTIPLIER;
                     if (securityStatus->enhancedSecurityEraseUnitTimeMinutes ==
                         (ATA_SECURITY_GREATER_THAN_MAX_TIME_VALUE * ATA_SECURITY_TIME_MULTIPLIER))
                     {
@@ -213,17 +217,17 @@ void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus,
                 }
             }
             // word 92
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word092))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word092)))
             {
-                securityStatus->masterPasswordIdentifier = device->drive_info.IdentifyData.ata.Word092;
+                securityStatus->masterPasswordIdentifier = le16_to_host(device->drive_info.IdentifyData.ata.Word092);
             }
         }
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) &&
-             device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
-            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) &&
-                device->drive_info.IdentifyData.ata.Word069 & BIT12))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word053) & BIT1) /* this is a validity bit for field 69 */
+            && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT12))
         {
-            securityStatus->encryptAll = device->drive_info.IdentifyData.ata.Word069 & BIT4;
+            securityStatus->encryptAll = le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT4;
         }
     }
     // read ID data log page for security bits to get restrictedSanitizeOverridesSecurity bit
@@ -1308,12 +1312,7 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
         // the controller. VPD 89h will force the controller to issue a new identify command and it SHOULD also update
         // anything the controller is caching.
         DECLARE_ZERO_INIT_ARRAY(uint8_t, ataVPDPage, VPD_ATA_INFORMATION_LEN);
-        if (SUCCESS == scsi_Inquiry(device, ataVPDPage, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false))
-        {
-            // commenting this out because a controller could change this data from what the drive reported and we don't
-            // want to store that. safe_memcpy((uint8_t*)&device->drive_info.IdentifyData.ata.Word000,
-            // sizeof(tAtaIdentifyData), &ataVPDPage[60], LEGACY_DRIVE_SEC_SIZE);
-        }
+        scsi_Inquiry(device, ataVPDPage, VPD_ATA_INFORMATION_LEN, ATA_INFORMATION, true, false);
     }
     // issue an identify device command before we read the ATA security bits to make sure the data isn't stale in our
     // structure.

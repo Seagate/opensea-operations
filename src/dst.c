@@ -424,7 +424,7 @@ bool is_Self_Test_Supported(tDevice* device)
     {
     case NVME_DRIVE:
         // set based on controller reported capabilities first
-        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT4)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT4)
         {
             supported = true;
         }
@@ -449,10 +449,10 @@ bool is_Self_Test_Supported(tDevice* device)
         if (is_SMART_Enabled(device))
         {
             // also check that self test is supported by the drive
-            if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) &&
-                 device->drive_info.IdentifyData.ata.Word084 & BIT1) ||
-                (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) &&
-                 device->drive_info.IdentifyData.ata.Word087 & BIT1))
+            if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT1) ||
+                (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT1))
             {
                 // NOTE: Also need to check the SMART read data as it also contains a bit to indicate if DST is
                 // supported or not!
@@ -638,10 +638,10 @@ static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, 
     if (is_SMART_Enabled(device))
     {
         // also check that self test is supported by the drive
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word084) &&
-             device->drive_info.IdentifyData.ata.Word084 & BIT1) ||
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word087) &&
-             device->drive_info.IdentifyData.ata.Word087 & BIT1))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT1) ||
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT1))
         {
             // NOTE: Also need to check the SMART read data as it also contains a bit to indicate if DST is supported or
             // not!
@@ -1187,9 +1187,9 @@ eReturnValues get_Long_DST_Time(tDevice* device, uint8_t* hours, uint8_t* minute
         break;
     case NVME_DRIVE:
     {
-        uint16_t longTestTime = device->drive_info.IdentifyData.nvme.ctrl.edstt;
-        *hours                = C_CAST(uint8_t, longTestTime / 60);
-        *minutes              = C_CAST(uint8_t, longTestTime % 60);
+        uint16_t longTestTime = le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.edstt);
+        *hours                = C_CAST(uint8_t, longTestTime / UINT16_C(60));
+        *minutes              = C_CAST(uint8_t, longTestTime % UINT16_C(60));
         ret                   = SUCCESS;
     }
     break;

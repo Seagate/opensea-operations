@@ -162,8 +162,8 @@ eReturnValues get_ATA_Log_Size(tDevice* device, uint8_t logAddress, uint32_t* lo
                 // first appears in ATA/ATAPI-6
                 // If the drive does not report at least this version, do not return a size for it as it will not be
                 // supported
-                if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word080) &&
-                    (device->drive_info.IdentifyData.ata.Word080 & 0xFFC0))
+                if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word080)) &&
+                    (le16_to_host(device->drive_info.IdentifyData.ata.Word080) & 0xFFC0))
                 {
                     *logFileSize = UINT32_C(512);
                 }
@@ -3139,8 +3139,8 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
                     smartLogSize = UINT16_C(512);
                     break;
                 case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
-                    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word080) &&
-                        (device->drive_info.IdentifyData.ata.Word080 & 0xFFC0))
+                    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word080)) &&
+                        (le16_to_host(device->drive_info.IdentifyData.ata.Word080) & 0xFFC0))
                     {
                         smartLogSize = UINT16_C(512);
                     }
@@ -3336,7 +3336,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
         suptLogOpts.nsid    = 0; // controller data
         if (SUCCESS == nvme_Get_Log_Page(device, &suptLogOpts))
         {
-            uint32_t numPage = suptLogPage.numLogPages;
+            uint32_t numPage = le32_to_host(suptLogPage.numLogPages);
             // Check if a bogus number is returned as the C5 log may be used differently on some products
             // There needs to be a better filter as this C5 page was for 2 known products and newer ones have very
             // different designs
@@ -3352,12 +3352,13 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
                 printf("-------------:----------------:--------------\n");
                 for (page = 0; page < numPage && page < MAX_SUPPORTED_LOG_PAGE_ENTRIES; page++)
                 {
-                    if (suptLogPage.logPageEntry[page].logPageID < 0xC0)
+                    if (le32_to_host(suptLogPage.logPageEntry[page].logPageID) < 0xC0)
                     {
                         printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
-                               suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                               suptLogPage.logPageEntry[page].logPageSignature,
-                               suptLogPage.logPageEntry[page].logPageVersion);
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageID),
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageID),
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageSignature),
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageVersion));
                     }
                 }
                 printf("\t\t------------------\n");
@@ -3365,12 +3366,13 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
                 printf("\t\t------------------\n");
                 for (page = 0; page < numPage && page < MAX_SUPPORTED_LOG_PAGE_ENTRIES; page++)
                 {
-                    if (suptLogPage.logPageEntry[page].logPageID >= 0xC0)
+                    if (le32_to_host(suptLogPage.logPageEntry[page].logPageID) >= 0xC0)
                     {
                         printf("  %3" PRIu32 " (%02" PRIX32 "h)  :   %-10" PRIX32 "   :    %-10" PRIu32 "\n",
-                               suptLogPage.logPageEntry[page].logPageID, suptLogPage.logPageEntry[page].logPageID,
-                               suptLogPage.logPageEntry[page].logPageSignature,
-                               suptLogPage.logPageEntry[page].logPageVersion);
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageID),
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageID),
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageSignature),
+                               le32_to_host(suptLogPage.logPageEntry[page].logPageVersion));
                     }
                 }
             }
@@ -3384,7 +3386,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
     {
         // in this case the supported log pages MAY be supported, but may not be.
         // So if it is not supported, dummy up a response based on other reported identify data bits and which logs are
-        // madatory in the NVMe specs.
+        // mandatory in the NVMe specs.
         readSupporteLogPagesLog = true;
         dummyFromIdentify       = true;
     }
@@ -3465,7 +3467,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
         // 03 = firwmare slot info??? always supported???
         printf("   3 (03h)\n");
         // 04 = changed namespace list ??? oaes bit8
-        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT8)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT8)
         {
             printf("   4 (04h)\n");
         }
@@ -3475,7 +3477,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
             printf("   5 (05h)\n");
         }
         // 06 = device self test (look for bit in identify data for support of DST feature)
-        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT4)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT4)
         {
             printf("   6 (06h)\n");
         }
@@ -3486,22 +3488,22 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
             printf("   8 (08h)\n");
         }
         // 09 = endurance group info - support in controller attributes ctratt bit4
-        if (device->drive_info.IdentifyData.nvme.ctrl.ctratt & BIT4)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.ctratt) & BIT4)
         {
             printf("   9 (09h)\n");
         }
         // 0A = predictable latency per NVM set - support in controller attributes ctratt bit5
-        if (device->drive_info.IdentifyData.nvme.ctrl.ctratt & BIT5)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.ctratt) & BIT5)
         {
             printf("  10 (0Ah)\n");
         }
         // 0B = predictable latency event aggregate - - oaes bit12
-        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT12)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT12)
         {
             printf("  11 (0Bh)\n");
         }
         // 0C = asymestric namespace access - anacap bit0 in controller identify??? or bit3 CMIC??? or oaes bit11???
-        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT11)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT11)
         {
             printf("  12 (0CAh)\n");
         }
@@ -3511,37 +3513,37 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
             printf("  13 (0Dh)\n");
         }
         // 0E = LBA status information - get LBA status capability in OACS
-        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT9)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT9)
         {
             printf("  14 (0Eh)\n");
         }
         // 0F = endurance group aggregate????     oeas bit14
-        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT14)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT14)
         {
             printf("  15 (0Fh)\n");
         }
         // 70 = discovery - NVMe over fabrics????
-        if (device->drive_info.IdentifyData.nvme.ctrl.oaes & BIT31)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT31)
         {
             printf("\t\t------------------\n");
             printf("\tNVMe Over Fabrics Logs\n");
             printf("\t\t------------------\n");
             printf(" 112 (70h)\n");
         }
-        if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT5 ||
-            device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT5 ||
+            le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) > 0)
         {
             printf("\t\t------------------\n");
             printf("\tIO Command Set Specific Logs\n");
             printf("\t\t------------------\n");
         }
         // 80 = reservation notification - check for reservations support
-        if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT5)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT5)
         {
             printf(" 128 (80h)\n");
         }
         // 81 = Sanitize status - check for sanitize support
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap > UINT32_C(0))
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) > UINT32_C(0))
         {
             printf(" 129 (81h)\n");
         }
@@ -3775,12 +3777,13 @@ static eReturnValues pull_Generic_ATA_Log(tDevice*     device,
     uint32_t      logSize       = UINT32_C(0);
     uint8_t*      genericLogBuf = M_NULLPTR;
     // First, setting up bools for GPL and SMART logging features based on drive capabilities
-    bool gpl   = device->drive_info.ata_Options.generalPurposeLoggingSupported;
-    bool smart = (is_SMART_Enabled(device) &&
-                  ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word084) &&
-                    device->drive_info.IdentifyData.ata.Word084 & BIT0) ||
-                   (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(device->drive_info.IdentifyData.ata.Word087) &&
-                    device->drive_info.IdentifyData.ata.Word087 & BIT0)));
+    bool gpl = device->drive_info.ata_Options.generalPurposeLoggingSupported;
+    bool smart =
+        (is_SMART_Enabled(device) &&
+         ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+           le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT0) ||
+          (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+           le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT0)));
     // Now, using switch case to handle KNOWN logs from ATA spec. Only flipping certain logs as most every modern drive
     // uses GPL and most logs are GPL access now (but it wasn't always that way, and this works around some bugs in
     // drive firmware!!!)

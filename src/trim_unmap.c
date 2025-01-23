@@ -104,17 +104,17 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word169) &&
-            device->drive_info.IdentifyData.ata.Word169 & BIT0)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word169)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word169) & BIT0)
         {
             supported = true;
         }
         if (M_NULLPTR != maxTrimOrUnmapBlockDescriptors)
         {
-            if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word105))
+            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word105)))
             {
                 *maxTrimOrUnmapBlockDescriptors =
-                    device->drive_info.IdentifyData.ata.Word105 *
+                    le16_to_host(device->drive_info.IdentifyData.ata.Word105) *
                     64; // multiple by 64 since you can fit a maximum of 64 descriptors in each 512 byte block
             }
             else
@@ -125,7 +125,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
         }
         break;
     case NVME_DRIVE:
-        if (device->drive_info.IdentifyData.nvme.ctrl.oncs & BIT2)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT2)
         {
             supported = true;
 

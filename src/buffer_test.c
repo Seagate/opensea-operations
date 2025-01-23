@@ -33,21 +33,21 @@ static bool are_Buffer_Commands_Available(tDevice* device)
     // Check if read/write buffer commands are supported on SATA and SAS
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word082) &&
-             device->drive_info.IdentifyData.ata.Word082 & BIT13 &&
-             device->drive_info.IdentifyData.ata.Word082 & BIT12) ||
-            (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word085) &&
-             device->drive_info.IdentifyData.ata.Word085 & BIT13 &&
-             device->drive_info.IdentifyData.ata.Word085 & BIT12))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT13 &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT12) ||
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT13 &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT12))
         {
             // PIO commands
             supported = true;
         }
-        if ((is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word053) &&
-             device->drive_info.IdentifyData.ata.Word053 & BIT1) /* this is a validity bit for field 69 */
-            && (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word069) &&
-                device->drive_info.IdentifyData.ata.Word069 & BIT11 &&
-                device->drive_info.IdentifyData.ata.Word069 & BIT10))
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word053) & BIT1) /* this is a validity bit for field 69 */
+            && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT11 &&
+                le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT10))
         {
             // DMA commands
             supported = true;

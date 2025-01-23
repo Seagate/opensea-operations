@@ -1358,7 +1358,7 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
             formats->sectorSizes[iter].nvmeSectorBits.relativePerformance =
                 get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].rp, 1, 0);
             formats->sectorSizes[iter].nvmeSectorBits.metadataSize =
-                device->drive_info.IdentifyData.nvme.ns.lbaf[iter].ms;
+                le16_to_host(device->drive_info.IdentifyData.nvme.ns.lbaf[iter].ms);
             ++formats->numberOfSectorSizes;
         }
     }
@@ -1834,8 +1834,8 @@ eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
     *percentComplete = UINT8_C(0);
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        ret = nvme_Identify(device, (uint8_t*)&device->drive_info.IdentifyData.nvme.ns, device->drive_info.namespaceID,
-                            NVME_IDENTIFY_NS);
+        ret = nvme_Identify(device, M_REINTERPRET_CAST(uint8_t*, &device->drive_info.IdentifyData.nvme.ns),
+                            device->drive_info.namespaceID, NVME_IDENTIFY_NS);
         if (ret == SUCCESS)
         {
             if (device->drive_info.IdentifyData.nvme.ns.fpi & BIT7)
@@ -1888,7 +1888,7 @@ static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
         {
             // lba size matches, now check the metadata!
-            if (metadataSize == device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].ms)
+            if (metadataSize == le16_to_host(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].ms))
             {
                 fmtNum = fmtIter;
                 break;
@@ -1908,7 +1908,7 @@ eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport form
         // bit 0 = format applies to all namespaces. If zero, applies only to the specified namespace
         // bit 1 = secure erase applies to all namespaces. if zero, applies only to the specified namespace
         // bit 2 = cryptographic erase is supported
-        if (device->drive_info.IdentifyData.nvme.ctrl.oacs & BIT1)
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT1)
         {
             formatSupport->formatCommandSupported = true;
             if (device->drive_info.IdentifyData.nvme.ctrl.fna & BIT0)
@@ -1976,7 +1976,7 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
             flbas |= get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
         }
         uint32_t fmtBlockSize    = device->drive_info.deviceBlockSize;
-        uint16_t fmtMetaDataSize = device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].ms;
+        uint16_t fmtMetaDataSize = le16_to_host(device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].ms);
 
         if (!nvmParams.newSize.currentBlockSize)
         {
