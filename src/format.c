@@ -1878,11 +1878,12 @@ eReturnValues show_NVM_Format_Progress(tDevice* device)
     }
     return ret;
 }
-
+#define NVME_2_0_MAX_FORMATS 64U
 static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize, uint16_t metadataSize)
 {
     uint8_t fmtNum = UINT8_MAX;
-    for (uint8_t fmtIter = UINT8_C(0); fmtIter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1) && fmtIter < 64;
+    uint8_t maxDriveLBAformats = device->drive_info.IdentifyData.nvme.ns.nlbaf + UINT8_C(1);
+    for (uint8_t fmtIter = UINT8_C(0); fmtIter < maxDriveLBAformats && fmtIter < NVME_2_0_MAX_FORMATS;
          ++fmtIter)
     {
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
@@ -1942,18 +1943,18 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
     nvmeFormatCmdOpts formatCmdOptions;
     safe_memset(&formatCmdOptions, sizeof(nvmeFormatCmdOpts), 0, sizeof(nvmeFormatCmdOpts));
     // Set metadata, PI, PIL settings to current device settings to start
-    formatCmdOptions.ms  = (device->drive_info.IdentifyData.nvme.ns.mc & BIT0) ? 1 : 0;
-    formatCmdOptions.pil = (device->drive_info.IdentifyData.nvme.ns.dps & BIT3) ? 1 : 0;
+    formatCmdOptions.ms  = (device->drive_info.IdentifyData.nvme.ns.mc & BIT0) ? UINT8_C(1) : UINT8_C(0);
+    formatCmdOptions.pil = (device->drive_info.IdentifyData.nvme.ns.dps & BIT3) ? UINT8_C(1) : UINT8_C(0);
     formatCmdOptions.pi  = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.dps, 2, 0);
 
     if (nvmParams.metadataSettings.valid)
     {
-        formatCmdOptions.ms = nvmParams.metadataSettings.metadataAsExtendedLBA ? 1 : 0;
+        formatCmdOptions.ms = nvmParams.metadataSettings.metadataAsExtendedLBA ? UINT8_C(1) : UINT8_C(0);
     }
 
     if (nvmParams.protectionLocation.valid)
     {
-        formatCmdOptions.pil = nvmParams.protectionLocation.first8Bytes ? 1 : 0;
+        formatCmdOptions.pil = nvmParams.protectionLocation.first8Bytes ? UINT8_C(1) : UINT8_C(0);
     }
 
     if (nvmParams.changeProtectionType)
@@ -1975,7 +1976,8 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
             // need to append 2 more bits to interpret this correctly since number of formats > 16
             flbas |= get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
         }
-        uint32_t fmtBlockSize    = device->drive_info.deviceBlockSize;
+        //cast on blocksize is ok because it will not ever be a value greater than UINT32_MAX
+        uint32_t fmtBlockSize    = M_STATIC_CAST(uint32_t, power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].lbaDS));
         uint16_t fmtMetaDataSize = le16_to_host(device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].ms);
 
         if (!nvmParams.newSize.currentBlockSize)
@@ -1991,7 +1993,7 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
         formatCmdOptions.lbaf = map_NVM_Format_To_Format_Number(device, fmtBlockSize, fmtMetaDataSize);
     }
     // invalid format requested.
-    if (formatCmdOptions.lbaf > (device->drive_info.IdentifyData.nvme.ns.nlbaf - 1))
+    if (formatCmdOptions.lbaf > device->drive_info.IdentifyData.nvme.ns.nlbaf)
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
@@ -2035,8 +2037,8 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
     {
         uint32_t delayTimeSeconds = UINT32_C(5);
         uint8_t  progress         = UINT8_C(0);
-        delay_Seconds(
-            2); // 2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately)
+        // 2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately in some cases)
+        delay_Seconds(2);
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             uint8_t seconds = UINT8_C(0);
