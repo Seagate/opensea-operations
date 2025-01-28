@@ -108,7 +108,8 @@ static void addDataSetEntry(int32_t   subPageType,
     *farmContentField |= M_BitN(subPageType);
 }
 
-static void updateDataSetEntryOffset(uint8_t* dataSetHeader, uint32_t dataSetOffset)
+M_NONNULL_PARAM_LIST(1)
+M_PARAM_RW(1) static void updateDataSetEntryOffset(uint8_t* dataSetHeader, uint32_t dataSetOffset)
 {
     safe_memcpy(dataSetHeader + 8, FARMC_LOG_DATA_SET_HEADER_LENGTH - 8, &dataSetOffset, sizeof(uint32_t));
 }

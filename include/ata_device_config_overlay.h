@@ -36,7 +36,8 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_DCO_Supported(tDevice* device, bool* dmaSupport);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API bool is_DCO_Supported(tDevice* device, bool* dmaSupport);
 
     //-----------------------------------------------------------------------------
     //
@@ -53,7 +54,7 @@ extern "C"
     //!   Error issuing command or HPA is established
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues dco_Restore(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Restore(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -69,7 +70,7 @@ extern "C"
     //!   unknown reason.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues dco_Freeze_Lock(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Freeze_Lock(tDevice* device);
 
     // NOTE: This structure only supports the few words defined in the ACS and ACS-2 specs.
     //       Since many were reserved, those are not supported in here at this time.
@@ -147,11 +148,12 @@ extern "C"
     //!   \param[out] data = pointer to dcoData structure (required). Indicated what can be changed on the device
     //!
     //  Exit:
-    //!   \return SUCCESS = successfully identified DCO chagable fields, FROZEN = device is DCO frozen FAILURE/ABORTED =
-    //!   command aborted by the device. Possible HPA feature error due to HPA established
+    //!   \return SUCCESS = successfully identified DCO changeable fields, FROZEN = device is DCO frozen FAILURE/ABORTED
+    //!   = command aborted by the device. Possible HPA feature error due to HPA established
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues dco_Identify(tDevice* device, ptrDcoData data);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues dco_Identify(tDevice* device, ptrDcoData data);
 
     //-----------------------------------------------------------------------------
     //
@@ -166,7 +168,7 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void show_DCO_Identify_Data(ptrDcoData data);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_DCO_Identify_Data(ptrDcoData data);
 
     //-----------------------------------------------------------------------------
     //
@@ -190,7 +192,8 @@ extern "C"
     //    ABORTED/FAILURE = command aborted. Possible HPA established blocking DCO command from completing.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues dco_Set(tDevice* device, ptrDcoData data);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues dco_Set(tDevice* device, ptrDcoData data);
 
 #if defined(__cplusplus)
 }

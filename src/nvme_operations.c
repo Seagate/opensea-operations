@@ -533,6 +533,7 @@ eReturnValues nvme_Print_Feature_Details(tDevice* device, uint8_t featureID, eNv
 eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* logSize)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (logSize != M_NULLPTR)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, logPageHeader, UINT32_C(16));
@@ -699,6 +700,7 @@ eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* lo
     {
         ret = BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 

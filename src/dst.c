@@ -187,6 +187,7 @@ eReturnValues get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8
 
 void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool justRanDST, bool isNVMeDrive)
 {
+    DISABLE_NONNULL_COMPARE
     if (translatedString != M_NULLPTR)
     {
         if (isNVMeDrive)
@@ -352,6 +353,7 @@ void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool
             }
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues print_DST_Progress(tDevice* device)
@@ -1152,10 +1154,12 @@ eReturnValues run_DST(tDevice* device,
 eReturnValues get_Long_DST_Time(tDevice* device, uint8_t* hours, uint8_t* minutes)
 {
     eReturnValues ret = UNKNOWN;
+    DISABLE_NONNULL_COMPARE
     if (hours == M_NULLPTR || minutes == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
@@ -2111,10 +2115,12 @@ eReturnValues get_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
 
 eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
 {
+    DISABLE_NONNULL_COMPARE
     if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     printf("\n===DST Log===\n");
     if (entries->numberOfEntries == 0)
     {

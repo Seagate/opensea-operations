@@ -37,7 +37,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues ata_Get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        ata_Get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
@@ -54,7 +56,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
@@ -73,14 +77,15 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA_2(tDevice* device,
-                                                            uint64_t newMaxLBA,
-                                                            bool     reset,
-                                                            bool     changeId);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
 
     // deprecated wrapper for scsi_Set_Max_LBA_2
     // TODO: remove me when next major version bump
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
@@ -99,14 +104,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA_2(tDevice* device,
-                                                           uint64_t newMaxLBA,
-                                                           bool     reset,
-                                                           bool     changeId);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
 
     // deprecated wrapper for ata_Set_Max_LBA_2
     // TODO: remove me when next major version bump
-    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
@@ -126,11 +131,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
 
     // deprecated wrapper for set_Max_LBA_2
     // TODO: remove me when next major version bump
-    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
@@ -150,7 +158,8 @@ extern "C"
     //!   maxLBA
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues restore_Max_LBA_For_Erase(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues restore_Max_LBA_For_Erase(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -173,7 +182,9 @@ extern "C"
     //!   knowledge of the device.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
+        bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset);
 
     typedef struct s_capacityModelDescriptor
     {
@@ -208,7 +219,8 @@ extern "C"
     //!   \return true = changing sector size supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Change_Identify_String_Supported(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Change_Identify_String_Supported(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -223,7 +235,9 @@ extern "C"
     //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = M_NULLPTR.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping
+        get_Capacity_Model_Number_Mapping(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -237,9 +251,13 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_WO(1) OPENSEA_OPERATIONS_API
+        void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
 
-    OPENSEA_OPERATIONS_API void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
+        void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
 
 #if defined(__cplusplus)
 }

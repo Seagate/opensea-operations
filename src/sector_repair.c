@@ -442,6 +442,7 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
                                                  bool*    automaticReadReallocationEnabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (automaticReadReallocationEnabled != M_NULLPTR)
     {
         *automaticReadReallocationEnabled = false;
@@ -450,10 +451,12 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
     {
         *automaticWriteReallocationEnabled = false;
     }
+    RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE) // this should also catch USB drives
     {
         // ATA always supports automatic write reallocation.
         // ATA does not support automatic read reallocation.
+        DISABLE_NONNULL_COMPARE
         if (automaticReadReallocationEnabled != M_NULLPTR)
         {
             *automaticReadReallocationEnabled = false;
@@ -462,10 +465,12 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
         {
             *automaticWriteReallocationEnabled = true;
         }
+        RESTORE_NONNULL_COMPARE
         ret = SUCCESS;
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
+        DISABLE_NONNULL_COMPARE
         if (automaticReadReallocationEnabled != M_NULLPTR)
         {
             *automaticReadReallocationEnabled = true;
@@ -474,6 +479,7 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
         {
             *automaticWriteReallocationEnabled = true;
         }
+        RESTORE_NONNULL_COMPARE
         ret = SUCCESS;
     }
     else
@@ -503,6 +509,7 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
             {
                 ret = SUCCESS;
                 // we have the right page, so we can get the bits
+                DISABLE_NONNULL_COMPARE
                 if (automaticReadReallocationEnabled != M_NULLPTR)
                 {
                     if (readWriteErrorRecoveryMP[headerLength + 2] & BIT7)
@@ -517,6 +524,7 @@ eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
                         *automaticWriteReallocationEnabled = true;
                     }
                 }
+                RESTORE_NONNULL_COMPARE
             }
         }
     }
@@ -544,10 +552,12 @@ static int errorLBACompare(const void* a, const void* b)
 
 void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
 {
-    if (!LBAList || !numberOfLBAsInTheList)
+    DISABLE_NONNULL_COMPARE
+    if (LBAList == M_NULLPTR || numberOfLBAsInTheList == M_NULLPTR)
     {
         return;
     }
+    RESTORE_NONNULL_COMPARE
     if (*numberOfLBAsInTheList > UINT32_C(1))
     {
         uint32_t duplicatesDetected = UINT32_C(0);
@@ -581,10 +591,12 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
 bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
 {
     bool inList = false;
+    DISABLE_NONNULL_COMPARE
     if (LBAList == M_NULLPTR)
     {
         return inList;
     }
+    RESTORE_NONNULL_COMPARE
     for (uint32_t begin = UINT32_C(0), end = numberOfLBAsInTheList; begin < numberOfLBAsInTheList && end > UINT32_C(0);
          ++begin, --end)
     {
@@ -600,10 +612,12 @@ bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheL
 uint32_t find_LBA_Entry_In_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
 {
     uint32_t index = UINT32_MAX; // something invalid
+    DISABLE_NONNULL_COMPARE
     if (LBAList == M_NULLPTR)
     {
         return index;
     }
+    RESTORE_NONNULL_COMPARE
     for (uint32_t begin = UINT32_C(0), end = numberOfLBAsInTheList; begin < numberOfLBAsInTheList && end > UINT32_C(0);
          ++begin, --end)
     {

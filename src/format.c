@@ -561,10 +561,12 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
 eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
 {
     eReturnValues ret = SUCCESS;
-    if (!device || !formatStatus)
+    DISABLE_NONNULL_COMPARE
+    if (device == M_NULLPTR || formatStatus == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     // Need to allocate enough memory to read all parameters (0 - 5)
     // 4 for header
     // 4 + 255 for param 0
@@ -740,7 +742,8 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
 
 void show_Format_Status_Log(ptrFormatStatus formatStatus)
 {
-    if (formatStatus)
+    DISABLE_NONNULL_COMPARE
+    if (formatStatus != M_NULLPTR)
     {
         printf("Format Status:\n");
         if (!formatStatus->formatParametersAllFs)
@@ -829,6 +832,7 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
             printf("Format unit currently in progress or the last format command failed!\n");
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 bool is_Set_Sector_Configuration_Supported(tDevice* device)
@@ -1371,10 +1375,12 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
 eReturnValues get_Supported_Formats(tDevice* device, ptrSupportedFormats formats)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (formats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
@@ -1595,14 +1601,16 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
                                                       uint8_t*  descriptorIndex)
 {
     eReturnValues ret = SUCCESS;
-    if (!descriptorCheckCode || !descriptorIndex)
+    DISABLE_NONNULL_COMPARE
+    if (descriptorCheckCode == M_NULLPTR || descriptorIndex == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
     else
     {
-        *descriptorCheckCode = 0;
+        *descriptorCheckCode = UINT16_C(0);
     }
+    RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
@@ -1827,10 +1835,12 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
 eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (percentComplete == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     *percentComplete = UINT8_C(0);
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -1881,10 +1891,9 @@ eReturnValues show_NVM_Format_Progress(tDevice* device)
 #define NVME_2_0_MAX_FORMATS 64U
 static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize, uint16_t metadataSize)
 {
-    uint8_t fmtNum = UINT8_MAX;
+    uint8_t fmtNum             = UINT8_MAX;
     uint8_t maxDriveLBAformats = device->drive_info.IdentifyData.nvme.ns.nlbaf + UINT8_C(1);
-    for (uint8_t fmtIter = UINT8_C(0); fmtIter < maxDriveLBAformats && fmtIter < NVME_2_0_MAX_FORMATS;
-         ++fmtIter)
+    for (uint8_t fmtIter = UINT8_C(0); fmtIter < maxDriveLBAformats && fmtIter < NVME_2_0_MAX_FORMATS; ++fmtIter)
     {
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
         {
@@ -1902,7 +1911,8 @@ static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize
 eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == NVME_DRIVE && formatSupport)
+    DISABLE_NONNULL_COMPARE
+    if (device->drive_info.drive_type == NVME_DRIVE && formatSupport != M_NULLPTR)
     {
         ret = SUCCESS;
         // check FNA field for support
@@ -1934,6 +1944,7 @@ eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport form
             }
         }
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
@@ -1976,8 +1987,9 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
             // need to append 2 more bits to interpret this correctly since number of formats > 16
             flbas |= get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
         }
-        //cast on blocksize is ok because it will not ever be a value greater than UINT32_MAX
-        uint32_t fmtBlockSize    = M_STATIC_CAST(uint32_t, power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].lbaDS));
+        // cast on blocksize is ok because it will not ever be a value greater than UINT32_MAX
+        uint32_t fmtBlockSize =
+            M_STATIC_CAST(uint32_t, power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].lbaDS));
         uint16_t fmtMetaDataSize = le16_to_host(device->drive_info.IdentifyData.nvme.ns.lbaf[flbas].ms);
 
         if (!nvmParams.newSize.currentBlockSize)
@@ -2037,7 +2049,8 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
     {
         uint32_t delayTimeSeconds = UINT32_C(5);
         uint8_t  progress         = UINT8_C(0);
-        // 2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately in some cases)
+        // 2 second delay to make sure it starts (and on SSD this may be enough for it to finish immediately in some
+        // cases)
         delay_Seconds(2);
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {

@@ -371,9 +371,13 @@ extern "C"
         };
     } deviceStatistics, *ptrDeviceStatistics;
 
-    OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
 
-    OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues
+        print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
 
 #if defined(__cplusplus)
 }

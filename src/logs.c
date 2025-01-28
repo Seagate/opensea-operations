@@ -38,6 +38,7 @@
 // returning unknown
 const char* get_Drive_ID_For_Logfile_Name(tDevice* device)
 {
+    DISABLE_NONNULL_COMPARE
     if (device != M_NULLPTR)
     {
         // Try SN first
@@ -60,6 +61,7 @@ const char* get_Drive_ID_For_Logfile_Name(tDevice* device)
     {
         return M_NULLPTR;
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
@@ -897,10 +899,12 @@ eReturnValues get_SCSI_Error_History_Size(tDevice*  device,
                                           bool      useReadBuffer16)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (errorHistorySize == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     uint8_t* errorHistoryDirectory =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_ERROR_HISTORY_DIRECTORY_LEN, sizeof(uint8_t),
                                                          device->os_info.minimumAlignment));

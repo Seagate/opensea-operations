@@ -535,7 +535,8 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
                                          bool                   eraseUnit,
                                          bool                   useSAT)
 {
-    if (ptrData && ataPassword)
+    DISABLE_NONNULL_COMPARE
+    if (ptrData != M_NULLPTR && ataPassword != M_NULLPTR)
     {
         // copy the password in, but the max length is 32 bytes according to the spec!
         safe_memcpy(&ptrData[2], 510, ataPassword->password,
@@ -589,10 +590,12 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
             }
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT)
 {
+    DISABLE_NONNULL_COMPARE
     if (ptrData != M_NULLPTR)
     {
         if (eraseType == ATA_SECURITY_ERASE_ENHANCED_ERASE)
@@ -615,6 +618,7 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseTy
             }
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues set_ATA_Security_Password(tDevice* device, ataSecurityPassword ataPassword, bool useSAT)

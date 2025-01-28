@@ -31,10 +31,12 @@
 eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!device || !counters)
+    DISABLE_NONNULL_COMPARE
+    if (device == M_NULLPTR || counters == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the ID bits that show this is supported, then just read the page.
@@ -126,7 +128,8 @@ eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounte
 
 void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
 {
-    if (counters && counters->valid)
+    DISABLE_NONNULL_COMPARE
+    if (counters != M_NULLPTR && counters->valid)
     {
         printf("\n====SATA Phy Event Counters====\n");
         printf("V = Vendor Unique event tracker\n");
@@ -231,4 +234,5 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
             printf("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
         }
     }
+    RESTORE_NONNULL_COMPARE
 }

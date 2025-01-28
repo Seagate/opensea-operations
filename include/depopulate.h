@@ -36,7 +36,9 @@ extern "C"
     //!   \return true = depopulate supported, false = not supported.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTime);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API
+        bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -54,7 +56,9 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors);
 
     typedef enum ePhysicalElementTypeEnum
     {
@@ -92,9 +96,11 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
-                                                                          uint32_t           numberOfElementsExpected,
-                                                                          ptrPhysicalElement elementList);
+    M_NONNULL_PARAM_LIST(1, 3)
+    M_PARAM_RO(1) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+        get_Physical_Element_Descriptors(tDevice*           device,
+                                         uint32_t           numberOfElementsExpected,
+                                         ptrPhysicalElement elementList);
 
     //-----------------------------------------------------------------------------
     //
@@ -111,9 +117,10 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
-                                                                  ptrPhysicalElement elementList,
-                                                                  uint64_t           depopulateTime);
+    M_NONNULL_PARAM_LIST(2)
+    M_PARAM_RO(2) OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
+                                                                                ptrPhysicalElement elementList,
+                                                                                uint64_t           depopulateTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -130,9 +137,9 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element(tDevice* device,
-                                                                     uint32_t elementDescriptorID,
-                                                                     uint64_t requestedMaxLBA);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        depopulate_Physical_Element(tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
@@ -149,7 +156,9 @@ extern "C"
     //!   \return true = repopulate supported, false = not supported.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API
+        bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -164,7 +173,7 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues repopulate_Elements(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues repopulate_Elements(tDevice* device);
 
     typedef enum eDepopStatusEnum
     {
@@ -193,9 +202,9 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Depopulate_Progress(tDevice*      device,
-                                                                 eDepopStatus* depopStatus,
-                                                                 double*       progress);
+    M_NONNULL_PARAM_LIST(1, 2, 3)
+    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+        get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress);
 
     //-----------------------------------------------------------------------------
     //
@@ -209,7 +218,8 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues show_Depop_Repop_Progress(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Depop_Repop_Progress(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -229,10 +239,11 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
-                                                                             uint32_t elementDescriptorID,
-                                                                             uint64_t requestedMaxLBA,
-                                                                             bool     pollForProgress);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
+                                                                                           uint32_t elementDescriptorID,
+                                                                                           uint64_t requestedMaxLBA,
+                                                                                           bool     pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
@@ -249,12 +260,17 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForProgress);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        perform_Repopulate_Physical_Element(tDevice* device, bool pollForProgress);
 
-    OPENSEA_OPERATIONS_API bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API
+        bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime);
 
-    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device,
-                                                                                      uint32_t elementDescriptorID);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID);
 
 #if defined(__cplusplus)
 }

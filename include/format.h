@@ -38,7 +38,9 @@ extern "C"
     //!   \return true = format unit supported, false = format unit not supported.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Format_Unit_Supported(tDevice* device, bool* fastFormatSupported);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API
+        bool is_Format_Unit_Supported(tDevice* device, bool* fastFormatSupported);
 
     //-----------------------------------------------------------------------------
     //
@@ -55,7 +57,9 @@ extern "C"
     //!   when wrong trying to get progress
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Format_Progress(tDevice* device, double* percentComplete);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_Format_Progress(tDevice* device, double* percentComplete);
 
     typedef enum eFormatTypeEnum
     {
@@ -134,12 +138,12 @@ extern "C"
     //!   function to kick off a format unit operation for you.
     //!
     //  Exit:
-    //!   \return SUCCESS = format unit successfull or successfully started, !SUCCESS = check error code.
+    //!   \return SUCCESS = format unit successful or successfully started, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues run_Format_Unit(tDevice*                device,
-                                                         runFormatUnitParameters formatParameters,
-                                                         bool                    pollForProgress);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        run_Format_Unit(tDevice* device, runFormatUnitParameters formatParameters, bool pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
@@ -156,7 +160,8 @@ extern "C"
     //!   code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues show_Format_Unit_Progress(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Format_Unit_Progress(tDevice* device);
 
     typedef struct s_formatStatus
     {
@@ -204,7 +209,9 @@ extern "C"
     //!   \return true = changing sector size supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_Format_Status(tDevice* device, ptrFormatStatus formatStatus);
 
     //-----------------------------------------------------------------------------
     //
@@ -218,7 +225,8 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void show_Format_Status_Log(ptrFormatStatus formatStatus);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Format_Status_Log(ptrFormatStatus formatStatus);
 
     //-----------------------------------------------------------------------------
     //
@@ -234,7 +242,8 @@ extern "C"
     //!   \return true = changing sector size supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Set_Sector_Configuration_Supported(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Set_Sector_Configuration_Supported(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -253,11 +262,12 @@ extern "C"
     //!   \return SUCCESS = successfully changed sector size, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration(tDevice* device, uint32_t sectorSize);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration(tDevice* device, uint32_t sectorSize);
 
-    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration_With_Force(tDevice* device,
-                                                                             uint32_t sectorSize,
-                                                                             bool     force);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        set_Sector_Configuration_With_Force(tDevice* device, uint32_t sectorSize, bool force);
 
     typedef struct protectionSupport
     {
@@ -363,7 +373,8 @@ extern "C"
     //!   to change sector size or an error occured while trying to determine supported sizes.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -383,7 +394,9 @@ extern "C"
     //!   \return SUCCESS = successfully got the reported sector sizes, !SUCCESS = check error code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Formats(tDevice* device, ptrSupportedFormats formats);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_Supported_Formats(tDevice* device, ptrSupportedFormats formats);
 
     //-----------------------------------------------------------------------------
     //
@@ -397,7 +410,8 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFormats formats);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFormats formats);
 
     //-----------------------------------------------------------------------------
     //
@@ -419,10 +433,12 @@ extern "C"
     //!   code.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
-                                                                                 uint32_t  logicalBlockLength,
-                                                                                 uint16_t* descriptorCheckCode,
-                                                                                 uint8_t*  descriptorIndex);
+    M_NONNULL_PARAM_LIST(1, 3, 4)
+    M_PARAM_RO(1) M_PARAM_WO(3) M_PARAM_WO(4) OPENSEA_OPERATIONS_API eReturnValues
+        ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
+                                                uint32_t  logicalBlockLength,
+                                                uint16_t* descriptorCheckCode,
+                                                uint8_t*  descriptorIndex);
 
     typedef struct s_nvmeFormatSupport
     {
@@ -448,7 +464,9 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport);
 
     typedef enum nvmFmtSecureEraseEnum
     {
@@ -517,9 +535,9 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues run_NVMe_Format(tDevice*               device,
-                                                         runNVMFormatParameters nvmParams,
-                                                         bool                   pollForProgress);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams, bool pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
@@ -535,7 +553,9 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete);
 
     //-----------------------------------------------------------------------------
     //
@@ -550,7 +570,8 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues show_NVM_Format_Progress(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_NVM_Format_Progress(tDevice* device);
 
 #if defined(__cplusplus)
 }

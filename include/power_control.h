@@ -35,7 +35,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_field);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_field);
 
     //-----------------------------------------------------------------------------
     //
@@ -51,7 +53,8 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues print_Current_Power_Mode(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Current_Power_Mode(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -75,26 +78,29 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues set_Device_Power_Mode(tDevice*          device,
-                                                               bool              restoreDefaults,
-                                                               bool              enableDisable,
-                                                               ePowerConditionID powerCondition,
-                                                               uint32_t          powerModeTimer,
-                                                               bool              powerModeTimerValid);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_Device_Power_Mode(tDevice*          device,
+                                                                             bool              restoreDefaults,
+                                                                             bool              enableDisable,
+                                                                             ePowerConditionID powerCondition,
+                                                                             uint32_t          powerModeTimer,
+                                                                             bool              powerModeTimerValid);
 
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Device_Power_Mode(tDevice*          device,
-                                                                    bool              restoreDefaults,
-                                                                    bool              enableDisable,
-                                                                    ePowerConditionID powerCondition,
-                                                                    uint32_t          powerModeTimer,
-                                                                    bool              powerModeTimerValid);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Device_Power_Mode(tDevice*          device,
+                                                                                  bool              restoreDefaults,
+                                                                                  bool              enableDisable,
+                                                                                  ePowerConditionID powerCondition,
+                                                                                  uint32_t          powerModeTimer,
+                                                                                  bool powerModeTimerValid);
 
-    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Device_Power_Mode(tDevice*          device,
-                                                                   bool              restoreDefaults,
-                                                                   bool              enableDisable,
-                                                                   ePowerConditionID powerCondition,
-                                                                   uint32_t          powerModeTimer,
-                                                                   bool              powerModeTimerValid);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues ata_Set_Device_Power_Mode(tDevice*          device,
+                                                                                 bool              restoreDefaults,
+                                                                                 bool              enableDisable,
+                                                                                 ePowerConditionID powerCondition,
+                                                                                 uint32_t          powerModeTimer,
+                                                                                 bool              powerModeTimerValid);
 
     //-----------------------------------------------------------------------------
     //
@@ -111,13 +117,15 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues transition_Power_State(tDevice* device, ePowerConditionID newState);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        transition_Power_State(tDevice* device, ePowerConditionID newState);
 
-    OPENSEA_OPERATIONS_API eReturnValues transition_NVM_Power_State(tDevice* device, uint8_t newState);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues transition_NVM_Power_State(tDevice* device, uint8_t newState);
 
-#define MAXIMUM_NVME_POWER_STATES                                                                                      \
-    UINT16_C(                                                                                                          \
-        32) // the npss can technically report up to 256 since it is a 8bit field, but spec only defines 32 (0 to 31)
+    // the npss can technically report up to 256 since it is a 8bit field, but spec only defines 32 (0 to 31)
+#define MAXIMUM_NVME_POWER_STATES UINT16_C(32)
 
     // note: this does not exactly match the NVMe identify data. It takes that and converts it to this "friendly"
     // structure that is a little easier to parse
@@ -147,9 +155,12 @@ extern "C"
         nvmePowerState powerState[MAXIMUM_NVME_POWER_STATES];
     } nvmeSupportedPowerStates, *ptrNVMeSupportedPowerStates;
 
-    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps);
 
-    OPENSEA_OPERATIONS_API void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps);
 
     //-----------------------------------------------------------------------------
     //
@@ -166,9 +177,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Power_State(tDevice*           device,
-                                                         uint32_t*          powerState,
-                                                         eFeatureModeSelect selectValue);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_Power_State(tDevice* device, uint32_t* powerState, eFeatureModeSelect selectValue);
 
     typedef struct s_powerConsumptionIdentifier
     {
@@ -204,8 +215,9 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_Power_Consumption_Identifiers(tDevice*                       device,
-                                                                           ptrPowerConsumptionIdentifiers identifiers);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsumptionIdentifiers identifiers);
 
     //-----------------------------------------------------------------------------
     //
@@ -219,7 +231,9 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
+        void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers);
 
     typedef enum ePCActiveLevelEnum
     {
@@ -249,10 +263,11 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues set_Power_Consumption(tDevice*       device,
-                                                               ePCActiveLevel activeLevelField,
-                                                               uint8_t        powerConsumptionIdentifier,
-                                                               bool           resetToDefault);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_Power_Consumption(tDevice*       device,
+                                                                             ePCActiveLevel activeLevelField,
+                                                                             uint8_t        powerConsumptionIdentifier,
+                                                                             bool           resetToDefault);
 
     //-----------------------------------------------------------------------------
     //
@@ -272,14 +287,20 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues
-    map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device, double watts, uint8_t* powerConsumptionIdentifier);
+    M_NONNULL_PARAM_LIST(1, 3)
+    M_PARAM_RO(1) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+        map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device,
+                                                       double   watts,
+                                                       uint8_t* powerConsumptionIdentifier);
 
-    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_APM_Feature(tDevice* device, bool enable);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues enable_Disable_APM_Feature(tDevice* device, bool enable);
 
-    OPENSEA_OPERATIONS_API eReturnValues set_APM_Level(tDevice* device, uint8_t apmLevel);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_APM_Level(tDevice* device, uint8_t apmLevel);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_APM_Level(tDevice* device, uint8_t* apmLevel);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_APM_Level(tDevice* device, uint8_t* apmLevel);
 
     typedef struct s_powerConditionInfo // written according to ATA spec fields...will try to populate as much as
                                         // possible that's similar for SCSI
@@ -309,49 +330,59 @@ extern "C"
         bool               settingsAffectMultipleLogicalUnits;
     } epcSettings, *ptrEpcSettings;
 
-    OPENSEA_OPERATIONS_API eReturnValues get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_RW(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings);
 
-    OPENSEA_OPERATIONS_API void print_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API
+        void print_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings);
 
-    OPENSEA_OPERATIONS_API eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice* device,
-                                                                                                     bool*    supported,
-                                                                                                     bool*    enabled);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+        sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice* device, bool* supported, bool* enabled);
 
-    OPENSEA_OPERATIONS_API eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice* device,
-                                                                                                     bool     enable);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice* device, bool enable);
 
-    OPENSEA_OPERATIONS_API eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice* device,
-                                                                                                    bool*    supported,
-                                                                                                    bool*    enabled);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+        sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice* device, bool* supported, bool* enabled);
 
-    OPENSEA_OPERATIONS_API eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice* device,
-                                                                                                    bool     enable);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        sata_Set_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice* device, bool enable);
 
     // Following functions allow power mode transitions on Non-EPC drives (pre SBC3 for SCSI)
     // These will work with EPC, but may cause changes to the current timer values. See SCSI/ATA specs for details on
     // interactions with these and EPC timers
-    OPENSEA_OPERATIONS_API eReturnValues transition_To_Active(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues transition_To_Active(tDevice* device);
 
-    OPENSEA_OPERATIONS_API eReturnValues transition_To_Standby(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues transition_To_Standby(tDevice* device);
 
-    OPENSEA_OPERATIONS_API eReturnValues transition_To_Idle(tDevice* device,
-                                                            bool     unload); // unload feature must be supported
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        transition_To_Idle(tDevice* device,
+                           bool     unload); // unload feature must be supported
 
     // NOTE: Do not call this unless you know what you are doing. This requires a reset to wake up from, which may not
     // be callable from an application.
-    OPENSEA_OPERATIONS_API eReturnValues transition_To_Sleep(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues transition_To_Sleep(tDevice* device);
 
     // Be careful changing partial and slumber settings. Not every controller will support it properly!
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
-                                                                  bool     enablePartial,
-                                                                  bool     enableSlumber,
-                                                                  bool     partialValid,
-                                                                  bool     slumberValid,
-                                                                  bool     allPhys,
-                                                                  uint8_t  phyNumber);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
+                                                                                bool     enablePartial,
+                                                                                bool     enableSlumber,
+                                                                                bool     partialValid,
+                                                                                bool     slumberValid,
+                                                                                bool     allPhys,
+                                                                                uint8_t  phyNumber);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device,
-                                                                                     uint8_t* phyCount);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8_t* phyCount);
 
     typedef struct s_sasEnhPhyControl
     {
@@ -367,17 +398,20 @@ extern "C"
 
     // If doing all phys, use get_SAS_Enhanced_Phy_Control_Number_Of_Phys first to figure out how much memory must be
     // allocated
-    OPENSEA_OPERATIONS_API eReturnValues
-    get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*            device,
-                                                          bool                allPhys,
-                                                          uint8_t             phyNumber,
-                                                          ptrSasEnhPhyControl enhPhyControlData,
-                                                          uint32_t            enhPhyControlDataSize);
+    M_NONNULL_PARAM_LIST(1, 4)
+    M_PARAM_RO(1) M_PARAM_WO(4) OPENSEA_OPERATIONS_API eReturnValues
+        get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*            device,
+                                                              bool                allPhys,
+                                                              uint8_t             phyNumber,
+                                                              ptrSasEnhPhyControl enhPhyControlData,
+                                                              uint32_t            enhPhyControlDataSize);
 
-    OPENSEA_OPERATIONS_API void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlData,
-                                                                         uint32_t            enhPhyControlDataSize,
-                                                                         bool                showPartial,
-                                                                         bool                showSlumber);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
+        void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlData,
+                                                      uint32_t            enhPhyControlDataSize,
+                                                      bool                showPartial,
+                                                      bool                showSlumber);
 
     typedef struct s_powerConditionSettings
     {
@@ -425,32 +459,37 @@ extern "C"
         } checkConditionFlags;
     } powerConditionTimers, *ptrPowerConditionTimers;
 
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
-                                                                   bool                    restoreAllToDefaults,
-                                                                   ptrPowerConditionTimers powerConditions);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_PARAM_RO(3) OPENSEA_OPERATIONS_API eReturnValues
+        scsi_Set_Power_Conditions(tDevice* device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
 
-    OPENSEA_OPERATIONS_API eReturnValues set_EPC_Power_Conditions(tDevice*                device,
-                                                                  bool                    restoreAllToDefaults,
-                                                                  ptrPowerConditionTimers powerConditions);
+    M_NONNULL_PARAM_LIST(1, 3)
+    M_PARAM_RO(1) M_PARAM_RO(3) OPENSEA_OPERATIONS_API eReturnValues
+        set_EPC_Power_Conditions(tDevice* device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions);
 
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice* device,
-                                                                          bool     restoreAllToDefaults,
-                                                                          ptrPowerConditionSettings standbyTimer,
-                                                                          ptrPowerConditionSettings idleTimer);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_PARAM_RO(3) M_PARAM_RO(4) OPENSEA_OPERATIONS_API eReturnValues
+        scsi_Set_Legacy_Power_Conditions(tDevice*                  device,
+                                         bool                      restoreAllToDefaults,
+                                         ptrPowerConditionSettings standbyTimer,
+                                         ptrPowerConditionSettings idleTimer);
 
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(tDevice* device, bool enable);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(tDevice* device, bool enable);
 
     // When ATA drive, the restoreToDefaults is not allowed. Also, translation of timer value is done according to SAT
     // spec
-    OPENSEA_OPERATIONS_API eReturnValues set_Standby_Timer(tDevice* device,
-                                                           uint32_t hundredMillisecondIncrements,
-                                                           bool     restoreToDefault);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        set_Standby_Timer(tDevice* device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
 
     // SCSI/SAS Only
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(tDevice* device, bool enable);
-    OPENSEA_OPERATIONS_API eReturnValues set_Idle_Timer(tDevice* device,
-                                                        uint32_t hundredMillisecondIncrements,
-                                                        bool     restoreToDefault);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(tDevice* device, bool enable);
+
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        set_Idle_Timer(tDevice* device, uint32_t hundredMillisecondIncrements, bool restoreToDefault);
 
     //-----------------------------------------------------------------------------
     //
@@ -467,9 +506,10 @@ extern "C"
     //!   support.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable);
 
-    OPENSEA_OPERATIONS_API eReturnValues puis_Spinup(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues puis_Spinup(tDevice* device);
 
     typedef struct s_puisInfo
     {
@@ -479,7 +519,8 @@ extern "C"
                                     // access will spinup as needed.
     } puisInfo, *ptrPuisInfo;
 
-    OPENSEA_OPERATIONS_API eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info);
 
 #if defined(__cplusplus)
 }

@@ -182,7 +182,9 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
 #endif
 
     // first verify the provided structure info to make sure it is compatible.
-    if (options && options->version >= FIRMWARE_UPDATE_DATA_VERSION_V1 && options->size >= sizeof(firmwareUpdateDataV1))
+    DISABLE_NONNULL_COMPARE
+    if (options != M_NULLPTR && options->version >= FIRMWARE_UPDATE_DATA_VERSION_V1 &&
+        options->size >= sizeof(firmwareUpdateDataV1))
     {
         bool    nvmeForceCA           = false;
         bool    nvmeforceDisableReset = false;
@@ -721,7 +723,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
     {
         ret = BAD_PARAMETER;
     }
-
+    RESTORE_NONNULL_COMPARE
 #ifdef _DEBUG
     printf("<-- %s (%d)\n", __FUNCTION__, ret);
 #endif
@@ -793,7 +795,8 @@ typedef struct s_supportedDLModesV2
 eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
-    if (supportedModes && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
+    DISABLE_NONNULL_COMPARE
+    if (supportedModes != M_NULLPTR && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
         supportedModes->size >= sizeof(supportedDLModesV1))
     {
         switch (device->drive_info.drive_type)
@@ -1500,12 +1503,15 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
     {
         ret = BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
 void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
 {
-    if (supportedModes && device && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
+    DISABLE_NONNULL_COMPARE
+    if (supportedModes != M_NULLPTR && device != M_NULLPTR &&
+        supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
         supportedModes->size >= sizeof(supportedDLModesV1))
     {
         printf("===Download Support information===\n");
@@ -1666,4 +1672,5 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
         }
         printf("\n");
     }
+    RESTORE_NONNULL_COMPARE
 }

@@ -44,6 +44,7 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
              le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT11))
         {
             supported = true;
+            DISABLE_NONNULL_COMPARE
             if (dmaSupport != M_NULLPTR)
             {
                 *dmaSupport = false;
@@ -56,6 +57,7 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
                     *dmaSupport = true;
                 }
             }
+            RESTORE_NONNULL_COMPARE
         }
     }
     return supported;
@@ -101,6 +103,7 @@ eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
     bool          dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
+        DISABLE_NONNULL_COMPARE
         if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
@@ -183,12 +186,14 @@ eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
         {
             ret = BAD_PARAMETER;
         }
+        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }
 
 void show_DCO_Identify_Data(ptrDcoData data)
 {
+    DISABLE_NONNULL_COMPARE
     if (data != M_NULLPTR)
     {
         printf("\n===============================\n");
@@ -354,6 +359,7 @@ void show_DCO_Identify_Data(ptrDcoData data)
             printf("WARNING: Drive returned invalid checksum on DCO Identify data!\n");
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues dco_Set(tDevice* device, ptrDcoData data)
@@ -362,6 +368,7 @@ eReturnValues dco_Set(tDevice* device, ptrDcoData data)
     bool          dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
+        DISABLE_NONNULL_COMPARE
         if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
@@ -557,6 +564,7 @@ eReturnValues dco_Set(tDevice* device, ptrDcoData data)
         {
             ret = BAD_PARAMETER;
         }
+        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }

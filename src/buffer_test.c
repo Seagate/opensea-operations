@@ -541,10 +541,12 @@ static void perform_Random_Pattern_Test(tDevice* device, uint32_t deviceBufferSi
 eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResults)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (testResults == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (are_Buffer_Commands_Available(device))
     {
         uint8_t  offsetPO2  = UINT8_C(0); // This shouldn't actually be needed...but I have it here in case I do

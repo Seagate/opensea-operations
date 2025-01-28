@@ -42,10 +42,9 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(tDevice*    device,
-                                                                const char* filePath,
-                                                                uint32_t    transferSizeBytes,
-                                                                int         sataFarmCopyType);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) M_NULL_TERM_STRING(2) M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues
+        pull_FARM_Combined_Log(tDevice* device, const char* filePath, uint32_t transferSizeBytes, int sataFarmCopyType);
 
 #if defined(__cplusplus)
 }

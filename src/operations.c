@@ -739,6 +739,7 @@ bool ata_Is_Write_Cache_Enabled(tDevice* device)
 eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (device->drive_info.drive_type == SCSI_DRIVE && !device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
     {
         ret = SUCCESS;
@@ -804,6 +805,7 @@ eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase 
         writeReq->cryptoErase = WAEREQ_NOT_SPECIFIED;
         writeReq->blockErase  = WAEREQ_NOT_SPECIFIED;
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
@@ -1343,10 +1345,12 @@ eReturnValues set_Sense_Data_Format(tDevice* device, bool defaultSetting, bool d
 eReturnValues get_Current_Free_Fall_Control_Sensitivity(tDevice* device, uint16_t* sensitivity)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (sensitivity == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
@@ -1820,10 +1824,12 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
 eReturnValues scsi_Set_Mode_Page(tDevice* device, uint8_t* modePageData, uint16_t modeDataLength, bool saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!modePageData || modeDataLength == 0)
+    DISABLE_NONNULL_COMPARE
+    if (modePageData == M_NULLPTR || modeDataLength == UINT16_C(0))
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     uint32_t modePageLength = UINT32_C(0);
     uint8_t  modePage       = get_bit_range_uint8(modePageData[0], 5, 0);
     uint8_t  subpage        = UINT8_C(0);
@@ -1916,7 +1922,8 @@ eReturnValues scsi_Set_Mode_Page(tDevice* device, uint8_t* modePageData, uint16_
 //       Reviewing all the various SCSI standards for different device types would be necessary in order to make this
 //       100% correct and complete. We are currently focussed on block and zoned block devices, however some
 //       pages are being looked up for other device types as well.
-static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char* mpName)
+M_NONNULL_PARAM_LIST(4)
+M_PARAM_WO(4) static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char* mpName)
 {
     scsiDeviceType = get_bit_range_uint8(scsiDeviceType, 4, 0); // strip off the qualifier if it was passed
     switch (modePage)
@@ -2353,13 +2360,14 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
 
 // this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page
 // starts)
-static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
-                            uint8_t*             modeData,
-                            uint32_t             modeDataLen,
-                            eScsiModePageControl mpc,
-                            bool                 outputWithPrintDataBuffer)
+M_NONNULL_IF_NONZERO_PARAM(2, 3)
+M_PARAM_RO_SIZE(2, 3) static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
+                                                  uint8_t*             modeData,
+                                                  uint32_t             modeDataLen,
+                                                  eScsiModePageControl mpc,
+                                                  bool                 outputWithPrintDataBuffer)
 {
-    if (modeData && modeDataLen > UINT32_C(2))
+    if (modeData != M_NULLPTR && modeDataLen > UINT32_C(2))
     {
         uint8_t  pageNumber = get_bit_range_uint8(modeData[0], 5, 0);
         uint8_t  subpage    = UINT8_C(0);
@@ -2844,7 +2852,9 @@ typedef struct s_concurrentRangesV1
 eReturnValues get_Concurrent_Positioning_Ranges(tDevice* device, ptrConcurrentRanges ranges)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (ranges && ranges->size >= sizeof(concurrentRangesV1) && ranges->version >= CONCURRENT_RANGES_VERSION_V1)
+    DISABLE_NONNULL_COMPARE
+    if (ranges != M_NULLPTR && ranges->size >= sizeof(concurrentRangesV1) &&
+        ranges->version >= CONCURRENT_RANGES_VERSION_V1)
     {
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
@@ -2941,12 +2951,15 @@ eReturnValues get_Concurrent_Positioning_Ranges(tDevice* device, ptrConcurrentRa
     {
         ret = BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
 void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
 {
-    if (ranges && ranges->size >= sizeof(concurrentRangesV1) && ranges->version >= CONCURRENT_RANGES_VERSION_V1)
+    DISABLE_NONNULL_COMPARE
+    if (ranges != M_NULLPTR && ranges->size >= sizeof(concurrentRangesV1) &&
+        ranges->version >= CONCURRENT_RANGES_VERSION_V1)
     {
         printf("====Concurrent Positioning Ranges====\n");
         printf("\nRange#\t#Elements\t          Lowest LBA     \t   # of LBAs      \n");
@@ -2971,15 +2984,18 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     {
         printf("ERROR: Incompatible concurrent ranges data structure. Cannot print the data.\n");
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!device || !info)
+    DISABLE_NONNULL_COMPARE
+    if (device == M_NULLPTR || info == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = SUCCESS;
@@ -3053,6 +3069,7 @@ eReturnValues get_Write_Read_Verify_Info(tDevice* device, ptrWRVInfo info)
 
 void print_Write_Read_Verify_Info(ptrWRVInfo info)
 {
+    DISABLE_NONNULL_COMPARE
     if (info != M_NULLPTR)
     {
         printf("\n=====Write-Read-Verify=====\n");
@@ -3106,6 +3123,7 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
             printf("Not Supported\n");
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues disable_Write_Read_Verify(tDevice* device)

@@ -70,11 +70,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues repair_LBA(tDevice*    device,
-                                                    ptrErrorLBA LBA,
-                                                    bool        forcePassthroughCommand,
-                                                    bool        automaticWriteReallocationEnabled,
-                                                    bool        automaticReadReallocationEnabled);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_RW(2) OPENSEA_OPERATIONS_API eReturnValues repair_LBA(tDevice*    device,
+                                                                                ptrErrorLBA LBA,
+                                                                                bool        forcePassthroughCommand,
+                                                                                bool automaticWriteReallocationEnabled,
+                                                                                bool automaticReadReallocationEnabled);
 
     //-----------------------------------------------------------------------------
     //
@@ -90,24 +91,31 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
-                                                                            bool*    automaticWriteReallocationEnabled,
-                                                                            bool*    automaticReadReallocationEnabled);
+    M_NONNULL_PARAM_LIST(1, 2, 3)
+    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+        get_Automatic_Reallocation_Support(tDevice* device,
+                                           bool*    automaticWriteReallocationEnabled,
+                                           bool*    automaticReadReallocationEnabled);
 
     // Use this call to determine if you've already logged an error in the list so that you don't log it again
-    OPENSEA_OPERATIONS_API bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList,
-                                                           uint32_t    numberOfLBAsInTheList,
-                                                           uint64_t    lba);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
+        bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba);
 
     // Use this call to sort the list of Error LBAs. This will also remove any duplicates it finds and adjust the value
     // of numberOfLBAsInTheList
-    OPENSEA_OPERATIONS_API void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RW(1) M_PARAM_RW(2) OPENSEA_OPERATIONS_API
+        void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList);
 
-    OPENSEA_OPERATIONS_API uint32_t find_LBA_Entry_In_List(ptrErrorLBA LBAList,
-                                                           uint32_t    numberOfLBAsInTheList,
-                                                           uint64_t    lba); // returns UINT32_MAX if not found
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint32_t
+        find_LBA_Entry_In_List(ptrErrorLBA LBAList,
+                               uint32_t    numberOfLBAsInTheList,
+                               uint64_t    lba); // returns UINT32_MAX if not found
 
 #if defined(__cplusplus)
 }

@@ -3190,10 +3190,12 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     bool                           smartStatusFromSCTStatusLog = false;
     idDataCapabilitiesForDriveInfo ataCap;
     safe_memset(&ataCap, sizeof(idDataCapabilitiesForDriveInfo), 0, sizeof(idDataCapabilitiesForDriveInfo));
+    DISABLE_NONNULL_COMPARE
     if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     safe_memset(driveInfo, sizeof(driveInformationSAS_SATA), 0, sizeof(driveInformationSAS_SATA));
     safe_memcpy(&driveInfo->adapterInformation, sizeof(adapterInfo), &device->drive_info.adapter_info,
                 sizeof(adapterInfo));
@@ -7332,10 +7334,12 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
 eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     safe_memset(driveInfo, sizeof(driveInformationSAS_SATA), 0, sizeof(driveInformationSAS_SATA));
     scsiIdentifyInfo scsiInfo;
     safe_memset(&scsiInfo, sizeof(scsiIdentifyInfo), 0, sizeof(scsiIdentifyInfo));
@@ -8022,10 +8026,12 @@ static eReturnValues get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe 
 eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     safe_memset(driveInfo, sizeof(driveInformationNVMe), 0, sizeof(driveInformationNVMe));
     // changing ret to success since we have passthrough available
     ret                       = SUCCESS;
@@ -9397,7 +9403,8 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 // NOT FOR USE WITH A SAS DRIVE
 void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo, ptrDriveInformation driveInfo)
 {
-    if (translatorDriveInfo && translatorDriveInfo->infoType == DRIVE_INFO_SAS_SATA)
+    DISABLE_NONNULL_COMPARE
+    if (translatorDriveInfo != M_NULLPTR && translatorDriveInfo->infoType == DRIVE_INFO_SAS_SATA)
     {
         printf("SCSI Translator Reported Information:\n");
         print_Device_Information(translatorDriveInfo);
@@ -9406,12 +9413,12 @@ void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
     {
         printf("SCSI Translator Information Not Available.\n\n");
     }
-    if (driveInfo && driveInfo->infoType == DRIVE_INFO_SAS_SATA)
+    if (driveInfo != M_NULLPTR && driveInfo->infoType == DRIVE_INFO_SAS_SATA)
     {
         printf("ATA Reported Information:\n");
         print_Device_Information(driveInfo);
     }
-    else if (driveInfo && driveInfo->infoType == DRIVE_INFO_NVME)
+    else if (driveInfo != M_NULLPTR && driveInfo->infoType == DRIVE_INFO_NVME)
     {
         printf("NVMe Reported Information:\n");
         print_Device_Information(driveInfo);
@@ -9425,6 +9432,7 @@ void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
     {
         printf("Drive Information not available.\n\n");
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 // This function ONLY exists because we need to show a mix of SCSI and ATA information on USB.
@@ -9432,7 +9440,8 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
                                          ptrDriveInformationSAS_SATA scsiDriveInfo,
                                          ptrDriveInformationSAS_SATA ataDriveInfo)
 {
-    if (externalDriveInfo && scsiDriveInfo && ataDriveInfo)
+    DISABLE_NONNULL_COMPARE
+    if (externalDriveInfo != M_NULLPTR && scsiDriveInfo != M_NULLPTR && ataDriveInfo != M_NULLPTR)
     {
         // take data from each of the inputs, and plug it into a new one, then call the standard print function
         safe_memcpy(externalDriveInfo, sizeof(driveInformationSAS_SATA), ataDriveInfo,
@@ -9486,6 +9495,7 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
             ++(externalDriveInfo->numberOfSpecificationsSupported);
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
@@ -9495,7 +9505,8 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     // for the most part, keep all the SCSI information.
     // After that take the POH, temperature, DST information, workload, and combine the features.
     // Also add the NVMe spec version to the output as well.
-    if (externalDriveInfo && scsiDriveInfo && nvmeDriveInfo)
+    DISABLE_NONNULL_COMPARE
+    if (externalDriveInfo != M_NULLPTR && scsiDriveInfo != M_NULLPTR && nvmeDriveInfo != M_NULLPTR)
     {
         // take data from each of the inputs, and plug it into a new one, then call the standard print function
         safe_memcpy(externalDriveInfo, sizeof(driveInformationSAS_SATA), scsiDriveInfo,
@@ -9586,6 +9597,7 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
             }
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)
@@ -9772,6 +9784,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
 
 const char* print_drive_type(tDevice* device)
 {
+    DISABLE_NONNULL_COMPARE
     if (device != M_NULLPTR)
     {
         if (device->drive_info.drive_type == ATA_DRIVE)
@@ -9811,4 +9824,5 @@ const char* print_drive_type(tDevice* device)
     {
         return "Invalid device structure pointer";
     }
+    RESTORE_NONNULL_COMPARE
 }

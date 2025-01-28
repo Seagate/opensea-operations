@@ -478,7 +478,8 @@ eReturnValues transition_Power_State(tDevice* device, ePowerConditionID newState
 eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device && device->drive_info.drive_type == NVME_DRIVE && nvmps)
+    DISABLE_NONNULL_COMPARE
+    if (device != M_NULLPTR && device->drive_info.drive_type == NVME_DRIVE && nvmps != M_NULLPTR)
     {
         ret = SUCCESS;
         // use cached NVMe identify ctrl data since this won't change.
@@ -565,6 +566,7 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
         // finish by reading which is the current power state that the device is operating in
         get_Power_State(device, &nvmps->activePowerState, CURRENT_VALUE);
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
@@ -681,6 +683,7 @@ static const char* convert_NVM_Latency_To_HR_Time_Str(uint64_t timeInNanoSeconds
 #define NVM_POWER_WATTS_MAX_STR_LEN 10
 void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
 {
+    DISABLE_NONNULL_COMPARE
     if (nvmps != M_NULLPTR)
     {
         printf("\nSupported NVMe Power States\n");
@@ -776,6 +779,7 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
                    entryTime, exitTime);
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues transition_NVM_Power_State(tDevice* device, uint8_t newState)
@@ -805,10 +809,12 @@ static eReturnValues ata_Set_EPC_Power_Mode(tDevice*                  device,
                                             ptrPowerConditionSettings powerConditionSettings)
 {
     eReturnValues ret = SUCCESS;
-    if (!powerConditionSettings || powerCondition == PWR_CND_ACTIVE)
+    DISABLE_NONNULL_COMPARE
+    if (powerConditionSettings == M_NULLPTR || powerCondition == PWR_CND_ACTIVE)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (powerConditionSettings->powerConditionValid)
     {
         if (powerConditionSettings->restoreToDefault)
@@ -966,10 +972,12 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
     }
     else
     {
+        DISABLE_NONNULL_COMPARE
         if (powerConditions == M_NULLPTR)
         {
             return BAD_PARAMETER;
         }
+        RESTORE_NONNULL_COMPARE
         // Check if anything in the incoming list is requesting default values so we can allocate and read the defaults
         // for those conditions before sending to the drive.
         if ((powerConditions->idle_a.powerConditionValid && powerConditions->idle_a.restoreToDefault) ||
@@ -1793,6 +1801,7 @@ eReturnValues get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsump
 
 void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
 {
+    DISABLE_NONNULL_COMPARE
     if (identifiers != M_NULLPTR)
     {
         if (identifiers->numberOfPCIdentifiers > 0)
@@ -1930,6 +1939,7 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
             printf(" default ]\n"); // always allow default so that we can restore back to original settings
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues set_Power_Consumption(tDevice*       device,
@@ -2228,10 +2238,12 @@ eReturnValues get_APM_Level(tDevice* device, uint8_t* apmLevel)
 static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (epcSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     uint32_t epcLogSize = LEGACY_DRIVE_SEC_SIZE * 2; // from ATA Spec
     // get_ATA_Log_Size(device, ATA_LOG_POWER_CONDITIONS, &epcLogSize, true, false) //uncomment this line to ask the
     // drive for the EPC log size rather than use the hard coded value above.
@@ -2323,10 +2335,12 @@ static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSet
 static eReturnValues scsi_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (epcSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     bool powerConditionVPDsupported = true;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, epcVPDPage, VPD_POWER_CONDITION_LEN);
     if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, M_NULLPTR, M_NULLPTR, true, epcVPDPage,
@@ -2626,10 +2640,12 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char* c
 
 void print_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 {
+    DISABLE_NONNULL_COMPARE
     if (epcSettings == M_NULLPTR)
     {
         return;
     }
+    RESTORE_NONNULL_COMPARE
     M_USE_UNUSED(device);
     printf("\n===EPC Settings===\n");
     printf("\t* = timer is enabled\n");
@@ -2675,7 +2691,7 @@ eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice*                  device,
                                                ptrPowerConditionSettings idleTimer)
 {
     // Check the changable page for support of idle and standby timers before beginning???
-    if (!restoreAllToDefaults || !standbyTimer || !idleTimer)
+    if (!restoreAllToDefaults || standbyTimer == M_NULLPTR || idleTimer == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -2842,6 +2858,7 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevic
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
+        DISABLE_NONNULL_COMPARE
         if (supported != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word078)) &&
@@ -2866,6 +2883,7 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevic
                 *enabled = false;
             }
         }
+        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }
@@ -2901,14 +2919,13 @@ eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevic
     return ret;
 }
 
-eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice* device,
-                                                                         bool*    supported,
-                                                                         bool*    enabled)
+eReturnValues sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice* device, bool* supported, bool* enabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
+        DISABLE_NONNULL_COMPARE
         if (supported != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
@@ -2933,22 +2950,24 @@ eReturnValues sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice
                 *enabled = false;
             }
         }
+        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }
 
-eReturnValues sata_Set_Device_Automatic_Partioan_To_Slumber_Transtisions(tDevice* device, bool enable)
+eReturnValues sata_Set_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
-        bool          dipmEnabled = false;
-        eReturnValues getDIPM     = sata_Get_Device_Initiated_Interface_Power_State_Transitions(
-                device, M_NULLPTR, &dipmEnabled); // DIPM must be ENABLED before we can change this feature!!
-        if (getDIPM == SUCCESS && dipmEnabled)
+        bool          dipmSupported = false;
+        bool          dipmEnabled   = false;
+        eReturnValues getDIPM       = sata_Get_Device_Initiated_Interface_Power_State_Transitions(
+                  device, &dipmSupported, &dipmEnabled); // DIPM must be ENABLED before we can change this feature!!
+        if (getDIPM == SUCCESS && dipmSupported && dipmEnabled)
         {
             bool supported = false;
-            if (SUCCESS == sata_Get_Device_Automatic_Partioan_To_Slumber_Transtisions(device, &supported, M_NULLPTR))
+            if (SUCCESS == sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(device, &supported, M_NULLPTR))
             {
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
                 if (enable)
@@ -3231,10 +3250,12 @@ eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
 eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8_t* phyCount)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (phyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     uint16_t enhPhyControlLength = UINT16_C(8); // only need 8 bytes to get the number of phys
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
            uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
@@ -3275,11 +3296,13 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*    
 {
     eReturnValues ret = SUCCESS;
     // make sure the structure that will be filled in makes sense at a quick check
-    if (!enhPhyControlData || enhPhyControlDataSize == 0 || enhPhyControlDataSize % sizeof(sasEnhPhyControl))
+    DISABLE_NONNULL_COMPARE
+    if (enhPhyControlData == M_NULLPTR || enhPhyControlDataSize == 0 ||
+        enhPhyControlDataSize % sizeof(sasEnhPhyControl))
     {
         return BAD_PARAMETER;
     }
-
+    RESTORE_NONNULL_COMPARE
     bool     gotFullPageLength   = false;
     uint16_t enhPhyControlLength = UINT16_C(0);
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
@@ -3386,10 +3409,13 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
     {
         return; // nothing that matters was requested to be shown
     }
-    if (!enhPhyControlData || enhPhyControlDataSize == UINT32_C(0) || enhPhyControlDataSize % sizeof(sasEnhPhyControl))
+    DISABLE_NONNULL_COMPARE
+    if (enhPhyControlData == M_NULLPTR || enhPhyControlDataSize == UINT32_C(0) ||
+        enhPhyControlDataSize % sizeof(sasEnhPhyControl))
     {
         return; // bad parameter that could cause breakage
     }
+    RESTORE_NONNULL_COMPARE
     uint32_t totalPhys = enhPhyControlDataSize / sizeof(sasEnhPhyControl);
     // Print a format header
     printf("Phy#");
@@ -3435,10 +3461,12 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
 eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (info == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = SUCCESS;

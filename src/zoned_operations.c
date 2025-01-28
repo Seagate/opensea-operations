@@ -30,10 +30,12 @@ eReturnValues get_Number_Of_Zones(tDevice*              device,
                                   uint32_t*             numberOfMatchingZones)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (numberOfMatchingZones == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     DECLARE_ZERO_INIT_ARRAY(uint8_t, reportZones, LEGACY_DRIVE_SEC_SIZE);
     uint32_t zoneListLength = UINT32_C(0);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -68,10 +70,12 @@ eReturnValues get_Zone_Descriptors(tDevice*              device,
     uint8_t*      reportZones        = M_NULLPTR;
     uint32_t      sectorCount        = get_Sector_Count_For_512B_Based_XFers(device);
     uint32_t      dataBytesToRequest = numberOfZoneDescriptors * UINT32_C(64);
+    DISABLE_NONNULL_COMPARE
     if (zoneDescriptors == M_NULLPTR || numberOfZoneDescriptors == UINT32_C(0))
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     reportZones = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE * uint32_to_sizet(sectorCount),
                                                                    sizeof(uint8_t), device->os_info.minimumAlignment));
     if (reportZones == M_NULLPTR)
@@ -318,11 +322,13 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
         snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
         break;
     }
+    DISABLE_NONNULL_COMPARE
     if (zoneDescriptors == M_NULLPTR)
     {
         perror("bad pointer to zoneDescriptors");
         return;
     }
+    RESTORE_NONNULL_COMPARE
     printf("\n===%s===\n", showingZones);
 
     printf("%-4s  %-17s  %-4s  %-15s  %-7s  %-15s\n", "Type", "Zone Condition", "Attr", "Start LBA", "Length",

@@ -41,7 +41,7 @@ deviceStats)
     return ret;
 }
 */
-void scsi_Threshold_Comparison(statistic* ptrStatistic); // prototype
+M_NONNULL_PARAM_LIST(1) M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* ptrStatistic); // prototype
 
 static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
@@ -8911,6 +8911,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatist
 eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (deviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -8923,11 +8924,13 @@ eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceSt
     {
         return get_SCSI_DeviceStatistics(device, deviceStats);
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
 void scsi_Threshold_Comparison(statistic* ptrStatistic)
 {
+    DISABLE_NONNULL_COMPARE
     if (ptrStatistic != M_NULLPTR)
     {
         if (ptrStatistic->isThresholdValid && ptrStatistic->thresholdNotificationEnabled &&
@@ -8960,6 +8963,7 @@ void scsi_Threshold_Comparison(statistic* ptrStatistic)
             }
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 #define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
@@ -10620,10 +10624,12 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
 eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (deviceStats == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
+    RESTORE_NONNULL_COMPARE
     // as I write this I'm going to try and keep ATA and SCSI having the same printout format, but that may need to
     // change...-TJE
     if (device->drive_info.drive_type == ATA_DRIVE)

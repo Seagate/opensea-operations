@@ -32,6 +32,7 @@
 
 ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
 {
+    DISABLE_NONNULL_COMPARE
     if (partInfo != M_NULLPTR)
     {
         switch (partInfo->partitionDataType)
@@ -50,6 +51,7 @@ ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
         }
         safe_free_partition_info(&partInfo);
     }
+    RESTORE_NONNULL_COMPARE
     return partInfo;
 }
 
@@ -827,7 +829,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
     // available.
     uint32_t dataSize   = UINT32_C(32768);
     uint8_t* dataBuffer = M_REINTERPRET_CAST(uint8_t*, safe_calloc(dataSize, sizeof(uint8_t)));
-    if (dataBuffer && partitionData)
+    if (dataBuffer != M_NULLPTR && partitionData != M_NULLPTR)
     {
         uint64_t lba                 = UINT64_C(0);
         partitionData->diskBlockSize = device->drive_info.deviceBlockSize;
@@ -940,6 +942,7 @@ static void print_MBR_CHS(mbrCHSAddress address)
 
 static void print_MBR_Info(ptrMBRData mbrTable)
 {
+    DISABLE_NONNULL_COMPARE
     if (mbrTable != M_NULLPTR)
     {
         printf("---MBR info---\n");
@@ -1028,6 +1031,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
             }
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 static void print_GPT_GUID(gptGUID guid)
@@ -1040,6 +1044,7 @@ static void print_GPT_GUID(gptGUID guid)
 
 static void print_GPT_Info(ptrGPTData gptTable)
 {
+    DISABLE_NONNULL_COMPARE
     if (gptTable != M_NULLPTR)
     {
         if (gptTable->mbrValid)
@@ -1160,18 +1165,22 @@ static void print_GPT_Info(ptrGPTData gptTable)
             // possible cross-platform challenges here -TJE
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 static void print_APM_Info(ptrAPMData apmTable)
 {
+    DISABLE_NONNULL_COMPARE
     if (apmTable != M_NULLPTR)
     {
         printf("---APM info---\n");
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 void print_Partition_Info(ptrPartitionInfo partitionTable)
 {
+    DISABLE_NONNULL_COMPARE
     if (partitionTable != M_NULLPTR)
     {
         printf("\n=====================\n");
@@ -1198,4 +1207,5 @@ void print_Partition_Info(ptrPartitionInfo partitionTable)
             break;
         }
     }
+    RESTORE_NONNULL_COMPARE
 }

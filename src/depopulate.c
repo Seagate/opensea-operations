@@ -121,10 +121,12 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
 eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (numberOfDescriptors == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     DECLARE_ZERO_INIT_ARRAY(uint8_t, getPhysicalElementCount, LEGACY_DRIVE_SEC_SIZE);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -155,10 +157,12 @@ eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
     // NOTE: Seagate legacy method uses head numbers starting at zero, but STD spec starts at 1. Add 1 to anything from
     // Seagate legacy method
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (elementList == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     // This should be a number of 512B blocks based on how many physical elements are supported by the drive.
     // NOTE: If this ever starts requesting a LOT of data, then this may need to be broken into multiple commands. - TJE
     uint32_t getPhysicalElementsDataSize =
@@ -249,7 +253,7 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
     printf("\t S - storage element\n");
 
     printf("\nApproximate time to depopulate: ");
-    if (depopulateTime > 0 && depopulateTime < UINT64_MAX)
+    if (depopulateTime > UINT64_C(0) && depopulateTime < UINT64_MAX)
     {
         uint16_t days    = UINT16_C(0);
         uint8_t  hours   = UINT8_C(0);
@@ -366,10 +370,12 @@ eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescr
 eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (depopStatus == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     *depopStatus = DEPOP_NOT_IN_PROGRESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -382,53 +388,65 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
             if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x24) // depop in progress
             {
                 ret = SUCCESS;
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 255.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_IN_PROGRESS;
             }
             else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x25) // repop in progress
             {
                 ret = SUCCESS;
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 255.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_REPOP_IN_PROGRESS;
             }
             else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
             {
                 ret = SUCCESS;
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
             }
             else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00) // invalid field in CDB
             {
                 ret = SUCCESS;
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_INVALID_FIELD;
             }
             else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x04) // depop failed
             {
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_FAILED;
             }
             else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x05) // repop failed
             {
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_REPOP_FAILED;
             }
             else
@@ -467,34 +485,42 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                             {
                             case 0xFB: // repop error
                                 *depopStatus = DEPOP_REPOP_FAILED;
+                                DISABLE_NONNULL_COMPARE
                                 if (progress != M_NULLPTR)
                                 {
                                     *progress = 0.0;
                                 }
+                                RESTORE_NONNULL_COMPARE
                                 foundStatus = true;
                                 break;
                             case 0xFC: // repop in progress
                                 *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+                                DISABLE_NONNULL_COMPARE
                                 if (progress != M_NULLPTR)
                                 {
                                     *progress = 255.0;
                                 }
+                                RESTORE_NONNULL_COMPARE
                                 foundStatus = true;
                                 break;
                             case 0xFD: // depop error
                                 *depopStatus = DEPOP_FAILED;
+                                DISABLE_NONNULL_COMPARE
                                 if (progress != M_NULLPTR)
                                 {
                                     *progress = 0.0;
                                 }
+                                RESTORE_NONNULL_COMPARE
                                 foundStatus = true;
                                 break;
                             case 0xFE: // depop in progress
                                 *depopStatus = DEPOP_IN_PROGRESS;
+                                DISABLE_NONNULL_COMPARE
                                 if (progress != M_NULLPTR)
                                 {
                                     *progress = 255.0;
                                 }
+                                RESTORE_NONNULL_COMPARE
                                 foundStatus = true;
                                 break;
                             case 0xFF: // depop completed successfully
@@ -531,7 +557,8 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                 senseFields.scsiStatusCodes.ascq == 0x24) // depop in progress
             {
                 ret = SUCCESS;
-                if (progress && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
+                DISABLE_NONNULL_COMPARE
+                if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
                     senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
                 {
                     *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
@@ -540,6 +567,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                 {
                     *progress = 255.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_IN_PROGRESS;
             }
             else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
@@ -547,7 +575,8 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                      senseFields.scsiStatusCodes.ascq == 0x25) // repop in progress
             {
                 ret = SUCCESS;
-                if (progress && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
+                DISABLE_NONNULL_COMPARE
+                if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
                     senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
                 {
                     *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
@@ -556,6 +585,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                 {
                     *progress = 255.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_REPOP_IN_PROGRESS;
             }
             else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
@@ -563,10 +593,12 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                      senseFields.scsiStatusCodes.ascq == 0x1E) // microcode activation required
             {
                 ret = SUCCESS;
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
             }
             else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
@@ -574,30 +606,36 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
                      senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
             {
                 ret = SUCCESS;
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_INVALID_FIELD;
             }
             else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
                      senseFields.scsiStatusCodes.asc == 0x31 &&
                      senseFields.scsiStatusCodes.ascq == 0x04) // depop failed
             {
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_FAILED;
             }
             else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
                      senseFields.scsiStatusCodes.asc == 0x31 &&
                      senseFields.scsiStatusCodes.ascq == 0x05) // repop failed
             {
+                DISABLE_NONNULL_COMPARE
                 if (progress != M_NULLPTR)
                 {
                     *progress = 0.0;
                 }
+                RESTORE_NONNULL_COMPARE
                 *depopStatus = DEPOP_REPOP_FAILED;
             }
             else

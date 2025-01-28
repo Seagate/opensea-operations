@@ -37,6 +37,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                    scsiDefectList**        defects)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (defects != M_NULLPTR)
     {
         bool     tenByte                   = false;
@@ -583,7 +584,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                 if (*defects)
                 {
                     ptrSCSIDefectList temp              = *defects;
-                    temp->numberOfElements              = 0;
+                    temp->numberOfElements              = UINT32_C(0);
                     temp->containsGrownList             = listHasGrownDescriptors;
                     temp->containsPrimaryList           = listHasPrimaryDescriptors;
                     temp->generation                    = generationCode;
@@ -603,6 +604,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
     {
         ret = BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
@@ -613,6 +615,7 @@ void free_Defect_List(scsiDefectList** defects)
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
 {
+    DISABLE_NONNULL_COMPARE
     if (defects != M_NULLPTR)
     {
         printf("===SCSI Defect List===\n");
@@ -638,7 +641,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
         {
         case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Short Block Format---\n");
-            if (defects->numberOfElements > 0)
+            if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
@@ -653,7 +656,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Long Block Format---\n");
-            if (defects->numberOfElements > 0)
+            if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
@@ -668,7 +671,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Extended Physical Sector Format---\n");
-            if (defects->numberOfElements > 0)
+            if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
@@ -713,7 +716,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Physical Sector Format---\n");
-            if (defects->numberOfElements > 0)
+            if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
@@ -738,7 +741,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Extended Bytes From Index Format---\n");
-            if (defects->numberOfElements > 0)
+            if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
@@ -782,7 +785,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             printf("---Bytes From Index Format---\n");
-            if (defects->numberOfElements > 0)
+            if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
                 printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
@@ -810,6 +813,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         }
     }
+    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues create_Random_Uncorrectables(tDevice*      device,
@@ -1320,9 +1324,9 @@ eReturnValues corrupt_Random_LBAs(tDevice*      device,
     eReturnValues ret      = SUCCESS;
     uint16_t      iterator = UINT16_C(0);
     seed_64(C_CAST(uint64_t, time(M_NULLPTR))); // start the random number generator
-    for (iterator = 0; iterator < numberOfRandomLBAs; ++iterator)
+    for (iterator = UINT16_C(0); iterator < numberOfRandomLBAs; ++iterator)
     {
-        uint64_t randomLBA = random_Range_64(0, device->drive_info.deviceMaxLba);
+        uint64_t randomLBA = random_Range_64(UINT64_C(0), device->drive_info.deviceMaxLba);
         // align the random LBA to the physical sector
         randomLBA = align_LBA(device, randomLBA);
         // call the function to create an uncorrectable with the range set to 1 so we only corrupt 1 physical block at a
@@ -1339,12 +1343,14 @@ eReturnValues corrupt_Random_LBAs(tDevice*      device,
 eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!defectList || !numberOfDefects)
+    DISABLE_NONNULL_COMPARE
+    if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    *numberOfDefects                   = 0; // set to zero since it will be incremented as we read in the bad LBAs
-    uint32_t totalPendingReported      = UINT32_C(0);
+    RESTORE_NONNULL_COMPARE
+    *numberOfDefects              = UINT32_C(0); // set to zero since it will be incremented as we read in the bad LBAs
+    uint32_t totalPendingReported = UINT32_C(0);
     bool     validPendingReportedCount = false;
     if (SUCCESS ==
         get_Pending_List_Count(
@@ -1440,12 +1446,14 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
 eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!defectList || !numberOfDefects)
+    DISABLE_NONNULL_COMPARE
+    if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    *numberOfDefects                   = 0; // set to zero since it will be incremented as we read in the bad LBAs
-    uint32_t totalPendingReported      = UINT32_C(0);
+    RESTORE_NONNULL_COMPARE
+    *numberOfDefects              = UINT32_C(0); // set to zero since it will be incremented as we read in the bad LBAs
+    uint32_t totalPendingReported = UINT32_C(0);
     bool     validPendingReportedCount = false;
     if (SUCCESS ==
         get_Pending_List_Count(
@@ -1518,7 +1526,7 @@ void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPen
 {
     printf("Pending Defects:\n");
     printf("================\n");
-    if (numberOfItemsInPendingList > 0)
+    if (numberOfItemsInPendingList > UINT32_C(0))
     {
         printf(" #\tLBA\t\t\tTimestamp\n");
         for (uint32_t pendingListIter = UINT32_C(0); pendingListIter < numberOfItemsInPendingList; ++pendingListIter)
@@ -1536,11 +1544,13 @@ void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPen
 eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!results || !numberOfResults)
+    DISABLE_NONNULL_COMPARE
+    if (results == M_NULLPTR || numberOfResults == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    *numberOfResults                     = 0;
+    RESTORE_NONNULL_COMPARE
+    *numberOfResults                     = UINT32_C(0);
     uint32_t backgroundScanResultsLength = UINT32_C(0);
     if (SUCCESS == get_SCSI_Log_Size(device, LP_BACKGROUND_SCAN_RESULTS, 0, &backgroundScanResultsLength))
     {
@@ -1611,15 +1621,17 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
                                                      uint32_t*        numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!defectList || !numberOfDefects)
+    DISABLE_NONNULL_COMPARE
+    if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         return ret;
     }
-    *numberOfDefects = 0;
+    *numberOfDefects = UINT32_C(0);
     ptrBackgroundResults bmsResults =
         M_REINTERPRET_CAST(ptrBackgroundResults, safe_malloc(sizeof(backgroundResults) * MAX_BACKGROUND_SCAN_RESULTS));
     if (bmsResults == M_NULLPTR)
@@ -1648,11 +1660,13 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
 eReturnValues get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!defectList || !numberOfDefects)
+    DISABLE_NONNULL_COMPARE
+    if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    *numberOfDefects = 0;
+    RESTORE_NONNULL_COMPARE
+    *numberOfDefects = UINT32_C(0);
     dstLogEntries dstEntries;
     safe_memset(&dstEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
     ret = get_DST_Log_Entries(device, &dstEntries);

@@ -56,7 +56,7 @@ eReturnValues erase_Range(tDevice* device,
         printf("\n");
     }
     os_Lock_Device(device);
-    if (eraseRangeStart == 0)
+    if (eraseRangeStart == UINT64_C(0))
     {
         // only unmount when we are touching boot sectors!
         os_Unmount_File_Systems_On_Device(device);

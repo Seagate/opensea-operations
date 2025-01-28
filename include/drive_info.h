@@ -422,8 +422,9 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(tDevice*                    device,
-                                                                   ptrDriveInformationSAS_SATA driveInfo);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -439,10 +440,13 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(tDevice*                    device,
-                                                                    ptrDriveInformationSAS_SATA driveInfo);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+        get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -460,13 +464,17 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
-                                                                    ptrDriveInformationSAS_SATA scsiDriveInfo,
-                                                                    ptrDriveInformationSAS_SATA ataDriveInfo);
+    M_NONNULL_PARAM_LIST(1, 2, 3)
+    M_PARAM_WO(1) M_PARAM_RO(2) M_PARAM_RO(3) OPENSEA_OPERATIONS_API
+        void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
+                                                 ptrDriveInformationSAS_SATA scsiDriveInfo,
+                                                 ptrDriveInformationSAS_SATA ataDriveInfo);
 
-    OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
-                                                                         ptrDriveInformationSAS_SATA scsiDriveInfo,
-                                                                         ptrDriveInformationNVMe     nvmeDriveInfo);
+    M_NONNULL_PARAM_LIST(1, 2, 3)
+    M_PARAM_WO(1) M_PARAM_RO(2) M_PARAM_RO(3) OPENSEA_OPERATIONS_API
+        void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
+                                                      ptrDriveInformationSAS_SATA scsiDriveInfo,
+                                                      ptrDriveInformationNVMe     nvmeDriveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -481,9 +489,11 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo);
 
-    OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -498,7 +508,8 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_Device_Information(ptrDriveInformation driveInfo);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Device_Information(ptrDriveInformation driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -514,8 +525,9 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
-                                                                   ptrDriveInformation driveInfo);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API
+        void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo, ptrDriveInformation driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -534,31 +546,11 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
+        print_Drive_Information(tDevice* device, bool showChildInformation);
 
-    //-----------------------------------------------------------------------------
-    //
-    //  get_SAS_Interface_Speeds()
-    //
-    //! \brief   Description:  Function to determine SCSI interface speeds (called by print drive info)
-    //
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[in] scsiport0negSpeed = pointer to string for port0 negotiated speed value
-    //!   \param[in] scsiport1negSpeed = pointer to string for port1 negotiated speed value
-    //!   \param[in] scsiport0maxSpeed = pointer to string for port0 max speed value
-    //!   \param[in] scsiport1maxSpeed = pointer to string for port1 max speed value
-    //!
-    //  Exit:
-    //
-    //-----------------------------------------------------------------------------
-    void get_SAS_Interface_Speeds(tDevice* device,
-                                  char**   scsiport0negSpeed,
-                                  char**   scsiport1negSpeed,
-                                  char**   scsiport0maxSpeed,
-                                  char**   scsiport1maxSpeed);
-
-    const char* print_drive_type(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) const char* print_drive_type(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -573,7 +565,7 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    eReturnValues print_Nvme_Ctrl_Information(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) eReturnValues print_Nvme_Ctrl_Information(tDevice* device);
 
 #if defined(__cplusplus)
 }
