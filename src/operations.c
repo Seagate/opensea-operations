@@ -2957,6 +2957,8 @@ eOSFeatureSupported is_Block_Sanitize_Operation_Supported(tDevice* device)
         featureSupported = OS_FEATURE_SUPPORTED;
 #endif
     }
+
+    return featureSupported;
 }
 
 eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(tDevice* device)
@@ -3024,6 +3026,8 @@ eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(tDevice* device)
         featureSupported = OS_FEATURE_SUPPORTED;
 #endif
     }
+
+    return featureSupported;
 }
 
 eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(tDevice* device)
@@ -3078,4 +3082,36 @@ eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(tDevice* device)
         featureSupported = OS_FEATURE_SUPPORTED;
 #endif
     }
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_NVMe_Format_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.drive_type == NVME_DRIVE) //If NVMe drive
+    {
+        if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+        {
+            if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                || device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_ASMEDIA) //JMICRON or ASMEDIA, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+        }
+        else //Non USB_INTERFACE
+        {
+#if defined (_WIN32)
+            if (is_Windows_PE()) //If Windows PE, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+#else
+            featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+        }
+    }
+
+    return featureSupported;
 }

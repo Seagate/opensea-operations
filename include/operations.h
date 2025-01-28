@@ -624,6 +624,7 @@ extern "C"
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_Block_Sanitize_Operation_Supported(tDevice* device);
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(tDevice* device);
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_NVMe_Format_Operation_Supported(tDevice* device);
 #if defined (__cplusplus)
 }
 #endif
