@@ -3115,3 +3115,27 @@ eOSFeatureSupported is_NVMe_Format_Operation_Supported(tDevice* device)
 
     return featureSupported;
 }
+
+eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+    {
+        //Some devices may support the most basic version of this command, 
+        //but it is better to just disable it since it likely won't do what we want
+        featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
+    }
+    else if (device->drive_info.interface_type == SCSI_INTERFACE && device->drive_info.drive_type == ATA_DRIVE) //If SATA drive on a SCSI_INTERFACE
+    {
+        //It MAY be supported, but it will most likely just return without running anything.
+        //It is recommended to disable it in this case because it doesn't really do anything useful.
+        featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
+    }
+    else
+    {
+        featureSupported = OS_FEATURE_SUPPORTED;
+    }
+
+    return featureSupported;
+}
