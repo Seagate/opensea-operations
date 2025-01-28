@@ -3139,3 +3139,19 @@ eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(tDevice* device)
 
     return featureSupported;
 }
+
+eOSFeatureSupported is_SMART_Check_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_SUPPORTED;
+
+#if defined (_WIN32)
+    if (device->os_info.ioType == WIN_IOCTL_BASIC)
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    else if (device->drive_info.drive_type == NVME_DRIVE
+        && device->drive_info.interface_type == SCSI_INTERFACE
+        && strcmp(device->drive_info.T10_vendor_ident, "NVMe") == 0) //SCSI Vendor ID is set to NVMe, the Interface is SCSI_INTERFACE, drive is NVMe, then not supported
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+#endif
+
+    return featureSupported;
+}
