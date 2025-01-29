@@ -3208,3 +3208,25 @@ eOSFeatureSupported is_DST_Operation_Supported(tDevice* device)
 
     return featureSupported;
 }
+
+eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+#if defined (_WIN32)
+    if (device->os_info.ioType == WIN_IOCTL_BASIC
+        || device->os_info.ioType == WIN_IOCTL_SMART_ONLY
+        || device->os_info.ioType == WIN_IOCTL_SMART_AND_IDE) //Not supported for WIN_IOCTL_BASIC or WIN_IOCTL_SMART_ONLY or WIN_IOCTL_SMART_AND_IDE
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    else if (!is_Windows_PE()
+        && !is_Windows_8_Or_Higher()
+        && (device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == SCSI_INTERFACE)) //Non PE windows which are older than 8 will not support for USB or SCSI interface
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    else
+        featureSupported = OS_FEATURE_SUPPORTED;
+#else
+    featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+
+    return featureSupported;
+}
