@@ -3155,3 +3155,51 @@ eOSFeatureSupported is_SMART_Check_Operation_Supported(tDevice* device)
 
     return featureSupported;
 }
+
+eOSFeatureSupported is_DST_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.drive_type == NVME_DRIVE) //If NVMe drive
+    {
+        if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+        {
+            if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                || device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_ASMEDIA) //JMICRON or ASMEDIA, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+#if !defined (_WIN32)
+                if ((device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                    && device->drive_info.adapter_info.vendorID == 0x0BC2)) //For linux, if JMICRON and 0BC2h vendor, then not supported
+                {
+                    featureSupported = OS_FEATURE_ADAPTER_BLOCKS;
+                }
+#endif
+            }
+        }
+#if defined (_WIN32)
+        else if (device->drive_info.interface_type == SCSI_INTERFACE
+            && (strcmp(device->drive_info.T10_vendor_ident, "NVMe") == 0)) //SCSI Vendor ID is set to NVMe, the Interface is SCSI_INTERFACE, drive is NVMe, then not supported
+        {
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        }
+#endif
+        else
+        {
+            featureSupported = OS_FEATURE_SUPPORTED;
+        }
+    }
+    else //If SATA/SAS drive
+    {
+#if defined (_WIN32)
+        if (device->os_info.ioType == WIN_IOCTL_BASIC)
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else
+            featureSupported = OS_FEATURE_SUPPORTED;
+#else
+        featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+    }
+
+    return featureSupported;
+}

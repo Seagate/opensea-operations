@@ -627,6 +627,7 @@ extern "C"
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_NVMe_Format_Operation_Supported(tDevice* device);
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(tDevice* device);
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_SMART_Check_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_DST_Operation_Supported(tDevice* device);
 #if defined (__cplusplus)
 }
 #endif
