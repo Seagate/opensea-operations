@@ -3177,13 +3177,11 @@ eOSFeatureSupported is_DST_Operation_Supported(tDevice* device)
 #endif
             }
         }
-#if defined (_WIN32)
         else if (device->drive_info.interface_type == SCSI_INTERFACE
             && (strcmp(device->drive_info.T10_vendor_ident, "NVMe") == 0)) //SCSI Vendor ID is set to NVMe, the Interface is SCSI_INTERFACE, drive is NVMe, then not supported
         {
             featureSupported = OS_FEATURE_OS_BLOCKS;
         }
-#endif
         else
         {
             featureSupported = OS_FEATURE_SUPPORTED;
@@ -3200,6 +3198,13 @@ eOSFeatureSupported is_DST_Operation_Supported(tDevice* device)
         featureSupported = OS_FEATURE_SUPPORTED;
 #endif
     }
+
+#if defined (_WIN32)
+    if (!is_Windows_PE() && !is_Windows_10_Version_1903_Or_Higher())
+    {
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    }
+#endif
 
     return featureSupported;
 }
